@@ -2,10 +2,9 @@ import { SYesNoVote } from '@/declarations/backend/backend.did';
 
 import { EYesNoChoice } from '../utils/conversions/yesnochoice';
 import { useEffect, useRef, useState } from 'react';
-import { formatBalanceE8s } from '../utils/conversions/token';
-import { BITCOIN_TOKEN_SYMBOL } from '../constants';
 import { BallotInfo } from './types';
 import { get_cursor, get_no_votes, get_total_votes, get_yes_votes } from '../utils/conversions/vote';
+import { useCurrencyContext } from './CurrencyContext';
 
 const CURSOR_HEIGHT = "1rem";
 const LIMIT_DISPLAY_RATIO = 0.2; // 20%
@@ -28,6 +27,7 @@ type Props = {
 
 const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDown}: Props) => {
 
+  const { formatSatoshis } = useCurrencyContext();
 
   const initCursor = clampCursor(get_cursor(vote));
 
@@ -77,7 +77,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
               { 
                 cursor > LIMIT_DISPLAY_RATIO && 
                   <span className={ballot.choice === EYesNoChoice.Yes && (ballot.amount ?? 0n) > 0n ? `animate-pulse` : ``}>
-                    { formatBalanceE8s(get_yes_votes(vote) + (ballot.choice === EYesNoChoice.Yes ? (ballot.amount ?? 0n) : 0n), BITCOIN_TOKEN_SYMBOL) + " " + EYesNoChoice.Yes } 
+                    { formatSatoshis(get_yes_votes(vote) + (ballot.choice === EYesNoChoice.Yes ? (ballot.amount ?? 0n) : 0n)) + " " + EYesNoChoice.Yes } 
                   </span>
               }
             </div>
@@ -89,7 +89,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
               { 
                 (1 - cursor) > LIMIT_DISPLAY_RATIO && 
                   <span className={ballot.choice === EYesNoChoice.No && (ballot.amount ?? 0n) > 0n ? `animate-pulse` : ``}>
-                    { formatBalanceE8s(get_no_votes(vote) + (ballot.choice === EYesNoChoice.No ? (ballot.amount ?? 0n) : 0n), BITCOIN_TOKEN_SYMBOL) + " " + EYesNoChoice.No }
+                    { formatSatoshis(get_no_votes(vote) + (ballot.choice === EYesNoChoice.No ? (ballot.amount ?? 0n) : 0n)) + " " + EYesNoChoice.No }
                   </span>
               }
             </div>

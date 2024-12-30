@@ -8,17 +8,35 @@ export const toE8s = (amount: number) : bigint | undefined => {
 
 export const fromE8s = (amountE8s: bigint) => Number(amountE8s) / 100_000_000;
 
-export const formatBalanceE8s = (amountE8s: bigint, token: string) => {
-    const precision = 2n;
-    const scaleFactor = 10n ** precision;
+export const formatBalanceE8s = (amountE8s: bigint) => {
+    return (Number(amountE8s) / 10e8).toString();
+};
+
+export const formatBTCInUSD = (amountE8s: bigint, price: number) => {
+
+    price = 100_000; // 1 BTC = 100,000 USD
+
+    const usd = (Number(amountE8s) * price / 100_000_000);
+
+    const [balance, unit, precision] =
+        usd < 10 ?                [usd,                      "", 2] :
+        usd < 1_000_000 ?         [usd,                      "", 0] :
+        usd < 1_000_000_000 ?     [usd / 1_000_000,         "M", 0] :
+        usd < 1_000_000_000_000 ? [usd / 1_000_000_000,     "B", 0] :
+                                  [usd / 1_000_000_000_000, "T", 0];
+
+    return `$${balance.toFixed(precision)}${unit}`;
+}
+
+export const formatBalanceSats = (amountE8s: bigint) => {
 
     const [balance, unit] =
-        amountE8s < 100_000n ?             [amountE8s * scaleFactor / 100n,                 "μ"] :
-        amountE8s < 100_000_000n ?         [amountE8s * scaleFactor / 100_000n,             "m"] :
-        amountE8s < 100_000_000_000n ?     [amountE8s * scaleFactor / 100_000_000n,         "" ] :
-        amountE8s < 100_000_000_000_000n ? [amountE8s * scaleFactor / 100_000_000_000n,     "k"] :
-                                           [amountE8s * scaleFactor / 100_000_000_000_000n, "M"];
+        amountE8s < 1_000n ?             [amountE8s,                       ""] :
+        amountE8s < 1_000_000n ?         [amountE8s / 1_000n,             "k"] :
+        amountE8s < 1_000_000_000n ?     [amountE8s / 1_000_000n,         "M"] :
+        amountE8s < 1_000_000_000_000n ? [amountE8s / 1_000_000_000n,     "B"] :
+                                         [amountE8s / 1_000_000_000_000n, "T"];
 
-    return `${(Number(balance) / Number(scaleFactor)).toFixed(2)} ${unit}${token}`;
+    return `${(Number(balance))}${unit}`;
 };
 

@@ -1,7 +1,9 @@
 import { Link, useNavigate }      from "react-router-dom";
-import { useEffect } from "react";
+import { useContext, useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { protocolActor } from "../actors/ProtocolActor";
+import Select from "react-select";
+import { SupportedCurrency, useCurrencyContext } from "./CurrencyContext";
 
 const Header = () => {
 
@@ -13,6 +15,8 @@ const Header = () => {
     functionName: "get_presence_info",
     args: [],
   });
+
+  const { currency, setCurrency } = useCurrencyContext();
 
   useEffect(() => {
 
@@ -71,7 +75,7 @@ const Header = () => {
     <header className="bg-slate-100 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full justify-between space-x-2 xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14">
       <Link to="/" className="flex flex-row items-center space-x-1">
         <div className="flex flex-row space-x-1 items-end">
-          <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">TUCKIT</span>
+          <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">RESONANCE</span>
           <span className="text-md md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl font-neon-spark whitespace-nowrap drop-shadow shadow-blue-800 neon-effect">.defi </span>
         </div>
       </Link>
@@ -82,6 +86,17 @@ const Header = () => {
             </span>
           </Link> 
         }
+      <div className="flex flex-row items-center justify-end md:space-x-4 space-x-2">
+        <div>Currency</div>
+        <Select
+          options={Object.values(SupportedCurrency).map((currency) => ({
+            value: currency,
+            label: currency,
+          }))}
+          value={{ value: currency, label: currency }}
+          onChange={(option) => { if (option !== null) setCurrency(option.value as SupportedCurrency) }}
+        />
+      </div>
       <div className="flex flex-row items-center justify-end md:space-x-4 space-x-2">
         { authenticated && identity ? 
           <div className="flex flex-row items-center justify-end">

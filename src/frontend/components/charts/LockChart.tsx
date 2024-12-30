@@ -5,11 +5,11 @@ import { SBallotType } from '@/declarations/protocol/protocol.did';
 import IntervalPicker from './IntervalPicker';
 import { DurationUnit, toNs } from '../../utils/conversions/duration';
 import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
-import { formatBalanceE8s } from '../../utils/conversions/token';
 import { protocolActor } from '../../actors/ProtocolActor';
 import { formatDate, msToNs, nsToMs, timeToDate } from '../../utils/conversions/date';
 import { get_current, get_first } from '../../utils/timeline';
 import { unwrapLock } from '../../utils/conversions/ballot';
+import { useCurrencyContext } from '../CurrencyContext';
 
 interface LockChartProps {
   ballots: SBallotType[];
@@ -18,6 +18,8 @@ interface LockChartProps {
 };
 
 const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
+
+  const { formatSatoshis } = useCurrencyContext();
 
   const { data: currentTime } = protocolActor.useQueryCall({
     functionName: "get_time",
@@ -69,7 +71,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         start: points[0],
         end: points[1],
         percentage: ((initialLockEnd - baseTimestamp) / (actualLockEnd - baseTimestamp)) * 100,
-        label: LOCK_EMOJI + " " + formatBalanceE8s(amount, BITCOIN_TOKEN_SYMBOL)
+        label: LOCK_EMOJI + " " + formatSatoshis(amount)
       });
     });
 

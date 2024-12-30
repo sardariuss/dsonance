@@ -11,9 +11,10 @@ import { format } from "date-fns";
 
 interface DurationChartProps {
   duration_timeline: STimeline;
+  format_value: (value: number) => string;
 };
   
-const DurationChart = ({ duration_timeline }: DurationChartProps) => {
+const DurationChart = ({ duration_timeline, format_value }: DurationChartProps) => {
 
   const { data: currentTime } = protocolActor.useQueryCall({
     functionName: "get_time",
@@ -66,6 +67,8 @@ const DurationChart = ({ duration_timeline }: DurationChartProps) => {
           yScale={{
             type: 'linear',
           }}
+          curve='stepAfter'
+          enableArea={true}
           animate={false}
           theme={{
             background: CHART_BACKGROUND_COLOR,
@@ -108,13 +111,12 @@ const DurationChart = ({ duration_timeline }: DurationChartProps) => {
                     fill: 'gray',
                   }}
                 >
-                  { value /*formatDuration(BigInt(value))*/ }
+                  { format_value(value) }
                 </text>
               </g>
               );
             }
           }}
-          curve="linear"
         />
       </div>
     </div>

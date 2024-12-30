@@ -10,6 +10,7 @@ import { CkBtcActorProvider }           from './actors/CkBtcActor';
 import { ProtocolActorProvider }        from './actors/ProtocolActor';
 import { PresenceLedgerActorProvider }  from './actors/PresenceLedgerActor';
 import { ResonanceLedgerActorProvider } from './actors/ResonanceLedgerActor';
+import { CurrencyProvider }             from './components/CurrencyContext';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
@@ -19,7 +20,9 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
           <PresenceLedgerActorProvider>
             <ResonanceLedgerActorProvider>
               <ProtocolActorProvider>
-                <App/>
+                <CurrencyProvider>
+                  <App/>
+                </CurrencyProvider>
               </ProtocolActorProvider>
             </ResonanceLedgerActorProvider>
           </PresenceLedgerActorProvider>

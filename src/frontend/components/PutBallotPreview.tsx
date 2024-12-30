@@ -7,7 +7,6 @@ import { BallotInfo } from "./types";
 import { get_current } from "../utils/timeline";
 import { v4 as uuidv4 } from 'uuid';
 import { unwrapLock } from "../utils/conversions/ballot";
-import { SPreviewBallotResult } from "@/declarations/protocol/protocol.did";
 
 interface PutBallotPreviewProps {
   vote_id: string;
@@ -20,7 +19,6 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
   // Right now there is still an error at start but at least it's not breaking the app
   const { data: preview, call: refreshPreview } = protocolActor.useQueryCall({
     functionName: "preview_ballot",
-    onSuccess: (prev : SPreviewBallotResult | undefined) => { console.log(prev) },
   });
 
   useEffect(() => {

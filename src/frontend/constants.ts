@@ -1,4 +1,4 @@
-export const BITCOIN_TOKEN_SYMBOL = "BTC";
+export const BITCOIN_TOKEN_SYMBOL = "₿";
 export const PRESENCE_TOKEN_SYMBOL = "PRS";
 export const RESONANCE_TOKEN_SYMBOL = "RSN";
 // TODO: this should be defined in the protocol
@@ -12,3 +12,4 @@ export const RESONANCE_TOKEN_EMOJI = "🔮";
 export const LOCK_EMOJI = "🔒";
 export const TIMESTAMP_EMOJI = "📅";
 export const CHART_BACKGROUND_COLOR = "#ffffff";
+export const PRICE_BTC_IN_USD = 100_000;

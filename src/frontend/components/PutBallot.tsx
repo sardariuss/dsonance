@@ -1,12 +1,13 @@
 import { protocolActor } from "../actors/ProtocolActor";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { EYesNoChoice, toCandid } from "../utils/conversions/yesnochoice";
-import { BITCOIN_TOKEN_SYMBOL, MINIMUM_BALLOT_AMOUNT } from "../constants";
-import { formatBalanceE8s, fromE8s, toE8s } from "../utils/conversions/token";
+import { BALLOT_EMOJI, BITCOIN_TOKEN_SYMBOL, LOCK_EMOJI, MINIMUM_BALLOT_AMOUNT } from "../constants";
+import { fromE8s, toE8s } from "../utils/conversions/token";
 import { useEffect, useRef, useState } from "react";
 import { BallotInfo } from "./types";
 import ResetIcon from "./icons/ResetIcon";
 import { v4 as uuidv4 } from 'uuid';
+import { useCurrencyContext } from "./CurrencyContext";
 
 interface PutBallotProps {
   vote_id: string;
@@ -17,6 +18,8 @@ interface PutBallotProps {
 }
 
 const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setBallot, resetVote }) => {
+
+  const { formatSatoshis } = useCurrencyContext();
 
   const { call: putBallot, loading } = protocolActor.useUpdateCall({
     functionName: "put_ballot",
@@ -59,6 +62,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setB
           <ResetIcon />
         </div>
         <div className="flex items-center space-x-1">
+          <span>{BITCOIN_TOKEN_SYMBOL}</span>
           <input
             ref={inputRef}
             type="text"
@@ -68,7 +72,6 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setB
             onChange={(e) => { if(isActive) { setBallot({ choice: ballot.choice, amount: toE8s(Number(e.target.value)) ?? 0n }) }} }
             prefix={BITCOIN_TOKEN_SYMBOL}
           />
-          <span>{BITCOIN_TOKEN_SYMBOL}</span>
         </div>
         <div>on</div>
         <div>
@@ -87,11 +90,11 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setB
           disabled={loading || isTooSmall()}
           onClick={triggerVote}
         >
-          Tuck it!
+          Lock ballot { BALLOT_EMOJI }
         </button>
       </div>
       <div className={`${isTooSmall() ? "text-white" : "text-gray-500"} text-sm`}>
-        Minimum {formatBalanceE8s(MINIMUM_BALLOT_AMOUNT, BITCOIN_TOKEN_SYMBOL)}
+        Minimum {formatSatoshis(MINIMUM_BALLOT_AMOUNT)}
       </div>
     </div>
   );

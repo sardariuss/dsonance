@@ -7,15 +7,16 @@ import { Principal } from "@dfinity/principal";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import LockChart from "../charts/LockChart";
-import { BITCOIN_TOKEN_SYMBOL, BALLOT_EMOJI, LOCK_EMOJI, DURATION_EMOJI, PRESENCE_TOKEN_EMOJI, RESONANCE_TOKEN_EMOJI, PRESENCE_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL, TIMESTAMP_EMOJI } from "../../constants";
-import { formatBalanceE8s } from "../../utils/conversions/token";
+import { BALLOT_EMOJI, LOCK_EMOJI, DURATION_EMOJI, PRESENCE_TOKEN_EMOJI, RESONANCE_TOKEN_EMOJI, TIMESTAMP_EMOJI, PRESENCE_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL, DISSENT_EMOJI } from "../../constants";
 import { get_current, get_first, to_number_timeline } from "../../utils/timeline";
 import DurationChart from "../charts/DurationChart";
 import { protocolActor } from "../../actors/ProtocolActor";
 import { SBallotType } from "../../../declarations/protocol/protocol.did";
 import { fromNullable } from "@dfinity/utils";
 import Balance from "../Balance";
-import { unwrapLock } from "../../utils/conversions/ballot";
+import { computeResonance, unwrapLock } from "../../utils/conversions/ballot";
+import { useCurrencyContext } from "../CurrencyContext";
+import { formatBalanceE8s } from "../../utils/conversions/token";
 
 interface VoteTextProps {
   ballot: SBallotType;
@@ -43,6 +44,8 @@ const User = () => {
     return <div>Invalid principal</div>;
   }
 
+  const { formatSatoshis } = useCurrencyContext();
+
   const [selected, setSelected] = useState<number>(0);
 
   const { data: ballots, call: refreshBallots } = protocolActor.useQueryCall({
@@ -65,7 +68,7 @@ const User = () => {
       <Balance/>
       <div>
         {
-          totalLocked? <div> Total locked: { formatBalanceE8s(totalLocked, BITCOIN_TOKEN_SYMBOL) } </div> : <></>
+          totalLocked? <div> Total locked: { formatSatoshis(totalLocked) } </div> : <></>
         }
       </div>
       { ballots && <LockChart ballots={ballots} select_ballot={setSelected} selected={selected}/> }
@@ -82,14 +85,14 @@ const User = () => {
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{LOCK_EMOJI}</span>
                     <div>
-                      <div><span className="italic text-gray-400 text-sm">Amount:</span> {formatBalanceE8s(ballot.YES_NO.amount, BITCOIN_TOKEN_SYMBOL) } </div>
+                      <div><span className="italic text-gray-400 text-sm">Amount:</span> {formatSatoshis(ballot.YES_NO.amount) } </div>
                     </div>
                   </div>
 
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
-                    <span>{TIMESTAMP_EMOJI}</span>
+                    <span>{DISSENT_EMOJI}</span>
                     <div>
-                      <div><span className="italic text-gray-400 text-sm">Date:</span> {formatDate(timeToDate(ballot.YES_NO.timestamp)) } </div>
+                      <div><span className="italic text-gray-400 text-sm">Dissent:</span> { ballot.YES_NO.dissent.toFixed(3) } </div>
                     </div>
                   </div>
 
@@ -116,26 +119,26 @@ const User = () => {
                   {/* Row 4: Presence */}
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{PRESENCE_TOKEN_EMOJI}</span>
-                    <div><span className="italic text-gray-400 text-sm">Accumulated:</span> { formatBalanceE8s(BigInt(Math.floor(get_current(ballot.YES_NO.presence.amount).data)), PRESENCE_TOKEN_SYMBOL) }</div>
+                    <div><span className="italic text-gray-400 text-sm">Accumulated:</span> { formatBalanceE8s(BigInt(Math.floor(get_current(ballot.YES_NO.presence.amount).data))) + " " + PRESENCE_TOKEN_SYMBOL }</div>
                   </div>
                   
                   {/* Row 5: Resonance */}
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{RESONANCE_TOKEN_EMOJI}</span>
-                    <div><span className="italic text-gray-400 text-sm">Forecasted:</span> { formatBalanceE8s(BigInt(Math.floor(get_current(ballot.YES_NO.resonance.amount).data)), RESONANCE_TOKEN_SYMBOL) }</div>
+                    <div><span className="italic text-gray-400 text-sm">Forecasted:</span> { formatBalanceE8s(computeResonance(ballot)) + " " + RESONANCE_TOKEN_SYMBOL }</div>
                   </div>
 
                   <div className="col-span-2 w-full flex flex-col">
                     <div>Duration</div>
-                    <DurationChart duration_timeline={to_number_timeline(unwrapLock(ballot).duration_ns)}/>
+                    <DurationChart duration_timeline={to_number_timeline(unwrapLock(ballot).duration_ns)} format_value={ (value: number) => formatDuration(BigInt(value)) }/>
                   </div>
                   <div className="col-span-2 w-full flex flex-col">
                     <div>Presence</div>
-                    <DurationChart duration_timeline={ballot.YES_NO.presence.amount}/>
+                    <DurationChart duration_timeline={ballot.YES_NO.presence.amount} format_value={ (value: number) => (formatBalanceE8s(BigInt(value)) + " " + PRESENCE_TOKEN_SYMBOL) }/>
                   </div>
                   <div className="col-span-2 w-full flex flex-col">
                     <div>Consent</div>
-                    <DurationChart duration_timeline={ballot.YES_NO.consent}/>
+                    <DurationChart duration_timeline={ballot.YES_NO.consent} format_value={ (value: number) => value.toString() }/>
                   </div>
                   <div className="col-span-2 w-full flex flex-col">
                     { ballot.YES_NO.ballot_id }

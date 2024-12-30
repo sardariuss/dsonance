@@ -5,13 +5,12 @@ import { SYesNoVote }                            from "@/declarations/backend/ba
 import { EYesNoChoice }                          from "../../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump }     from "@nivo/bump";
 
-import { formatBalanceE8s }                      from "../../utils/conversions/token";
-
 import { BallotInfo }                            from "../types";
 import { DurationUnit }                          from "../../utils/conversions/duration";
 import { CHART_BACKGROUND_COLOR }                from "../../constants";
 import { CHART_CONFIGURATIONS, computeInterval } from ".";
 import IntervalPicker                            from "./IntervalPicker";
+import { useCurrencyContext } from "../CurrencyContext";
 
 interface ComputeChartPropsArgs {
   currentTime: bigint;
@@ -112,6 +111,8 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
   const [duration, setDuration] = useState<DurationUnit>(DurationUnit.WEEK);
   const [refreshVoteData, setRefreshVoteData] = useState<boolean>(false);
 
+  const { formatSatoshis } = useCurrencyContext();
+
   const { data: currentTime, call: refreshCurrentTime } = protocolActor.useQueryCall({
     functionName: "get_time",
   });
@@ -165,7 +166,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                     (index < (priceLevels.length - 1)) ? 
                     <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
                       <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
-                        <div className="text-xs text-gray-500" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatBalanceE8s(BigInt(price), "") }</div>
+                        <div className="text-xs text-gray-500" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div>
                         <div className="flex w-full h-[0.5px] bg-gray-300 opacity-50" style={{ position: 'absolute', bottom: 0 }}/>
                       </div>
                     </div> : <></>

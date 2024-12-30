@@ -103,19 +103,19 @@ const Balance = () => {
     <div className="flex flex-row space-x-3">
       <div className="flex flex-row space-x-1">
         <div>Balance</div>
-        <div>{formatBalanceE8s(presenceBalance ?? 0n, PRESENCE_TOKEN_SYMBOL)}</div>
+        <div>{formatBalanceE8s(presenceBalance ?? 0n) + " " + PRESENCE_TOKEN_SYMBOL}</div>
       </div>
       <div className="flex flex-row space-x-1">
         <div>Balance</div>
-        <div>{formatBalanceE8s(resonanceBalance ?? 0n, RESONANCE_TOKEN_SYMBOL)}</div>
+        <div>{formatBalanceE8s(resonanceBalance ?? 0n) + " " + RESONANCE_TOKEN_SYMBOL}</div>
       </div>
       <div className="flex flex-row space-x-1">
         <div>Balance</div>
-        <div>{formatBalanceE8s(btcBalance ?? 0n, BITCOIN_TOKEN_SYMBOL)}</div>
+        <div>{formatBalanceE8s(btcBalance ?? 0n) + " " + BITCOIN_TOKEN_SYMBOL}</div>
       </div>
       <div className="flex flex-row space-x-1">
         <div>Allowance</div>
-        <div>{formatBalanceE8s(btcAllowance?.allowance ?? 0n, BITCOIN_TOKEN_SYMBOL)}</div>
+        <div>{formatBalanceE8s(btcAllowance?.allowance ?? 0n) + " " + BITCOIN_TOKEN_SYMBOL}</div>
       </div>
       <button 
         className="button-simple w-36 min-w-36 h-9 justify-center items-center"
