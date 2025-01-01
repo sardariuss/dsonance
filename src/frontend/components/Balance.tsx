@@ -7,10 +7,9 @@ import { useAuth } from '@ic-reactor/react';
 import { ckBtcActor } from '../actors/CkBtcActor';
 import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
-import { presenceLedgerActor } from '../actors/PresenceLedgerActor';
 import { resonanceLedgerActor } from '../actors/ResonanceLedgerActor';
 import { formatBalanceE8s } from '../utils/conversions/token';
-import { BITCOIN_TOKEN_SYMBOL, PRESENCE_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL } from '../constants';
+import { BITCOIN_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL } from '../constants';
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -38,11 +37,6 @@ const Balance = () => {
     owner: identity?.getPrincipal(),
     subaccount: []
   };
-
-  const { data: presenceBalance } = presenceLedgerActor.useQueryCall({
-    functionName: 'icrc1_balance_of',
-    args: [account]
-  });
 
   const { data: resonanceBalance } = resonanceLedgerActor.useQueryCall({
     functionName: 'icrc1_balance_of',
@@ -101,10 +95,6 @@ const Balance = () => {
 
   return (
     <div className="flex flex-row space-x-3">
-      <div className="flex flex-row space-x-1">
-        <div>Balance</div>
-        <div>{formatBalanceE8s(presenceBalance ?? 0n) + " " + PRESENCE_TOKEN_SYMBOL}</div>
-      </div>
       <div className="flex flex-row space-x-1">
         <div>Balance</div>
         <div>{formatBalanceE8s(resonanceBalance ?? 0n) + " " + RESONANCE_TOKEN_SYMBOL}</div>

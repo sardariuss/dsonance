@@ -30,11 +30,10 @@ module {
 
     public func build(args: State and { provider: Principal }) : Controller.Controller {
 
-        let { clock_parameters; vote_register; ballot_register; lock_register; deposit; presence; resonance; parameters; provider; } = args;
+        let { clock_parameters; vote_register; ballot_register; lock_register; deposit; resonance; parameters; provider; } = args;
         let { nominal_lock_duration; decay; } = parameters;
 
         let deposit_ledger = LedgerFacade.LedgerFacade({ deposit with provider; });
-        let presence_ledger = LedgerFacade.LedgerFacade({ presence with provider; });
         let resonance_ledger = LedgerFacade.LedgerFacade({ resonance with provider; });
 
         let deposit_debt = DebtProcessor.DebtProcessor({
@@ -48,19 +47,6 @@ module {
                 };
             };
             ledger = deposit_ledger;
-        });
-
-        let presence_debt = DebtProcessor.DebtProcessor({
-            presence with 
-            get_debt_info = func (id: UUID) : DebtInfo {
-                switch(Map.get(ballot_register.ballots, Map.thash, id)) {
-                    case(null) { Debug.trap("Debt not found"); };
-                    case(?ballot) {
-                        BallotUtils.unwrap_yes_no(ballot).presence;
-                    };
-                };
-            };
-            ledger = presence_ledger;
         });
 
         let resonance_debt = DebtProcessor.DebtProcessor({
@@ -78,8 +64,8 @@ module {
 
         let presence_dispenser = PresenceDispenser.PresenceDispenser({
             lock_register;
-            parameters = presence.parameters;
-            debt_processor = presence_debt;
+            parameters = parameters.presence;
+            debt_processor = resonance_debt;
         });
 
         let duration_calculator = DurationCalculator.PowerScaler({
@@ -96,19 +82,24 @@ module {
             };
             about_to_remove = func (ballot: YesNoBallot, time: Time) {
                 presence_dispenser.dispense(time);
-                deposit_debt.add_debt({ 
-                    amount = Float.fromInt(ballot.amount);
+                
+                let lock = BallotUtils.unwrap_lock(ballot);
+                let reward = Incentives.compute_resonance({
+                    amount = lock.participation;
+                    dissent = ballot.dissent;
+                    consent = Timeline.current(ballot.consent);
+                    start = ballot.timestamp;
+                    end = time;
+                });
+                lock.rewarded := ?reward;
+                resonance_debt.add_debt({ 
+                    amount = reward;
                     id = ballot.ballot_id;
                     time;
                 });
-                resonance_debt.add_debt({ 
-                    amount = Incentives.compute_resonance({ 
-                        amount = ballot.amount;
-                        dissent = ballot.dissent;
-                        consent = Timeline.current(ballot.consent);
-                        start = ballot.timestamp;
-                        end = time;
-                    });
+                
+                deposit_debt.add_debt({ 
+                    amount = Float.fromInt(ballot.amount);
                     id = ballot.ballot_id;
                     time;
                 });
@@ -136,7 +127,6 @@ module {
             lock_scheduler;
             vote_type_controller;
             deposit_debt;
-            presence_debt;
             resonance_debt;
             decay_model;
             presence_dispenser;

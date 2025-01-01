@@ -15,14 +15,14 @@ module {
     type Segment = { start: Time; end: Time; aggregate: YesNoAggregate; };
 
     public func compute_resonance({
-        amount: Nat;
+        amount: Float;
         dissent: Float;
         consent: Float;
         start: Time;
         end: Time;
     }) : Float {
         let age = Float.fromInt(end - start) / Float.fromInt(Duration.NS_IN_YEAR);
-        Float.fromInt(amount) * age * dissent * consent;
+        amount * age * dissent * consent;
     };
     
     public func compute_consent({

@@ -20,7 +20,7 @@ const Info = () => {
         presenceInfo ? (
             <div className="flex flex-col items-center">
                 <div>Amount locked</div>
-                <DurationChart duration_timeline={to_number_timeline(presenceInfo.ck_btc_locked)} />
+                <DurationChart duration_timeline={to_number_timeline(presenceInfo.ck_btc_locked)} format_value={(value)=>(value.toString())}/>
             </div>
         ) : <div>Presence Info not found</div>
     )

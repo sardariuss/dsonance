@@ -1,6 +1,7 @@
 import Types "Types";
 import DebtProcessor "DebtProcessor";
 import Timeline "utils/Timeline";
+import BallotUtils "votes/BallotUtils";
 
 import BTree "mo:stableheapbtreemap/BTree";
 import Float "mo:base/Float";
@@ -33,13 +34,16 @@ module {
 
             // Dispense presence over the period
             label dispense for (({id}, ballot) in BTree.entries(lock_register.locks)) {
+
+                let lock = BallotUtils.unwrap_lock(ballot);
+
+                let amount = (Float.fromInt(ballot.amount) / Float.fromInt(total_amount)) * parameters.presence_per_ns * period;
+
+                // Update the participation
+                lock.participation += amount;
                 
-                // Add to the debt
-                debt_processor.add_debt({
-                    id;
-                    amount = (Float.fromInt(ballot.amount) / Float.fromInt(total_amount)) * parameters.presence_per_ns * period;
-                    time;
-                });
+                // Add it to the debt
+                debt_processor.add_debt({ id; amount; time; });
             };
 
             // Update the time of the last dispense

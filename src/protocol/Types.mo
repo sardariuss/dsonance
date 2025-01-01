@@ -111,7 +111,6 @@ module {
         dissent: Float;
         consent: STimeline<Float>;
         ck_btc: SDebtInfo;
-        presence: SDebtInfo;
         resonance: SDebtInfo;
         tx_id: Nat;
         from: Account;
@@ -123,6 +122,8 @@ module {
     public type SLockInfo = {
         duration_ns: STimeline<Nat>;
         release_date: Time;
+        participation: Float;
+        rewarded: ?Float;
     };
 
     public type SVote<A, B> = {

@@ -54,6 +54,8 @@ module {
                     elem.lock := ?{
                         duration_ns = Timeline.initialize(time, duration);
                         var release_date = release_date;
+                        var participation = 0.0;
+                        var rewarded : ?Float = null;
                     };
                 };
                 case(?lock) {

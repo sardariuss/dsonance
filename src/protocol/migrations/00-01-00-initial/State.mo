@@ -34,7 +34,7 @@ module {
 
     public func init(args: InitArgs) : State {
 
-        let { simulated; deposit; presence; resonance; parameters; } = args;
+        let { simulated; deposit; resonance; parameters; } = args;
         let now = Time.now();
 
         #v0_1_0({
@@ -59,21 +59,17 @@ module {
                 fee = deposit.fee;
                 owed = Set.new<UUID>();
             };
-            presence = {
-                ledger : ICRC1 and ICRC2 = actor(Principal.toText(presence.ledger));
-                fee = presence.fee;
-                owed = Set.new<UUID>();
-                parameters = {
-                    presence_per_ns = Float.fromInt(presence.mint_per_day) / Float.fromInt(Duration.NS_IN_DAY);
-                    var time_last_dispense = now;
-                };
-            };
             resonance = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(resonance.ledger));
                 fee = resonance.fee;
                 owed = Set.new<UUID>();
             };
-            parameters = { parameters with 
+            parameters = {
+                presence = {
+                    presence_per_ns = Float.fromInt(parameters.presence_per_day) / Float.fromInt(Duration.NS_IN_DAY);
+                    var time_last_dispense = now;
+                };
+                nominal_lock_duration = parameters.nominal_lock_duration;
                 decay = {
                     half_life = parameters.ballot_half_life;
                     time_init = now;
