@@ -17,6 +17,7 @@ import Balance from "../Balance";
 import { computeResonance, unwrapLock } from "../../utils/conversions/ballot";
 import { useCurrencyContext } from "../CurrencyContext";
 import { formatBalanceE8s } from "../../utils/conversions/token";
+import ChoiceView from "../ChoiceView";
 
 interface VoteTextProps {
   ballot: SBallotType;
@@ -109,10 +110,14 @@ const User = () => {
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{BALLOT_EMOJI}</span>
                     <div>
-                      <div><span className="italic text-gray-400 text-sm">Yours:</span> <span className={`${toEnum(ballot.YES_NO.choice) === EYesNoChoice.Yes ? " text-green-500" : " text-red-500"}`}>
-                        { toEnum(ballot.YES_NO.choice)}</span></div>
-                      <div><span className="italic text-gray-400 text-sm">Current:</span> <span className={`${toEnum(ballot.YES_NO.choice) === EYesNoChoice.Yes ? " text-green-500" : " text-red-500"}`}>
-                        { toEnum(ballot.YES_NO.choice)}</span></div>
+                      <div>
+                        <span className="italic text-gray-400 text-sm">Yours:</span>
+                        <ChoiceView ballot={ballot} />
+                      </div>
+                      <div>
+                        <span className="italic text-gray-400 text-sm">Current:</span>
+                        <ChoiceView ballot={ballot} />
+                      </div>
                     </div>
                   </div>
                   
