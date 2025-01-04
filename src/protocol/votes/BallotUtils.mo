@@ -1,6 +1,8 @@
 import Types  "../Types";
 import Timeline "../utils/Timeline";
 
+import Debug "mo:base/Debug";
+
 module {
 
     type VoteType             = Types.VoteType;
@@ -10,6 +12,7 @@ module {
     type TimedData<T>         = Types.TimedData<T>;
     type DebtInfo             = Types.DebtInfo;
     type YesNoBallot          = Types.YesNoBallot;
+    type LockInfo             = Types.LockInfo;
     type Time                 = Int;
     
     // TODO: it would probably be clever to put the typed choice outside of the BallotInfo type
@@ -48,6 +51,13 @@ module {
     public func get_consent(ballot: BallotType): Float {
         switch(ballot){
             case(#YES_NO(b)) { Timeline.current(b.consent); };
+        };
+    };
+
+    public func unwrap_lock(ballot: YesNoBallot) : LockInfo {
+        switch(ballot.lock){
+            case(null) { Debug.trap("Lock not found"); };
+            case(?lock) { lock; };
         };
     };
 

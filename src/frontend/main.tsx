@@ -8,7 +8,6 @@ import { AgentProvider }                from "@ic-reactor/react";
 import { BackendActorProvider }         from "./actors/BackendActor"
 import { CkBtcActorProvider }           from './actors/CkBtcActor';
 import { ProtocolActorProvider }        from './actors/ProtocolActor';
-import { PresenceLedgerActorProvider }  from './actors/PresenceLedgerActor';
 import { ResonanceLedgerActorProvider } from './actors/ResonanceLedgerActor';
 import { CurrencyProvider }             from './components/CurrencyContext';
 
@@ -17,15 +16,13 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <AgentProvider withProcessEnv>
       <BackendActorProvider>
         <CkBtcActorProvider>
-          <PresenceLedgerActorProvider>
-            <ResonanceLedgerActorProvider>
-              <ProtocolActorProvider>
-                <CurrencyProvider>
-                  <App/>
-                </CurrencyProvider>
-              </ProtocolActorProvider>
-            </ResonanceLedgerActorProvider>
-          </PresenceLedgerActorProvider>
+          <ResonanceLedgerActorProvider>
+            <ProtocolActorProvider>
+              <CurrencyProvider>
+                <App/>
+              </CurrencyProvider>
+            </ProtocolActorProvider>
+          </ResonanceLedgerActorProvider>
         </CkBtcActorProvider>
       </BackendActorProvider>
     </AgentProvider>

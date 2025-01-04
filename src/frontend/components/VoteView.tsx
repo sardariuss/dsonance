@@ -9,9 +9,11 @@ import VoteSlider from "./VoteSlider";
 import { BallotInfo } from "./types";
 import { get_total_votes, get_votes, get_yes_votes } from "../utils/conversions/vote";
 
+type FetchFunction = (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
+
 interface VoteViewProps {
   vote: SYesNoVote;
-  fetchVotes: (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>
+  fetchVotes?: FetchFunction;
   selected: string | null;
   setSelected: (selected: string | null) => void;
 }

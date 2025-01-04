@@ -1,13 +1,13 @@
 import { EYesNoChoice, toEnum } from "../../utils/conversions/yesnochoice";
 import { formatDuration } from "../../utils/conversions/duration";
-import { dateToTime, formatDate, timeToDate } from "../../utils/conversions/date";
+import { dateToTime } from "../../utils/conversions/date";
 import { backendActor } from "../../actors/BackendActor";
 
 import { Principal } from "@dfinity/principal";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import LockChart from "../charts/LockChart";
-import { BALLOT_EMOJI, LOCK_EMOJI, DURATION_EMOJI, PRESENCE_TOKEN_EMOJI, RESONANCE_TOKEN_EMOJI, TIMESTAMP_EMOJI, PRESENCE_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL, DISSENT_EMOJI } from "../../constants";
+import { BALLOT_EMOJI, LOCK_EMOJI, DURATION_EMOJI, PRESENCE_EMOJI, RESONANCE_EMOJI, RESONANCE_TOKEN_SYMBOL, DISSENT_EMOJI } from "../../constants";
 import { get_current, get_first, to_number_timeline } from "../../utils/timeline";
 import DurationChart from "../charts/DurationChart";
 import { protocolActor } from "../../actors/ProtocolActor";
@@ -17,6 +17,7 @@ import Balance from "../Balance";
 import { computeResonance, unwrapLock } from "../../utils/conversions/ballot";
 import { useCurrencyContext } from "../CurrencyContext";
 import { formatBalanceE8s } from "../../utils/conversions/token";
+import ChoiceView from "../ChoiceView";
 
 interface VoteTextProps {
   ballot: SBallotType;
@@ -109,22 +110,26 @@ const User = () => {
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
                     <span>{BALLOT_EMOJI}</span>
                     <div>
-                      <div><span className="italic text-gray-400 text-sm">Yours:</span> <span className={`${toEnum(ballot.YES_NO.choice) === EYesNoChoice.Yes ? " text-green-500" : " text-red-500"}`}>
-                        { toEnum(ballot.YES_NO.choice)}</span></div>
-                      <div><span className="italic text-gray-400 text-sm">Current:</span> <span className={`${toEnum(ballot.YES_NO.choice) === EYesNoChoice.Yes ? " text-green-500" : " text-red-500"}`}>
-                        { toEnum(ballot.YES_NO.choice)}</span></div>
+                      <div>
+                        <span className="italic text-gray-400 text-sm">Yours:</span>
+                        <ChoiceView ballot={ballot} />
+                      </div>
+                      <div>
+                        <span className="italic text-gray-400 text-sm">Current:</span>
+                        <ChoiceView ballot={ballot} />
+                      </div>
                     </div>
                   </div>
                   
                   {/* Row 4: Presence */}
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
-                    <span>{PRESENCE_TOKEN_EMOJI}</span>
-                    <div><span className="italic text-gray-400 text-sm">Accumulated:</span> { formatBalanceE8s(BigInt(Math.floor(get_current(ballot.YES_NO.presence.amount).data))) + " " + PRESENCE_TOKEN_SYMBOL }</div>
+                    <span>{PRESENCE_EMOJI}</span>
+                    <div><span className="italic text-gray-400 text-sm">Accumulated:</span> { formatBalanceE8s(BigInt(Math.floor(unwrapLock(ballot).participation))) + " " + RESONANCE_TOKEN_SYMBOL }</div>
                   </div>
                   
                   {/* Row 5: Resonance */}
                   <div className="flex justify-center items-center space-x-2 hover:bg-slate-800 w-full hover:cursor-pointer rounded">
-                    <span>{RESONANCE_TOKEN_EMOJI}</span>
+                    <span>{RESONANCE_EMOJI}</span>
                     <div><span className="italic text-gray-400 text-sm">Forecasted:</span> { formatBalanceE8s(computeResonance(ballot)) + " " + RESONANCE_TOKEN_SYMBOL }</div>
                   </div>
 
@@ -133,8 +138,8 @@ const User = () => {
                     <DurationChart duration_timeline={to_number_timeline(unwrapLock(ballot).duration_ns)} format_value={ (value: number) => formatDuration(BigInt(value)) }/>
                   </div>
                   <div className="col-span-2 w-full flex flex-col">
-                    <div>Presence</div>
-                    <DurationChart duration_timeline={ballot.YES_NO.presence.amount} format_value={ (value: number) => (formatBalanceE8s(BigInt(value)) + " " + PRESENCE_TOKEN_SYMBOL) }/>
+                    <div>Resonance</div>
+                    <DurationChart duration_timeline={ballot.YES_NO.resonance.amount} format_value={ (value: number) => (formatBalanceE8s(BigInt(value)) + " " + RESONANCE_TOKEN_SYMBOL) }/>
                   </div>
                   <div className="col-span-2 w-full flex flex-col">
                     <div>Consent</div>

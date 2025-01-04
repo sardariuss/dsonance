@@ -9,9 +9,11 @@ import ResetIcon from "./icons/ResetIcon";
 import { v4 as uuidv4 } from 'uuid';
 import { useCurrencyContext } from "./CurrencyContext";
 
+type FetchFunction = (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
+
 interface PutBallotProps {
   vote_id: string;
-  fetchVotes: (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
+  fetchVotes?: FetchFunction;
   ballot: BallotInfo;
   setBallot: (ballot: BallotInfo) => void;
   resetVote: () => void;
@@ -24,7 +26,11 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setB
   const { call: putBallot, loading } = protocolActor.useUpdateCall({
     functionName: "put_ballot",
     onSuccess: () => {
-      fetchVotes().finally(resetVote);
+      if (fetchVotes){
+        fetchVotes().finally(resetVote);
+      } else {
+        resetVote();
+      }
     },
     onError: (error) => {
       console.error(error);

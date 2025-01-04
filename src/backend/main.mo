@@ -4,6 +4,7 @@ import Map           "mo:map/Map";
 import Array         "mo:base/Array";
 import Principal     "mo:base/Principal";
 import Result        "mo:base/Result";
+import Option        "mo:base/Option";
 
 import Protocol      "canister:protocol";
 
@@ -42,15 +43,26 @@ shared({ caller = admin }) actor class Backend() = this {
         Map.get<UUID, Text>(_texts, Map.thash, vote_id);
     };
 
+    public composite query func get_vote({ vote_id: UUID }) : async ?SYesNoVote {
+        let vote = await Protocol.find_vote({ vote_id; });
+        Option.map(vote, func(vote_type: SVoteType) : SYesNoVote {
+            with_text(vote_type);
+        });
+    };
+
     public composite query func get_votes() : async [SYesNoVote] {
         let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); });
         Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {
-            switch(vote_type){
-                case(#YES_NO(vote)) { 
-                    { vote with text = Map.get<UUID, Text>(_texts, Map.thash, vote.vote_id); };
-                };
-            };
+            with_text(vote_type);
         });
+    };
+
+    func with_text(vote_type: SVoteType) : SYesNoVote {
+        switch(vote_type){
+            case(#YES_NO(vote)) { 
+                { vote with text = Map.get<UUID, Text>(_texts, Map.thash, vote.vote_id); };
+            };
+        };
     };
 
 };

@@ -225,7 +225,6 @@ module {
         dissent: Float;
         consent: Timeline<Float>;
         ck_btc: DebtInfo;
-        presence: DebtInfo;
         resonance: DebtInfo;
         tx_id: Nat;
         from: Account;
@@ -237,6 +236,8 @@ module {
     public type LockInfo = {
         duration_ns: Timeline<Nat>;
         var release_date: Time;
+        var participation: Float;
+        var rewarded: ?Float;
     };
 
     public type Transfer = {
@@ -291,16 +292,12 @@ module {
             ledger: Principal;
             fee: Nat;
         };
-        presence: {
-            ledger: Principal;
-            fee: Nat;
-            mint_per_day: Nat;
-        };
         resonance: {
             ledger: Principal;
             fee: Nat;
         };
         parameters: {
+            presence_per_day: Nat;
             ballot_half_life: Duration;
             nominal_lock_duration: Duration;
         };
@@ -320,18 +317,13 @@ module {
             fee: Nat;
             owed: Set<UUID>;
         };
-        presence: {
-            ledger: ICRC1 and ICRC2;
-            fee: Nat;
-            owed: Set<UUID>;
-            parameters: PresenseParameters;
-        };
         resonance: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
             owed: Set<UUID>;
         };
         parameters: {
+            presence: PresenseParameters;
             nominal_lock_duration: Duration;
             decay: {
                 half_life: Duration;

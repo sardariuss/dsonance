@@ -135,7 +135,6 @@ module {
                 dissent;
                 consent = Timeline.initialize<Float>(timestamp, consent);
                 ck_btc = DebtProcessor.init_debt_info(timestamp, from);
-                presence = DebtProcessor.init_debt_info(timestamp, from);
                 resonance = DebtProcessor.init_debt_info(timestamp, from);
                 decay = decay_model.compute_decay(timestamp);
                 var hotness = 0.0;

@@ -48,7 +48,6 @@ module {
             dissent = ballot.dissent;
             consent = shareTimeline(ballot.consent);
             ck_btc = shareDebtInfo(ballot.ck_btc);
-            presence = shareDebtInfo(ballot.presence);
             resonance = shareDebtInfo(ballot.resonance);
             tx_id = ballot.tx_id;
             from = ballot.from;
@@ -58,6 +57,8 @@ module {
                 {
                     duration_ns = shareTimeline(lock.duration_ns);
                     release_date = lock.release_date;
+                    participation = lock.participation;
+                    rewarded = lock.rewarded;
                 }
             });
         };

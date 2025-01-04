@@ -63,7 +63,6 @@ module {
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
         deposit_debt: DebtProcessor.DebtProcessor;
-        presence_debt: DebtProcessor.DebtProcessor;
         resonance_debt: DebtProcessor.DebtProcessor;
         decay_model: Decay.DecayModel;
         presence_dispenser: PresenceDispenser.PresenceDispenser;
@@ -190,7 +189,6 @@ module {
             let transfers = Buffer.Buffer<async* ()>(3);
 
             transfers.add(deposit_debt.transfer_owed());
-            transfers.add(presence_debt.transfer_owed());
             transfers.add(resonance_debt.transfer_owed());
 
             for (call in transfers.vals()){

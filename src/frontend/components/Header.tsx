@@ -81,8 +81,9 @@ const Header = () => {
       </Link>
         { presenceInfo && 
           <Link className="flex flex-row items-center justify-center md:space-x-4" to={"/info"}>
+            <span>Presence:</span>
             <span>
-              { Number((presenceInfo.presence_per_ns * 86_400_000_000_000) / Number(presenceInfo.ck_btc_locked.current.data)).toFixed(0) } presence/sat/day
+              { Number((presenceInfo.presence_per_ns * 86_400_000_000_000) / Number(presenceInfo.ck_btc_locked.current.data)).toFixed(0) } resonance/sat/day
             </span>
           </Link> 
         }
