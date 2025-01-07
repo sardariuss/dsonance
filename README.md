@@ -8,8 +8,8 @@ _My views are changing as much as the world itself is changing. Your views shoul
 
 > [Tucker Carlson, 2024 World Government Summit in Dubai.](https://youtu.be/mMXikZM\_O80?si=bSkrQ0C2GeTJe7TV\&t=118)
 
-{% content-ref url="documentation.md" %}
-[documentation.md](documentation.md)
+{% content-ref url="doc/overview.md" %}
+[overview.md](doc/overview.md)
 {% endcontent-ref %}
 
 ## Canister arguments
