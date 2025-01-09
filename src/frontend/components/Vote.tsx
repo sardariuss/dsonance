@@ -27,6 +27,7 @@ const Vote = () => {
 
     const actualVote = vote ? fromNullable(vote) : undefined;
 
+    // @todo: the list of ballots is very ugly
     return (
         actualVote && <div className="flex flex-col">
             <VoteView vote={actualVote} selected={id} setSelected={()=>{}}/>

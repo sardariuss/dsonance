@@ -4,13 +4,11 @@ module.exports = {
         extend: {
             colors: {
                 'slate-850' : '#172032',
-                'grunt-pink' : '#dc05ff',
-                'grunt-green' : '#59ff00',
-                'neon-blue' : '#5be7dc',
+                'brand-false' : 'rgb(254 87 39)',
+                'brand-true' : 'rgb(13 200 79)',
             },
             fontFamily: {
                 'acelon': ['Acelon', 'sans-serif'],
-                'neon-spark': ['NeonSpark', 'sans-serif'],
             },
         },
     },

@@ -1,5 +1,5 @@
 import { Link, useNavigate }      from "react-router-dom";
-import { useContext, useEffect } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { protocolActor } from "../actors/ProtocolActor";
 import Select from "react-select";
@@ -76,7 +76,6 @@ const Header = () => {
       <Link to="/" className="flex flex-row items-center space-x-1">
         <div className="flex flex-row space-x-1 items-end">
           <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">RESONANCE</span>
-          <span className="text-md md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl font-neon-spark whitespace-nowrap drop-shadow shadow-blue-800 neon-effect">.defi </span>
         </div>
       </Link>
         { presenceInfo && 
@@ -96,6 +95,28 @@ const Header = () => {
           }))}
           value={{ value: currency, label: currency }}
           onChange={(option) => { if (option !== null) setCurrency(option.value as SupportedCurrency) }}
+          styles={{
+            control: (provided, state) => ({
+              ...provided,
+              borderRadius: "4px",
+              color: "#fff",
+              boxShadow: "none",
+              backgroundColor: "#ddd",
+              borderColor: state.isFocused ? "rgb(59 130 246)" : "#ccc", // blue-500 if focused
+            }),
+            singleValue: (provided) => ({
+              ...provided,
+              color: "#000",
+            }),
+            option: (provided) => ({
+              ...provided,
+              color: "#000",
+              backgroundColor: "#fff",
+              "&:hover": {
+                backgroundColor: "#ddd",
+              },
+            }),
+          }}
         />
       </div>
       <div className="flex flex-row items-center justify-end md:space-x-4 space-x-2">

@@ -81,5 +81,12 @@ dfx deps deploy internet_identity
 
 # Protocol initialization and frontend generation
 dfx canister call protocol init_facade
-dfx generate
+dfx canister call minter set_simulated '(true)'
+
+dfx generate ck_btc
+dfx generate resonance_ledger
+dfx generate backend # Will generate protocol as well
+dfx generate internet_identity
+dfx generate minter
+
 dfx deploy frontend

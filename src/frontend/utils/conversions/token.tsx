@@ -8,35 +8,26 @@ export const toE8s = (amount: number) : bigint | undefined => {
 
 export const fromE8s = (amountE8s: bigint) => Number(amountE8s) / 100_000_000;
 
-export const formatBalanceE8s = (amountE8s: bigint) => {
-    return (Number(amountE8s) / 10e8).toString();
+export const formatBalanceE8s = (amountE8s: bigint, currencySymbol: string) => {
+    return `${currencySymbol}${fromE8s(amountE8s).toString()}`
 };
 
-export const formatBTCInUSD = (amountE8s: bigint, price: number) => {
-
-    price = 100_000; // 1 BTC = 100,000 USD
-
-    const usd = (Number(amountE8s) * price / 100_000_000);
-
-    const [balance, unit, precision] =
-        usd < 10 ?                [usd,                      "", 2] :
-        usd < 1_000_000 ?         [usd,                      "", 0] :
-        usd < 1_000_000_000 ?     [usd / 1_000_000,         "M", 0] :
-        usd < 1_000_000_000_000 ? [usd / 1_000_000_000,     "B", 0] :
-                                  [usd / 1_000_000_000_000, "T", 0];
-
-    return `$${balance.toFixed(precision)}${unit}`;
+export const currencyToE8s = (amount: number, priceUnit: number) => {
+    return BigInt(Math.round(amount * 100_000_000 / priceUnit));
 }
 
-export const formatBalanceSats = (amountE8s: bigint) => {
+export const e8sToCurrency = (amountE8s: bigint, priceUnit: number) => {
+    return Number(amountE8s) * priceUnit / 100_000_000;
+}
 
-    const [balance, unit] =
-        amountE8s < 1_000n ?             [amountE8s,                       ""] :
-        amountE8s < 1_000_000n ?         [amountE8s / 1_000n,             "k"] :
-        amountE8s < 1_000_000_000n ?     [amountE8s / 1_000_000n,         "M"] :
-        amountE8s < 1_000_000_000_000n ? [amountE8s / 1_000_000_000n,     "B"] :
-                                         [amountE8s / 1_000_000_000_000n, "T"];
+export const formatCurrency = (currencyAmount: number, currencySymbol: string, decimals?: number) => {
 
-    return `${(Number(balance))}${unit}`;
-};
+    const [balance, unit, precision] =
+        currencyAmount < 10 ?                [currencyAmount,                      "", decimals ?? 2] :
+        currencyAmount < 1_000_000 ?         [currencyAmount,                      "",             0] :
+        currencyAmount < 1_000_000_000 ?     [currencyAmount / 1_000_000,         "M",             0] :
+        currencyAmount < 1_000_000_000_000 ? [currencyAmount / 1_000_000_000,     "B",             0] :
+                                             [currencyAmount / 1_000_000_000_000, "T",             0];
 
+    return `${currencySymbol}${balance.toFixed(precision)}${unit}`;
+}

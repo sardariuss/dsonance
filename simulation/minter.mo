@@ -1,13 +1,38 @@
+import Airdrop "airdrop";
+
 import ckBTC "canister:ck_btc";
 
-shared actor class Minter() {
+import Map "mo:map/Map";
+
+import Result "mo:base/Result";
+import Debug "mo:base/Debug";
+
+shared({ caller = owner }) actor class Minter() {
 
     type Account = {
         owner : Principal;
         subaccount : ?Blob;
     };
+    type SAirdropInfo = Airdrop.SAirdropInfo;
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    public func mint({amount: Nat; to: Account}) : async ckBTC.TransferResult {
+    stable var state = {
+        airdrop_info = {
+            var allowed_per_user = 1_000_000;
+            var total_distributed = 0;
+            map_distributed = Map.new<Principal, Nat>();
+        };
+        var is_simulated = false;
+    };
+
+    let airdrop = Airdrop.Airdrop(state.airdrop_info);
+
+    public shared({caller}) func mint({amount: Nat; to: Account}) : async ckBTC.TransferResult {
+        
+        if (not state.is_simulated and caller != owner) {
+            Debug.trap("Only the owner of the canister can call this function!");
+        };
+
         await ckBTC.icrc1_transfer({
             fee = null;
             memo = null;
@@ -16,6 +41,30 @@ shared actor class Minter() {
             amount;
             to;
         });
+    };
+
+    public query({caller}) func is_airdrop_available() : async Bool {
+        airdrop.isAirdropAvailable(caller);
+    };
+
+    public shared({caller}) func airdrop_user() : async Result<Nat, Text> {
+        await airdrop.airdropUser(caller);
+    };
+
+    public query func get_airdrop_info(): async SAirdropInfo {
+        airdrop.getAirdropInfo();
+    };
+
+    public shared({caller}) func set_airdrop_per_user({ amount : Nat; }) : async Result<(), Text> {
+        if (caller != owner) {
+            return #err("Only the owner of the canister can call this function!");
+        };
+        airdrop.setAirdropPerUser({amount});
+        #ok;
+    };
+
+    public func set_simulated(is_simulated : Bool) {
+        state.is_simulated := is_simulated;
     };
 
 };

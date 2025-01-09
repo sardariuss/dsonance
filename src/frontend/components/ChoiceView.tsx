@@ -9,7 +9,7 @@ const ChoiceView = ({ ballot }: ChoiceProps) => {
 
     const choice = toEnum(ballot.YES_NO.choice);
 
-    return <span className={`${choice === EYesNoChoice.Yes ? " text-green-500" : " text-red-500"}`}>{choice}</span>
+    return <span className={`${choice === EYesNoChoice.Yes ? " text-brand-true" : " text-brand-false"}`}>{choice}</span>
 }
 
 export default ChoiceView;

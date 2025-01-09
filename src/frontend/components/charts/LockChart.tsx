@@ -13,11 +13,35 @@ import { useCurrencyContext } from '../CurrencyContext';
 
 interface LockChartProps {
   ballots: SBallotType[];
-  selected: number;
-  select_ballot: (index: number) => void;
+  selected: number | undefined;
+  select_ballot: (index: number | undefined) => void;
 };
 
 const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
+
+  const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
+  
+  const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
+
+  useEffect(() => {
+    // Function to update the width
+    const updateWidth = () => {
+      if (containerRef.current) {
+        console.log("Container width: ", containerRef.current.offsetWidth);
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+
+    // Set initial width
+    updateWidth();
+
+    // Update width on window resize
+    window.addEventListener('resize', updateWidth);
+
+    return () => {
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, []);
 
   const { formatSatoshis } = useCurrencyContext();
 
@@ -55,10 +79,12 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
       if (baseTimestamp < minDate) minDate = baseTimestamp;
       if (actualLockEnd > maxDate) maxDate = actualLockEnd;
 
+      let y = ballots.length - index - 1; // Reverse order
+
       // Generate chart data points for this ballot
       const points = [
-        { x: new Date(baseTimestamp), y: index},
-        { x: new Date(actualLockEnd), y: index},
+        { x: new Date(baseTimestamp), y},
+        { x: new Date(actualLockEnd), y},
       ];
 
       data.push({
@@ -71,7 +97,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         start: points[0],
         end: points[1],
         percentage: ((initialLockEnd - baseTimestamp) / (actualLockEnd - baseTimestamp)) * 100,
-        label: LOCK_EMOJI + " " + formatSatoshis(amount)
+        label: formatSatoshis(amount)
       });
     });
 
@@ -86,12 +112,16 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         nsDiff,
       },
     };
-  }, [ballots]);
+  }, [ballots, formatSatoshis]);
 
   // Precompute width and ticks for all durations in CHART_CONFIGURATIONS
   const chartConfigurationsMap = useMemo(() => {
 
     const map = new Map<DurationUnit, { chartWidth: number; ticks: number[] }>();
+
+    if (containerWidth === undefined) {
+      return map;
+    }
 
     for (const [duration, config] of CHART_CONFIGURATIONS.entries()) {
       if (isNotFiniteNorNaN(dateRange.minDate) || isNotFiniteNorNaN(dateRange.maxDate)) {
@@ -100,7 +130,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         const chartWidth = Math.max(
           1,
           dateRange.nsDiff / Number(toNs(1, duration))
-        ) * 800; // Adjusted width
+        ) * containerWidth; // Adjusted width
 
         const ticks = computeTicksMs(
           msToNs(dateRange.maxDate - dateRange.minDate),
@@ -113,22 +143,21 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
     }
 
     return map;
-  }, [dateRange]);
+  }, [dateRange, containerWidth]);
   
   type ChartConfiguration = {
     chartWidth: number;
     ticks: number[];
   };
 
-  const [config, setConfig] = useState<ChartConfiguration>({ chartWidth: 0, ticks: [] });
+  const [config, setConfig] = useState<ChartConfiguration | undefined>(undefined);
 
   useEffect(() => {
-    setConfig(chartConfigurationsMap.get(duration) || { chartWidth: 0, ticks: [] });
+    setConfig(chartConfigurationsMap.get(duration));
   },
-  [duration]);
+  [chartConfigurationsMap, duration]);
 
-  // Set up the chart container ref
-  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
 
 //  useEffect(() => {
 //    const currentDate = new Date();
@@ -143,12 +172,12 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 //    const relativePosition = (currentDateTimestamp - rangeStart) / totalRange;
 //
 //    // Calculate the scroll position to center the current date
-//    const scrollPosition = relativePosition * (chartWidth - 800); // Adjusted by the chart width and visible area
+//    const scrollPosition = relativePosition * (chartWidth - containerWidth); // Adjusted by the chart width and visible area
 //
-//    if (chartContainerRef.current) {
-//      chartContainerRef.current.scrollLeft = scrollPosition;
+//    if (chartRef.current) {
+//      chartRef.current.scrollLeft = scrollPosition;
 //    }
-//  }, [dateRange, chartWidth]);
+//  }, [dateRange, chartWidth, containerWidth]);
 
   interface CustomLayerProps {
     xScale: (value: number | string | Date) => number; // Nivo scale function
@@ -168,24 +197,24 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
           const id = Number(segment.id)
 
-          const border_width = 1;
+          const border_width = 2;
   
           return (
             <Fragment key={`segment-${index}`}>
               {/* Border line */}
-              <line
+              { id === selected && <line
                 key={`border-${index}`}
                 x1={x1-border_width}
                 x2={x2+border_width}
                 y1={y1}
                 y2={y2}
-                stroke={"#1E40AF"} // Border color
+                stroke={"rgb(59 130 246)"} // Border color
                 strokeWidth={20 + 2 * border_width} // Slightly larger than the main line
                 strokeLinejoin="round"
                 style={{
-                  opacity: id === selected ? 1.0 : 0.0
+                  zIndex: 0
                 }}
-              />
+              /> }
 
               {/* Main line */}
               <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -211,11 +240,11 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                   y1={y1}
                   y2={y2}
                   stroke={`url(#lineGradient-${index})`}
-                  strokeWidth={20} // Adjust thickness
-                  onClick={() => select_ballot(id)}
+                  strokeWidth={20}
+                  onClick={() => select_ballot(selected === id ? undefined : id)}
                   cursor="pointer"
                   style={{
-                    zIndex: 0
+                    zIndex: 1
                   }}
                 />
               </svg>
@@ -238,9 +267,9 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
               y={y}
               textAnchor="middle"
               alignmentBaseline="middle"
-              fontSize={(id === selected) ? 14 : 12}
+              fontSize={12}
               fill="white"
-              onClick={() => select_ballot(id)}
+              onClick={() => select_ballot(selected === id ? undefined : id)}
               cursor="pointer"
             >
               {segment.label}
@@ -252,12 +281,12 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
   };
 
   return (
-    <div className="flex flex-col items-center space-y-1">
-      <div
-        ref={chartContainerRef}
+    <div className="flex flex-col items-center space-y-1 w-full" ref={containerRef}>
+      { containerWidth && config && <div
+        ref={chartRef}
         style={{
-          width: '800px', // Visible area
-          height: `${data.length * 50}px`, // Dynamic height based on data length
+          width: `${containerWidth}px`, // Dynamic width based on container
+          height: `${data.length * 80}px`, // Dynamic height based on data length
           overflowX: 'auto',
           overflowY: 'hidden',
         }}
@@ -311,22 +340,21 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
             axisLeft={null}
             enablePoints={false}
             lineWidth={20}
-            colors={{ scheme: 'category10' }} // @todo: what is this ?
             margin={{ top: 50, right: 50, bottom: 50, left: 60 }}
             markers={currentTime ? [
               {
                 axis: 'x',
                 value: timeToDate(currentTime).getTime(), // Convert string to timestamp
                 lineStyle: {
-                  stroke: 'black',
+                  stroke: '#00ff00',
                   strokeWidth: 1,
-                  zIndex: 10,
+                  zIndex: 20,
                 },
                 legend: formatDate(timeToDate(currentTime)),
                 legendOrientation: 'horizontal',
                 legendPosition: 'top',
                 textStyle: {
-                  fill: 'black',
+                  fill: 'white',
                   fontSize: 12,
                 }
               },
@@ -345,6 +373,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
           />
         </div>
       </div>
+      }
       <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.MONTH, DurationUnit.YEAR]}  />
     </div>
   );

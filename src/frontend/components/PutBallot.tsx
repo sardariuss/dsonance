@@ -21,7 +21,7 @@ interface PutBallotProps {
 
 const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setBallot, resetVote }) => {
 
-  const { formatSatoshis } = useCurrencyContext();
+  const { formatSatoshis, currencySymbol, currencyToSatoshis, satoshisToCurrency } = useCurrencyContext();
 
   const { call: putBallot, loading } = protocolActor.useUpdateCall({
     functionName: "put_ballot",
@@ -56,7 +56,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setB
 
   useEffect(() => {
     if (inputRef.current && !isActive) { // Only update if input is not focused, meaning that it comes from an external stimulus
-      inputRef.current.value = fromE8s(ballot.amount).toString();
+      inputRef.current.value = satoshisToCurrency(ballot.amount).toString();
     }
   },
   [ballot]);
@@ -68,27 +68,26 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setB
           <ResetIcon />
         </div>
         <div className="flex items-center space-x-1">
-          <span>{BITCOIN_TOKEN_SYMBOL}</span>
+          <span>{currencySymbol}</span>
           <input
             ref={inputRef}
             type="text"
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
             className="w-32 h-9 border border-gray-300 rounded px-2 appearance-none focus:outline-none focus:border-blue-500"
-            onChange={(e) => { if(isActive) { setBallot({ choice: ballot.choice, amount: toE8s(Number(e.target.value)) ?? 0n }) }} }
-            prefix={BITCOIN_TOKEN_SYMBOL}
+            onChange={(e) => { if(isActive) { setBallot({ choice: ballot.choice, amount: currencyToSatoshis(Number(e.target.value)) ?? 0n }) }} }
           />
         </div>
         <div>on</div>
         <div>
           <select
-            className={`w-20 h-9 appearance-none border border-gray-300 rounded px-2 focus:outline-none focus:border-blue-500 ${ballot.choice === EYesNoChoice.Yes ? "text-green-500" : "text-red-500"}`}
+            className={`w-20 h-9 appearance-none border border-gray-300 rounded px-2 focus:outline-none focus:border-blue-500 ${ballot.choice === EYesNoChoice.Yes ? "text-brand-true" : "text-brand-false"}`}
             value={ballot.choice}
             onChange={(e) => setBallot({ choice: e.target.value as EYesNoChoice, amount: ballot.amount })}
             disabled={loading}
           >
-            <option className="text-green-500" value={EYesNoChoice.Yes}>{EYesNoChoice.Yes}</option>
-            <option className="text-red-500" value={EYesNoChoice.No}>{EYesNoChoice.No}</option>
+            <option className="text-brand-true" value={EYesNoChoice.Yes}>{EYesNoChoice.Yes}</option>
+            <option className="text-brand-false" value={EYesNoChoice.No}>{EYesNoChoice.No}</option>
           </select>
         </div>
         <button
@@ -99,7 +98,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setB
           Lock ballot { BALLOT_EMOJI }
         </button>
       </div>
-      <div className={`${isTooSmall() ? "text-white" : "text-gray-500"} text-sm`}>
+      <div className={`${isTooSmall() ? "text-red-500" : "text-gray-500"} text-sm`}>
         Minimum {formatSatoshis(MINIMUM_BALLOT_AMOUNT)}
       </div>
     </div>

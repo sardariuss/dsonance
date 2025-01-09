@@ -17,7 +17,7 @@ function VoteList() {
   });
 
   return (
-    <div className="flex flex-col border-x dark:border-gray-700 bg-white dark:bg-slate-900">
+    <div className="flex flex-col border-x dark:border-gray-700 bg-white dark:bg-slate-900 w-2/3">
       {
         authenticated && <NewVote fetchVotes={fetchVotes}/>
       }
