@@ -2,7 +2,7 @@ import { protocolActor } from "../actors/ProtocolActor";
 import { toCandid } from "../utils/conversions/yesnochoice";
 import { useEffect } from "react";
 import { formatDuration } from "../utils/conversions/duration";
-import { DISSENT_EMOJI, DURATION_EMOJI } from "../constants";
+import { DISSENT_EMOJI, LOCK_EMOJI } from "../constants";
 import { BallotInfo } from "./types";
 import { get_current } from "../utils/timeline";
 import { v4 as uuidv4 } from 'uuid';
@@ -43,9 +43,9 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
       {
         preview && 'ok' in preview && 
           <div className="flex flex-row w-full items-center space-x-4 justify-center">
-            <span> { DURATION_EMOJI + " ≥ " + formatDuration(get_current(unwrapLock(preview.ok).duration_ns).data) } </span>
+            <span> { LOCK_EMOJI + " ≥ " + formatDuration(get_current(unwrapLock(preview.ok).duration_ns).data) } </span>
             <span> { DISSENT_EMOJI + " " + formatDissent(preview.ok.YES_NO.dissent) } </span>
-        </div>
+          </div>
       }
     </div>
   );

@@ -1,7 +1,7 @@
 import Header from "./Header";
 import Footer from "./Footer";
 import { createContext, useState, useEffect } from "react";
-import { BrowserRouter, useLocation } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 
 import Router from "../router/Router";
 
@@ -69,7 +69,7 @@ function AppContent() {
   return (
     <>
       <div className="flex flex-col min-h-screen w-full bg-white dark:bg-slate-900 dark:border-gray-700 border-gray-200 dark:text-white text-black justify-between">
-        <div className="flex flex-col w-full flex-grow items-center">
+        <div className="flex flex-col w-full flex-grow items-center bg-white dark:bg-slate-900">
           <Header/>
           <Router/>
         </div>

@@ -3,9 +3,7 @@ import VoteView from "./VoteView";
 import { backendActor } from "../actors/BackendActor";
 import { fromNullable } from "@dfinity/utils";
 import { protocolActor } from "../actors/ProtocolActor";
-import { toEnum } from "../utils/conversions/yesnochoice";
 import ChoiceView from "./ChoiceView";
-import { formatDateTime, timeToDate } from "../utils/conversions/date";
 
 const Vote = () => {
 
@@ -35,7 +33,6 @@ const Vote = () => {
                 {
                     ballots && ballots.map((ballot, index) => (
                         <li key={index} className="flex flex-row space-x-1">
-                            <span>{formatDateTime(timeToDate(ballot.YES_NO.timestamp))}</span>
                             <ChoiceView ballot={ballot}/>
                             <div>{ballot.YES_NO.amount.toString()}</div>
                         </li>

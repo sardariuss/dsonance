@@ -1,7 +1,7 @@
 import { protocolActor } from "../actors/ProtocolActor";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { EYesNoChoice, toCandid } from "../utils/conversions/yesnochoice";
-import { BALLOT_EMOJI, BITCOIN_TOKEN_SYMBOL, LOCK_EMOJI, MINIMUM_BALLOT_AMOUNT } from "../constants";
+import { MINIMUM_BALLOT_AMOUNT } from "../constants";
 import { fromE8s, toE8s } from "../utils/conversions/token";
 import { useEffect, useRef, useState } from "react";
 import { BallotInfo } from "./types";
@@ -95,7 +95,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setB
           disabled={loading || isTooSmall()}
           onClick={triggerVote}
         >
-          Lock ballot { BALLOT_EMOJI }
+          Lock ballot
         </button>
       </div>
       <div className={`${isTooSmall() ? "text-red-500" : "text-gray-500"} text-sm`}>

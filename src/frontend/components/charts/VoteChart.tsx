@@ -7,7 +7,6 @@ import { AreaBumpSerie, ResponsiveAreaBump }     from "@nivo/bump";
 
 import { BallotInfo }                            from "../types";
 import { DurationUnit }                          from "../../utils/conversions/duration";
-import { CHART_BACKGROUND_COLOR }                from "../../constants";
 import { CHART_CONFIGURATIONS, computeInterval } from ".";
 import IntervalPicker                            from "./IntervalPicker";
 import { useCurrencyContext } from "../CurrencyContext";
@@ -58,10 +57,6 @@ const computeChartProps = ({ currentTime, currentDecay, duration, aggregate } : 
     // Push the current data points to chartData
     chartData[0].data.push({ x: date, y: yesAggregate });
     chartData[1].data.push({ x: date, y: noAggregate });
-  });
-
-  chartData[0].data.forEach((point) => {
-    console.log("Date: ", new Date(point.x), "Yes: ", point.y);
   });
 
   return {
@@ -166,8 +161,8 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                     (index < (priceLevels.length - 1)) ? 
                     <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
                       <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
-                        <div className="text-xs text-gray-500" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div>
-                        <div className="flex w-full h-[0.5px] bg-gray-300 opacity-50" style={{ position: 'absolute', bottom: 0 }}/>
+                        <div className="text-xs text-gray-300" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div>
+                        <div className="flex w-full h-[0.5px] bg-white opacity-50" style={{ position: 'absolute', bottom: 0 }}/>
                       </div>
                     </div> : <></>
                   }
@@ -181,17 +176,14 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
           animate={false}
           enableGridX={false}
           startLabel={false}
-          endLabel={true}
+          endLabel={false}
           align= "end"
           data={chartData}
           margin={{ top: MARGIN + marginTop(priceLevels, max), right: 60, bottom: MARGIN, left: 0 }}
           spacing={0}
           colors={["rgb(13 200 79)", "rgb(254 87 39)"]} // brand-true, brand-false
-          blendMode="multiply"
-          borderColor={{
-              from: 'color',
-              modifiers: [['darker', 0.7]]
-          }}
+          blendMode="normal"
+          borderColor={"white"}
           axisTop={null}
           axisBottom={{
             tickSize: 5,
@@ -210,16 +202,13 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                   dominantBaseline="central"
                   style={{
                     fontSize: '12px',
-                    fill: 'gray',
+                    fill: 'rgb(209 213 219)', // gray-300
                   }}
                 >
                   { CHART_CONFIGURATIONS.get(duration)!.format(new Date(value)) }
                 </text>
               </g>
             ),
-          }}
-          theme={{
-            background: CHART_BACKGROUND_COLOR,
           }}
         />
       </div>

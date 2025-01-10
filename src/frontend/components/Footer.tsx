@@ -3,7 +3,7 @@ import icLogo from '../assets/ic-logo.svg';
 function Footer() {
 
   return (
-    <footer className="w-full bg-slate-100 dark:bg-gray-800 shadow flex flex-row items-center justify-between xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14">
+    <footer className="w-full bg-slate-100 dark:bg-gray-800 shadow flex flex-row items-center justify-between xl:px-4 lg:px-3 md:px-2 px-2 xl:min-h-18 lg:min-h-16 md:min-h-14 min-h-14">
       <a href="https://internetcomputer.org/">
       <div className="flex flex-row items-center">
         <div className="sm:text-center text-l font-semibold text-gray-500 dark:text-gray-400">

@@ -3,12 +3,12 @@ import PutBallot from "./PutBallot";
 import { useEffect, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import PutBallotPreview from "./PutBallotPreview";
-import { formatDateTime, timeToDate } from "../utils/conversions/date";
 import VoteChart from "./charts/VoteChart";
 import VoteSlider from "./VoteSlider";
 import { BallotInfo } from "./types";
 import { get_total_votes, get_votes, get_yes_votes } from "../utils/conversions/vote";
 import ConsensusView from "./ConsensusView";
+import DateSpan from "./DateSpan";
 
 type FetchFunction = (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
 
@@ -48,9 +48,14 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, selected, setSele
   }, [selected]);
 
   return (
-    <div className="flex flex-col content-center border-b dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-slate-850 px-5 py-1 hover:cursor-pointer space-y-2 w-full">
-      <div className="w-full" onClick={(e) => { setSelected(selected === vote.vote_id ? null : vote.vote_id) }}>
-        <ConsensusView vote={vote} ballot={ballot}/>
+    <div className="flex flex-col content-center border-b dark:border-gray-700 px-5 py-1 hover:cursor-pointer space-y-2 w-full hover:bg-slate-50 hover:dark:bg-slate-850">
+      <div className="w-full grid grid-cols-12" onClick={(e) => { setSelected(selected === vote.vote_id ? null : vote.vote_id) }}>
+        <div className="text-gray-400 text-sm">
+          <DateSpan timestamp={vote.date}/>
+        </div>
+        <div className="col-span-11">
+          <ConsensusView vote={vote} ballot={ballot}/>
+        </div>
       </div>
       {
         selected === vote.vote_id && vote.vote_id !== undefined && (
@@ -69,7 +74,6 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, selected, setSele
               setBallot={setBallot}
               resetVote={resetVote}
             />
-            { /* formatDateTime(timeToDate(vote.date)) */ }
             { vote.vote_id }
           </div>
         )

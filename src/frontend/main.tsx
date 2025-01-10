@@ -10,7 +10,7 @@ import { CkBtcActorProvider }           from './actors/CkBtcActor';
 import { ProtocolActorProvider }        from './actors/ProtocolActor';
 import { ResonanceLedgerActorProvider } from './actors/ResonanceLedgerActor';
 import { CurrencyProvider }             from './components/CurrencyContext';
-import { MinterActorProvider } from './actors/MinterActor';
+import { MinterActorProvider }          from './actors/MinterActor';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>

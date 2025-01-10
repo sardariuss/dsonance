@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef, useState, Fragment } from 'react';
 import { ResponsiveLine, Serie } from '@nivo/line';
-import { BITCOIN_TOKEN_SYMBOL, CHART_BACKGROUND_COLOR, LOCK_EMOJI } from '../../constants';
+import { CHART_BACKGROUND_COLOR } from '../../constants';
 import { SBallotType } from '@/declarations/protocol/protocol.did';
 import IntervalPicker from './IntervalPicker';
 import { DurationUnit, toNs } from '../../utils/conversions/duration';
@@ -28,7 +28,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
     const updateWidth = () => {
       if (containerRef.current) {
         console.log("Container width: ", containerRef.current.offsetWidth);
-        setContainerWidth(containerRef.current.offsetWidth);
+        setContainerWidth(containerRef.current.offsetWidth - 20); // 20 px to make room for the slider bar if any
       }
     };
 
@@ -281,7 +281,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
   };
 
   return (
-    <div className="flex flex-col items-center space-y-1 w-full" ref={containerRef}>
+    <div className="flex flex-col items-center space-y-2 w-full" ref={containerRef}>
       { containerWidth && config && <div
         ref={chartRef}
         style={{
@@ -346,7 +346,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                 axis: 'x',
                 value: timeToDate(currentTime).getTime(), // Convert string to timestamp
                 lineStyle: {
-                  stroke: '#00ff00',
+                  stroke: 'yellow',
                   strokeWidth: 1,
                   zIndex: 20,
                 },

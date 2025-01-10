@@ -4,9 +4,7 @@ import { nsToMs } from "../../utils/conversions/date";
 
 import { ResponsiveLine, Serie } from '@nivo/line';
 import { useMemo, useRef } from "react";
-import { CHART_BACKGROUND_COLOR } from "../../constants";
 import { protocolActor } from "../../actors/ProtocolActor";
-import { formatDuration } from "../../utils/conversions/duration";
 import { format } from "date-fns";
 
 interface DurationChartProps {
@@ -70,11 +68,24 @@ const DurationChart = ({ duration_timeline, format_value }: DurationChartProps) 
           curve='stepAfter'
           enableArea={true}
           animate={false}
-          theme={{
-            background: CHART_BACKGROUND_COLOR,
-          }}
           enablePoints={false}
           margin={{ top: 50, right: 50, bottom: 50, left: 90 }}
+          colors={"rgb(59 130 246)"}
+          areaOpacity={0.7} // Adjust transparency of the area
+          fill={[ // Define custom gradient fills for the area
+            { match: '*', id: 'gradientA' },
+          ]}
+          defs={[
+            {
+              id: 'gradientA',
+              type: 'linearGradient',
+              colors: [
+                { offset: 0, color: 'rgb(59 130 246)', opacity: 0.8 }, // Top gradient color
+                { offset: 100, color: 'rgb(59 130 246)', opacity: 0.2 }, // Bottom gradient color
+              ],
+            },
+          ]}
+          areaBlendMode="normal"
           axisBottom={{
             renderTick: ({ tickIndex, x, y, value }) => {
               return (
@@ -87,14 +98,14 @@ const DurationChart = ({ duration_timeline, format_value }: DurationChartProps) 
                     dominantBaseline="central"
                     style={{
                       fontSize: '12px',
-                      fill: 'gray',
+                      fill: 'white',
                     }}
                   >
                     { format(new Date(value), "dd MMM") }
                   </text>
                 </g>
               );
-            }
+            },
           }}
           axisLeft={{
             renderTick: ({ tickIndex, x, y, value }) => {
@@ -108,13 +119,22 @@ const DurationChart = ({ duration_timeline, format_value }: DurationChartProps) 
                   dominantBaseline="central"
                   style={{
                     fontSize: '12px',
-                    fill: 'gray',
+                    fill: 'white',
                   }}
                 >
                   { format_value(value) }
                 </text>
               </g>
               );
+            }
+          }}
+          enableGridX={false}
+          theme={{
+            grid: {
+              line: {
+                stroke: 'white',
+                strokeOpacity: 0.3,
+              }
             }
           }}
         />
