@@ -8,10 +8,11 @@ import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
 
 interface NewVoteProps {
-  fetchVotes: (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
+  refreshVotes: () => void,
+  category: string
 }
 
-function NewVote({ fetchVotes } : NewVoteProps) {
+function NewVote({ refreshVotes, category } : NewVoteProps) {
 
   const INPUT_BOX_ID = "new-vote-input";
 
@@ -21,10 +22,10 @@ function NewVote({ fetchVotes } : NewVoteProps) {
 
   const { call: newVote, loading } = backendActor.useUpdateCall({
     functionName: 'new_vote',
-    args: [{ text, vote_id: uuidv4() }],
+    args: [{ text, vote_id: uuidv4(), category }],
     onSuccess: (data) => {
       console.log(data)
-      fetchVotes();
+      refreshVotes();
     },
     onError: (error) => {
       console.error(error);
@@ -51,7 +52,7 @@ function NewVote({ fetchVotes } : NewVoteProps) {
   }, []);
 
   return (
-    <div className="flex flex-col w-full gap-y-1 border-y dark:border-gray-700">
+    <div className="flex flex-col w-full gap-y-1 border-b dark:border-gray-700">
       <div id={INPUT_BOX_ID} className={`input-box break-words w-full text-sm
         ${text.length > 0 ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}`}
         data-placeholder="Share something that you believe is true." contentEditable="true">

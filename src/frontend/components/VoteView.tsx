@@ -1,6 +1,6 @@
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import PutBallot from "./PutBallot";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import PutBallotPreview from "./PutBallotPreview";
 import VoteChart from "./charts/VoteChart";
@@ -9,33 +9,25 @@ import { BallotInfo } from "./types";
 import { get_total_votes, get_votes, get_yes_votes } from "../utils/conversions/vote";
 import ConsensusView from "./ConsensusView";
 import DateSpan from "./DateSpan";
-
-type FetchFunction = (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
+import { useCurrencyContext } from "./CurrencyContext";
+import BitcoinIcon from "./icons/BitcoinIcon";
 
 interface VoteViewProps {
   vote: SYesNoVote;
-  fetchVotes?: FetchFunction;
+  refreshVotes?: () => void;
   selected: string | null;
   setSelected: (selected: string | null) => void;
 }
 
-const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, selected, setSelected }) => {
+const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSelected }) => {
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
 
-  const getTotalSide = (side: EYesNoChoice) : bigint => {
-    let total_side = get_votes(vote, side);
-    total_side += (ballot.choice === side ? ballot.amount : 0n);
-    return total_side;
-  }
+  const { formatSatoshis } = useCurrencyContext();
 
-  const getPercentage = (side: EYesNoChoice) => {
-    const total = Number(get_total_votes(vote) + ballot.amount);
-    if (total === 0) {
-      throw new Error("Total number of votes is null");
-    }
-    return Number(getTotalSide(side)) / total * 100;
-  }
+  const total = useMemo(() : bigint => {
+    return get_total_votes(vote) + (ballot?.amount ?? 0n);
+  }, [vote, ballot]);
 
   const resetVote = () => {
     setBallot({ choice: EYesNoChoice.Yes, amount: 0n });
@@ -49,12 +41,14 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, selected, setSele
 
   return (
     <div className="flex flex-col content-center border-b dark:border-gray-700 px-5 py-1 hover:cursor-pointer space-y-2 w-full hover:bg-slate-50 hover:dark:bg-slate-850">
-      <div className="w-full grid grid-cols-12" onClick={(e) => { setSelected(selected === vote.vote_id ? null : vote.vote_id) }}>
+      <div className="w-full grid grid-cols-[100px_minmax(300px,_1fr)_120px] items-baseline" onClick={(e) => { setSelected(selected === vote.vote_id ? null : vote.vote_id) }}>
         <div className="text-gray-400 text-sm">
           <DateSpan timestamp={vote.date}/>
         </div>
-        <div className="col-span-11">
-          <ConsensusView vote={vote} ballot={ballot}/>
+        <ConsensusView vote={vote} ballot={ballot}/>
+        <div className="flex flex-row space-x-1 items-center justify-self-center">
+          <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(total)}</span>
+          <BitcoinIcon />
         </div>
       </div>
       {
@@ -69,7 +63,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, fetchVotes, selected, setSele
             <PutBallotPreview vote_id={vote.vote_id} ballot={ballot} />
             <PutBallot 
               vote_id={vote.vote_id} 
-              fetchVotes={fetchVotes} 
+              refreshVotes={refreshVotes} 
               ballot={ballot}
               setBallot={setBallot}
               resetVote={resetVote}

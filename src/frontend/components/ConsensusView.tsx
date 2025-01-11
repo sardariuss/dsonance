@@ -26,9 +26,9 @@ const ConsensusView: React.FC<ConsensusViewProps> = ({ vote, ballot }) => {
   }, [vote, ballot]);
 
   return (
-      <div className="grid grid-cols-6 grid-gap-2 justify-items-center">
-        <div className="col-span-5 justify-self-start flex flex-row">
-          <span>{vote.text}</span>
+      <div className="grid grid-cols-[minmax(200px,_1fr)_100px] grid-gap-2 justify-items-center items-baseline">
+        <div className="justify-self-start flex flex-row">
+          {vote.text}
         </div>
         {
           consensus && <div className={`flex flex-row items-baseline space-x-1 

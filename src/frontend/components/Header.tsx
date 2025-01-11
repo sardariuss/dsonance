@@ -4,6 +4,10 @@ import { useAuth } from "@ic-reactor/react";
 import { protocolActor } from "../actors/ProtocolActor";
 import Select from "react-select";
 import { SupportedCurrency, useCurrencyContext } from "./CurrencyContext";
+import BitcoinIcon from "./icons/BitcoinIcon";
+import ResonanceCoinIcon from "./icons/ResonanceCoinIcon";
+import { RESONANCE_TOKEN_SYMBOL } from "../constants";
+import { fromE8s } from "../utils/conversions/token";
 
 const Header = () => {
 
@@ -16,7 +20,7 @@ const Header = () => {
     args: [],
   });
 
-  const { currency, setCurrency } = useCurrencyContext();
+  const { currency, setCurrency, currencySymbol, satoshisToCurrency } = useCurrencyContext();
 
   useEffect(() => {
 
@@ -72,63 +76,84 @@ const Header = () => {
   }, []);
 
   return (
-    <header className="bg-slate-100 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full justify-between space-x-2 xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14">
+    <header className="bg-slate-100 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14 relative">
+      {/* Left-aligned RESONANCE Link */}
       <Link to="/" className="flex flex-row items-center space-x-1">
         <div className="flex flex-row space-x-1 items-end">
-          <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">RESONANCE</span>
+          <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">
+            RESONANCE
+          </span>
         </div>
       </Link>
-        { presenceInfo && 
-          <Link className="flex flex-row items-center justify-center md:space-x-4" to={"/info"}>
-            <span>Presence:</span>
-            <span>
-              { Number((presenceInfo.presence_per_ns * 86_400_000_000_000) / Number(presenceInfo.ck_btc_locked.current.data)).toFixed(0) } resonance/sat/day
-            </span>
-          </Link> 
-        }
-      <div className="flex flex-row items-center justify-end md:space-x-4 space-x-2">
-        <div>Currency</div>
-        <Select
-          options={Object.values(SupportedCurrency).map((currency) => ({
-            value: currency,
-            label: currency,
-          }))}
-          value={{ value: currency, label: currency }}
-          onChange={(option) => { if (option !== null) setCurrency(option.value as SupportedCurrency) }}
-          styles={{
-            control: (provided, state) => ({
-              ...provided,
-              borderRadius: "4px",
-              color: "#fff",
-              boxShadow: "none",
-              backgroundColor: "#ddd",
-              borderColor: state.isFocused ? "rgb(59 130 246)" : "#ccc", // blue-500 if focused
-            }),
-            singleValue: (provided) => ({
-              ...provided,
-              color: "#000",
-            }),
-            option: (provided) => ({
-              ...provided,
-              color: "#000",
-              backgroundColor: "#fff",
-              "&:hover": {
+
+      {/* Spacer to center the second element */}
+      <div className="flex-grow"></div>
+
+      {/* Centered Minting Rate Info */}
+      {presenceInfo && (
+        <Link
+          className="absolute left-1/2 transform -translate-x-1/2 flex flex-row items-center justify-center space-x-1"
+          to={"/info"}
+        >
+          <ResonanceCoinIcon />
+          <span>Minting rate:</span>
+          <span>
+            {`${
+              fromE8s(BigInt(Math.floor(presenceInfo.presence_per_ns * 86_400_000_000_000 /
+                satoshisToCurrency(presenceInfo.ck_btc_locked.current.data)
+              ))).toString()} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
+          </span>
+        </Link>
+      )}
+      
+      {/* Right-aligned Profile and Theme Toggle */}
+      <div className="flex flex-row items-center justify-end md:space-x-2 space-x-1">
+        <div className="flex flex-row items-center space-x-1 mr-8">
+          <span>View</span>
+          <BitcoinIcon />
+          <span className="pr-2">in</span>
+          <Select
+            options={Object.values(SupportedCurrency).map((currency) => ({
+              value: currency,
+              label: currency,
+            }))}
+            value={{ value: currency, label: currency }}
+            onChange={(option) => { if (option !== null) setCurrency(option.value as SupportedCurrency) }}
+            styles={{
+              control: (provided, state) => ({
+                ...provided,
+                borderRadius: "4px",
+                color: "#fff",
+                boxShadow: "none",
                 backgroundColor: "#ddd",
-              },
-            }),
-          }}
-        />
-      </div>
-      <div className="flex flex-row items-center justify-end md:space-x-4 space-x-2">
-        { authenticated && identity ? 
-          <div className="flex flex-row items-center justify-end">
-            <button type="button" onClick={() => { navigate("/user/" + identity.getPrincipal()) }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
-              Profile
-            </button>
-            <button type="button" onClick={() => { logout() }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
-              Log out
-            </button>
-          </div> :
+                borderColor: state.isFocused ? "rgb(59 130 246)" : "#ccc", // blue-500 if focused
+              }),
+              singleValue: (provided) => ({
+                ...provided,
+                color: "#000",
+              }),
+              option: (provided) => ({
+                ...provided,
+                color: "#000",
+                backgroundColor: "#fff",
+                "&:hover": {
+                  backgroundColor: "#ddd",
+                },
+              }),
+            }}
+          />
+        </div>
+        { authenticated && identity &&
+          <button type="button" onClick={() => { navigate("/user/" + identity.getPrincipal()) }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
+            Profile
+          </button>
+        }
+        { authenticated && identity &&
+          <button type="button" onClick={() => { logout() }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
+            Log out
+          </button>
+        }
+        { (!authenticated || !identity) &&
           <button type="button" onClick={() => { login() }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
             Log in
           </button>

@@ -8,29 +8,27 @@ import { BallotInfo } from "./types";
 import ResetIcon from "./icons/ResetIcon";
 import { v4 as uuidv4 } from 'uuid';
 import { useCurrencyContext } from "./CurrencyContext";
-
-type FetchFunction = (eventOrReplaceArgs?: [] | React.MouseEvent<Element, MouseEvent> | undefined) => Promise<SYesNoVote[] | undefined>;
+import BitcoinIcon from "./icons/BitcoinIcon";
 
 interface PutBallotProps {
   vote_id: string;
-  fetchVotes?: FetchFunction;
+  refreshVotes?: () => void;
   ballot: BallotInfo;
   setBallot: (ballot: BallotInfo) => void;
   resetVote: () => void;
 }
 
-const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setBallot, resetVote }) => {
+const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, setBallot, resetVote }) => {
 
   const { formatSatoshis, currencySymbol, currencyToSatoshis, satoshisToCurrency } = useCurrencyContext();
 
   const { call: putBallot, loading } = protocolActor.useUpdateCall({
     functionName: "put_ballot",
     onSuccess: () => {
-      if (fetchVotes){
-        fetchVotes().finally(resetVote);
-      } else {
-        resetVote();
-      }
+      if (refreshVotes){
+        refreshVotes();
+      };
+      resetVote();
     },
     onError: (error) => {
       console.error(error);
@@ -77,6 +75,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, fetchVotes, ballot, setB
             className="w-32 h-9 border border-gray-300 rounded px-2 appearance-none focus:outline-none focus:border-blue-500"
             onChange={(e) => { if(isActive) { setBallot({ choice: ballot.choice, amount: currencyToSatoshis(Number(e.target.value)) ?? 0n }) }} }
           />
+          <BitcoinIcon />
         </div>
         <div>on</div>
         <div>

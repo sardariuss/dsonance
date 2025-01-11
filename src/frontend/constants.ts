@@ -1,7 +1,7 @@
 export const BITCOIN_TOKEN_SYMBOL = "₿";
 export const SAT_TOKEN_SYMBOL = "𝕊";
 export const USD_TOKEN_SYMBOL = "$";
-export const RESONANCE_TOKEN_SYMBOL = "RSN";
+export const RESONANCE_TOKEN_SYMBOL = "Ꞧ";
 // TODO: this should be defined in the protocol
 export const MINIMUM_BALLOT_AMOUNT = 100n;
 export const DISSENT_EMOJI = "⚔️";

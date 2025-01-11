@@ -286,7 +286,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         ref={chartRef}
         style={{
           width: `${containerWidth}px`, // Dynamic width based on container
-          height: `${data.length * 80}px`, // Dynamic height based on data length
+          height: `${data.length * 40 + 100}px`, // Dynamic height based on data length
           overflowX: 'auto',
           overflowY: 'hidden',
         }}

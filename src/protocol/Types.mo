@@ -57,6 +57,7 @@ module {
 
     public type GetVotesArgs = {
         origin: Principal;
+        filter_ids: ?[UUID];
     };
 
     public type FindVoteArgs = {

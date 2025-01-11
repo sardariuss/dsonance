@@ -19,6 +19,8 @@ import Float              "mo:base/Float";
 import Time               "mo:base/Time";
 import Debug              "mo:base/Debug";
 import Buffer             "mo:base/Buffer";
+import Array              "mo:base/Array";
+import Iter               "mo:base/Iter";
 
 module {
 
@@ -34,6 +36,7 @@ module {
     type UUID = Types.UUID;
     type NewVoteResult = Types.NewVoteResult;
     type BallotRegister = Types.BallotRegister;
+    type Iter<T> = Iter.Iter<T>;
 
     type WeightParams = {
         ballot: BallotType;
@@ -200,9 +203,20 @@ module {
             presence_dispenser.get_info();
         };
 
-        public func get_votes({origin: Principal;}) : [VoteType] {
+        public func get_votes({origin: Principal; filter_ids: ?[UUID]}) : [VoteType] {
+            
             let vote_ids = Option.get(Map.get(vote_register.by_origin, Map.phash, origin), Set.new<UUID>());
+            let filter = Option.map(filter_ids, func(ids: [UUID]) : Set.Set<UUID> { Set.fromIter(Iter.fromArray(ids), Set.thash) });
+            
             Set.toArrayMap(vote_ids, func(vote_id: UUID) : ?VoteType {
+                switch(filter){
+                    case(null) {};
+                    case(?filter) {
+                        if (not Set.has(filter, Set.thash, vote_id)){
+                            return null;
+                        };
+                    };
+                };
                 Map.get(vote_register.votes, Map.thash, vote_id);
             });
         };

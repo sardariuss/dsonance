@@ -10,7 +10,6 @@ import { LOCK_EMOJI, RESONANCE_TOKEN_SYMBOL, DISSENT_EMOJI, PARTICIPATION_EMOJI,
 import { get_current, to_number_timeline } from "../../utils/timeline";
 import DurationChart from "../charts/DurationChart";
 import { protocolActor } from "../../actors/ProtocolActor";
-import { SBallotType } from "../../../declarations/protocol/protocol.did";
 import { fromNullable } from "@dfinity/utils";
 import Wallet from "../Wallet";
 import { computeResonance, unwrapLock } from "../../utils/conversions/ballot";
@@ -19,6 +18,7 @@ import { formatBalanceE8s } from "../../utils/conversions/token";
 import ChoiceView from "../ChoiceView";
 import ConsensusView from "../ConsensusView";
 import DateSpan from "../DateSpan";
+import BitcoinIcon from "../icons/BitcoinIcon";
 
 interface VoteConsensusProps {
   vote_id: string;
@@ -60,12 +60,11 @@ const User = () => {
 
   const selectBallot = (index: number | undefined) => {
     setSelected(index === undefined ? undefined : index === selected ? undefined : index);
-    setDetailToggle(undefined);
   }
 
   const toggleDetail = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, detail: DetailToggle) => {
     e.stopPropagation();
-    setDetailToggle(detail);
+    setDetailToggle(detailToggle === detail ? undefined : detail);
   };
 
   const { data: ballots, call: refreshBallots } = protocolActor.useQueryCall({
@@ -88,8 +87,11 @@ const User = () => {
       { ballots && ballots?.length > 0 && 
         <div className="flex flex-col items-center w-full border-b dark:border-gray-700 py-2">
           <div className="flex flex-row w-full space-x-1 justify-center items-baseline">
-            <span>Total BTC locked:</span>
+            <span>Total locked:</span>
             <span className="text-lg">{ totalLocked ? formatSatoshis(totalLocked) : "N/A" }</span>
+            <div className="flex self-center">
+              <BitcoinIcon/>
+            </div>
           </div>
           <LockChart ballots={ballots} select_ballot={selectBallot} selected={selected}/>
         </div>
@@ -99,7 +101,7 @@ const User = () => {
           ballots?.map((ballot, index) => (
             <li 
               key={index} 
-              className="border-b dark:border-gray-700 border-gray-200 p-2 hover:bg-slate-50 dark:hover:bg-slate-850 hover:cursor-pointer"
+              className="border-b dark:border-gray-700 border-gray-200 py-1 px-2 hover:bg-slate-50 dark:hover:bg-slate-850 hover:cursor-pointer"
               onClick={() => selectBallot(index)}
             >
               
@@ -107,6 +109,9 @@ const User = () => {
               <div className="flex flex-row space-x-1 items-baseline">
                 <span className="text-gray-400 text-sm">Locked</span>
                 <span>{formatSatoshis(ballot.YES_NO.amount)}</span>
+                <div className="flex self-center h-4 w-4">
+                  <BitcoinIcon/>
+                </div>
                 <span className="text-gray-400 text-sm">on</span>
                 <ChoiceView ballot={ballot}/>
                 <span className="text-gray-400 text-sm">{" · "}</span>

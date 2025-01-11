@@ -30,8 +30,6 @@ const computeChartProps = ({ currentTime, currentDecay, duration, aggregate } : 
 
   const { dates, ticks } = computeInterval(currentTime, duration);
 
-  console.log("Current time: ", currentTime)
-
   let yesAggregate = 0;
   let noAggregate = 0;
   let max = 0;
@@ -161,7 +159,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                     (index < (priceLevels.length - 1)) ? 
                     <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
                       <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
-                        <div className="text-xs text-gray-300" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div>
+                        <div className="text-xs text-white" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div>
                         <div className="flex w-full h-[0.5px] bg-white opacity-50" style={{ position: 'absolute', bottom: 0 }}/>
                       </div>
                     </div> : <></>
@@ -202,7 +200,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                   dominantBaseline="central"
                   style={{
                     fontSize: '12px',
-                    fill: 'rgb(209 213 219)', // gray-300
+                    fill: 'white', // gray-300
                   }}
                 >
                   { CHART_CONFIGURATIONS.get(duration)!.format(new Date(value)) }

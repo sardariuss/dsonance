@@ -12,6 +12,7 @@ import { formatBalanceE8s } from '../utils/conversions/token';
 import { BITCOIN_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL } from '../constants';
 import { minterActor } from '../actors/MinterActor';
 import BitcoinIcon from './icons/BitcoinIcon';
+import ResonanceCoinIcon from './icons/ResonanceCoinIcon';
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -166,7 +167,7 @@ const Wallet = () => {
       <div className="flex w-full items-center justify-between rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-200 bg-slate-100 dark:bg-gray-800">
         <div className="flex items-center space-x-2">
           <div className="h-5 w-5">
-            <BitcoinIcon />
+            <ResonanceCoinIcon />
           </div>
           <span className="text-gray-700 dark:text-white font-medium">Resonance:</span>
         </div>

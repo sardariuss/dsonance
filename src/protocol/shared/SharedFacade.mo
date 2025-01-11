@@ -52,8 +52,8 @@ module {
             }
         };
 
-        public func get_votes({origin: Principal;}) : [SVoteType] {
-            let vote_types = controller.get_votes({origin});
+        public func get_votes({origin: Principal; filter_ids: ?[UUID] }) : [SVoteType] {
+            let vote_types = controller.get_votes({origin; filter_ids;});
             Array.map(vote_types, SharedConversions.shareVoteType);
         };
 
