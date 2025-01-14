@@ -16,8 +16,8 @@ const Header = () => {
 
   const { login, authenticated, identity } = useAuth({});
 
-  const { data: presenceInfo, call: refreshPresenceInfo } = protocolActor.useQueryCall({
-    functionName: "get_presence_info",
+  const { data: protocolInfo, call: refreshProtocolInfo } = protocolActor.useQueryCall({
+    functionName: "get_protocol_info",
     args: [],
   });
 
@@ -72,11 +72,11 @@ const Header = () => {
       }
     });
 
-    refreshPresenceInfo();
+    refreshProtocolInfo();
 
   }, []);
 
-  const mintingRate = presenceInfo && computeMintingRate(presenceInfo.ck_btc_locked.current.data, presenceInfo.presence_per_ns, satoshisToCurrency);
+  const mintingRate = protocolInfo && computeMintingRate(protocolInfo.ck_btc_locked.current.data, protocolInfo.minting_per_ns, satoshisToCurrency);
 
   return (
     <header className="bg-slate-100 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14 relative">
@@ -144,7 +144,7 @@ const Header = () => {
           />
         </div>
         <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to="https://sardarius-corp.gitbook.io/resonance-defi">
-          Documentation
+          Docs
         </Link>
         <div>
         { authenticated && identity ? 

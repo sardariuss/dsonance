@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState }          from "react";
 import { protocolActor }                         from "../../actors/ProtocolActor";
-import { STimeline_2 }                           from "@/declarations/protocol/protocol.did";
+import { STimeline_3 }                           from "@/declarations/protocol/protocol.did";
 import { SYesNoVote }                            from "@/declarations/backend/backend.did";
 import { EYesNoChoice }                          from "../../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump }     from "@nivo/bump";
@@ -9,13 +9,13 @@ import { BallotInfo }                            from "../types";
 import { DurationUnit }                          from "../../utils/conversions/duration";
 import { CHART_CONFIGURATIONS, computeInterval } from ".";
 import IntervalPicker                            from "./IntervalPicker";
-import { useCurrencyContext } from "../CurrencyContext";
+import { useCurrencyContext }                    from "../CurrencyContext";
 
 interface ComputeChartPropsArgs {
   currentTime: bigint;
   currentDecay: number;
   duration: DurationUnit;
-  aggregate: STimeline_2;
+  aggregate: STimeline_3;
 }
 
 type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[]}>[];

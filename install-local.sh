@@ -62,7 +62,8 @@ dfx deploy protocol --argument '( variant {
       fee = 10;
     };
     parameters = record {
-      presence_per_day = 100_000_000_000;
+      minting_per_day = 100_000_000_000;
+      participation_ratio = 0.1;
       ballot_half_life = variant { YEARS = 1 };
       nominal_lock_duration = variant { DAYS = 3 };
     };

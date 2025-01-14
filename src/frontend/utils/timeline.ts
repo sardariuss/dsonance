@@ -25,18 +25,17 @@ export const to_number_timeline = (timeline: TimeLine<bigint>): TimeLine<number>
   }))
 });
 
-function mapFilter<T>(array: T[], callback: (item: T) => T | undefined): T[] {
-  const result = [];
-  for (const item of array) {
-    const mapped = callback(item);
-    if (mapped !== undefined && mapped !== null) {
-      result.push(mapped);
-    }
-  }
-  return result;
-}
+export const map_timeline = <T1, T2>(timeline: TimeLine<T1>, f: (data: T1) => T2): TimeLine<T2> => {
+  return {
+    current: { timestamp: timeline.current.timestamp, data: f(timeline.current.data) },
+    history: timeline.history.map((timed_data) => ({
+      timestamp: timed_data.timestamp,
+      data: f(timed_data.data)
+    }))
+  };
+};
 
-export const map_timeline = <T>(timeline: TimeLine<T>, f: (data: T) => T | undefined): TimeLine<T> | undefined => {
+export const map_filter_timeline = <T1, T2>(timeline: TimeLine<T1>, f: (data: T1) => T2 | undefined): TimeLine<T2> | undefined => {
   // If the current is undefined, consider the whole timeline undefined
   let current = f(timeline.current.data);
   if (current === undefined) {
@@ -51,3 +50,14 @@ export const map_timeline = <T>(timeline: TimeLine<T>, f: (data: T) => T | undef
     })
   };
 };
+
+function mapFilter<T1, T2>(array: T1[], callback: (item: T1) => T2 | undefined): T2[] {
+  const result = [];
+  for (const item of array) {
+    const mapped = callback(item);
+    if (mapped !== undefined && mapped !== null) {
+      result.push(mapped);
+    }
+  }
+  return result;
+}

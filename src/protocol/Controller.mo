@@ -8,7 +8,7 @@ import Clock              "utils/Clock";
 import LockScheduler      "LockScheduler";
 import SharedConversions  "shared/SharedConversions";
 import BallotUtils        "votes/BallotUtils";
-import PresenceDispenser  "PresenceDispenser";
+import ParticipationDispenser  "ParticipationDispenser";
 
 import Map                "mo:map/Map";
 import Set                "mo:map/Set";
@@ -16,10 +16,8 @@ import Set                "mo:map/Set";
 import Int                "mo:base/Int";
 import Option             "mo:base/Option";
 import Float              "mo:base/Float";
-import Time               "mo:base/Time";
 import Debug              "mo:base/Debug";
 import Buffer             "mo:base/Buffer";
-import Array              "mo:base/Array";
 import Iter               "mo:base/Iter";
 
 module {
@@ -68,7 +66,7 @@ module {
         deposit_debt: DebtProcessor.DebtProcessor;
         resonance_debt: DebtProcessor.DebtProcessor;
         decay_model: Decay.DecayModel;
-        presence_dispenser: PresenceDispenser.PresenceDispenser;
+        participation_dispenser: ParticipationDispenser.ParticipationDispenser;
     }){
 
         public func new_vote(args: NewVoteArgs) : NewVoteResult {
@@ -187,7 +185,7 @@ module {
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
             lock_scheduler.try_unlock(time);
-            presence_dispenser.dispense(time);
+            participation_dispenser.dispense(time);
 
             let transfers = Buffer.Buffer<async* ()>(3);
 
@@ -199,8 +197,8 @@ module {
             };
         };
 
-        public func get_presence_info() : Types.PresenceInfo {
-            presence_dispenser.get_info();
+        public func get_protocol_info() : Types.ProtocolInfo {
+            participation_dispenser.get_info();
         };
 
         public func get_votes({origin: Principal; filter_ids: ?[UUID]}) : [VoteType] {

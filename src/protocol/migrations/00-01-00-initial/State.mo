@@ -65,8 +65,9 @@ module {
                 owed = Set.new<UUID>();
             };
             parameters = {
-                presence = {
-                    presence_per_ns = Float.fromInt(parameters.presence_per_day) / Float.fromInt(Duration.NS_IN_DAY);
+                minting = {
+                    minting_per_ns = Float.fromInt(parameters.minting_per_day) / Float.fromInt(Duration.NS_IN_DAY);
+                    participation_ratio = parameters.participation_ratio;
                     var time_last_dispense = now;
                 };
                 nominal_lock_duration = parameters.nominal_lock_duration;

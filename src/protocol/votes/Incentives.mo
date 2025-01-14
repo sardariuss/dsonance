@@ -14,15 +14,13 @@ module {
     type AggregateHistoryType = Types.AggregateHistoryType;
     type Segment = { start: Time; end: Time; aggregate: YesNoAggregate; };
 
-    public func compute_resonance({
-        amount: Float;
+    public func compute_discernment({
+        participation: Float;
         dissent: Float;
         consent: Float;
-        start: Time;
-        end: Time;
+        coefficient: Float;
     }) : Float {
-        let age = Float.fromInt(end - start) / Float.fromInt(Duration.NS_IN_YEAR);
-        amount * age * dissent * consent;
+        coefficient * participation * dissent * consent;
     };
     
     public func compute_consent({

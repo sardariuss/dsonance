@@ -1,4 +1,5 @@
 import Result "mo:base/Result";
+import Float "mo:base/Float";
 
 import Types "migrations/Types";
 
@@ -44,9 +45,10 @@ module {
     public type DebtInfo           = Types.Current.DebtInfo;
     public type Transfer           = Types.Current.Transfer;
     public type TransferResult     = Types.Current.TransferResult;
-    public type PresenseParameters = Types.Current.PresenseParameters;
+    public type MintingParameters = Types.Current.MintingParameters;
     public type BallotType         = Types.Current.BallotType;
     public type BallotRegister     = Types.Current.BallotRegister;
+    public type Rewards            = Types.Current.Rewards;
 
     // CANISTER ARGS
 
@@ -111,6 +113,7 @@ module {
         amount: Nat;
         dissent: Float;
         consent: STimeline<Float>;
+        rewards: STimeline<Rewards>;
         ck_btc: SDebtInfo;
         resonance: SDebtInfo;
         tx_id: Nat;
@@ -123,8 +126,6 @@ module {
     public type SLockInfo = {
         duration_ns: STimeline<Nat>;
         release_date: Time;
-        participation: Float;
-        rewarded: ?Float;
     };
 
     public type SVote<A, B> = {
@@ -134,16 +135,16 @@ module {
         aggregate: STimeline<A>;
     };
 
-    public type SPresenceInfo = {
-        presence_per_ns: Float;
+    public type SProtocolInfo = {
+        minting_per_ns: Float;
         time_last_dispense: Time;
         ck_btc_locked: STimeline<Nat>;
     };
 
     // CUSTOM TYPES
 
-    public type PresenceInfo = {
-        presence_per_ns: Float;
+    public type ProtocolInfo = {
+        minting_per_ns: Float;
         time_last_dispense: Time;
         ck_btc_locked: Timeline<Nat>;
     };

@@ -6,13 +6,13 @@ import { Principal } from "@dfinity/principal";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import LockChart from "../charts/LockChart";
-import { LOCK_EMOJI, RESONANCE_TOKEN_SYMBOL, DISSENT_EMOJI, PARTICIPATION_EMOJI, REWARD_EMOJI } from "../../constants";
-import { get_current, to_number_timeline } from "../../utils/timeline";
+import { LOCK_EMOJI, RESONANCE_TOKEN_SYMBOL, DISSENT_EMOJI, PARTICIPATION_EMOJI, DISCERNMENT_EMOJI } from "../../constants";
+import { get_current, map_timeline, to_number_timeline } from "../../utils/timeline";
 import DurationChart from "../charts/DurationChart";
 import { protocolActor } from "../../actors/ProtocolActor";
 import { fromNullable } from "@dfinity/utils";
 import Wallet from "../Wallet";
-import { computeResonance, unwrapLock } from "../../utils/conversions/ballot";
+import { unwrapLock } from "../../utils/conversions/ballot";
 import { useCurrencyContext } from "../CurrencyContext";
 import { formatBalanceE8s } from "../../utils/conversions/token";
 import ChoiceView from "../ChoiceView";
@@ -42,7 +42,7 @@ const VoteConsensus = ({ vote_id }: VoteConsensusProps) => {
 enum DetailToggle {
   DURATION,
   PARTICIPATION,
-  REWARD,
+  DISCERNMENT,
 };
 
 const User = () => {
@@ -155,34 +155,35 @@ const User = () => {
                     <span>{PARTICIPATION_EMOJI}</span>
                     <div className="flex flex-row space-x-1 items-baseline">
                       <span className="italic text-gray-400 text-sm">Participation:</span>
-                      <span>{ formatBalanceE8s(BigInt(Math.floor(unwrapLock(ballot).participation)), RESONANCE_TOKEN_SYMBOL) }</span>
+                      <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL) }</span>
                     </div>
                   </div>
                   
                   <div 
-                    className={`flex justify-center items-baseline space-x-1 hover:bg-slate-800 w-full hover:cursor-pointer rounded ${detailToggle === DetailToggle.REWARD ? "bg-slate-800" : ""}`}
-                    onClick={(e) => toggleDetail(e, DetailToggle.REWARD)}
+                    className={`flex justify-center items-baseline space-x-1 hover:bg-slate-800 w-full hover:cursor-pointer rounded ${detailToggle === DetailToggle.DISCERNMENT ? "bg-slate-800" : ""}`}
+                    onClick={(e) => toggleDetail(e, DetailToggle.DISCERNMENT)}
                   >
-                    <span>{REWARD_EMOJI}</span>
+                    <span>{DISCERNMENT_EMOJI}</span>
                     <div className="flex flex-row space-x-1 items-baseline">
-                      <span className="italic text-gray-400 text-sm">Reward:</span>
-                      <span>{ formatBalanceE8s(computeResonance(ballot), RESONANCE_TOKEN_SYMBOL) + " (forecast)"}</span>
+                      <span className="italic text-gray-400 text-sm">Discernment:</span>
+                      <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL) + " (forecast)"}</span>
                     </div>
                   </div>
 
                   { detailToggle === DetailToggle.DURATION &&
                     <div className="col-span-2 w-full flex flex-col">
-                      <DurationChart duration_timeline={to_number_timeline(unwrapLock(ballot).duration_ns)} format_value={ (value: number) => formatDuration(BigInt(value)) }/>
+                      <DurationChart duration_timeline={to_number_timeline(unwrapLock(ballot).duration_ns)} format_value={ (value: number) => formatDuration(BigInt(value)) } fillArea={false}/>
                     </div>
                   }
                   { detailToggle === DetailToggle.PARTICIPATION &&
                     <div className="col-span-2 w-full flex flex-col">
-                      <DurationChart duration_timeline={ballot.YES_NO.resonance.amount} format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL)) }/>
+                      <DurationChart duration_timeline={map_timeline(ballot.YES_NO.rewards, (reward) => reward.participation ) } format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL)) } fillArea={true}/>
                     </div>
                   }
-                  { detailToggle === DetailToggle.REWARD &&
+                  { detailToggle === DetailToggle.DISCERNMENT &&
                     <div className="col-span-2 w-full flex flex-col">
-                      <DurationChart duration_timeline={ballot.YES_NO.consent} format_value={ (value: number) => value.toString() }/>
+                      <DurationChart duration_timeline={map_timeline(ballot.YES_NO.rewards, (reward) => reward.discernment ) } format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL)) } fillArea={true}/>
+                      <DurationChart duration_timeline={ballot.YES_NO.consent} format_value={ (value: number) => value.toString() } y_min={0} y_max={1.0} fillArea={false}/>
                     </div>
                   }
                   <div className="col-span-2 w-full flex flex-col hidden">

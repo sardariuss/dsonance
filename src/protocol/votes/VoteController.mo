@@ -17,6 +17,7 @@ module {
     type Vote<A, B> = Types.Vote<A, B>;
     type Ballot<B> = Types.Ballot<B>;
     type LockInfo = Types.LockInfo;
+    type Rewards = Types.Rewards;
 
     type Time = Int;
     type Iter<T> = Iter.Iter<T>;
@@ -134,6 +135,7 @@ module {
                 choice;
                 dissent;
                 consent = Timeline.initialize<Float>(timestamp, consent);
+                rewards = Timeline.initialize<Rewards>(timestamp, { participation = 0.0; discernment = 0.0; });
                 ck_btc = DebtProcessor.init_debt_info(timestamp, from);
                 resonance = DebtProcessor.init_debt_info(timestamp, from);
                 decay = decay_model.compute_decay(timestamp);

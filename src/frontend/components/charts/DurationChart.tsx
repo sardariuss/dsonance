@@ -10,9 +10,12 @@ import { format } from "date-fns";
 interface DurationChartProps {
   duration_timeline: STimeline;
   format_value: (value: number) => string;
+  fillArea: boolean;
+  y_min?: number;
+  y_max?: number;
 };
   
-const DurationChart = ({ duration_timeline, format_value }: DurationChartProps) => {
+const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max }: DurationChartProps) => {
 
   const { data: currentTime } = protocolActor.useQueryCall({
     functionName: "get_time",
@@ -64,27 +67,25 @@ const DurationChart = ({ duration_timeline, format_value }: DurationChartProps) 
           }}
           yScale={{
             type: 'linear',
+            min: y_min,
+            max: y_max,
           }}
           curve='stepAfter'
-          enableArea={true}
+          enableArea={fillArea}
           animate={false}
           enablePoints={false}
           margin={{ top: 20, bottom: 50, right: 50, left: 90 }}
           colors={"rgb(59 130 246)"}
           areaOpacity={0.7} // Adjust transparency of the area
-          fill={[ // Define custom gradient fills for the area
-            { match: '*', id: 'gradientA' },
-          ]}
-          defs={[
-            {
-              id: 'gradientA',
-              type: 'linearGradient',
-              colors: [
-                { offset: 0, color: 'rgb(59 130 246)', opacity: 0.8 }, // Top gradient color
-                { offset: 100, color: 'rgb(59 130 246)', opacity: 0.2 }, // Bottom gradient color
-              ],
-            },
-          ]}
+          fill={fillArea ? [{ match: '*', id: 'gradientA' }] : undefined}
+          defs={fillArea ? [{
+            id: 'gradientA',
+            type: 'linearGradient',
+            colors: [
+              { offset: 0, color: 'rgb(59 130 246)', opacity: 0.8 }, // Top gradient color
+              { offset: 100, color: 'rgb(59 130 246)', opacity: 0.2 }, // Bottom gradient color
+            ],
+          }] : undefined}
           areaBlendMode="normal"
           axisBottom={{
             renderTick: ({ tickIndex, x, y, value }) => {

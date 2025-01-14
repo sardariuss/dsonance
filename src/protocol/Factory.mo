@@ -1,23 +1,22 @@
-import Types              "Types";
-import Controller         "Controller";
-import Decay              "duration/Decay";
-import DurationCalculator "duration/DurationCalculator";
-import VoteFactory        "votes/VoteFactory";
-import VoteTypeController "votes/VoteTypeController";
-import Incentives         "votes/Incentives";
-import LedgerFacade       "payement/LedgerFacade";
-import PresenceDispenser  "PresenceDispenser";
-import LockScheduler      "LockScheduler";
-import Clock              "utils/Clock";
-import HotMap             "locks/HotMap";
-import Timeline           "utils/Timeline";
-import DebtProcessor      "DebtProcessor";
-import BallotUtils        "votes/BallotUtils";
+import Types                  "Types";
+import Controller             "Controller";
+import Decay                  "duration/Decay";
+import DurationCalculator     "duration/DurationCalculator";
+import VoteFactory            "votes/VoteFactory";
+import VoteTypeController     "votes/VoteTypeController";
+import LedgerFacade           "payement/LedgerFacade";
+import ParticipationDispenser "ParticipationDispenser";
+import LockScheduler          "LockScheduler";
+import Clock                  "utils/Clock";
+import HotMap                 "locks/HotMap";
+import Timeline               "utils/Timeline";
+import DebtProcessor          "DebtProcessor";
+import BallotUtils            "votes/BallotUtils";
 
-import Map                "mo:map/Map";
+import Map                    "mo:map/Map";
 
-import Float              "mo:base/Float";
-import Debug              "mo:base/Debug";
+import Float                  "mo:base/Float";
+import Debug                  "mo:base/Debug";
 
 module {
 
@@ -31,7 +30,7 @@ module {
     public func build(args: State and { provider: Principal }) : Controller.Controller {
 
         let { clock_parameters; vote_register; ballot_register; lock_register; deposit; resonance; parameters; provider; } = args;
-        let { nominal_lock_duration; decay; } = parameters;
+        let { nominal_lock_duration; decay; minting; } = parameters;
 
         let deposit_ledger = LedgerFacade.LedgerFacade({ deposit with provider; });
         let resonance_ledger = LedgerFacade.LedgerFacade({ resonance with provider; });
@@ -62,9 +61,9 @@ module {
             ledger = resonance_ledger;
         });
 
-        let presence_dispenser = PresenceDispenser.PresenceDispenser({
+        let participation_dispenser = ParticipationDispenser.ParticipationDispenser({
             lock_register;
-            parameters = parameters.presence;
+            parameters = minting;
             debt_processor = resonance_debt;
         });
 
@@ -78,26 +77,19 @@ module {
                 duration_calculator.update_lock_duration(ballot, ballot.hotness, time);
             };
             about_to_add = func (_: YesNoBallot, time: Time) {
-                presence_dispenser.dispense(time);
+                participation_dispenser.dispense(time);
             };
             about_to_remove = func (ballot: YesNoBallot, time: Time) {
-                presence_dispenser.dispense(time);
+                participation_dispenser.dispense(time);
                 
-                let lock = BallotUtils.unwrap_lock(ballot);
-                let reward = Incentives.compute_resonance({
-                    amount = lock.participation;
-                    dissent = ballot.dissent;
-                    consent = Timeline.current(ballot.consent);
-                    start = ballot.timestamp;
-                    end = time;
-                });
-                lock.rewarded := ?reward;
-                resonance_debt.add_debt({ 
-                    amount = reward;
+                // Transfer the discernment
+                resonance_debt.add_debt({
+                    amount = Timeline.current(ballot.rewards).discernment;
                     id = ballot.ballot_id;
                     time;
                 });
                 
+                // Unlock the BTC deposit
                 deposit_debt.add_debt({ 
                     amount = Float.fromInt(ballot.amount);
                     id = ballot.ballot_id;
@@ -129,7 +121,7 @@ module {
             deposit_debt;
             resonance_debt;
             decay_model;
-            presence_dispenser;
+            participation_dispenser;
         });
     };
 

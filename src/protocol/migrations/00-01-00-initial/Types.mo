@@ -216,6 +216,11 @@ module {
         var transfers: [Transfer];
     };
 
+    public type Rewards = {
+        participation: Float;
+        discernment: Float;
+    };
+
     public type Ballot<B> = {
         ballot_id: UUID;
         vote_id: UUID;
@@ -224,6 +229,7 @@ module {
         amount: Nat;
         dissent: Float;
         consent: Timeline<Float>;
+        rewards: Timeline<Rewards>;
         ck_btc: DebtInfo;
         resonance: DebtInfo;
         tx_id: Nat;
@@ -236,8 +242,6 @@ module {
     public type LockInfo = {
         duration_ns: Timeline<Nat>;
         var release_date: Time;
-        var participation: Float;
-        var rewarded: ?Float;
     };
 
     public type Transfer = {
@@ -259,8 +263,9 @@ module {
         #NS: Nat;
     };
 
-    public type PresenseParameters = {
-        presence_per_ns: Float;
+    public type MintingParameters = {
+        minting_per_ns: Float;
+        participation_ratio: Float;
         var time_last_dispense: Time;
     };
 
@@ -297,7 +302,8 @@ module {
             fee: Nat;
         };
         parameters: {
-            presence_per_day: Nat;
+            minting_per_day: Nat;
+            participation_ratio: Float;
             ballot_half_life: Duration;
             nominal_lock_duration: Duration;
         };
@@ -323,7 +329,7 @@ module {
             owed: Set<UUID>;
         };
         parameters: {
-            presence: PresenseParameters;
+            minting: MintingParameters;
             nominal_lock_duration: Duration;
             decay: {
                 half_life: Duration;

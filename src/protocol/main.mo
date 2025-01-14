@@ -69,8 +69,8 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         await* getFacade().run();
     };
 
-    public query func get_presence_info() : async Types.SPresenceInfo {
-        getFacade().get_presence_info();
+    public query func get_protocol_info() : async Types.SProtocolInfo {
+        getFacade().get_protocol_info();
     };
 
     // Get the ballots of the given account
