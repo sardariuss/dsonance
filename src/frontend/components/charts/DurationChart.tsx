@@ -26,12 +26,12 @@ const DurationChart = ({ duration_timeline, format_value }: DurationChartProps) 
     let points = duration_timeline.history.map((duration_ns) => {
       return {
         x: new Date(nsToMs(duration_ns.timestamp)),
-        y: isNaN(duration_ns.data) ? 0 : duration_ns.data
+        y: duration_ns.data
       };
     });
     points.push({
       x: new Date(nsToMs(duration_timeline.current.timestamp)),
-      y: isNaN(duration_timeline.current.data) ? 0 : duration_timeline.current.data
+      y: duration_timeline.current.data
     });
     if (currentTime) {
       points.push({
@@ -51,8 +51,8 @@ const DurationChart = ({ duration_timeline, format_value }: DurationChartProps) 
       <div
         ref={chartContainerRef}
         style={{
-          width: '800px', // Visible area
-          height: `400px`, // Dynamic height based on data length
+          width: '800px',
+          height: `400px`,
           overflowX: 'auto',
           overflowY: 'hidden',
         }}
@@ -69,7 +69,7 @@ const DurationChart = ({ duration_timeline, format_value }: DurationChartProps) 
           enableArea={true}
           animate={false}
           enablePoints={false}
-          margin={{ top: 50, right: 50, bottom: 50, left: 90 }}
+          margin={{ top: 20, bottom: 50, right: 50, left: 90 }}
           colors={"rgb(59 130 246)"}
           areaOpacity={0.7} // Adjust transparency of the area
           fill={[ // Define custom gradient fills for the area

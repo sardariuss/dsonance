@@ -1,5 +1,3 @@
-import walletIcon from '../assets/wallet.svg';
-import SvgButton from "./SvgButton";
 import { Account } from '@/declarations/protocol/protocol.did';
 import { useEffect, useState } from "react";
 import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
@@ -13,6 +11,8 @@ import { BITCOIN_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL } from '../constants';
 import { minterActor } from '../actors/MinterActor';
 import BitcoinIcon from './icons/BitcoinIcon';
 import ResonanceCoinIcon from './icons/ResonanceCoinIcon';
+import LogoutIcon from './icons/LogoutIcon';
+import { Link } from 'react-router-dom';
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -28,7 +28,7 @@ const accountToString = (account: Account | undefined) : string =>  {
 
 const Wallet = () => {
 
-  const { authenticated, identity } = useAuth({});
+  const { authenticated, identity, logout } = useAuth({});
 
   if (!authenticated || identity === null) {
     return (
@@ -132,13 +132,21 @@ const Wallet = () => {
     <div className="flex flex-col space-y-4 p-4 w-full shadow-md items-center">
 
       <div className="relative group">
-        <span
-          className="text-gray-700 dark:text-white font-medium self-center hover:cursor-pointer hover:scale-110"
-          onClick={handleCopy}
-        >
-          {accountToString(account)}
-        </span>
-        {copied && (
+        <div className="flex flex-row items-center space-x-2">
+          <span
+            className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white font-medium self-center hover:cursor-pointer"
+            onClick={handleCopy}
+          >
+            {accountToString(account)}
+          </span>
+          <Link 
+            className="self-end fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white p-2.5 rounded-lg hover:cursor-pointer"
+            onClick={()=>{logout()}}
+            to="/">
+            <LogoutIcon />
+          </Link>
+        </div>
+        { copied && (
           <div
             className={`absolute -top-6 left-1/2 z-50 transform -translate-x-1/2 bg-white text-black text-xs rounded px-2 py-1 transition-opacity duration-500 ${
               copied ? "opacity-100" : "opacity-0"

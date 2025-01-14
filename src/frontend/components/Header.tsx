@@ -1,4 +1,4 @@
-import { Link, useNavigate }      from "react-router-dom";
+import { Link }      from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { protocolActor } from "../actors/ProtocolActor";
@@ -8,12 +8,13 @@ import BitcoinIcon from "./icons/BitcoinIcon";
 import ResonanceCoinIcon from "./icons/ResonanceCoinIcon";
 import { RESONANCE_TOKEN_SYMBOL } from "../constants";
 import { fromE8s } from "../utils/conversions/token";
+import UserIcon from "./icons/UserIcon";
+import LoginIcon from "./icons/LoginIcon";
+import { computeMintingRate } from "./ProtocolInfo";
 
 const Header = () => {
 
-  const navigate = useNavigate();
-
-  const { login, logout, authenticated, identity } = useAuth({});
+  const { login, authenticated, identity } = useAuth({});
 
   const { data: presenceInfo, call: refreshPresenceInfo } = protocolActor.useQueryCall({
     functionName: "get_presence_info",
@@ -75,6 +76,8 @@ const Header = () => {
 
   }, []);
 
+  const mintingRate = presenceInfo && computeMintingRate(presenceInfo.ck_btc_locked.current.data, presenceInfo.presence_per_ns, satoshisToCurrency);
+
   return (
     <header className="bg-slate-100 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14 relative">
       {/* Left-aligned RESONANCE Link */}
@@ -90,24 +93,21 @@ const Header = () => {
       <div className="flex-grow"></div>
 
       {/* Centered Minting Rate Info */}
-      {presenceInfo && (
+      {mintingRate && (
         <Link
-          className="absolute left-1/2 transform -translate-x-1/2 flex flex-row items-center justify-center space-x-1"
-          to={"/info"}
+          className="absolute left-1/2 transform -translate-x-1/2 flex flex-row items-center justify-center space-x-1 text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer"
+          to={"/protocol_info"}
         >
           <ResonanceCoinIcon />
           <span>Minting rate:</span>
           <span>
-            {`${
-              fromE8s(BigInt(Math.floor(presenceInfo.presence_per_ns * 86_400_000_000_000 /
-                satoshisToCurrency(presenceInfo.ck_btc_locked.current.data)
-              ))).toString()} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
+            {`${fromE8s(BigInt(mintingRate)).toString()} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
           </span>
         </Link>
       )}
       
       {/* Right-aligned Profile and Theme Toggle */}
-      <div className="flex flex-row items-center justify-end md:space-x-2 space-x-1">
+      <div className="flex flex-row items-center justify-end md:space-x-6 space-x-2">
         <div className="flex flex-row items-center space-x-1 mr-8">
           <span>View</span>
           <BitcoinIcon />
@@ -143,22 +143,20 @@ const Header = () => {
             }}
           />
         </div>
-        { authenticated && identity &&
-          <button type="button" onClick={() => { navigate("/user/" + identity.getPrincipal()) }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
-            Profile
-          </button>
+        <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to="https://sardarius-corp.gitbook.io/resonance-defi">
+          Documentation
+        </Link>
+        <div>
+        { authenticated && identity ? 
+          <Link className="flex stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${identity.getPrincipal()}`}>
+            <UserIcon />
+          </Link> :
+          <div className="flex fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white rounded-lg hover:cursor-pointer" onClick={() => { login() }}>
+            <LoginIcon /> 
+          </div>
         }
-        { authenticated && identity &&
-          <button type="button" onClick={() => { logout() }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
-            Log out
-          </button>
-        }
-        { (!authenticated || !identity) &&
-          <button type="button" onClick={() => { login() }} className="button-blue xl:text-lg lg:text-md md:text-sm text-sm">
-            Log in
-          </button>
-        }
-        <button id="theme-toggle" type="button" className="fill-indigo-600 hover:fill-indigo-900 dark:fill-yellow-400 dark:hover:fill-yellow-200 rounded-lg text-sm p-2.5">
+        </div>
+        <button id="theme-toggle" type="button" className="fill-indigo-600 hover:fill-indigo-900 dark:fill-yellow-400 dark:hover:fill-yellow-200 rounded-lg text-sm">
           <svg id="theme-toggle-dark-icon" className="hidden w-5 h-5" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
           <svg id="theme-toggle-light-icon" className="hidden w-5 h-5" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fillRule="evenodd" clipRule="evenodd"></path></svg>
         </button>
