@@ -6,7 +6,7 @@ import { EYesNoChoice }                          from "../../utils/conversions/y
 import { AreaBumpSerie, ResponsiveAreaBump }     from "@nivo/bump";
 
 import { BallotInfo }                            from "../types";
-import { DurationUnit }                          from "../../utils/conversions/duration";
+import { DurationUnit, toNs }                    from "../../utils/conversions/duration";
 import { CHART_CONFIGURATIONS, computeInterval } from ".";
 import IntervalPicker                            from "./IntervalPicker";
 import { useCurrencyContext }                    from "../CurrencyContext";
@@ -130,6 +130,21 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
     });
   }
   , [vote]);
+
+  useEffect(() => {
+    // Set the duration based on the current time
+    if (currentTime){
+      let timeDifference = currentTime - vote.aggregate.history[0].timestamp;
+      if (timeDifference < toNs(1, DurationUnit.WEEK)){
+        setDuration(DurationUnit.WEEK);
+      } else if (timeDifference < toNs(1, DurationUnit.MONTH)){
+        setDuration(DurationUnit.MONTH);
+      } else {
+        setDuration(DurationUnit.YEAR);
+      }
+    }
+  }
+  , [currentTime]);
 
   const { chartData, max, priceLevels, dateTicks } = useMemo<ChartProperties>(() => {
     return {

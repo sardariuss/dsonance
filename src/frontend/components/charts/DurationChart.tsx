@@ -30,9 +30,10 @@ interface DurationChartProps {
   y_min?: number;
   y_max?: number;
   color: CHART_COLORS;
+  last_timestamp?: bigint;
 };
   
-const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max, color }: DurationChartProps) => {
+const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max, color, last_timestamp }: DurationChartProps) => {
 
   const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
   
@@ -77,9 +78,10 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
       x: new Date(nsToMs(duration_timeline.current.timestamp)),
       y: duration_timeline.current.data
     });
-    if (currentTime) {
+    let timestamp = last_timestamp ?? currentTime;
+    if (timestamp) {
       points.push({
-        x: new Date(nsToMs(currentTime)),
+        x: new Date(nsToMs(timestamp)),
         y: duration_timeline.current.data
       });
     }

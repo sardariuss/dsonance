@@ -2,7 +2,6 @@ import { formatDuration } from "../../utils/conversions/duration";
 import { dateToTime, niceFormatDate, timeDifference, timeToDate } from "../../utils/conversions/date";
 import { backendActor } from "../../actors/BackendActor";
 
-import { useEffect } from "react";
 import { LOCK_EMOJI, RESONANCE_TOKEN_SYMBOL, CONSENT_EMOJI, PARTICIPATION_EMOJI, DISCERNMENT_EMOJI, TIMESTAMP_EMOJI, DISSENT_EMOJI } from "../../constants";
 import { get_current, map_timeline, to_number_timeline } from "../../utils/timeline";
 import DurationChart, { CHART_COLORS } from "../charts/DurationChart";
@@ -17,7 +16,6 @@ import BitcoinIcon from "../icons/BitcoinIcon";
 import 'katex/dist/katex.min.css';
 import { InlineMath } from "react-katex";
 import { SBallotType } from "@/declarations/protocol/protocol.did";
-import { protocolActor } from "../../actors/ProtocolActor";
 import ResonanceCoinIcon from "../icons/ResonanceCoinIcon";
 import LinkIcon from "../icons/LinkIcon";
 
@@ -44,19 +42,12 @@ interface BallotProps {
   ballot: SBallotType;
   isSelected: boolean;
   selectBallot: () => void;
+  now: bigint | undefined;
 }
 
-const BallotView = ({ ballot, isSelected, selectBallot }: BallotProps) => {
+const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
 
   const { formatSatoshis } = useCurrencyContext();
-
-  const { call: refreshNow, data: now } = protocolActor.useQueryCall({
-      functionName: "get_time",
-  });
-  
-  useEffect(() => {
-    refreshNow();
-  }, [ballot]);
 
   const releaseTimestamp = ballot.YES_NO.timestamp + (unwrapLock(ballot).duration_ns).current.data;
 
@@ -84,8 +75,15 @@ const BallotView = ({ ballot, isSelected, selectBallot }: BallotProps) => {
       </div>
 
       <div className="flex flex-row space-x-1 items-baseline">
-        <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL, 2)}</span>
-        <span className="italic text-gray-400 animate-pulse">{`+ ${formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}`}</span>
+        { releaseTimestamp <= now ?
+          <div className="flex flex-row space-x-1 items-baseline">
+            <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation + ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}</span>
+          </div> :
+          <div className="flex flex-row space-x-1 items-baseline">
+            <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL, 2)}</span>
+            <span className="italic text-gray-400 animate-pulse">{`+ ${formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}`}</span>
+          </div>
+        }
         <div className="flex self-center h-4 w-4">
           <ResonanceCoinIcon/>
         </div>
@@ -126,6 +124,7 @@ const BallotView = ({ ballot, isSelected, selectBallot }: BallotProps) => {
               format_value={ (value: number) => formatDuration(BigInt(value)) } 
               fillArea={true}
               color={CHART_COLORS.PURPLE}
+              last_timestamp={releaseTimestamp <= now ? now : releaseTimestamp }
             />
           </div>
 
@@ -143,6 +142,7 @@ const BallotView = ({ ballot, isSelected, selectBallot }: BallotProps) => {
               color={CHART_COLORS.WHITE}
               y_min={0}
               y_max={1.0}
+              last_timestamp={releaseTimestamp <= now ? now : releaseTimestamp }
             />
           </div>
           
@@ -157,6 +157,7 @@ const BallotView = ({ ballot, isSelected, selectBallot }: BallotProps) => {
               format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL, 2)) } 
               fillArea={true}
               color={CHART_COLORS.GREEN}
+              last_timestamp={releaseTimestamp <= now ? now : releaseTimestamp }
             />
             <InlineMath math="P(t) = lock\_amount \cdot \int_{t_0}^t minting\_rate(t) \, dt" />
           </div>
@@ -172,6 +173,7 @@ const BallotView = ({ ballot, isSelected, selectBallot }: BallotProps) => {
               format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL, 2)) }
               fillArea={true}
               color={CHART_COLORS.GREEN}
+              last_timestamp={releaseTimestamp <= now ? now : releaseTimestamp }
             />
             <InlineMath math="D(t) = k * P(t) * dissent_{t_0} * consent(t)" />
           </div>
