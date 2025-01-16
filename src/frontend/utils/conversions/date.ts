@@ -38,6 +38,23 @@ export const niceFormatDate = (date: Date, now: Date) : string => {
   return date.toLocaleDateString('en-US', options);
 }
 
+export const timeDifference = (date: Date, now: Date): string => {
+  const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000);
+
+  // Handle "X seconds/minutes/hours/days/months/years"
+  if (Math.abs(diffInSeconds) < 60) {
+    return `${diffInSeconds}s`;
+  } else if (Math.abs(diffInSeconds) < 3600) {
+    return `${Math.floor(diffInSeconds / 60)}m`;
+  } else if (Math.abs(diffInSeconds) < 86400) {
+    return `${Math.floor(diffInSeconds / 3600)}h`;
+  } else if (Math.abs(diffInSeconds) < 31536000) {
+    return `${Math.floor(diffInSeconds / 86400)}d`;
+  } else {
+    return `${Math.floor(diffInSeconds / 31536000)}y`;
+  }
+}
+
 export const formatDate = (date: Date) : string => {
   return date.toLocaleDateString();
 }

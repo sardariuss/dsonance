@@ -5,6 +5,7 @@ export const RESONANCE_TOKEN_SYMBOL = "Ꞧ";
 // TODO: this should be defined in the protocol
 export const MINIMUM_BALLOT_AMOUNT = 100n;
 export const DISSENT_EMOJI = "⚔️";
+export const CONSENT_EMOJI = "🤝";
 export const PARTICIPATION_EMOJI = "🙋";
 export const DISCERNMENT_EMOJI = "🎯";
 export const LOCK_EMOJI = "🔒";

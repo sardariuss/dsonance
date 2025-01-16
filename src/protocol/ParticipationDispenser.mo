@@ -1,7 +1,6 @@
 import Types "Types";
 import DebtProcessor "DebtProcessor";
 import Timeline "utils/Timeline";
-import BallotUtils "votes/BallotUtils";
 import Incentives "votes/Incentives";
 
 import BTree "mo:stableheapbtreemap/BTree";
@@ -27,6 +26,11 @@ module {
 
             if (period < 0) {
                 Debug.trap("Cannot dispense participation in the past");
+            };
+
+            // Skip if the period is too small
+            if (Float.equalWithin(period, 0.0, 1e-6)) {
+                return;
             };
 
             Debug.print("Dispensing participation over period: " # debug_show(period));

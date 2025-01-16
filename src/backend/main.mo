@@ -31,15 +31,17 @@ shared({ caller = admin }) actor class Backend() = this {
         if (Principal.isAnonymous(caller)){
             return #err(#AnonymousCaller);
         };
-        let category_ids = switch(Map.get(_categories, Map.thash, category)) {
-            case(null){ return #err(#CategoryNotFound); };
-            case(?ids) { ids; };
+        if (not Map.has(_categories, Map.thash, category)){
+            return #err(#CategoryNotFound);
         };
         Result.mapOk(await Protocol.new_vote({ type_enum = #YES_NO; vote_id; }), func(vote_type: SVoteType) : SYesNoVote {
             switch(vote_type) {
                 case(#YES_NO(vote)) {
                     Map.set(_texts, Map.thash, vote.vote_id, text);
-                    Map.set(_categories, Map.thash, category, Array.append(category_ids, [vote.vote_id]));
+                    switch(Map.get(_categories, Map.thash, category)) {
+                        case(null){ /* Shall not happen */ };
+                        case(?ids) { Map.set(_categories, Map.thash, category, Array.append(ids, [vote.vote_id])); };
+                    };
                     { vote with text = ?text; };
                 };
             };
@@ -84,6 +86,10 @@ shared({ caller = admin }) actor class Backend() = this {
 
     public query func get_categories() : async [Text] {
         Iter.toArray(Map.keys(_categories));
+    };
+
+    public query func get_vote_by_category() : async [(Text, [UUID])] {
+        Iter.toArray(Map.entries(_categories));
     };
 
     func with_text(vote_type: SVoteType) : SYesNoVote {

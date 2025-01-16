@@ -7,15 +7,30 @@ import { useMemo, useRef } from "react";
 import { protocolActor } from "../../actors/ProtocolActor";
 import { format } from "date-fns";
 
+export enum CHART_COLORS {
+  BLUE = "rgb(59 130 246)",
+  PURPLE = "rgb(126 34 206)",
+  WHITE = "rgb(255 255 255)",
+  YELLOW = "rgb(247 147 26)",
+}
+
+const COLOR_NAMES = {
+  [CHART_COLORS.BLUE]: 'BLUE',
+  [CHART_COLORS.PURPLE]: 'PURPLE',
+  [CHART_COLORS.WHITE]: 'WHITE',
+  [CHART_COLORS.YELLOW]: 'YELLOW',
+};
+
 interface DurationChartProps {
   duration_timeline: STimeline;
   format_value: (value: number) => string;
   fillArea: boolean;
   y_min?: number;
   y_max?: number;
+  color: CHART_COLORS;
 };
   
-const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max }: DurationChartProps) => {
+const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max, color }: DurationChartProps) => {
 
   const { data: currentTime } = protocolActor.useQueryCall({
     functionName: "get_time",
@@ -54,8 +69,8 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
       <div
         ref={chartContainerRef}
         style={{
-          width: '800px',
-          height: `400px`,
+          width: '600px',
+          height: `300px`,
           overflowX: 'auto',
           overflowY: 'hidden',
         }}
@@ -75,15 +90,15 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
           animate={false}
           enablePoints={false}
           margin={{ top: 20, bottom: 50, right: 50, left: 90 }}
-          colors={"rgb(59 130 246)"}
+          colors={color}
           areaOpacity={0.7} // Adjust transparency of the area
-          fill={fillArea ? [{ match: '*', id: 'gradientA' }] : undefined}
+          fill={fillArea ? [{ match: '*', id: `gradientA_${COLOR_NAMES[color]}` }] : undefined}
           defs={fillArea ? [{
-            id: 'gradientA',
+            id: `gradientA_${COLOR_NAMES[color]}`,
             type: 'linearGradient',
             colors: [
-              { offset: 0, color: 'rgb(59 130 246)', opacity: 0.8 }, // Top gradient color
-              { offset: 100, color: 'rgb(59 130 246)', opacity: 0.2 }, // Bottom gradient color
+              { offset: 0, color: color, opacity: 0.8 }, // Top gradient color
+              { offset: 100, color: color, opacity: 0.2 }, // Bottom gradient color
             ],
           }] : undefined}
           areaBlendMode="normal"

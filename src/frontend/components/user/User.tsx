@@ -1,49 +1,13 @@
-import { formatDuration } from "../../utils/conversions/duration";
-import { dateToTime } from "../../utils/conversions/date";
-import { backendActor } from "../../actors/BackendActor";
-
 import { Principal } from "@dfinity/principal";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import LockChart from "../charts/LockChart";
-import { LOCK_EMOJI, RESONANCE_TOKEN_SYMBOL, DISSENT_EMOJI, PARTICIPATION_EMOJI, DISCERNMENT_EMOJI } from "../../constants";
-import { get_current, map_timeline, to_number_timeline } from "../../utils/timeline";
-import DurationChart from "../charts/DurationChart";
 import { protocolActor } from "../../actors/ProtocolActor";
-import { fromNullable } from "@dfinity/utils";
 import Wallet from "../Wallet";
-import { unwrapLock } from "../../utils/conversions/ballot";
 import { useCurrencyContext } from "../CurrencyContext";
-import { formatBalanceE8s } from "../../utils/conversions/token";
-import ChoiceView from "../ChoiceView";
-import ConsensusView from "../ConsensusView";
-import DateSpan from "../DateSpan";
 import BitcoinIcon from "../icons/BitcoinIcon";
 
-interface VoteConsensusProps {
-  vote_id: string;
-}
-
-const VoteConsensus = ({ vote_id }: VoteConsensusProps) => {
-
-  const { data: opt_vote } = backendActor.useQueryCall({
-    functionName: "get_vote",
-    args: [{ vote_id }],
-  });
-
-  const vote = opt_vote ? fromNullable(opt_vote) : undefined;
-  if (!vote) {
-    return <div>Invalid vote</div>;
-  }
-
-  return <ConsensusView vote={vote} />;
-}
-
-enum DetailToggle {
-  DURATION,
-  PARTICIPATION,
-  DISCERNMENT,
-};
+import BallotView from "./BallotView";
 
 const User = () => {
   
@@ -56,16 +20,10 @@ const User = () => {
   const { formatSatoshis } = useCurrencyContext();
 
   const [selected, setSelected] = useState<number | undefined>(undefined);
-  const [detailToggle, setDetailToggle] = useState<DetailToggle | undefined>(undefined);
 
   const selectBallot = (index: number | undefined) => {
     setSelected(index === undefined ? undefined : index === selected ? undefined : index);
   }
-
-  const toggleDetail = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, detail: DetailToggle) => {
-    e.stopPropagation();
-    setDetailToggle(detailToggle === detail ? undefined : detail);
-  };
 
   const { data: ballots, call: refreshBallots } = protocolActor.useQueryCall({
     functionName: "get_ballots",
@@ -99,98 +57,8 @@ const User = () => {
       <ul className="w-full">
         {
           ballots?.map((ballot, index) => (
-            <li 
-              key={index} 
-              className="border-b dark:border-gray-700 border-gray-200 py-1 px-2 hover:bg-slate-50 dark:hover:bg-slate-850 hover:cursor-pointer"
-              onClick={() => selectBallot(index)}
-            >
-              
-              {/* Row 0: Ballot */}
-              <div className="flex flex-row space-x-1 items-baseline">
-                <span className="text-gray-400 text-sm">Locked</span>
-                <span>{formatSatoshis(ballot.YES_NO.amount)}</span>
-                <div className="flex self-center h-4 w-4">
-                  <BitcoinIcon/>
-                </div>
-                <span className="text-gray-400 text-sm">on</span>
-                <ChoiceView ballot={ballot}/>
-                <span className="text-gray-400 text-sm">{" · "}</span>
-                <DateSpan timestamp={ballot.YES_NO.timestamp}/>
-              </div>
-
-              {/* Row 1: Consensus */}
-              <div className="w-full">
-                <VoteConsensus vote_id={ballot.YES_NO.vote_id}/>
-              </div>
-
-              { index === selected && 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 justify-items-center w-full">
-
-                  <div 
-                    className={`flex justify-center items-baseline space-x-1 hover:bg-slate-800 w-full hover:cursor-pointer rounded ${detailToggle === DetailToggle.DURATION ? "bg-slate-800" : ""}`}
-                    onClick={(e) => toggleDetail(e, DetailToggle.DURATION) }
-                  >
-                    <span>{LOCK_EMOJI}</span>
-                    <div className="flex flex-row space-x-1 items-baseline">
-                      <span className="italic text-gray-400 text-sm">Duration:</span> 
-                      <span>{formatDuration(ballot.YES_NO.timestamp + get_current(unwrapLock(ballot).duration_ns).data - dateToTime(new Date(Number(ballot.YES_NO.timestamp)/ 1_000_000))) }</span>
-                    </div>
-                  </div>
-
-                  <div 
-                    className="flex justify-center items-baseline space-x-1 w-full rounded hover:cursor-default" 
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <span>{DISSENT_EMOJI}</span>
-                    <div className="flex flex-row space-x-1 items-baseline">
-                      <span className="italic text-gray-400 text-sm">Dissent:</span> 
-                      <span>{ ballot.YES_NO.dissent.toFixed(3) }</span>
-                    </div>
-                  </div>
-                  
-                  <div 
-                   className={`flex justify-center items-baseline space-x-1 hover:bg-slate-800 w-full hover:cursor-pointer rounded ${detailToggle === DetailToggle.PARTICIPATION ? "bg-slate-800" : ""}`}
-                    onClick={(e) => toggleDetail(e, DetailToggle.PARTICIPATION)}
-                  >
-                    <span>{PARTICIPATION_EMOJI}</span>
-                    <div className="flex flex-row space-x-1 items-baseline">
-                      <span className="italic text-gray-400 text-sm">Participation:</span>
-                      <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL) }</span>
-                    </div>
-                  </div>
-                  
-                  <div 
-                    className={`flex justify-center items-baseline space-x-1 hover:bg-slate-800 w-full hover:cursor-pointer rounded ${detailToggle === DetailToggle.DISCERNMENT ? "bg-slate-800" : ""}`}
-                    onClick={(e) => toggleDetail(e, DetailToggle.DISCERNMENT)}
-                  >
-                    <span>{DISCERNMENT_EMOJI}</span>
-                    <div className="flex flex-row space-x-1 items-baseline">
-                      <span className="italic text-gray-400 text-sm">Discernment:</span>
-                      <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL) + " (forecast)"}</span>
-                    </div>
-                  </div>
-
-                  { detailToggle === DetailToggle.DURATION &&
-                    <div className="col-span-2 w-full flex flex-col">
-                      <DurationChart duration_timeline={to_number_timeline(unwrapLock(ballot).duration_ns)} format_value={ (value: number) => formatDuration(BigInt(value)) } fillArea={false}/>
-                    </div>
-                  }
-                  { detailToggle === DetailToggle.PARTICIPATION &&
-                    <div className="col-span-2 w-full flex flex-col">
-                      <DurationChart duration_timeline={map_timeline(ballot.YES_NO.rewards, (reward) => reward.participation ) } format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL)) } fillArea={true}/>
-                    </div>
-                  }
-                  { detailToggle === DetailToggle.DISCERNMENT &&
-                    <div className="col-span-2 w-full flex flex-col">
-                      <DurationChart duration_timeline={map_timeline(ballot.YES_NO.rewards, (reward) => reward.discernment ) } format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL)) } fillArea={true}/>
-                      <DurationChart duration_timeline={ballot.YES_NO.consent} format_value={ (value: number) => value.toString() } y_min={0} y_max={1.0} fillArea={false}/>
-                    </div>
-                  }
-                  <div className="col-span-2 w-full flex flex-col hidden">
-                    { ballot.YES_NO.ballot_id }
-                  </div>
-                </div>
-              }
+            <li key={index} className="w-full">
+              <BallotView ballot={ballot} isSelected={index === selected} selectBallot={() => selectBallot(index)}/>
             </li>
           ))
         }

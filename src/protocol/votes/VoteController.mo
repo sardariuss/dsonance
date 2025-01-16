@@ -88,7 +88,7 @@ module {
 
             // Update the ballot consents because of the new aggregate
             for (ballot in vote_ballots(vote)) {
-                Timeline.add(ballot.consent, timestamp, ballot_aggregator.get_consent({ aggregate; choice; time; }));
+                Timeline.add(ballot.consent, timestamp, ballot_aggregator.get_consent({ aggregate; choice = ballot.choice; time; }));
             };
 
             // Update the hotness
