@@ -179,7 +179,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
           data={chartData}
           margin={{ top: MARGIN + marginTop(priceLevels, max), right: 60, bottom: MARGIN, left: 0 }}
           spacing={0}
-          colors={["rgb(13 200 79)", "rgb(254 87 39)"]} // brand-true, brand-false
+          colors={["rgb(7 227 68)", "rgb(0 203 253)"]} // brand-true, brand-false
           blendMode="normal"
           borderColor={"white"}
           axisTop={null}

@@ -2,8 +2,6 @@ import { useParams } from "react-router-dom";
 import VoteView from "./VoteView";
 import { backendActor } from "../actors/BackendActor";
 import { fromNullable } from "@dfinity/utils";
-import { protocolActor } from "../actors/ProtocolActor";
-import ChoiceView from "./ChoiceView";
 
 const Vote = () => {
 
@@ -18,27 +16,11 @@ const Vote = () => {
         args: [{ vote_id: id }],
     });
 
-    const { data: ballots } = protocolActor.useQueryCall({
-        functionName: "get_vote_ballots",
-        args: [id],
-    });
-
     const actualVote = vote ? fromNullable(vote) : undefined;
 
-    // @todo: the list of ballots is very ugly
     return (
-        actualVote && <div className="flex flex-col">
+        actualVote && <div className="flex flex-col border-x border-t dark:border-gray-700 bg-white dark:bg-slate-900 w-2/3">
             <VoteView vote={actualVote} selected={id} setSelected={()=>{}}/>
-            <ul>
-                {
-                    ballots && ballots.map((ballot, index) => (
-                        <li key={index} className="flex flex-row space-x-1">
-                            <ChoiceView ballot={ballot}/>
-                            <div>{ballot.YES_NO.amount.toString()}</div>
-                        </li>
-                    ))
-                }
-            </ul>
         </div>
     );
 }

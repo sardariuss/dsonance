@@ -1,8 +1,6 @@
 import { protocolActor } from "../actors/ProtocolActor";
-import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { EYesNoChoice, toCandid } from "../utils/conversions/yesnochoice";
 import { MINIMUM_BALLOT_AMOUNT } from "../constants";
-import { fromE8s, toE8s } from "../utils/conversions/token";
 import { useEffect, useRef, useState } from "react";
 import { BallotInfo } from "./types";
 import ResetIcon from "./icons/ResetIcon";
@@ -72,7 +70,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
             type="text"
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
-            className="w-32 h-9 border border-gray-300 rounded px-2 appearance-none focus:outline-none focus:border-blue-500"
+            className="w-32 h-9 border border-gray-300 rounded px-2 appearance-none focus:outline-none focus:border-purple-500"
             onChange={(e) => { if(isActive) { setBallot({ choice: ballot.choice, amount: currencyToSatoshis(Number(e.target.value)) ?? 0n }) }} }
           />
           <BitcoinIcon />
@@ -80,7 +78,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
         <div>on</div>
         <div>
           <select
-            className={`w-20 h-9 appearance-none border border-gray-300 rounded px-2 focus:outline-none focus:border-blue-500 ${ballot.choice === EYesNoChoice.Yes ? "text-brand-true" : "text-brand-false"}`}
+            className={`w-20 h-9 appearance-none border border-gray-300 rounded px-2 focus:outline-none focus:border-purple-500 ${ballot.choice === EYesNoChoice.Yes ? "text-brand-true" : "text-brand-false"}`}
             value={ballot.choice}
             onChange={(e) => setBallot({ choice: e.target.value as EYesNoChoice, amount: ballot.amount })}
             disabled={loading}
@@ -90,7 +88,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
           </select>
         </div>
         <button
-          className="button-simple text-sm w-36 min-w-36 h-9 justify-center items-center"
+          className="button-simple font-semibold w-36 min-w-36 h-9 justify-center items-center"
           disabled={loading || isTooSmall()}
           onClick={triggerVote}
         >

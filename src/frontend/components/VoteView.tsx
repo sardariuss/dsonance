@@ -6,11 +6,12 @@ import PutBallotPreview from "./PutBallotPreview";
 import VoteChart from "./charts/VoteChart";
 import VoteSlider from "./VoteSlider";
 import { BallotInfo } from "./types";
-import { get_total_votes, get_votes, get_yes_votes } from "../utils/conversions/vote";
+import { get_total_votes } from "../utils/conversions/vote";
 import ConsensusView from "./ConsensusView";
 import DateSpan from "./DateSpan";
 import { useCurrencyContext } from "./CurrencyContext";
 import BitcoinIcon from "./icons/BitcoinIcon";
+import LinkIcon from "./icons/LinkIcon";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -41,7 +42,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
 
   return (
     <div className="flex flex-col content-center border-b dark:border-gray-700 px-5 py-1 hover:cursor-pointer space-y-2 w-full hover:bg-slate-50 hover:dark:bg-slate-850">
-      <div className="w-full grid grid-cols-[100px_minmax(300px,_1fr)_120px] items-baseline" onClick={(e) => { setSelected(selected === vote.vote_id ? null : vote.vote_id) }}>
+      <div className="w-full grid grid-cols-[100px_minmax(300px,_1fr)_120px_20px] items-baseline" onClick={(e) => { setSelected(selected === vote.vote_id ? null : vote.vote_id) }}>
         <div className="text-gray-400 text-sm">
           <DateSpan timestamp={vote.date}/>
         </div>
@@ -49,6 +50,11 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
         <div className="flex flex-row space-x-1 items-center justify-self-center">
           <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(total)}</span>
           <BitcoinIcon />
+        </div>
+        <div className="flex flex-row dark:stroke-gray-200 dark:hover:stroke-white hover:stroke-black stroke-gray-800 hover:cursor-pointer self-center"
+          onClick={(e) => { e.stopPropagation(); window.open(`/vote/${vote.vote_id}`, "_blank") }}
+        >
+          <LinkIcon/>
         </div>
       </div>
       {
@@ -68,7 +74,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
               setBallot={setBallot}
               resetVote={resetVote}
             />
-            { vote.vote_id }
+            <span className="hidden"> { vote.vote_id } </span>
           </div>
         )
       }

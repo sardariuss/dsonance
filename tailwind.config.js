@@ -4,11 +4,12 @@ module.exports = {
         extend: {
             colors: {
                 'slate-850' : '#172032',
-                'brand-false' : 'rgb(254 87 39)',
-                'brand-true' : 'rgb(13 200 79)',
+                'brand-true' : 'rgb(7 227 68)',
+                'brand-false' : 'rgb(3 181 253)',
             },
             fontFamily: {
                 'acelon': ['Acelon', 'sans-serif'],
+                'cafe': ['Cafe', 'sans-serif'],
             },
         },
     },

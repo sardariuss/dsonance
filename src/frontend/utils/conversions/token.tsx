@@ -8,8 +8,11 @@ export const toE8s = (amount: number) : bigint | undefined => {
 
 export const fromE8s = (amountE8s: bigint) => Number(amountE8s) / 100_000_000;
 
-export const formatBalanceE8s = (amountE8s: bigint, currencySymbol: string) => {
-    return `${currencySymbol}${fromE8s(amountE8s).toFixed(2)}`
+export const formatBalanceE8s = (amountE8s: bigint, currencySymbol: string, decimals?: number) => {
+    if (decimals !== undefined) {
+        return `${currencySymbol}${fromE8s(amountE8s).toFixed(decimals)}`
+    }
+    return `${currencySymbol}${fromE8s(amountE8s).toString()}`
 };
 
 export const currencyToE8s = (amount: number, priceUnit: number) => {

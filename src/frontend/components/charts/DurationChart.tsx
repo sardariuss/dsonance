@@ -3,7 +3,7 @@ import { STimeline } from "@/declarations/protocol/protocol.did";
 import { nsToMs } from "../../utils/conversions/date";
 
 import { ResponsiveLine, Serie } from '@nivo/line';
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { protocolActor } from "../../actors/ProtocolActor";
 import { format } from "date-fns";
 
@@ -12,6 +12,7 @@ export enum CHART_COLORS {
   PURPLE = "rgb(126 34 206)",
   WHITE = "rgb(255 255 255)",
   YELLOW = "rgb(247 147 26)",
+  GREEN = "rgb(7 227 68)",
 }
 
 const COLOR_NAMES = {
@@ -19,6 +20,7 @@ const COLOR_NAMES = {
   [CHART_COLORS.PURPLE]: 'PURPLE',
   [CHART_COLORS.WHITE]: 'WHITE',
   [CHART_COLORS.YELLOW]: 'YELLOW',
+  [CHART_COLORS.GREEN]: 'GREEN',
 };
 
 interface DurationChartProps {
@@ -31,6 +33,30 @@ interface DurationChartProps {
 };
   
 const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max, color }: DurationChartProps) => {
+
+  const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
+  
+  const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
+
+  useEffect(() => {
+    // Function to update the width
+    const updateWidth = () => {
+      if (containerRef.current) {
+        console.log("Container width: ", containerRef.current.offsetWidth);
+        setContainerWidth(containerRef.current.offsetWidth - 20); // 20 px to make room for the slider bar if any
+      }
+    };
+
+    // Set initial width
+    updateWidth();
+
+    // Update width on window resize
+    window.addEventListener('resize', updateWidth);
+
+    return () => {
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, []);
 
   const { data: currentTime } = protocolActor.useQueryCall({
     functionName: "get_time",
@@ -65,11 +91,11 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
   }, [duration_timeline, currentTime]);
 
   return (
-    <div className="flex flex-col items-center space-y-1">
-      <div
+    <div className="flex flex-col items-center space-y-1 w-full" ref={containerRef}>
+      { containerWidth && <div
         ref={chartContainerRef}
         style={{
-          width: '600px',
+          width: `${containerWidth}px`, // Dynamic width based on container
           height: `300px`,
           overflowX: 'auto',
           overflowY: 'hidden',
@@ -155,6 +181,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
           }}
         />
       </div>
+    }
     </div>
   );
 }

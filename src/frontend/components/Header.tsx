@@ -1,4 +1,4 @@
-import { Link }      from "react-router-dom";
+import { Link, useLocation }      from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { protocolActor } from "../actors/ProtocolActor";
@@ -20,6 +20,8 @@ const Header = () => {
     functionName: "get_protocol_info",
     args: [],
   });
+
+  const location = useLocation();
 
   const { currency, setCurrency, currencySymbol, satoshisToCurrency } = useCurrencyContext();
 
@@ -81,26 +83,28 @@ const Header = () => {
   return (
     <header className="bg-slate-100 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14 relative">
       {/* Left-aligned RESONANCE Link */}
-      <Link to="/" className="flex flex-row items-center space-x-1">
-        <div className="flex flex-row space-x-1 items-end">
-          <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">
-            RESONANCE
-          </span>
-        </div>
+      
+      <Link to="/" className="flex items-baseline 2xl:pt-6 xl:pt-5 lg:pt-4 md:pt-3 pt-2">
+        <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">
+          RESONANCE
+        </span>
+        <span className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-cafe whitespace-nowrap drop-shadow shadow-blue-800 neon-effect">
+          .defi
+        </span>
       </Link>
 
       {/* Spacer to center the second element */}
       <div className="flex-grow"></div>
 
       {/* Centered Minting Rate Info */}
-      {mintingRate && (
+      {mintingRate && location.pathname !== "/protocol_info" && (
         <Link
           className="absolute left-1/2 transform -translate-x-1/2 flex flex-row items-center justify-center space-x-1 text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer"
           to={"/protocol_info"}
         >
           <ResonanceCoinIcon />
           <span>Minting rate:</span>
-          <span>
+          <span className="text-lg">
             {`${fromE8s(BigInt(mintingRate)).toString()} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
           </span>
         </Link>
@@ -118,15 +122,19 @@ const Header = () => {
               label: currency,
             }))}
             value={{ value: currency, label: currency }}
-            onChange={(option) => { if (option !== null) setCurrency(option.value as SupportedCurrency) }}
+            onChange={(option) => {
+              if (option !== null) setCurrency(option.value as SupportedCurrency);
+            }}
             styles={{
               control: (provided, state) => ({
                 ...provided,
-                borderRadius: "4px",
                 color: "#fff",
-                boxShadow: "none",
                 backgroundColor: "#ddd",
-                borderColor: state.isFocused ? "rgb(59 130 246)" : "#ccc", // blue-500 if focused
+                borderColor: state.isFocused ? "rgb(168 85 247) !important" : "#ccc !important", // Enforce purple border
+                boxShadow: state.isFocused
+                  ? "0 0 0 0.5px rgb(168, 85, 247) !important"
+                  : "none !important", // Enforce purple focus ring
+                outline: "none", // Remove browser default outline
               }),
               singleValue: (provided) => ({
                 ...provided,

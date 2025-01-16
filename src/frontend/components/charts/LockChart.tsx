@@ -208,7 +208,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                 x2={x2+border_width}
                 y1={y1}
                 y2={y2}
-                stroke={"rgb(59 130 246)"} // Border color
+                stroke={"rgb(168 85 247)"} // Border color
                 strokeWidth={20 + 2 * border_width} // Slightly larger than the main line
                 strokeLinejoin="round"
                 style={{
@@ -220,9 +220,9 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
               <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id={`lineGradient-${index}`} gradientUnits="userSpaceOnUse" x1={x1} x2={x2} y1={y1} y2={y2}>
-                    <stop offset="0%" stopColor="#1B63EB" />
-                    <stop offset={segment.percentage.toFixed(2) + "%"} stopColor="#1B63EB" />
-                    <stop offset={segment.percentage.toFixed(2) + "%"} stopColor="#1B63EB" />
+                    <stop offset="0%" stopColor="rgb(126 34 206)" />
+                    <stop offset={segment.percentage.toFixed(2) + "%"} stopColor="rgb(126 34 206)" />
+                    <stop offset={segment.percentage.toFixed(2) + "%"} stopColor="rgb(126 34 206)" />
                     <stop offset="100%" stopColor="#A21CAF">
                       <animate
                         attributeName="stop-color"

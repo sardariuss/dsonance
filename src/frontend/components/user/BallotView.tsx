@@ -1,8 +1,8 @@
 import { formatDuration } from "../../utils/conversions/duration";
-import { dateToTime, niceFormatDate, nsToMs, timeDifference, timeToDate } from "../../utils/conversions/date";
+import { dateToTime, niceFormatDate, timeDifference, timeToDate } from "../../utils/conversions/date";
 import { backendActor } from "../../actors/BackendActor";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { LOCK_EMOJI, RESONANCE_TOKEN_SYMBOL, CONSENT_EMOJI, PARTICIPATION_EMOJI, DISCERNMENT_EMOJI, TIMESTAMP_EMOJI, DISSENT_EMOJI } from "../../constants";
 import { get_current, map_timeline, to_number_timeline } from "../../utils/timeline";
 import DurationChart, { CHART_COLORS } from "../charts/DurationChart";
@@ -12,7 +12,6 @@ import { useCurrencyContext } from "../CurrencyContext";
 import { formatBalanceE8s } from "../../utils/conversions/token";
 import ChoiceView from "../ChoiceView";
 import ConsensusView from "../ConsensusView";
-import DateSpan from "../DateSpan";
 import BitcoinIcon from "../icons/BitcoinIcon";
 
 import 'katex/dist/katex.min.css';
@@ -20,6 +19,7 @@ import { InlineMath } from "react-katex";
 import { SBallotType } from "@/declarations/protocol/protocol.did";
 import { protocolActor } from "../../actors/ProtocolActor";
 import ResonanceCoinIcon from "../icons/ResonanceCoinIcon";
+import LinkIcon from "../icons/LinkIcon";
 
 interface VoteConsensusProps {
   vote_id: string;
@@ -84,31 +84,38 @@ const BallotView = ({ ballot, isSelected, selectBallot }: BallotProps) => {
       </div>
 
       <div className="flex flex-row space-x-1 items-baseline">
-        <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL)}</span>
-        <span className="italic text-gray-400 animate-pulse">{`+ ${formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL)}`}</span>
+        <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL, 2)}</span>
+        <span className="italic text-gray-400 animate-pulse">{`+ ${formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}`}</span>
         <div className="flex self-center h-4 w-4">
           <ResonanceCoinIcon/>
         </div>
       </div>
 
-      <VoteConsensus vote_id={ballot.YES_NO.vote_id}/>
+      <div className="flex flex-row space-x-1 items-top w-full justify-between grow">
+        <VoteConsensus vote_id={ballot.YES_NO.vote_id}/>
+        <div className="flex dark:stroke-gray-200 dark:hover:stroke-white hover:stroke-black stroke-gray-800 hover:cursor-pointer items-top"
+          onClick={(e) => { e.stopPropagation(); window.open(`/vote/${ballot.YES_NO.vote_id}`, "_blank") }}
+        >
+          <LinkIcon/>
+        </div>
+      </div>
 
       { isSelected && 
-        <div className="grid grid-cols-2 gap-x-2 gap-y-2 justify-items-center w-full mt-4">
+        <div className="grid grid-cols-2 gap-x-2 gap-y-2 justify-items-center w-full mt-2">
 
-          <div className="flex flex-row space-x-1 items-baseline justify-center w-full border border-gray-800">
+          <div className="flex flex-row space-x-1 items-baseline justify-center w-full border border-gray-800 py-1">
             <span>{TIMESTAMP_EMOJI}</span>
             <span className="italic text-gray-400 text-sm">Locked:</span> 
             <span>{niceFormatDate(timeToDate(ballot.YES_NO.timestamp), timeToDate(now)) }</span>
           </div>
 
-          <div className="flex flex-row space-x-1 items-baseline justify-center w-full border border-gray-800">
+          <div className="flex flex-row space-x-1 items-baseline justify-center w-full border border-gray-800 py-1">
             <span>{DISSENT_EMOJI}</span>
             <span className="italic text-gray-400 text-sm">Dissent:</span> 
             <span>{ ballot.YES_NO.dissent.toFixed(3) }</span>
           </div>
 
-          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800">
+          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800 py-1">
             <div className="flex flex-row space-x-1 items-baseline">
               <span>{LOCK_EMOJI}</span>
               <span className="italic text-gray-400 text-sm">Duration:</span> 
@@ -118,11 +125,11 @@ const BallotView = ({ ballot, isSelected, selectBallot }: BallotProps) => {
               duration_timeline={to_number_timeline(unwrapLock(ballot).duration_ns)} 
               format_value={ (value: number) => formatDuration(BigInt(value)) } 
               fillArea={true}
-              color={CHART_COLORS.BLUE}
+              color={CHART_COLORS.PURPLE}
             />
           </div>
 
-          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800">
+          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800 py-1">
             
             <div className="flex flex-row space-x-1 items-baseline">
               <span>{CONSENT_EMOJI}</span>
@@ -139,32 +146,32 @@ const BallotView = ({ ballot, isSelected, selectBallot }: BallotProps) => {
             />
           </div>
           
-          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800">
+          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800 py-1">
             <div className="flex flex-row space-x-1 items-baseline">
               <span>{PARTICIPATION_EMOJI}</span>
               <span className="italic text-gray-400 text-sm">Participation:</span>
-              <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL) }</span>
+              <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL, 2) }</span>
             </div>
             <DurationChart 
               duration_timeline={map_timeline(ballot.YES_NO.rewards, (reward) => reward.participation ) } 
-              format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL)) } 
+              format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL, 2)) } 
               fillArea={true}
-              color={CHART_COLORS.PURPLE}
+              color={CHART_COLORS.GREEN}
             />
             <InlineMath math="P(t) = lock\_amount \cdot \int_{t_0}^t minting\_rate(t) \, dt" />
           </div>
           
-          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800">
+          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800 py-1">
             <div className="flex flex-row space-x-1 items-baseline">
               <span>{DISCERNMENT_EMOJI}</span>
               <span className="italic text-gray-400 text-sm">Discernment:</span>
-              <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL)}</span>
+              <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}</span>
             </div>
             <DurationChart 
               duration_timeline={map_timeline(ballot.YES_NO.rewards, (reward) => reward.discernment ) } 
-              format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL)) }
+              format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL, 2)) }
               fillArea={true}
-              color={CHART_COLORS.PURPLE}
+              color={CHART_COLORS.GREEN}
             />
             <InlineMath math="D(t) = k * P(t) * dissent_{t_0} * consent(t)" />
           </div>
