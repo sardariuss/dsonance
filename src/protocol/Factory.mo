@@ -46,6 +46,7 @@ module {
                 };
             };
             ledger = deposit_ledger;
+            on_successful_transfer = null;
         });
 
         let resonance_debt = DebtProcessor.DebtProcessor({
@@ -59,6 +60,12 @@ module {
                 };
             };
             ledger = resonance_ledger;
+            on_successful_transfer = ?(
+                func({timestamp: Time; amount: Nat}) {
+                    // Update the total amount minted
+                    Timeline.add(minting.amount_minted, timestamp, minting.amount_minted.current.data + amount);
+                }
+            );
         });
 
         let participation_dispenser = ParticipationDispenser.ParticipationDispenser({

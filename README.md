@@ -25,6 +25,7 @@ _My views are changing as much as the world itself is changing. Your views shoul
 
 * Verify how decay is used, especially in computing the dissent and consent
 * Do not allow an anonymous principal to open a vote
+* Verify that the total_amount takes into account the fees
 
 ### Frontend
 

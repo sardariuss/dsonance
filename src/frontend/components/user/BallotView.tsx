@@ -159,7 +159,7 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
               color={CHART_COLORS.GREEN}
               last_timestamp={releaseTimestamp <= now ? now : releaseTimestamp }
             />
-            <InlineMath math="P(t) = lock\_amount \cdot \int_{t_0}^t minting\_rate(t) \, dt" />
+            <InlineMath math="P(t) = lock\_amount \cdot \int_{t_0}^t participation\_rate(t) \, dt" />
           </div>
           
           <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800 py-1">
@@ -175,7 +175,7 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
               color={CHART_COLORS.GREEN}
               last_timestamp={releaseTimestamp <= now ? now : releaseTimestamp }
             />
-            <InlineMath math="D(t) = k * P(t) * dissent_{t_0} * consent(t)" />
+            <InlineMath math="D(t) = discernment\_factor * P(t) * dissent_{t_0} * consent(t)" />
           </div>
         </div>
       }

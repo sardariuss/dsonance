@@ -2,17 +2,17 @@ import { useEffect, useMemo } from "react";
 import { protocolActor } from "../actors/ProtocolActor";
 import DurationChart, { CHART_COLORS } from "./charts/DurationChart";
 import { map_filter_timeline, to_number_timeline } from "../utils/timeline";
-import { fromE8s } from "../utils/conversions/token";
-import { RESONANCE_TOKEN_SYMBOL } from "../constants";
+import { formatBalanceE8s, fromE8s } from "../utils/conversions/token";
+import { DISCERNMENT_EMOJI, PARTICIPATION_EMOJI, RESONANCE_TOKEN_SYMBOL } from "../constants";
 import { useCurrencyContext } from "./CurrencyContext";
 import ResonanceCoinIcon from "./icons/ResonanceCoinIcon";
 import BitcoinIcon from "./icons/BitcoinIcon";
 
-export const computeMintingRate = (ck_btc_locked: bigint, minting_per_ns: number, satoshisToCurrency: (satoshis: bigint) => number) => {
+export const computeMintingRate = (ck_btc_locked: bigint, participation_per_ns: number, satoshisToCurrency: (satoshis: bigint) => number) => {
     if (ck_btc_locked === 0n) {
         return undefined;
     }
-    return Math.floor(minting_per_ns * 86_400_000_000_000 / satoshisToCurrency(ck_btc_locked));
+    return Math.floor(participation_per_ns * 86_400_000_000_000 / satoshisToCurrency(ck_btc_locked));
 }
 
 const ProtocolInfo = () => {
@@ -29,35 +29,42 @@ const ProtocolInfo = () => {
     }
     , []);
 
-    const mintingRate = useMemo(() => {
+    const participationRate = useMemo(() => {
         if (protocolInfo === undefined) {
             return undefined;
         }
         return map_filter_timeline(
             to_number_timeline(protocolInfo.ck_btc_locked), (value: number) => 
-                computeMintingRate(BigInt(value), protocolInfo.minting_per_ns, satoshisToCurrency)
+                computeMintingRate(BigInt(value), protocolInfo.participation_per_ns, satoshisToCurrency)
         );
     }, [protocolInfo, satoshisToCurrency]);
       
     return (
         protocolInfo ? (
             <div className="flex flex-col items-center border-t border-x dark:border-gray-700 border-gray-200 w-2/3">
-                { mintingRate && <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-200 pt-4 w-full">
+                { participationRate && <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-200 pt-4 w-full">
                         <div className="flex flex-row items-center space-x-1">
-                            <ResonanceCoinIcon />
-                            <span className="text-gray-300">Minting rate:</span>
+                            <span>{PARTICIPATION_EMOJI}</span>
+                            <span className="text-gray-300">Participation rate:</span>
                             <span className="text-lg">
-                                {`${fromE8s(BigInt(mintingRate.current.data)).toString()} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
+                                {`${fromE8s(BigInt(participationRate.current.data))} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
                             </span>
                         </div>
                         <DurationChart
-                            duration_timeline={mintingRate}
+                            duration_timeline={participationRate}
                             format_value={ (value: number) => `${fromE8s(BigInt(value)).toString()} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day` }
-                            fillArea={false}
-                            color={CHART_COLORS.GREEN}
+                            fillArea={true}
+                            color={CHART_COLORS.PURPLE}
                         />
                     </div>
                 }
+                <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-200 py-1 w-full space-x-1 justify-center">
+                    <span>{DISCERNMENT_EMOJI}</span>
+                    <span className="text-gray-300">Discernment factor:</span>
+                    <span className="text-lg">
+                        {protocolInfo.discernment_factor.toFixed(2)}
+                    </span>
+                </div>
                 <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-200 pt-4 w-full">
                     <div className="flex flex-row items-center space-x-1">
                         <BitcoinIcon />
@@ -71,6 +78,21 @@ const ProtocolInfo = () => {
                         format_value={ (value: number) => (formatSatoshis(BigInt(value))) } 
                         fillArea={true}
                         color={CHART_COLORS.YELLOW}
+                    />
+                </div>
+                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-200 pt-4 w-full">
+                    <div className="flex flex-row items-center space-x-1">
+                        <ResonanceCoinIcon />
+                        <div className="text-gray-300">Resonance minted:</div>
+                        <span className="text-lg">
+                            {formatBalanceE8s(protocolInfo.resonance_minted.current.data, RESONANCE_TOKEN_SYMBOL, 0)}
+                        </span>
+                    </div>
+                    <DurationChart
+                        duration_timeline={to_number_timeline(protocolInfo.resonance_minted)}
+                        format_value={ (value: number) => `${formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL, 0)}` }
+                        fillArea={true}
+                        color={CHART_COLORS.GREEN}
                     />
                 </div>
             </div>

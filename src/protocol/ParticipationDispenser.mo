@@ -40,9 +40,9 @@ module {
             // Dispense participation over the period
             label dispense for (({id}, ballot) in BTree.entries(lock_register.locks)) {
 
-                let { minting_per_ns; participation_ratio } = parameters;
+                let { participation_per_ns; discernment_factor } = parameters;
 
-                let amount = (Float.fromInt(ballot.amount) / Float.fromInt(total_amount)) * period * minting_per_ns * participation_ratio;
+                let amount = (Float.fromInt(ballot.amount) / Float.fromInt(total_amount)) * period * participation_per_ns;
 
                 // Add the amount to the participation
                 let participation = Timeline.current(ballot.rewards).participation + amount;
@@ -52,7 +52,7 @@ module {
                     participation;
                     dissent = ballot.dissent;
                     consent = Timeline.current(ballot.consent);
-                    coefficient = (1.0 / participation_ratio) - 1.0;
+                    coefficient = discernment_factor;
                 });
 
                 // Update the rewards timeline
@@ -68,9 +68,11 @@ module {
 
         public func get_info() : ProtocolInfo {
             {
-                minting_per_ns = parameters.minting_per_ns;
+                participation_per_ns = parameters.participation_per_ns;
                 time_last_dispense = parameters.time_last_dispense;
+                resonance_minted = parameters.amount_minted;
                 ck_btc_locked = lock_register.total_amount;
+                discernment_factor = parameters.discernment_factor;
             };
         };
         

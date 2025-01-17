@@ -45,7 +45,7 @@ module {
     public type DebtInfo           = Types.Current.DebtInfo;
     public type Transfer           = Types.Current.Transfer;
     public type TransferResult     = Types.Current.TransferResult;
-    public type MintingParameters = Types.Current.MintingParameters;
+    public type MintingParameters  = Types.Current.MintingParameters;
     public type BallotType         = Types.Current.BallotType;
     public type BallotRegister     = Types.Current.BallotRegister;
     public type Rewards            = Types.Current.Rewards;
@@ -136,17 +136,21 @@ module {
     };
 
     public type SProtocolInfo = {
-        minting_per_ns: Float;
+        participation_per_ns: Float;
         time_last_dispense: Time;
         ck_btc_locked: STimeline<Nat>;
+        resonance_minted: STimeline<Nat>;
+        discernment_factor: Float;
     };
 
     // CUSTOM TYPES
 
     public type ProtocolInfo = {
-        minting_per_ns: Float;
+        participation_per_ns: Float;
         time_last_dispense: Time;
         ck_btc_locked: Timeline<Nat>;
+        resonance_minted: Timeline<Nat>;
+        discernment_factor: Float;
     };
 
     public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;

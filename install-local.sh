@@ -50,6 +50,8 @@ dfx deploy resonance_ledger --argument '(opt record {
 wait
 
 # Deploy protocol with dependencies
+# Hundred million e8s participation per day
+# With a discernment factor of 9, it leads to max one trillion e8s per day (probably more 400 billions per day)
 dfx deploy protocol --argument '( variant { 
   init = record {
     simulated = true;
@@ -62,8 +64,8 @@ dfx deploy protocol --argument '( variant {
       fee = 10;
     };
     parameters = record {
-      minting_per_day = 100_000_000_000;
-      participation_ratio = 0.1;
+      participation_per_day = 100_000_000_000;
+      discernment_factor = 9.0;
       ballot_half_life = variant { YEARS = 1 };
       nominal_lock_duration = variant { DAYS = 3 };
     };

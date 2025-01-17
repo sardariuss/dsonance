@@ -1,12 +1,11 @@
-import { Link, useLocation }      from "react-router-dom";
+import { Link, useLocation, useNavigate }      from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { protocolActor } from "../actors/ProtocolActor";
 import Select from "react-select";
 import { SupportedCurrency, useCurrencyContext } from "./CurrencyContext";
 import BitcoinIcon from "./icons/BitcoinIcon";
-import ResonanceCoinIcon from "./icons/ResonanceCoinIcon";
-import { RESONANCE_TOKEN_SYMBOL } from "../constants";
+import { PARTICIPATION_EMOJI, RESONANCE_TOKEN_SYMBOL } from "../constants";
 import { fromE8s } from "../utils/conversions/token";
 import UserIcon from "./icons/UserIcon";
 import LoginIcon from "./icons/LoginIcon";
@@ -14,7 +13,13 @@ import { computeMintingRate } from "./ProtocolInfo";
 
 const Header = () => {
 
-  const { login, authenticated, identity } = useAuth({});
+  const navigate = useNavigate();
+
+  const { login, authenticated, identity } = useAuth({ 
+    onLoginSuccess: (principal) => {
+      navigate(`/user/${principal.toText()}`)
+    },
+  });
 
   const { data: protocolInfo, call: refreshProtocolInfo } = protocolActor.useQueryCall({
     functionName: "get_protocol_info",
@@ -78,7 +83,7 @@ const Header = () => {
 
   }, []);
 
-  const mintingRate = protocolInfo && computeMintingRate(protocolInfo.ck_btc_locked.current.data, protocolInfo.minting_per_ns, satoshisToCurrency);
+  const mintingRate = protocolInfo && computeMintingRate(protocolInfo.ck_btc_locked.current.data, protocolInfo.participation_per_ns, satoshisToCurrency);
 
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
@@ -103,8 +108,8 @@ const Header = () => {
             className="absolute left-1/2 transform -translate-x-1/2 flex flex-row items-center justify-center space-x-1 text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer"
             to={"/protocol_info"}
           >
-            <ResonanceCoinIcon />
-            <span>Minting rate:</span>
+            <span>{PARTICIPATION_EMOJI}</span>
+            <span>Participation rate:</span>
             <span className="text-lg">
               {`${fromE8s(BigInt(mintingRate)).toString()} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
             </span>
@@ -172,7 +177,7 @@ const Header = () => {
         </div>
       </div>
       <span className="flex flex-row w-full bg-purple-700 items-center justify-center">
-        ⚠️ This is a beta version. All coins and transactions are simulated and have no real monetary value. Thank you for testing and providing feedback!
+        ⚠️ This is a beta version. All coins and transactions are simulated and have no real monetary value.
       </span>
     </header>
   );

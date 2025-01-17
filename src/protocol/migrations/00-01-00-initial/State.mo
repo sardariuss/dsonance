@@ -66,8 +66,9 @@ module {
             };
             parameters = {
                 minting = {
-                    minting_per_ns = Float.fromInt(parameters.minting_per_day) / Float.fromInt(Duration.NS_IN_DAY);
-                    participation_ratio = parameters.participation_ratio;
+                    participation_per_ns = Float.fromInt(parameters.participation_per_day) / Float.fromInt(Duration.NS_IN_DAY);
+                    discernment_factor = parameters.discernment_factor;
+                    amount_minted = Timeline.initialize(now, 0);
                     var time_last_dispense = now;
                 };
                 nominal_lock_duration = parameters.nominal_lock_duration;

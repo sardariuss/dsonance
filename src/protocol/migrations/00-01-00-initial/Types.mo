@@ -264,9 +264,10 @@ module {
     };
 
     public type MintingParameters = {
-        minting_per_ns: Float;
-        participation_ratio: Float;
+        participation_per_ns: Float;
+        discernment_factor: Float;
         var time_last_dispense: Time;
+        amount_minted: Timeline<Nat>;
     };
 
     public type ClockParameters = { 
@@ -302,8 +303,8 @@ module {
             fee: Nat;
         };
         parameters: {
-            minting_per_day: Nat;
-            participation_ratio: Float;
+            participation_per_day: Nat;
+            discernment_factor: Float;
             ballot_half_life: Duration;
             nominal_lock_duration: Duration;
         };

@@ -48,7 +48,9 @@ module {
         public func get_protocol_info() : SProtocolInfo {
             let info = controller.get_protocol_info();
             {
-                info with ck_btc_locked = SharedConversions.shareTimeline(info.ck_btc_locked);
+                info with 
+                ck_btc_locked = SharedConversions.shareTimeline(info.ck_btc_locked);
+                resonance_minted = SharedConversions.shareTimeline(info.resonance_minted);
             }
         };
 

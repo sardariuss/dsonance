@@ -10,19 +10,23 @@ import Buffer "mo:base/Buffer";
 import Float "mo:base/Float";
 import Int "mo:base/Int";
 import Debug "mo:base/Debug";
+import Option "mo:base/Option";
+import Time "mo:base/Time";
 
 module {
 
     type UUID = Types.UUID;
     type Timeline<T> = Types.Timeline<T>;
     type Account = Types.Account;
-    type Time = Int;
+    type Time = Time.Time;
     type DebtInfo = Types.DebtInfo;
     type TransferResult = Types.TransferResult;
     type TxIndex = Types.TxIndex;
 
     type Set<K> = Set.Set<K>;
     type Map<K, V> = Map.Map<K, V>;
+
+    type TransferCallback = ({timestamp: Time; amount: Nat;}) -> ();
 
     public func init_debt_info(time: Time, account: Account) : DebtInfo {
         {
@@ -38,6 +42,7 @@ module {
         ledger: LedgerFacade.LedgerFacade;
         get_debt_info: (UUID) -> DebtInfo;
         owed: Set<UUID>;
+        on_successful_transfer: ?(TransferCallback);
     }){
 
         public func add_debt({ id: UUID; amount: Float; time: Time; }) {
@@ -88,6 +93,10 @@ module {
             // Update what is owed if the transfer succeded
             Result.iterate(transfer.result, func(_: TxIndex){
                 info.owed -= Float.fromInt(difference);
+                // Notify the callback if there is one
+                Option.iterate(on_successful_transfer, func(f: TransferCallback){
+                    f({ timestamp = Time.now(); amount = difference; });
+                });
             });
             // Add the debt back in case there is still something owed
             tag_to_transfer(id, info);
