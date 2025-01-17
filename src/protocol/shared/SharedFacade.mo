@@ -26,6 +26,8 @@ module {
     type SNewVoteResult = Types.SNewVoteResult;
     type NewVoteError = Types.NewVoteError;
     type SProtocolInfo = Types.SProtocolInfo;
+    type SClockParameters = Types.SClockParameters;
+    type ClockInfo = Types.ClockInfo;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -79,18 +81,25 @@ module {
             controller.current_decay();
         };
 
+        public func get_parameters() : SClockParameters {
+            SharedConversions.shareClockParameters(controller.get_clock().get_parameters());
+        };
+
+        public func clock_info() : ClockInfo {
+            controller.get_clock().clock_info();
+        };
+
         public func add_offset(duration: Duration) : Result<(), Text> {
             controller.get_clock().add_offset(duration);
         };
 
-        public func get_offset() : Duration {
-            controller.get_clock().get_offset();
+        public func set_dilation_factor(dilation_factor: Float) : Result<(), Text> {
+            controller.get_clock().set_dilation_factor(dilation_factor);
         };
 
         public func get_time() : Time {
             controller.get_clock().get_time();
         };
-
         
     };
 };

@@ -1,4 +1,5 @@
 import Types "../Types";
+import Duration "../duration/Duration";
 
 import Option "mo:base/Option";
 
@@ -15,9 +16,12 @@ module {
     type Timeline<T> = Types.Timeline<T>;
     type STimeline<T> = Types.STimeline<T>;
     type UUID = Types.UUID;
+    type DebtInfo = Types.DebtInfo;
     type SDebtInfo = Types.SDebtInfo;
     type LockInfo = Types.LockInfo;
     type SLockInfo = Types.SLockInfo;
+    type ClockParameters = Types.ClockParameters;
+    type SClockParameters = Types.SClockParameters;
 
     public func shareVoteType(vote_type: VoteType) : SVoteType {
         switch(vote_type){
@@ -67,7 +71,14 @@ module {
         { current = history.current; history = history.history; };
     };
 
-    func shareDebtInfo(debt_info: Types.DebtInfo) : SDebtInfo {
+    public func shareClockParameters(clock_parameters: ClockParameters) : SClockParameters {
+        switch(clock_parameters){
+            case(#REAL) { #REAL; };
+            case(#SIMULATED(p)) { #SIMULATED({ time_ref = p.time_ref; offset = Duration.fromTime(p.offset_ns); dilation_factor = p.dilation_factor; }); };
+        };
+    };
+
+    func shareDebtInfo(debt_info: DebtInfo) : SDebtInfo {
         {
             amount = shareTimeline(debt_info.amount);
             owed = debt_info.owed;

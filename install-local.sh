@@ -84,6 +84,7 @@ dfx deps deploy internet_identity
 
 # Protocol initialization and frontend generation
 dfx canister call protocol init_facade
+dfx canister call protocol set_dilation_factor '(100.0)'
 dfx canister call minter set_simulated '(true)'
 dfx canister call backend add_categories '(
   vec {

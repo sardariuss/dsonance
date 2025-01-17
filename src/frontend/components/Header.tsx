@@ -10,6 +10,7 @@ import { fromE8s } from "../utils/conversions/token";
 import UserIcon from "./icons/UserIcon";
 import LoginIcon from "./icons/LoginIcon";
 import { computeMintingRate } from "./ProtocolInfo";
+import BtcBalance from "./BtcBalance";
 
 const Header = () => {
 
@@ -103,7 +104,7 @@ const Header = () => {
         <div className="flex-grow"></div>
 
         {/* Centered Minting Rate Info */}
-        {mintingRate && location.pathname !== "/protocol_info" && (
+        { mintingRate && location.pathname !== "/protocol_info" && (
           <Link
             className="absolute left-1/2 transform -translate-x-1/2 flex flex-row items-center justify-center space-x-1 text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer"
             to={"/protocol_info"}
@@ -160,6 +161,7 @@ const Header = () => {
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to="https://sardarius-corp.gitbook.io/resonance-defi">
             Docs
           </Link>
+          { authenticated && identity && <BtcBalance principal={identity.getPrincipal()} /> }
           <div>
           { authenticated && identity ? 
             <Link className="flex stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${identity.getPrincipal()}`}>
@@ -177,7 +179,7 @@ const Header = () => {
         </div>
       </div>
       <span className="flex flex-row w-full bg-purple-700 items-center justify-center">
-        ⚠️ This is a beta version. All coins and transactions are simulated and have no real monetary value.
+        ⚠️ This is a simulated version. All coins and transactions have no real monetary value.
       </span>
     </header>
   );

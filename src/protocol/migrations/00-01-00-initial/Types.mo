@@ -270,9 +270,13 @@ module {
         amount_minted: Timeline<Nat>;
     };
 
-    public type ClockParameters = { 
-        var offset_ns: Nat;
-        mutable: Bool;
+    public type ClockParameters = {
+        #REAL;
+        #SIMULATED: {
+            var time_ref: Time;
+            var offset_ns: Time;
+            var dilation_factor: Float;
+        };
     };
 
     public type Lock = {

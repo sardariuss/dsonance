@@ -11,14 +11,13 @@ import Float "mo:base/Float";
 import Int "mo:base/Int";
 import Debug "mo:base/Debug";
 import Option "mo:base/Option";
-import Time "mo:base/Time";
 
 module {
 
     type UUID = Types.UUID;
     type Timeline<T> = Types.Timeline<T>;
     type Account = Types.Account;
-    type Time = Time.Time;
+    type Time = Int;
     type DebtInfo = Types.DebtInfo;
     type TransferResult = Types.TransferResult;
     type TxIndex = Types.TxIndex;
@@ -26,7 +25,7 @@ module {
     type Set<K> = Set.Set<K>;
     type Map<K, V> = Map.Map<K, V>;
 
-    type TransferCallback = ({timestamp: Time; amount: Nat;}) -> ();
+    type TransferCallback = ({amount: Nat;}) -> ();
 
     public func init_debt_info(time: Time, account: Account) : DebtInfo {
         {
@@ -95,7 +94,7 @@ module {
                 info.owed -= Float.fromInt(difference);
                 // Notify the callback if there is one
                 Option.iterate(on_successful_transfer, func(f: TransferCallback){
-                    f({ timestamp = Time.now(); amount = difference; });
+                    f({ amount = difference; });
                 });
             });
             // Add the debt back in case there is still something owed

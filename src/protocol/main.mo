@@ -92,12 +92,20 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().current_decay();
     };
 
+    public query func get_parameters() : async Types.SClockParameters {
+        getFacade().get_parameters();
+    };
+
+    public query func clock_info() : async Types.ClockInfo {
+        getFacade().clock_info();
+    };
+
     public shared func add_offset(duration: Types.Duration) : async Result.Result<(), Text> {
         getFacade().add_offset(duration);
     };
 
-    public query func get_offset() : async Types.Duration {
-        getFacade().get_offset();
+    public shared func set_dilation_factor(dilation_factor: Float) : async Result.Result<(), Text> {
+        getFacade().set_dilation_factor(dilation_factor);
     };
 
     public query func get_time() : async Time.Time {

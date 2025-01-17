@@ -38,9 +38,17 @@ module {
         let now = Time.now();
 
         #v0_1_0({
-            clock_parameters = {
-                var offset_ns = 0;
-                mutable = simulated;
+            clock_parameters = switch(simulated) {
+                case(false) { 
+                    #REAL; 
+                };
+                case(true) { 
+                    #SIMULATED({
+                        var time_ref = now;
+                        var offset_ns = 0;
+                        var dilation_factor = 1.0;
+                    });
+                };
             };
             vote_register = { 
                 votes = Map.new<UUID, VoteType>();

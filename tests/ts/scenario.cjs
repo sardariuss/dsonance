@@ -210,11 +210,12 @@ async function callCanisterMethod() {
 
         await Promise.all(putBallotPromises);
         await protocolActor.add_offset(SCENARIO_TICK_DURATION);
+        await protocolActor.run();
         tick++;
     }
 
-    protocolActor.get_offset().then((result) => {
-        console.log('Scenario time offset:', toNs(result));
+    protocolActor.get_time().then((result) => {
+        console.log('Scenario date:', Date(Number(result / 1_000_000n)));
     });
 }
 

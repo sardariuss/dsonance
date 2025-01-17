@@ -35,6 +35,8 @@ module {
         let deposit_ledger = LedgerFacade.LedgerFacade({ deposit with provider; });
         let resonance_ledger = LedgerFacade.LedgerFacade({ resonance with provider; });
 
+        let clock = Clock.Clock(clock_parameters);
+
         let deposit_debt = DebtProcessor.DebtProcessor({
             deposit with 
             get_debt_info = func (id: UUID) : DebtInfo {
@@ -61,9 +63,9 @@ module {
             };
             ledger = resonance_ledger;
             on_successful_transfer = ?(
-                func({timestamp: Time; amount: Nat}) {
+                func({amount: Nat}) {
                     // Update the total amount minted
-                    Timeline.add(minting.amount_minted, timestamp, minting.amount_minted.current.data + amount);
+                    Timeline.add(minting.amount_minted, clock.get_time(), minting.amount_minted.current.data + amount);
                 }
             );
         });
@@ -116,8 +118,6 @@ module {
         let vote_type_controller = VoteTypeController.VoteTypeController({
             yes_no_controller;
         });
-
-        let clock = Clock.Clock(clock_parameters);
 
         Controller.Controller({
             clock;

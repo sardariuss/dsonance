@@ -143,6 +143,15 @@ module {
         discernment_factor: Float;
     };
 
+    public type SClockParameters = {
+        #REAL;
+        #SIMULATED: {
+            time_ref: Time;
+            offset: Duration;
+            dilation_factor: Float;
+        };
+    };
+
     // CUSTOM TYPES
 
     public type ProtocolInfo = {
@@ -151,6 +160,11 @@ module {
         ck_btc_locked: Timeline<Nat>;
         resonance_minted: Timeline<Nat>;
         discernment_factor: Float;
+    };
+
+    public type ClockInfo = {
+        time: Time;
+        dilation_factor: Float;
     };
 
     public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
