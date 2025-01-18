@@ -7,8 +7,7 @@ import ResetIcon from "./icons/ResetIcon";
 import { v4 as uuidv4 } from 'uuid';
 import { useCurrencyContext } from "./CurrencyContext";
 import BitcoinIcon from "./icons/BitcoinIcon";
-import { useAuth } from "@ic-reactor/react";
-import { ckBtcActor } from "../actors/CkBtcActor";
+import { useWalletContext } from "./WalletContext";
 
 interface PutBallotProps {
   vote_id: string;
@@ -22,11 +21,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
 
   const { formatSatoshis, currencySymbol, currencyToSatoshis, satoshisToCurrency } = useCurrencyContext();
 
-  const { identity } = useAuth({});
-
-  const { call: refreshBtcBalance } = ckBtcActor.useQueryCall({
-    functionName: 'icrc1_balance_of',
-  });
+  const { refreshBtcBalance } = useWalletContext();
 
   const { call: putBallot, loading } = protocolActor.useUpdateCall({
     functionName: "put_ballot",
@@ -35,13 +30,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
         refreshVotes();
       };
       resetVote();
-      if (identity !== null) {
-        console.log("Refreshing BTC balance");
-        refreshBtcBalance([{
-          owner: identity.getPrincipal(),
-          subaccount: []
-        }]);
-      }
+      refreshBtcBalance();
     },
     onError: (error) => {
       console.error(error);

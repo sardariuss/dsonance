@@ -133,7 +133,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
           axisBottom={{
             renderTick: ({ tickIndex, x, y, value }) => {
               return (
-                tickIndex % 1 ? <></> :
+                tickIndex % (containerWidth < 800 ? 2 : 1) ? <></> :
                 <g transform={`translate(${x},${y})`}>
                   <text
                     x={0}

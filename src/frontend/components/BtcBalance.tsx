@@ -1,33 +1,16 @@
-import { Principal } from "@dfinity/principal";
-import { ckBtcActor } from "../actors/CkBtcActor";
 import { useEffect } from "react";
 import BitcoinIcon from "./icons/BitcoinIcon";
-import { formatBalanceE8s } from "../utils/conversions/token";
 import { useCurrencyContext } from "./CurrencyContext";
+import { useWalletContext } from "./WalletContext";
 
-interface BtcBalanceProps {
-  principal: Principal;
-}
-
-const BtcBalance = ({ principal }: BtcBalanceProps) => {
+const BtcBalance = () => {
 
   const { formatSatoshis } = useCurrencyContext();
-
-  const { call: refreshBalance, data: btcBalance } = ckBtcActor.useQueryCall({
-    functionName: 'icrc1_balance_of',
-    args: [{
-      owner: principal,
-      subaccount: []
-    }]
-  });
+  const { btcBalance, refreshBtcBalance } = useWalletContext();
 
   useEffect(() => {
-    refreshBalance();
+    refreshBtcBalance();
   }, []);
-
-  useEffect(() => {
-    console.log("Hello")
-  }, [btcBalance]);
 
   return (
     <div className="flex flex-row items-center space-x-1">

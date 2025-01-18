@@ -11,6 +11,7 @@ import { ProtocolActorProvider }        from './actors/ProtocolActor';
 import { ResonanceLedgerActorProvider } from './actors/ResonanceLedgerActor';
 import { CurrencyProvider }             from './components/CurrencyContext';
 import { MinterActorProvider }          from './actors/MinterActor';
+import { WalletProvider }               from './components/WalletContext';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
@@ -21,7 +22,9 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
             <ProtocolActorProvider>
               <MinterActorProvider>
                 <CurrencyProvider>
-                  <App/>
+                  <WalletProvider>
+                    <App/>
+                  </WalletProvider>
                 </CurrencyProvider>
               </MinterActorProvider>
             </ProtocolActorProvider>
