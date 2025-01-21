@@ -44,7 +44,7 @@ const SimulatedClock = () => {
   return (
     currentTime ? 
       <div className="flex flex-row items-center space-x-2">
-        <span className="text-gray-400 text-sm">Simulation time:</span>
+        <span className="dark:text-gray-400 text-gray-600 text-sm">Simulation time:</span>
         <span>{currentTime.toLocaleString()}</span>
       </div> : <></>
   );

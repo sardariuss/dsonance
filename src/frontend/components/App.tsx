@@ -65,7 +65,7 @@ function App() {
 }
 
 const MobileWarning = () => (
-  <div className="flex flex-col min-h-screen w-full bg-white dark:bg-slate-900 dark:border-gray-700 border-gray-200 dark:text-white text-black items-center justify-center space-y-10">
+  <div className="flex flex-col min-h-screen w-full bg-slate-100 dark:bg-slate-900 dark:border-gray-700 border-gray-200 dark:text-white text-slate-800 items-center justify-center space-y-10">
     <div className="flex items-baseline">
       <span className="text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold dark:text-white">
         RESONANCE
@@ -92,8 +92,8 @@ function AppContent() {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen w-full bg-white dark:bg-slate-900 dark:border-gray-700 border-gray-200 dark:text-white text-black justify-between">
-        <div className="flex flex-col w-full flex-grow items-center bg-white dark:bg-slate-900">
+      <div className="flex flex-col min-h-screen w-full bg-slate-100 dark:bg-slate-900 dark:border-gray-700 border-gray-200 text-slate-800 text-slate-800 dark:text-white justify-between">
+        <div className="flex flex-col w-full flex-grow items-center bg-slate-100 dark:bg-slate-900">
           <Header/>
           <Router/>
         </div>

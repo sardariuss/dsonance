@@ -64,7 +64,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
   return (
     <div className="flex flex-col w-full items-center space-x-4 justify-center">
       <div className="flex flex-row w-full items-center space-x-4 justify-center">
-        <div className="w-6 h-6 hover:fill-white fill-gray-200" onClick={resetVote}>
+        <div className="w-6 h-6 dark:hover:fill-white dark:fill-gray-200 fill-slate-700 hover:fill-slate-900" onClick={resetVote}>
           <ResetIcon />
         </div>
         <div className="flex items-center space-x-1">
@@ -74,7 +74,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
             type="text"
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
-            className="w-32 h-9 border border-gray-300 rounded px-2 appearance-none focus:outline-none focus:border-purple-500 dark:bg-gray-900 bg-gray-100"
+            className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline-none focus:border-purple-500 dark:bg-gray-900"
             onChange={(e) => { if(isActive) { setBallot({ choice: ballot.choice, amount: currencyToSatoshis(Number(e.target.value)) ?? 0n }) }} }
           />
           <BitcoinIcon />
@@ -82,7 +82,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
         <div>on</div>
         <div>
           <select
-            className={`w-20 h-9 appearance-none dark:bg-gray-900 bg-gray-100 border border-gray-300 rounded px-2 focus:outline-none focus:border-purple-500 ${ballot.choice === EYesNoChoice.Yes ? "text-brand-true" : "text-brand-false"}`}
+            className={`w-20 h-9 appearance-none dark:bg-gray-900 border dark:border-gray-300 border-gray-900 rounded px-2 focus:outline-none focus:border-purple-500 ${ballot.choice === EYesNoChoice.Yes ? "text-brand-true" : "text-brand-false"}`}
             value={ballot.choice}
             onChange={(e) => setBallot({ choice: e.target.value as EYesNoChoice, amount: ballot.amount })}
             disabled={loading}

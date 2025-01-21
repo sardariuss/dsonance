@@ -4,7 +4,7 @@ import SimulatedClock from './SimulatedClock';
 function Footer() {
 
   return (
-    <footer className="w-full bg-slate-100 dark:bg-gray-800 shadow flex flex-row items-center justify-between xl:px-4 lg:px-3 md:px-2 px-2 xl:min-h-18 lg:min-h-16 md:min-h-14 min-h-14">
+    <footer className="w-full bg-slate-200 dark:bg-gray-800 shadow flex flex-row items-center justify-between xl:px-4 lg:px-3 md:px-2 px-2 xl:min-h-18 lg:min-h-16 md:min-h-14 min-h-14">
       <a href="https://internetcomputer.org/">
       <div className="flex flex-row items-center">
         <div className="sm:text-center text-l font-semibold dark:text-gray-200 dark:hover:text-white">

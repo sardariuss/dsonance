@@ -90,10 +90,10 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
       
-      <div className="flex flex-row bg-slate-100 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14 relative">
+      <div className="flex flex-row bg-slate-200 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14 relative">
         {/* Left-aligned RESONANCE Link */}
         <Link to="/" className="flex items-baseline 2xl:pt-6 xl:pt-5 lg:pt-4 md:pt-3 pt-2">
-          <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold dark:text-white">
+          <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">
             RESONANCE
           </span>
           <span className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-cafe whitespace-nowrap drop-shadow shadow-red-500 neon-effect">
@@ -107,7 +107,7 @@ const Header = () => {
         {/* Centered Minting Rate Info */}
         { mintingRate && location.pathname !== "/protocol_info" && (
           <Link
-            className="absolute left-1/2 transform -translate-x-1/2 flex flex-row items-center justify-center space-x-1 text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer"
+            className="absolute left-1/2 transform -translate-x-1/2 flex flex-row items-center justify-center space-x-1 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer"
             to={"/protocol_info"}
           >
             <span>{PARTICIPATION_EMOJI}</span>
@@ -179,7 +179,7 @@ const Header = () => {
           </button>
         </div>
       </div>
-      <span className="flex flex-row w-full bg-purple-700 items-center justify-center">
+      <span className="flex flex-row w-full bg-purple-700 items-center justify-center text-white">
         ⚠️ This is a simulated version. All coins and transactions have no real monetary value.
       </span>
     </header>

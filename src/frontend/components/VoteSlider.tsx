@@ -71,7 +71,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
         {
           cursor > MIN_CURSOR &&
             <div 
-              className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-brand-true border`}
+              className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-brand-true border border-black dark:border-white`}
               style={{ width: `${cursor * 100 + "%"}`}}
             >
               { 
@@ -84,7 +84,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
         }
         {
           cursor < MAX_CURSOR &&    
-            <div className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-brand-false border`}
+            <div className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-brand-false border border-black dark:border-white`}
               style={{ width: `${( 1 - cursor) * 100 + "%"}`}}>
               { 
                 (1 - cursor) > LIMIT_DISPLAY_RATIO && 

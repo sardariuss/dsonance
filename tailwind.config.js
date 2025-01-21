@@ -1,5 +1,4 @@
 module.exports = {
-    darkMode: 'class', // TODO: remove once the white theme is implemented
 	content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
     theme: {
         extend: {

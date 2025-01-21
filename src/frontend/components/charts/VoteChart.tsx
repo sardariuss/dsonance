@@ -162,10 +162,29 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
     };
   }, [voteData, ballot]);
 
+  // TODO: have this in a context?
+  const [theme, setTheme] = useState<"light" | "dark">(() =>
+    window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => {
+      setTheme(mediaQuery.matches ? "dark" : "light");
+    };
+
+    // Add listener for changes
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+    };
+  }, []);
+
   return (
     <div className="flex flex-col items-center space-y-2">
       <div style={{ position: 'relative' }} className="h-[320px] w-[50rem]">
-        <div style={{ position: 'absolute', top: MARGIN, right: 59, bottom: MARGIN, left: 59 }} className="flex flex-col border-x z-10">
+        <div style={{ position: 'absolute', top: MARGIN, right: 59, bottom: MARGIN, left: 59 }} className="flex flex-col border-x border-slate-300 z-10">
           <ul className="flex flex-col w-full" key={vote.vote_id}>
             {
               priceLevels.slice().reverse().map((price, index) => (
@@ -174,8 +193,8 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                     (index < (priceLevels.length - 1)) ? 
                     <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
                       <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
-                        <div className="text-xs text-white" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div>
-                        <div className="flex w-full h-[0.5px] bg-white opacity-50" style={{ position: 'absolute', bottom: 0 }}/>
+                        <div className="text-xs dark:text-white text-slate-800" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div>
+                        <div className="flex w-full h-[0.5px] bg-slate-500 dark:bg-white opacity-50" style={{ position: 'absolute', bottom: 0 }}/>
                       </div>
                     </div> : <></>
                   }
@@ -196,7 +215,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
           spacing={0}
           colors={["rgb(7 227 68)", "rgb(0 203 253)"]} // brand-true, brand-false
           blendMode="normal"
-          borderColor={"white"}
+          borderColor={theme === "dark" ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.5)"}
           axisTop={null}
           axisBottom={{
             tickSize: 5,
@@ -215,7 +234,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                   dominantBaseline="central"
                   style={{
                     fontSize: '12px',
-                    fill: 'white', // gray-300
+                    fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
                   }}
                 >
                   { CHART_CONFIGURATIONS.get(duration)!.format(new Date(value)) }
