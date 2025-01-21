@@ -1,24 +1,27 @@
-import Types              "Types";
-import VoteTypeController "votes/VoteTypeController";
-import DebtProcessor      "DebtProcessor";
-import MapUtils           "utils/Map";
-import Decay              "duration/Decay";
-import Timeline           "utils/Timeline";
-import Clock              "utils/Clock";
-import LockScheduler      "LockScheduler";
-import SharedConversions  "shared/SharedConversions";
-import BallotUtils        "votes/BallotUtils";
+import Types                   "Types";
+import DebtProcessor           "DebtProcessor";
+import ProtocolTimer           "ProtocolTimer";
 import ParticipationDispenser  "ParticipationDispenser";
+import LockScheduler           "LockScheduler";
+import MapUtils                "utils/Map";
+import Decay                   "duration/Decay";
+import Timeline                "utils/Timeline";
+import Clock                   "utils/Clock";
+import SharedConversions       "shared/SharedConversions";
+import BallotUtils             "votes/BallotUtils";
+import VoteTypeController      "votes/VoteTypeController";
 
-import Map                "mo:map/Map";
-import Set                "mo:map/Set";
 
-import Int                "mo:base/Int";
-import Option             "mo:base/Option";
-import Float              "mo:base/Float";
-import Debug              "mo:base/Debug";
-import Buffer             "mo:base/Buffer";
-import Iter               "mo:base/Iter";
+import Map                     "mo:map/Map";
+import Set                     "mo:map/Set";
+
+import Int                     "mo:base/Int";
+import Option                  "mo:base/Option";
+import Float                   "mo:base/Float";
+import Debug                   "mo:base/Debug";
+import Buffer                  "mo:base/Buffer";
+import Iter                    "mo:base/Iter";
+import Result                  "mo:base/Result";
 
 module {
 
@@ -34,6 +37,8 @@ module {
     type UUID = Types.UUID;
     type NewVoteResult = Types.NewVoteResult;
     type BallotRegister = Types.BallotRegister;
+    type TimerParameters = Types.TimerParameters;
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
     type Iter<T> = Iter.Iter<T>;
 
     type WeightParams = {
@@ -67,6 +72,7 @@ module {
         resonance_debt: DebtProcessor.DebtProcessor;
         decay_model: Decay.DecayModel;
         participation_dispenser: ParticipationDispenser.ParticipationDispenser;
+        protocol_timer: ProtocolTimer.ProtocolTimer;
     }){
 
         public func new_vote(args: NewVoteArgs) : NewVoteResult {
@@ -233,6 +239,18 @@ module {
 
         public func get_clock() : Clock.Clock {
             clock;
+        };
+
+        public func get_timer() : ?TimerParameters {
+            protocol_timer.get_timer();
+        };
+
+        public func set_timer({ caller: Principal; duration_s: Nat; }) : async* Result<(), Text> {
+            await* protocol_timer.set_timer({ caller; duration_s; fn = run;});
+        };
+
+        public func stop_timer({ caller: Principal }) : Result<(), Text> {
+            protocol_timer.stop_timer({ caller });
         };
 
     };

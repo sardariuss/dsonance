@@ -17,8 +17,8 @@
 }
 
 :root {
-  --shadow-color: #f68c00; /* Light theme default */
-  --shadow-color-light: #001100;
+  --shadow-color: #5be7dc; /* Light theme default */
+  --shadow-color-light: #5be7dc;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -113,7 +113,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
             min: y_min,
             max: y_max,
           }}
-          curve='stepAfter'
+          curve='linear'
           enableArea={fillArea}
           animate={false}
           enablePoints={false}

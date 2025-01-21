@@ -33,52 +33,53 @@ const Header = () => {
 
   useEffect(() => {
 
-    var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
-    var themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
-    var themeToggleBtn = document.getElementById('theme-toggle');
-
-    if (themeToggleDarkIcon == null || themeToggleLightIcon == null || themeToggleBtn == null) {
-      return;
-    };
-  
-    // Change the icons inside the button based on previous settings
-    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      themeToggleLightIcon.classList.remove('hidden');
-    } else {
-      themeToggleDarkIcon.classList.remove('hidden');
-    }
-  
-    themeToggleBtn.addEventListener('click', function() {
-  
-      // toggle icons inside button
-      if (themeToggleDarkIcon !== null) {
-        themeToggleDarkIcon.classList.toggle('hidden');
-      }
-      if (themeToggleLightIcon !== null) {
-        themeToggleLightIcon.classList.toggle('hidden');
-      }
-
-      // if set via local storage previously
-      if (localStorage.getItem('color-theme')) {
-        if (localStorage.getItem('color-theme') === 'light') {
-          document.documentElement.classList.add('dark');
-          localStorage.setItem('color-theme', 'dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-          localStorage.setItem('color-theme', 'light');
-        }
-
-      // if NOT set via local storage previously
-      } else {
-        if (document.documentElement.classList.contains('dark')) {
-          document.documentElement.classList.remove('dark');
-          localStorage.setItem('color-theme', 'light');
-        } else {
-          document.documentElement.classList.add('dark');
-          localStorage.setItem('color-theme', 'dark');
-        }
-      }
-    });
+    // TODO: uncomment when theme toggle is implemented
+//    var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+//    var themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+//    var themeToggleBtn = document.getElementById('theme-toggle');
+//
+//    if (themeToggleDarkIcon == null || themeToggleLightIcon == null || themeToggleBtn == null) {
+//      return;
+//    };
+//  
+//    // Change the icons inside the button based on previous settings
+//    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+//      themeToggleLightIcon.classList.remove('hidden');
+//    } else {
+//      themeToggleDarkIcon.classList.remove('hidden');
+//    }
+//  
+//    themeToggleBtn.addEventListener('click', function() {
+//  
+//      // toggle icons inside button
+//      if (themeToggleDarkIcon !== null) {
+//        themeToggleDarkIcon.classList.toggle('hidden');
+//      }
+//      if (themeToggleLightIcon !== null) {
+//        themeToggleLightIcon.classList.toggle('hidden');
+//      }
+//
+//      // if set via local storage previously
+//      if (localStorage.getItem('color-theme')) {
+//        if (localStorage.getItem('color-theme') === 'light') {
+//          document.documentElement.classList.add('dark');
+//          localStorage.setItem('color-theme', 'dark');
+//        } else {
+//          document.documentElement.classList.remove('dark');
+//          localStorage.setItem('color-theme', 'light');
+//        }
+//
+//      // if NOT set via local storage previously
+//      } else {
+//        if (document.documentElement.classList.contains('dark')) {
+//          document.documentElement.classList.remove('dark');
+//          localStorage.setItem('color-theme', 'light');
+//        } else {
+//          document.documentElement.classList.add('dark');
+//          localStorage.setItem('color-theme', 'dark');
+//        }
+//      }
+//    });
 
     refreshProtocolInfo();
 
@@ -95,7 +96,7 @@ const Header = () => {
           <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold dark:text-white">
             RESONANCE
           </span>
-          <span className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-cafe whitespace-nowrap drop-shadow shadow-blue-800 neon-effect">
+          <span className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-cafe whitespace-nowrap drop-shadow shadow-red-500 neon-effect">
             .defi
           </span>
         </Link>

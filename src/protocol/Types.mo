@@ -167,6 +167,11 @@ module {
         dilation_factor: Float;
     };
 
+    public type TimerParameters = {
+        id: Nat;
+        duration_s: Nat;
+    };
+
     public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
     public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
     public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Time}) -> Float;

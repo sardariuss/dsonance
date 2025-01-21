@@ -2,13 +2,7 @@
   "canisters": {
     "ck_btc": {
       "main": "src/ledger/main.mo",
-      "type": "motoko",
-      "remote": {
-        "candid": "src/ledger/ck_btc.did",
-        "id": {
-          "ic": "mxzaz-hqaaa-aaaar-qaada-cai"
-        }
-      }
+      "type": "motoko"
     },
     "resonance_ledger": {
       "main": "src/ledger/main.mo",

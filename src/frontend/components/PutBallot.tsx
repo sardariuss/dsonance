@@ -74,7 +74,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
             type="text"
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
-            className="w-32 h-9 border border-gray-300 rounded px-2 appearance-none focus:outline-none focus:border-purple-500"
+            className="w-32 h-9 border border-gray-300 rounded px-2 appearance-none focus:outline-none focus:border-purple-500 dark:bg-gray-900 bg-gray-100"
             onChange={(e) => { if(isActive) { setBallot({ choice: ballot.choice, amount: currencyToSatoshis(Number(e.target.value)) ?? 0n }) }} }
           />
           <BitcoinIcon />
@@ -82,7 +82,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
         <div>on</div>
         <div>
           <select
-            className={`w-20 h-9 appearance-none border border-gray-300 rounded px-2 focus:outline-none focus:border-purple-500 ${ballot.choice === EYesNoChoice.Yes ? "text-brand-true" : "text-brand-false"}`}
+            className={`w-20 h-9 appearance-none dark:bg-gray-900 bg-gray-100 border border-gray-300 rounded px-2 focus:outline-none focus:border-purple-500 ${ballot.choice === EYesNoChoice.Yes ? "text-brand-true" : "text-brand-false"}`}
             value={ballot.choice}
             onChange={(e) => setBallot({ choice: e.target.value as EYesNoChoice, amount: ballot.amount })}
             disabled={loading}

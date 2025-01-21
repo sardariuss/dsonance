@@ -34,8 +34,9 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
 
         switch(_state){
             case(#v0_1_0(stable_data)) {
-                _facade := ?SharedFacade.SharedFacade(Factory.build({
-                    stable_data with provider = Principal.fromActor(this);
+                _facade := ?SharedFacade.SharedFacade(Factory.build({stable_data with 
+                    provider = Principal.fromActor(this);
+                    admin;
                 }));
             };
         };
@@ -112,6 +113,17 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_time();
     };
 
+    public query func get_timer() : async ?Types.TimerParameters {
+        getFacade().get_timer();
+    };
+
+    public shared({caller}) func set_timer({ duration_s: Nat }) : async Result.Result<(), Text> {
+        await* getFacade().set_timer({ caller; duration_s; });
+    };
+
+    public shared({caller}) func stop_timer() : async Result.Result<(), Text> {
+        getFacade().stop_timer({ caller; });
+    };
 
     func getFacade() : SharedFacade.SharedFacade {
         switch(_facade){

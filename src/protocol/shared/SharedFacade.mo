@@ -28,6 +28,7 @@ module {
     type SProtocolInfo = Types.SProtocolInfo;
     type SClockParameters = Types.SClockParameters;
     type ClockInfo = Types.ClockInfo;
+    type TimerParameters = Types.TimerParameters;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -95,6 +96,18 @@ module {
 
         public func set_dilation_factor(dilation_factor: Float) : Result<(), Text> {
             controller.get_clock().set_dilation_factor(dilation_factor);
+        };
+
+        public func get_timer() : ?TimerParameters {
+            controller.get_timer();
+        };
+
+        public func set_timer({ caller: Principal; duration_s: Nat; }) : async* Result<(), Text> {
+            await* controller.set_timer({ caller; duration_s; });
+        };
+
+        public func stop_timer({ caller: Principal }) : Result<(), Text> {
+            controller.stop_timer({ caller; });
         };
 
         public func get_time() : Time {

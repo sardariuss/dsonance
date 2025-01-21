@@ -1,5 +1,6 @@
 import Types                  "Types";
 import Controller             "Controller";
+import ProtocolTimer          "ProtocolTimer";
 import Decay                  "duration/Decay";
 import DurationCalculator     "duration/DurationCalculator";
 import VoteFactory            "votes/VoteFactory";
@@ -27,9 +28,9 @@ module {
 
     type Time        = Int;
 
-    public func build(args: State and { provider: Principal }) : Controller.Controller {
+    public func build(args: State and { provider: Principal; admin: Principal; }) : Controller.Controller {
 
-        let { clock_parameters; vote_register; ballot_register; lock_register; deposit; resonance; parameters; provider; } = args;
+        let { clock_parameters; vote_register; ballot_register; lock_register; deposit; resonance; parameters; provider; admin; } = args;
         let { nominal_lock_duration; decay; minting; } = parameters;
 
         let deposit_ledger = LedgerFacade.LedgerFacade({ deposit with provider; });
@@ -119,6 +120,10 @@ module {
             yes_no_controller;
         });
 
+        let protocol_timer = ProtocolTimer.ProtocolTimer({
+            admin;
+        });
+
         Controller.Controller({
             clock;
             vote_register;
@@ -129,6 +134,7 @@ module {
             resonance_debt;
             decay_model;
             participation_dispenser;
+            protocol_timer;
         });
     };
 
