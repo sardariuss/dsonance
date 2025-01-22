@@ -1,6 +1,5 @@
-import { useMemo, useEffect, useRef, useState, Fragment } from 'react';
+import { useMemo, useEffect, useRef, useState, Fragment, useContext } from 'react';
 import { ResponsiveLine, Serie } from '@nivo/line';
-import { CHART_BACKGROUND_COLOR } from '../../constants';
 import { SBallotType } from '@/declarations/protocol/protocol.did';
 import IntervalPicker from './IntervalPicker';
 import { DurationUnit, toNs } from '../../utils/conversions/duration';
@@ -10,6 +9,7 @@ import { formatDate, msToNs, nsToMs, timeToDate } from '../../utils/conversions/
 import { get_current, get_first } from '../../utils/timeline';
 import { unwrapLock } from '../../utils/conversions/ballot';
 import { useCurrencyContext } from '../CurrencyContext';
+import { ThemeContext } from '../App';
 
 interface LockChartProps {
   ballots: SBallotType[];
@@ -18,6 +18,8 @@ interface LockChartProps {
 };
 
 const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
+
+  const { theme } = useContext(ThemeContext)
 
   const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
   
@@ -329,7 +331,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                     dominantBaseline="central"
                     style={{
                       fontSize: '12px',
-                      fill: 'gray',
+                      fill: theme === "dark" ? "#AAA" : "#666",
                     }}
                   >
                     { CHART_CONFIGURATIONS.get(duration)!.format(new Date(value)) }
@@ -344,9 +346,9 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
             markers={currentTime ? [
               {
                 axis: 'x',
-                value: timeToDate(currentTime).getTime(), // Convert string to timestamp
+                value: timeToDate(currentTime).getTime(),
                 lineStyle: {
-                  stroke: 'yellow',
+                  stroke: theme === "dark" ? "yellow" : "black",
                   strokeWidth: 1,
                   zIndex: 20,
                 },
@@ -354,14 +356,11 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                 legendOrientation: 'horizontal',
                 legendPosition: 'top',
                 textStyle: {
-                  fill: 'white',
+                  fill: theme === "dark" ? "white" : "black",
                   fontSize: 12,
                 }
               },
             ] : []}
-            theme={{
-              background: CHART_BACKGROUND_COLOR,
-            }}
             layers={[
               'grid',
               'axes',

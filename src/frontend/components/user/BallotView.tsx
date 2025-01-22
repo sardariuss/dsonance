@@ -54,7 +54,7 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
   return (
     now === undefined ? <></> :
     <div
-      className="border-b dark:border-gray-700 border-gray-200 py-2 px-2 hover:bg-slate-50 dark:hover:bg-slate-850 hover:cursor-pointer"
+      className="border-b dark:border-gray-700 border-gray-300 py-2 px-2 hover:bg-slate-50 dark:hover:bg-slate-850 hover:cursor-pointer"
       onClick={() => selectBallot()}
     >
       
@@ -63,10 +63,10 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
         <div className="flex self-center h-4 w-4">
           <BitcoinIcon/>
         </div>
-        <span className="text-gray-400 text-sm">on</span>
+        <span className="text-gray-600 dark:text-gray-400 text-sm">on</span>
         <ChoiceView ballot={ballot}/>
-        <span className="text-gray-400 text-sm">{" · "}</span>
-        <span className="text-gray-400 text-sm">
+        <span className="text-gray-600 dark:text-gray-400 text-sm">{" · "}</span>
+        <span className="text-gray-600 dark:text-gray-400 text-sm">
           {releaseTimestamp <= now ? 
             `${niceFormatDate(timeToDate(releaseTimestamp), timeToDate(now))}` : 
             `${timeDifference(timeToDate(releaseTimestamp), timeToDate(now))} left`
@@ -81,7 +81,7 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
           </div> :
           <div className="flex flex-row space-x-1 items-baseline">
             <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL, 2)}</span>
-            <span className="italic text-gray-400 animate-pulse">{`+ ${formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}`}</span>
+            <span className="italic text-gray-600 dark:text-gray-400 animate-pulse">{`+ ${formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}`}</span>
           </div>
         }
         <div className="flex self-center h-4 w-4">
@@ -101,22 +101,22 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
       { isSelected && 
         <div className="grid grid-cols-2 gap-x-2 gap-y-2 justify-items-center w-full mt-2">
 
-          <div className="flex flex-row space-x-1 items-baseline justify-center w-full border border-gray-800 py-1">
+          <div className="flex flex-row space-x-1 items-baseline justify-center w-full border border-gray-200 dark:border-gray-800 py-1">
             <span>{TIMESTAMP_EMOJI}</span>
-            <span className="italic text-gray-400 text-sm">Locked:</span> 
+            <span className="italic text-gray-600 dark:text-gray-400 text-sm">Locked:</span> 
             <span>{niceFormatDate(timeToDate(ballot.YES_NO.timestamp), timeToDate(now)) }</span>
           </div>
 
-          <div className="flex flex-row space-x-1 items-baseline justify-center w-full border border-gray-800 py-1">
+          <div className="flex flex-row space-x-1 items-baseline justify-center w-full border border-gray-200 dark:border-gray-800 py-1">
             <span>{DISSENT_EMOJI}</span>
-            <span className="italic text-gray-400 text-sm">Dissent:</span> 
+            <span className="italic text-gray-600 dark:text-gray-400 text-sm">Dissent:</span> 
             <span>{ ballot.YES_NO.dissent.toFixed(3) }</span>
           </div>
 
-          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800 py-1">
+          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-200 dark:border-gray-800 py-1">
             <div className="flex flex-row space-x-1 items-baseline">
               <span>{LOCK_EMOJI}</span>
-              <span className="italic text-gray-400 text-sm">Duration:</span> 
+              <span className="italic text-gray-600 dark:text-gray-400 text-sm">Duration:</span> 
               <span>{formatDuration(ballot.YES_NO.timestamp + get_current(unwrapLock(ballot).duration_ns).data - dateToTime(new Date(Number(ballot.YES_NO.timestamp)/ 1_000_000))) }</span>
             </div>
             <DurationChart 
@@ -128,28 +128,28 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
             />
           </div>
 
-          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800 py-1">
+          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-200 dark:border-gray-800 py-1">
             
             <div className="flex flex-row space-x-1 items-baseline">
               <span>{CONSENT_EMOJI}</span>
-              <span className="italic text-gray-400 text-sm">Consent:</span> 
+              <span className="italic text-gray-600 dark:text-gray-400 text-sm">Consent:</span> 
               <span>{ ballot.YES_NO.consent.current.data.toFixed(3) }</span>
             </div>
             <DurationChart 
               duration_timeline={ballot.YES_NO.consent}
               format_value={ (value: number) => value.toString() }
               fillArea={true}
-              color={CHART_COLORS.WHITE}
+              color={CHART_COLORS.BLUE}
               y_min={0}
               y_max={1.0}
               last_timestamp={releaseTimestamp <= now ? now : releaseTimestamp }
             />
           </div>
           
-          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800 py-1">
+          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-200 dark:border-gray-800 py-1">
             <div className="flex flex-row space-x-1 items-baseline">
               <span>{PARTICIPATION_EMOJI}</span>
-              <span className="italic text-gray-400 text-sm">Participation:</span>
+              <span className="italic text-gray-600 dark:text-gray-400 text-sm">Participation:</span>
               <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL, 2) }</span>
             </div>
             <DurationChart 
@@ -162,10 +162,10 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
             <InlineMath math="P(t) = lock\_amount \cdot \int_{t_0}^t participation\_rate(t) \, dt" />
           </div>
           
-          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-800 py-1">
+          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-200 dark:border-gray-800 py-1">
             <div className="flex flex-row space-x-1 items-baseline">
               <span>{DISCERNMENT_EMOJI}</span>
-              <span className="italic text-gray-400 text-sm">Discernment:</span>
+              <span className="italic text-gray-600 dark:text-gray-400 text-sm">Discernment:</span>
               <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}</span>
             </div>
             <DurationChart 

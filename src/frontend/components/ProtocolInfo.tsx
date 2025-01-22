@@ -41,11 +41,11 @@ const ProtocolInfo = () => {
       
     return (
         protocolInfo ? (
-            <div className="flex flex-col items-center border-t border-x dark:border-gray-700 border-gray-200 w-2/3">
-                { participationRate && <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-200 pt-4 w-full">
+            <div className="flex flex-col items-center border-t border-x dark:border-gray-700 border-gray-300 w-2/3">
+                { participationRate && <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-4 w-full">
                         <div className="flex flex-row items-center space-x-1">
                             <span>{PARTICIPATION_EMOJI}</span>
-                            <span className="text-gray-300">Participation rate:</span>
+                            <span className="text-gray-700 dark:text-gray-300">Participation rate:</span>
                             <span className="text-lg">
                                 {`${fromE8s(BigInt(participationRate.current.data))} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
                             </span>
@@ -58,17 +58,17 @@ const ProtocolInfo = () => {
                         />
                     </div>
                 }
-                <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-200 py-1 w-full space-x-1 justify-center">
+                <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-1 w-full space-x-1 justify-center">
                     <span>{DISCERNMENT_EMOJI}</span>
-                    <span className="text-gray-300">Discernment factor:</span>
+                    <span className="text-gray-700 dark:text-gray-300">Discernment factor:</span>
                     <span className="text-lg">
                         {protocolInfo.discernment_factor.toFixed(2)}
                     </span>
                 </div>
-                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-200 pt-4 w-full">
+                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-4 w-full">
                     <div className="flex flex-row items-center space-x-1">
                         <BitcoinIcon />
-                        <div className="text-gray-300">Total locked:</div>
+                        <div className="text-gray-700 dark:text-gray-300">Total locked:</div>
                         <span className="text-lg">
                             {`${formatSatoshis(protocolInfo.ck_btc_locked.current.data)} BTC`}
                         </span>
@@ -80,10 +80,10 @@ const ProtocolInfo = () => {
                         color={CHART_COLORS.YELLOW}
                     />
                 </div>
-                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-200 pt-4 w-full">
+                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-4 w-full">
                     <div className="flex flex-row items-center space-x-1">
                         <ResonanceCoinIcon />
-                        <div className="text-gray-300">Resonance minted:</div>
+                        <div className="text-gray-700 dark:text-gray-300">Resonance minted:</div>
                         <span className="text-lg">
                             {formatBalanceE8s(protocolInfo.resonance_minted.current.data, RESONANCE_TOKEN_SYMBOL, 0)}
                         </span>

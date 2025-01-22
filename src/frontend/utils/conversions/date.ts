@@ -56,5 +56,5 @@ export const timeDifference = (date: Date, now: Date): string => {
 }
 
 export const formatDate = (date: Date) : string => {
-  return date.toLocaleDateString();
+  return date.toISOString().split('T')[0];
 }

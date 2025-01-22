@@ -35,7 +35,7 @@ function VoteList() {
   , [currentCategory]);
 
   return (
-    <div className="flex flex-col border-x dark:border-gray-700 bg-white dark:bg-slate-900 w-2/3">
+    <div className="flex flex-col border-x dark:border-gray-700 w-2/3">
       <ul className="flex flex-wrap text-sm dark:text-gray-400 font-medium text-center w-full">
         <li key={0} className={`border-b dark:border-gray-700 grow`}>
           <TabButton label={"All"} isCurrent={currentCategory === undefined} setIsCurrent={() => { setCurrentCategory(undefined); }}/>

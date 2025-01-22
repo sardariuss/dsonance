@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState }          from "react";
+import { useContext, useEffect, useMemo, useState }          from "react";
 import { protocolActor }                         from "../../actors/ProtocolActor";
 import { STimeline_3 }                           from "@/declarations/protocol/protocol.did";
 import { SYesNoVote }                            from "@/declarations/backend/backend.did";
@@ -10,6 +10,7 @@ import { DurationUnit, toNs }                    from "../../utils/conversions/d
 import { CHART_CONFIGURATIONS, computeInterval } from ".";
 import IntervalPicker                            from "./IntervalPicker";
 import { useCurrencyContext }                    from "../CurrencyContext";
+import { ThemeContext } from "../App";
 
 interface ComputeChartPropsArgs {
   currentTime: bigint;
@@ -101,6 +102,7 @@ interface VoteChartrops {
 
 const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
 
+  const { theme } = useContext(ThemeContext);
   const [duration, setDuration] = useState<DurationUnit>(DurationUnit.WEEK);
   const [refreshVoteData, setRefreshVoteData] = useState<boolean>(false);
 
@@ -160,26 +162,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
       priceLevels: computePriceLevels(0, voteData.max + Number(ballot.amount)),
       dateTicks: voteData.dateTicks
     };
-  }, [voteData, ballot]);
-
-  // TODO: have this in a context?
-  const [theme, setTheme] = useState<"light" | "dark">(() =>
-    window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-  );
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => {
-      setTheme(mediaQuery.matches ? "dark" : "light");
-    };
-
-    // Add listener for changes
-    mediaQuery.addEventListener("change", handleChange);
-
-    return () => {
-      mediaQuery.removeEventListener("change", handleChange);
-    };
-  }, []);
+  }, [voteData, ballot]);  
 
   return (
     <div className="flex flex-col items-center space-y-2">
@@ -193,7 +176,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                     (index < (priceLevels.length - 1)) ? 
                     <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
                       <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
-                        <div className="text-xs dark:text-white text-slate-800" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div>
+                        <div className="text-xs" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div>
                         <div className="flex w-full h-[0.5px] bg-slate-500 dark:bg-white opacity-50" style={{ position: 'absolute', bottom: 0 }}/>
                       </div>
                     </div> : <></>

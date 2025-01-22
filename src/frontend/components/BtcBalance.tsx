@@ -14,7 +14,6 @@ const BtcBalance = () => {
 
   return (
     <div className="flex flex-row items-center space-x-1">
-      <span className="text-gray-300">Balance:</span>
       <BitcoinIcon />
       <span className="text-lg">
         {btcBalance !== undefined ? formatSatoshis(btcBalance) : ""}

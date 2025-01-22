@@ -3,9 +3,10 @@ import { STimeline } from "@/declarations/protocol/protocol.did";
 import { nsToMs } from "../../utils/conversions/date";
 
 import { ResponsiveLine, Serie } from '@nivo/line';
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { protocolActor } from "../../actors/ProtocolActor";
 import { format } from "date-fns";
+import { ThemeContext } from "../App";
 
 export enum CHART_COLORS {
   BLUE = "rgb(59 130 246)",
@@ -34,6 +35,8 @@ interface DurationChartProps {
 };
   
 const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max, color, last_timestamp }: DurationChartProps) => {
+
+  const { theme } = useContext(ThemeContext);
 
   const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
   
@@ -142,7 +145,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
                     dominantBaseline="central"
                     style={{
                       fontSize: '12px',
-                      fill: 'white',
+                      fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
                     }}
                   >
                     { format(new Date(value), "dd MMM") }
@@ -163,7 +166,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
                   dominantBaseline="central"
                   style={{
                     fontSize: '12px',
-                    fill: 'white',
+                    fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
                   }}
                 >
                   { format_value(value) }
@@ -176,7 +179,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
           theme={{
             grid: {
               line: {
-                stroke: 'white',
+                stroke: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800,
                 strokeOpacity: 0.3,
               }
             }
