@@ -187,7 +187,7 @@ const Wallet = () => {
       {/* Airdrop Button */}
       {airdropAvailable && (
         <button
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 rounded-lg shadow-sm transition-all duration-150 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          className="px-10 button-simple h-10 justify-center items-center text-lg"
           onClick={triggerAirdrop}
           disabled={!airdropAvailable || airdroping || approving}
         >

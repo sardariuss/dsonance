@@ -29,28 +29,34 @@ export const ThemeContext = createContext<ThemeContextProps>({
 });
 
 function App() {
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState<string>("dark");
 
   const rawSetTheme = (rawTheme: string) => {
     const root = window.document.documentElement;
-    const isDark = rawTheme === "dark";
-
-    root.classList.remove(isDark ? "light" : "dark");
+    root.classList.remove(rawTheme === "dark" ? "light" : "dark");
     root.classList.add(rawTheme);
+    window.localStorage.setItem("color-theme", rawTheme);
     setTheme(rawTheme);
   };
 
   if (typeof window !== "undefined") {
     useEffect(() => {
+      // Use saved theme if any
       const initialTheme = window.localStorage.getItem("color-theme");
-      window.matchMedia("(prefers-color-scheme: dark)").matches && !initialTheme
-        ? rawSetTheme("dark")
-        : rawSetTheme(initialTheme || "light");
+      if (initialTheme) {
+        console.log("Load theme from local storage:", initialTheme);
+        rawSetTheme(initialTheme);
+        return;
+      }
+
+      // Fall back to system theme
+      rawSetTheme(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     }, []);
 
-    useEffect(() => {
-      window.localStorage.setItem("color-theme", theme);
-    }, [theme]);
+//    useEffect(() => {
+//      console.log("Save theme in local storage:", theme);
+//      window.localStorage.setItem("color-theme", theme);
+//    }, [theme]);
   }
 
   return (

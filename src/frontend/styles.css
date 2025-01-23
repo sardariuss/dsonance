@@ -16,18 +16,6 @@
   font-style: normal;
 }
 
-:root {
-  --shadow-color: rgb(7 227 68);
-  --shadow-color-light: rgb(7 227 68);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --shadow-color: #5be7dc; /* Dark theme shadow color */
-    --shadow-color-light: #5be7dc;
-  }
-}
-
 * {
   padding: 0;
   margin: 0;
@@ -51,6 +39,8 @@ p {
 }
 
 .neon-effect {
+  --shadow-color: #5be7dc;
+  --shadow-color-light: #5be7dc;
   color:white;
   animation: neon 3s infinite;
 }
