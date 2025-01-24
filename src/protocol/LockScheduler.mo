@@ -16,6 +16,7 @@ module {
     type Order = Order.Order;
     type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
     type LockRegister = Types.LockRegister;
+    type Timeline<T> = Types.Timeline<T>;
 
     public func compare_locks(a: Lock, b: Lock) : Order {
         switch(Int.compare(a.release_date, b.release_date)){
@@ -81,6 +82,10 @@ module {
                     };
                 };
             };
+        };
+
+        public func get_total_locked() : Timeline<Nat> {
+            lock_register.total_amount;
         };
 
         func get_lock(ballot: YesNoBallot) : Lock {

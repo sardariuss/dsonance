@@ -263,10 +263,7 @@ module {
         #NS: Nat;
     };
 
-    public type MintingParameters = {
-        participation_per_ns: Float;
-        discernment_factor: Float;
-        var time_last_dispense: Time;
+    public type MintingInfo = {
         amount_minted: Timeline<Nat>;
     };
 
@@ -285,8 +282,22 @@ module {
     };
 
     public type LockRegister = {
+        var time_last_dispense: Time;
         total_amount: Timeline<Nat>;
         locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the BallotType or even a generic lock type instead
+    };
+
+    public type ProtocolParameters = {
+        participation_per_ns: Float;
+        discernment_factor: Float;
+        nominal_lock_duration: Duration;
+        minimum_ballot_amount: Nat;
+        dissent_steepness: Float;
+        consent_steepness: Float;
+        decay: {
+            half_life: Duration;
+            time_init: Time;
+        };
     };
 
     public type Args = {
@@ -307,10 +318,13 @@ module {
             fee: Nat;
         };
         parameters: {
-            participation_per_day: Nat;
-            discernment_factor: Float;
+            participation_per_day: Nat; // minting
+            discernment_factor: Float; // minting
             ballot_half_life: Duration;
             nominal_lock_duration: Duration;
+            minimum_ballot_amount: Nat;
+            dissent_steepness: Float;
+            consent_steepness: Float;
         };
     };
     public type UpgradeArgs = {
@@ -333,14 +347,8 @@ module {
             fee: Nat;
             owed: Set<UUID>;
         };
-        parameters: {
-            minting: MintingParameters;
-            nominal_lock_duration: Duration;
-            decay: {
-                half_life: Duration;
-                time_init: Time;
-            };
-        };
+        parameters: ProtocolParameters;
+        minting_info: MintingInfo;
     };
   
 };

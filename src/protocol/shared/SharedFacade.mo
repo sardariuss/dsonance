@@ -20,7 +20,7 @@ module {
     type PutBallotArgs = Types.PutBallotArgs;
     type Account = Types.Account;
     type SBallotType = Types.SBallotType;
-    type VoteNotFoundError = Types.VoteNotFoundError;
+    type PreviewBallotError = Types.PreviewBallotError;
     type Duration = Types.Duration;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type SNewVoteResult = Types.SNewVoteResult;
@@ -29,6 +29,8 @@ module {
     type SClockParameters = Types.SClockParameters;
     type ClockInfo = Types.ClockInfo;
     type TimerParameters = Types.TimerParameters;
+    type STimeline<T> = Types.STimeline<T>;
+    type ProtocolParameters = Types.ProtocolParameters;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -37,7 +39,7 @@ module {
         };
 
         public func preview_ballot(args: PutBallotArgs and { caller: Principal; }) : SPreviewBallotResult {
-            Result.mapOk<BallotType, SBallotType, VoteNotFoundError>(controller.preview_ballot(args), SharedConversions.shareBallotType);
+            Result.mapOk<BallotType, SBallotType, PreviewBallotError>(controller.preview_ballot(args), SharedConversions.shareBallotType);
         };
 
         public func put_ballot(args: PutBallotArgs and { caller: Principal; }) : async* PutBallotResult {
@@ -48,13 +50,16 @@ module {
             await* controller.run();
         };
 
-        public func get_protocol_info() : SProtocolInfo {
-            let info = controller.get_protocol_info();
-            {
-                info with 
-                ck_btc_locked = SharedConversions.shareTimeline(info.ck_btc_locked);
-                resonance_minted = SharedConversions.shareTimeline(info.resonance_minted);
-            }
+        public func get_amount_minted() : STimeline<Nat> {
+            SharedConversions.shareTimeline(controller.get_amount_minted());
+        };
+
+        public func get_total_locked() : STimeline<Nat> {
+            SharedConversions.shareTimeline(controller.get_total_locked());
+        };
+
+        public func get_protocol_parameters() : ProtocolParameters {
+            controller.get_protocol_parameters();
         };
 
         public func get_votes({origin: Principal; filter_ids: ?[UUID] }) : [SVoteType] {

@@ -59,6 +59,7 @@ module {
                 by_account = Map.new<Account, Set.Set<UUID>>();
             };
             lock_register = {
+                var time_last_dispense = now;
                 total_amount = Timeline.initialize(now, 0);
                 locks = BTree.init<Lock, Ballot<YesNoChoice>>(?BTREE_ORDER);
             };
@@ -72,18 +73,15 @@ module {
                 fee = resonance.fee;
                 owed = Set.new<UUID>();
             };
-            parameters = {
-                minting = {
-                    participation_per_ns = Float.fromInt(parameters.participation_per_day) / Float.fromInt(Duration.NS_IN_DAY);
-                    discernment_factor = parameters.discernment_factor;
-                    amount_minted = Timeline.initialize(now, 0);
-                    var time_last_dispense = now;
-                };
-                nominal_lock_duration = parameters.nominal_lock_duration;
+            parameters = { parameters with
+                participation_per_ns = Float.fromInt(parameters.participation_per_day) / Float.fromInt(Duration.NS_IN_DAY);
                 decay = {
                     half_life = parameters.ballot_half_life;
                     time_init = now;
                 };
+            };
+            minting_info = {
+                amount_minted = Timeline.initialize<Nat>(now, 0);
             };
         });
     };

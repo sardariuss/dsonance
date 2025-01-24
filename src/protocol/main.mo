@@ -70,8 +70,16 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         await* getFacade().run();
     };
 
-    public query func get_protocol_info() : async Types.SProtocolInfo {
-        getFacade().get_protocol_info();
+    public query func get_amount_minted() : async Types.STimeline<Nat> {
+        getFacade().get_amount_minted();
+    };
+
+    public query func get_total_locked() : async Types.STimeline<Nat> {
+        getFacade().get_total_locked();
+    };
+
+    public query func get_protocol_parameters() : async Types.ProtocolParameters {
+        getFacade().get_protocol_parameters();
     };
 
     // Get the ballots of the given account

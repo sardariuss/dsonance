@@ -19,20 +19,13 @@ module {
     type Duration             = Types.Duration;
     type UUID                 = Types.UUID;
     type BallotRegister       = Types.BallotRegister;
+    type ProtocolParameters   = Types.ProtocolParameters;
     
     type Iter<T>              = Iter.Iter<T>;
     type Time                 = Int;
 
-    // https://www.desmos.com/calculator/8iww2wlp2t
-    // TODO: these should be protocol parameters
-    // Shall be greater than 0
-    let INITIAL_DISSENT_ADDEND = 100.0;
-    // Shall be between 0 and 1, the closer to 1 the steepest (the less the majority is rewarded)
-    let DISSENT_STEEPNESS = 0.55;
-    // Shall be between 0 and 0.25, the closer to 0 the steepest (the more the majority is rewarded)
-    let CONSENT_STEEPNESS = 0.1;
-
     public func build_yes_no({
+        parameters: ProtocolParameters;
         ballot_register: BallotRegister;
         decay_model: Decay.DecayModel;
         hot_map: HotMap.HotMap;
@@ -55,8 +48,8 @@ module {
             };
             compute_dissent = func({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
                 Incentives.compute_dissent({
-                    initial_addend = INITIAL_DISSENT_ADDEND;
-                    steepness = DISSENT_STEEPNESS;
+                    initial_addend = Float.fromInt(parameters.minimum_ballot_amount);
+                    steepness = parameters.dissent_steepness;
                     choice;
                     amount = Float.fromInt(amount);
                     total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
@@ -65,7 +58,7 @@ module {
             };
             compute_consent = func ({aggregate: YesNoAggregate; choice: YesNoChoice; time: Time;}) : Float {
                 Incentives.compute_consent({ 
-                    steepness = CONSENT_STEEPNESS;
+                    steepness = parameters.consent_steepness;
                     choice;
                     total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
                     total_no = decay_model.unwrap_decayed(aggregate.current_no, time);

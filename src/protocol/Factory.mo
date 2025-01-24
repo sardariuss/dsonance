@@ -30,8 +30,8 @@ module {
 
     public func build(args: State and { provider: Principal; admin: Principal; }) : Controller.Controller {
 
-        let { clock_parameters; vote_register; ballot_register; lock_register; deposit; resonance; parameters; provider; admin; } = args;
-        let { nominal_lock_duration; decay; minting; } = parameters;
+        let { clock_parameters; vote_register; ballot_register; lock_register; deposit; resonance; parameters; provider; admin; minting_info; } = args;
+        let { nominal_lock_duration; decay; } = parameters;
 
         let deposit_ledger = LedgerFacade.LedgerFacade({ deposit with provider; });
         let resonance_ledger = LedgerFacade.LedgerFacade({ resonance with provider; });
@@ -66,14 +66,14 @@ module {
             on_successful_transfer = ?(
                 func({amount: Nat}) {
                     // Update the total amount minted
-                    Timeline.add(minting.amount_minted, clock.get_time(), minting.amount_minted.current.data + amount);
+                    Timeline.add(minting_info.amount_minted, clock.get_time(), minting_info.amount_minted.current.data + amount);
                 }
             );
         });
 
         let participation_dispenser = ParticipationDispenser.ParticipationDispenser({
             lock_register;
-            parameters = minting;
+            parameters;
             debt_processor = resonance_debt;
         });
 
@@ -111,6 +111,7 @@ module {
         let decay_model = Decay.DecayModel(decay);
 
         let yes_no_controller = VoteFactory.build_yes_no({
+            parameters;
             ballot_register;
             decay_model;
             hot_map = HotMap.HotMap();
@@ -135,6 +136,8 @@ module {
             decay_model;
             participation_dispenser;
             protocol_timer;
+            minting_info;
+            parameters;
         });
     };
 

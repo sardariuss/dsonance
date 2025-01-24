@@ -11,18 +11,17 @@ module {
 
     type Time = Int;
     type LockRegister = Types.LockRegister;
-    type MintingParameters = Types.MintingParameters;
-    type ProtocolInfo = Types.ProtocolInfo;
+    type ProtocolParameters = Types.ProtocolParameters;
 
     public class ParticipationDispenser({
         lock_register: LockRegister;
-        parameters: MintingParameters;
+        parameters: ProtocolParameters;
         debt_processor: DebtProcessor.DebtProcessor;
     }) {
 
         public func dispense(time: Time) {
             
-            let period = Float.fromInt(time - parameters.time_last_dispense);
+            let period = Float.fromInt(time - lock_register.time_last_dispense);
 
             if (period < 0) {
                 Debug.trap("Cannot dispense participation in the past");
@@ -63,17 +62,7 @@ module {
             };
 
             // Update the time of the last dispense
-            parameters.time_last_dispense := time;
-        };
-
-        public func get_info() : ProtocolInfo {
-            {
-                participation_per_ns = parameters.participation_per_ns;
-                time_last_dispense = parameters.time_last_dispense;
-                resonance_minted = parameters.amount_minted;
-                ck_btc_locked = lock_register.total_amount;
-                discernment_factor = parameters.discernment_factor;
-            };
+            lock_register.time_last_dispense := time;
         };
         
     };

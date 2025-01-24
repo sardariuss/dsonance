@@ -45,10 +45,11 @@ module {
     public type DebtInfo           = Types.Current.DebtInfo;
     public type Transfer           = Types.Current.Transfer;
     public type TransferResult     = Types.Current.TransferResult;
-    public type MintingParameters  = Types.Current.MintingParameters;
+    public type MintingInfo        = Types.Current.MintingInfo;
     public type BallotType         = Types.Current.BallotType;
     public type BallotRegister     = Types.Current.BallotRegister;
     public type Rewards            = Types.Current.Rewards;
+    public type ProtocolParameters = Types.Current.ProtocolParameters;
 
     // CANISTER ARGS
 
@@ -155,11 +156,11 @@ module {
     // CUSTOM TYPES
 
     public type ProtocolInfo = {
-        participation_per_ns: Float;
-        time_last_dispense: Time;
-        ck_btc_locked: Timeline<Nat>;
-        resonance_minted: Timeline<Nat>;
-        discernment_factor: Float;
+        participation_per_ns: Float; // Will probably be changed participation_per_day
+        time_last_dispense: Time;// OK
+        ck_btc_locked: Timeline<Nat>; // OK
+        resonance_minted: Timeline<Nat>; // OK
+        discernment_factor: Float; // Will be removed
     };
 
     public type ClockInfo = {
@@ -212,13 +213,16 @@ module {
 
     // RESULT/ERROR TYPES
 
-    public type VoteNotFoundError    = { #VoteNotFound: { vote_id: UUID; }; };
-    public type NewVoteError         = { #VoteAlreadyExists: { vote_id: UUID; }; };
-    public type PutBallotError       = TransferFromError or VoteNotFoundError or { #BallotAlreadyExists: { ballot_id: UUID; }; };
-    public type PutBallotResult      = Result<SBallotType, PutBallotError>;
-    public type PreviewBallotResult  = Result<BallotType, VoteNotFoundError>;
-    public type NewVoteResult        = Result<VoteType, NewVoteError>;
-    public type SNewVoteResult       = Result<SVoteType, NewVoteError>;
-    public type SPreviewBallotResult = Result<SBallotType, VoteNotFoundError>;
+    public type VoteNotFoundError        = { #VoteNotFound: { vote_id: UUID; }; };
+    public type InssuficientAmountError  = { #InsufficientAmount: { amount: Nat; minimum: Nat; }; };
+    public type NewVoteError             = { #VoteAlreadyExists: { vote_id: UUID; }; };
+    public type BallotAlreadyExistsError = { #BallotAlreadyExists: { ballot_id: UUID; }; };
+    public type PreviewBallotError       = VoteNotFoundError or InssuficientAmountError;
+    public type PutBallotError           = PreviewBallotError or BallotAlreadyExistsError or TransferFromError;
+    public type PutBallotResult          = Result<SBallotType, PutBallotError>;
+    public type PreviewBallotResult      = Result<BallotType, PreviewBallotError>;
+    public type NewVoteResult            = Result<VoteType, NewVoteError>;
+    public type SNewVoteResult           = Result<SVoteType, NewVoteError>;
+    public type SPreviewBallotResult     = Result<SBallotType, PreviewBallotError>;
 
 };

@@ -40,6 +40,9 @@ module {
     type TimerParameters = Types.TimerParameters;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type Iter<T> = Iter.Iter<T>;
+    type ProtocolParameters = Types.ProtocolParameters;
+    type MintingInfo = Types.MintingInfo;
+    type Timeline<T> = Types.Timeline<T>;
 
     type WeightParams = {
         ballot: BallotType;
@@ -73,6 +76,8 @@ module {
         decay_model: Decay.DecayModel;
         participation_dispenser: ParticipationDispenser.ParticipationDispenser;
         protocol_timer: ProtocolTimer.ProtocolTimer;
+        minting_info: MintingInfo;
+        parameters: ProtocolParameters;
     }){
 
         public func new_vote(args: NewVoteArgs) : NewVoteResult {
@@ -102,11 +107,15 @@ module {
 
         public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
 
-            let { vote_id; choice_type; caller; from_subaccount; } = args;
+            let { vote_id; choice_type; caller; from_subaccount; amount; } = args;
 
             let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
                 case(null) { return #err(#VoteNotFound({vote_id})); };
                 case(?v) { v };
+            };
+
+            if (amount < parameters.minimum_ballot_amount){
+                return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount; }));
             };
 
             let timestamp = clock.get_time();
@@ -131,6 +140,10 @@ module {
             switch(find_ballot(ballot_id)){
                 case(?_) { return #err(#BallotAlreadyExists({ballot_id})); };
                 case(null) {};
+            };
+
+            if (amount < parameters.minimum_ballot_amount){
+                return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount; }));
             };
 
             let transfer = await* deposit_debt.get_ledger().transfer_from({
@@ -203,10 +216,6 @@ module {
             };
         };
 
-        public func get_protocol_info() : Types.ProtocolInfo {
-            participation_dispenser.get_info();
-        };
-
         public func get_votes({origin: Principal; filter_ids: ?[UUID]}) : [VoteType] {
             
             let vote_ids = Option.get(Map.get(vote_register.by_origin, Map.phash, origin), Set.new<UUID>());
@@ -251,6 +260,18 @@ module {
 
         public func stop_timer({ caller: Principal }) : Result<(), Text> {
             protocol_timer.stop_timer({ caller });
+        };
+
+        public func get_amount_minted() : Timeline<Nat> {
+            minting_info.amount_minted;
+        };
+
+        public func get_total_locked() : Timeline<Nat> {
+            lock_scheduler.get_total_locked();
+        };
+
+        public func get_protocol_parameters() : ProtocolParameters {
+            parameters;
         };
 
     };

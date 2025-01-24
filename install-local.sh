@@ -52,6 +52,10 @@ wait
 # Deploy protocol with dependencies
 # Hundred million e8s participation per day
 # With a discernment factor of 9, it leads to max one trillion e8s per day (probably more 400 billions per day)
+# minimum_ballot_amount shall be greater than 0
+# https://www.desmos.com/calculator/8iww2wlp2t
+# dissent_steepness be between 0 and 1, the closer to 1 the steepest (the less the majority is rewarded)
+# consent_steepness be between 0 and 0.25, the closer to 0 the steepest
 dfx deploy protocol --argument '( variant { 
   init = record {
     simulated = true;
@@ -68,6 +72,9 @@ dfx deploy protocol --argument '( variant {
       discernment_factor = 9.0;
       ballot_half_life = variant { YEARS = 1 };
       nominal_lock_duration = variant { DAYS = 3 };
+      minimum_ballot_amount = 100;
+      dissent_steepness = 0.55;
+      consent_steepness = 0.1;
     };
   }
 })'
