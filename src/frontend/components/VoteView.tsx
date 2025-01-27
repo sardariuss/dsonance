@@ -35,10 +35,8 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
   }
 
   useEffect(() => {
-    if (selected !== vote.vote_id) {
-      resetVote();
-    }
-  }, [selected]);
+    resetVote();
+  }, [selected, vote]);
 
   return (
     <div className="flex flex-col content-center border-b dark:border-gray-700 px-5 py-1 hover:cursor-pointer space-y-2 w-full hover:bg-slate-50 hover:dark:bg-slate-850">

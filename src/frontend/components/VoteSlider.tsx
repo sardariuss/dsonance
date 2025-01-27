@@ -63,7 +63,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
   useEffect(() => {
     updateInputValue(ballot);
   },
-  [ballot]);
+  [ballot, vote]);
 
 	return (
     <div id={"cursor_" + id} className="w-full flex flex-col items-center" style={{ position: 'relative' }}>

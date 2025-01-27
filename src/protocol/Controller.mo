@@ -121,15 +121,11 @@ module {
 
         public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
 
-            let { vote_id; choice_type; caller; from_subaccount; amount; } = args;
+            let { vote_id; choice_type; caller; from_subaccount; } = args;
 
             let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
                 case(null) { return #err(#VoteNotFound({vote_id})); };
                 case(?v) { v };
-            };
-
-            if (amount < parameters.minimum_ballot_amount){
-                return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount; }));
             };
 
             let timestamp = clock.get_time();

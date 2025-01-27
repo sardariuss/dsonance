@@ -28,7 +28,6 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
       if (refreshVotes){
         refreshVotes();
       };
-      resetVote();
       refreshBtcBalance();
     },
     onError: (error) => {
