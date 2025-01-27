@@ -35,7 +35,7 @@ module {
     type Account = Types.Account;
     type TimedData<T> = Timeline.TimedData<T>;
     type UUID = Types.UUID;
-    type NewVoteResult = Types.NewVoteResult;
+    type SNewVoteResult = Types.SNewVoteResult;
     type BallotRegister = Types.BallotRegister;
     type TimerParameters = Types.TimerParameters;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
@@ -54,6 +54,7 @@ module {
         vote_id: UUID;
         origin: Principal;
         type_enum: Types.VoteTypeEnum;
+        account: Account;
     };
 
     public type PutBallotArgs = {
@@ -80,17 +81,29 @@ module {
         parameters: ProtocolParameters;
     }){
 
-        public func new_vote(args: NewVoteArgs) : NewVoteResult {
+        public func new_vote(args: NewVoteArgs) : async* SNewVoteResult {
 
-            let { type_enum; origin; vote_id } = args;
+            let { type_enum; origin; vote_id; account; } = args;
 
             if (Map.has(vote_register.votes, Map.thash, vote_id)){
                 return #err(#VoteAlreadyExists({vote_id}));
             };
 
+            // TODO: should be a resonance fee instead!
+            let transfer = await* deposit_debt.get_ledger().transfer_from({
+                from = account;
+                amount = parameters.opening_vote_fee;
+            });
+
+            let tx_id = switch(transfer){
+                case(#err(err)) { return #err(err); };
+                case(#ok(tx_id)) { tx_id; };
+            };
+
             // Add the vote
             let vote = vote_type_controller.new_vote({
                 vote_id;
+                tx_id;
                 vote_type_enum = type_enum;
                 date = clock.get_time();
                 origin;
@@ -102,7 +115,8 @@ module {
             Set.add(by_origin, Set.thash, vote_id);
             Map.set(vote_register.by_origin, Map.phash, origin, by_origin);
 
-            #ok(vote);
+            // TODO: ideally it's not the controller's responsibility to share types
+            #ok(SharedConversions.shareVoteType(vote));
         };
 
         public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {

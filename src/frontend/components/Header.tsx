@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate }      from "react-router-dom";
 import { useContext, useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
-import { protocolActor } from "../actors/ProtocolActor";
 import Select from "react-select";
 import { SupportedCurrency, useCurrencyContext } from "./CurrencyContext";
 import BitcoinIcon from "./icons/BitcoinIcon";
@@ -12,6 +11,7 @@ import LoginIcon from "./icons/LoginIcon";
 import { computeMintingRate } from "./ProtocolInfo";
 import BtcBalance from "./BtcBalance";
 import { ThemeContext } from "./App";
+import { useProtocolInfoContext } from "./ProtocolInfoContext";
 
 const Header = () => {
 
@@ -23,23 +23,14 @@ const Header = () => {
     },
   });
 
-  const { data: protocolParameters, call: refreshProtocolParameters } = protocolActor.useQueryCall({
-    functionName: "get_protocol_parameters",
-    args: [],
-  });
-
-  const { data: totalLocked, call: refreshTotalLocked } = protocolActor.useQueryCall({
-      functionName: "get_total_locked",
-      args: [],
-  });
+  const { info: { protocolParameters, totalLocked }, refreshInfo } = useProtocolInfoContext();
 
   const location = useLocation();
 
   const { currency, setCurrency, currencySymbol, satoshisToCurrency } = useCurrencyContext();
 
   useEffect(() => {
-    refreshProtocolParameters();
-    refreshTotalLocked();
+    refreshInfo();
   }, []);
 
   const mintingRate = protocolParameters && totalLocked && computeMintingRate(totalLocked.current.data, protocolParameters.participation_per_ns, satoshisToCurrency);

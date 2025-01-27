@@ -27,14 +27,20 @@ shared({ caller = admin }) actor class Backend() = this {
 
     stable let _texts = Map.new<UUID, Text>();
 
-    public shared({ caller }) func new_vote({text: Text; vote_id: UUID; category: Text;}) : async SNewVoteResult {
+    public shared({ caller }) func new_vote({
+        text: Text;
+        vote_id: UUID;
+        category: Text;
+        from_subaccount: ?Blob;
+    }) : async SNewVoteResult {
         if (Principal.isAnonymous(caller)){
             return #err(#AnonymousCaller);
         };
         if (not Map.has(_categories, Map.thash, category)){
             return #err(#CategoryNotFound);
         };
-        Result.mapOk(await Protocol.new_vote({ type_enum = #YES_NO; vote_id; }), func(vote_type: SVoteType) : SYesNoVote {
+        let new_result = await Protocol.new_vote({ type_enum = #YES_NO; vote_id; account = { owner = caller; subaccount = from_subaccount; } });
+        Result.mapOk(new_result, func(vote_type: SVoteType) : SYesNoVote {
             switch(vote_type) {
                 case(#YES_NO(vote)) {
                     Map.set(_texts, Map.thash, vote.vote_id, text);

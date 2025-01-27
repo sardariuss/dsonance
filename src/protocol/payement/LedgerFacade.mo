@@ -28,7 +28,7 @@ module {
 
         public func transfer_from({
             from: Account;
-            amount: Nat
+            amount: Nat;
         }) : async* Result<TxIndex, TransferFromError> {
 
             let args = {

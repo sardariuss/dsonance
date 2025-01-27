@@ -202,6 +202,7 @@ module {
     
     public type Vote<A, B> = {
         vote_id: UUID;
+        tx_id: Nat;
         date: Time;
         origin: Principal;
         aggregate: Timeline<A>;
@@ -294,6 +295,7 @@ module {
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
+        opening_vote_fee: Nat;
         decay: {
             half_life: Duration;
             time_init: Time;
@@ -325,6 +327,7 @@ module {
             minimum_ballot_amount: Nat;
             dissent_steepness: Float;
             consent_steepness: Float;
+            opening_vote_fee: Nat;
         };
     };
     public type UpgradeArgs = {

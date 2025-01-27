@@ -99,7 +99,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
           </select>
         </div>
         <button
-          className="button-simple font-semibold w-36 min-w-36 h-9 justify-center items-center"
+          className="button-simple w-36 min-w-36 h-9 justify-center items-center text-base"
           disabled={loading || isTooSmall()}
           onClick={triggerVote}
         >

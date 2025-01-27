@@ -1,11 +1,14 @@
 
 import { useAuth } from "@ic-reactor/react";
-import { SYesNoVote } from "../../declarations/backend/backend.did";
 import { backendActor } from "../actors/BackendActor";
 
 import { useState, useEffect } from "react";
 
 import { v4 as uuidv4 } from 'uuid';
+import { useProtocolInfoContext } from "./ProtocolInfoContext";
+import { useCurrencyContext } from "./CurrencyContext";
+import BitcoinIcon from "./icons/BitcoinIcon";
+import { useWalletContext } from "./WalletContext";
 
 interface NewVoteProps {
   refreshVotes: () => void,
@@ -20,12 +23,17 @@ function NewVote({ refreshVotes, category } : NewVoteProps) {
   
   const [text, setText] = useState("");
 
+  const { info: { protocolParameters }, refreshInfo } = useProtocolInfoContext();
+  const { formatSatoshis } = useCurrencyContext();
+  const { refreshBtcBalance } = useWalletContext();
+
   const { call: newVote, loading } = backendActor.useUpdateCall({
     functionName: 'new_vote',
-    args: [{ text, vote_id: uuidv4(), category }],
+    args: [{ text, vote_id: uuidv4(), category, from_subaccount: [] }],
     onSuccess: (data) => {
       console.log(data)
       refreshVotes();
+      refreshBtcBalance();
     },
     onError: (error) => {
       console.error(error);
@@ -33,6 +41,8 @@ function NewVote({ refreshVotes, category } : NewVoteProps) {
   });
 
   useEffect(() => {
+
+    refreshInfo();
     
     let proposeVoteInput = document.getElementById(INPUT_BOX_ID);
 
@@ -59,11 +69,17 @@ function NewVote({ refreshVotes, category } : NewVoteProps) {
       </div>
       <div className="flex flex-row space-x-2 items-center place-self-end mx-2 mb-1">
         <button 
-          className="button-simple w-36 min-w-36 h-9 justify-center items-center"
+          className="flex flex-row button-simple w-36 min-w-36 h-9 justify-center items-center text-base"
           disabled={loading || text.length === 0}
           onClick={ () => { authenticated ? newVote() : login() } }
         >
-          Open
+          <div className="flex flex-row items-baseline space-x-1">
+            <span>Open</span>
+            { protocolParameters && <span className="text-sm">{"· " + formatSatoshis(protocolParameters.opening_vote_fee) } </span> }
+            <span className="flex self-center">
+              <BitcoinIcon />
+            </span>
+          </div>
         </button>
       </div>
     </div>

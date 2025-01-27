@@ -1,5 +1,4 @@
 import { useEffect, useMemo } from "react";
-import { protocolActor } from "../actors/ProtocolActor";
 import DurationChart, { CHART_COLORS } from "./charts/DurationChart";
 import { map_filter_timeline, to_number_timeline } from "../utils/timeline";
 import { formatBalanceE8s, fromE8s } from "../utils/conversions/token";
@@ -7,6 +6,7 @@ import { DISCERNMENT_EMOJI, PARTICIPATION_EMOJI, RESONANCE_TOKEN_SYMBOL } from "
 import { useCurrencyContext } from "./CurrencyContext";
 import ResonanceCoinIcon from "./icons/ResonanceCoinIcon";
 import BitcoinIcon from "./icons/BitcoinIcon";
+import { useProtocolInfoContext } from "./ProtocolInfoContext";
 
 export const computeMintingRate = (ck_btc_locked: bigint, participation_per_ns: number, satoshisToCurrency: (satoshis: bigint) => number) => {
     if (ck_btc_locked === 0n) {
@@ -19,25 +19,10 @@ const ProtocolInfo = () => {
 
     const { formatSatoshis, satoshisToCurrency, currencySymbol } = useCurrencyContext();
 
-    const { data: protocolParameters, call: refreshProtocolParameters } = protocolActor.useQueryCall({
-        functionName: "get_protocol_parameters",
-        args: [],
-    });
-
-    const { data: totalLocked, call: refreshTotalLocked } = protocolActor.useQueryCall({
-        functionName: "get_total_locked",
-        args: [],
-    });
-
-    const { data: amountMinted, call: refreshAmountMinted } = protocolActor.useQueryCall({
-        functionName: "get_amount_minted",
-        args: [],
-    });
+    const { info: { protocolParameters, totalLocked, amountMinted }, refreshInfo } = useProtocolInfoContext();
 
     useEffect(() => {
-        refreshProtocolParameters();
-        refreshTotalLocked();
-        refreshAmountMinted();
+        refreshInfo();
     }
     , []);
 

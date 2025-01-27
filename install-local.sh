@@ -75,6 +75,7 @@ dfx deploy protocol --argument '( variant {
       minimum_ballot_amount = 100;
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
+      opening_vote_fee = 30;
     };
   }
 })'

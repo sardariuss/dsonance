@@ -34,8 +34,8 @@ module {
 
     public class SharedFacade(controller: Controller.Controller) {
 
-        public func new_vote(args: NewVoteArgs and { origin: Principal; }) : SNewVoteResult {
-            Result.mapOk<VoteType, SVoteType, NewVoteError>(controller.new_vote(args), SharedConversions.shareVoteType);
+        public func new_vote(args: NewVoteArgs and { origin: Principal; }) : async* SNewVoteResult {
+            await* controller.new_vote(args);
         };
 
         public func preview_ballot(args: PutBallotArgs and { caller: Principal; }) : SPreviewBallotResult {

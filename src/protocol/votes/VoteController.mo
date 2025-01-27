@@ -41,11 +41,13 @@ module {
 
         public func new_vote({
             vote_id: UUID;
+            tx_id: Nat;
             date: Time;
             origin: Principal;
         }) : Vote<A, B> {
             {
                 vote_id;
+                tx_id;
                 date;
                 last_mint = date;
                 origin;

@@ -54,6 +54,7 @@ module {
     // CANISTER ARGS
 
     public type NewVoteArgs = {
+        account: Account;
         type_enum: VoteTypeEnum;
         vote_id: UUID;
     };
@@ -215,7 +216,7 @@ module {
 
     public type VoteNotFoundError        = { #VoteNotFound: { vote_id: UUID; }; };
     public type InssuficientAmountError  = { #InsufficientAmount: { amount: Nat; minimum: Nat; }; };
-    public type NewVoteError             = { #VoteAlreadyExists: { vote_id: UUID; }; };
+    public type NewVoteError             = { #VoteAlreadyExists: { vote_id: UUID; }; } or TransferFromError;
     public type BallotAlreadyExistsError = { #BallotAlreadyExists: { ballot_id: UUID; }; };
     public type PreviewBallotError       = VoteNotFoundError or InssuficientAmountError;
     public type PutBallotError           = PreviewBallotError or BallotAlreadyExistsError or TransferFromError;
