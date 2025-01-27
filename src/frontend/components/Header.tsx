@@ -23,9 +23,14 @@ const Header = () => {
     },
   });
 
-  const { data: protocolInfo, call: refreshProtocolInfo } = protocolActor.useQueryCall({
-    functionName: "get_protocol_info",
+  const { data: protocolParameters, call: refreshProtocolParameters } = protocolActor.useQueryCall({
+    functionName: "get_protocol_parameters",
     args: [],
+  });
+
+  const { data: totalLocked, call: refreshTotalLocked } = protocolActor.useQueryCall({
+      functionName: "get_total_locked",
+      args: [],
   });
 
   const location = useLocation();
@@ -33,10 +38,11 @@ const Header = () => {
   const { currency, setCurrency, currencySymbol, satoshisToCurrency } = useCurrencyContext();
 
   useEffect(() => {
-    refreshProtocolInfo();
+    refreshProtocolParameters();
+    refreshTotalLocked();
   }, []);
 
-  const mintingRate = protocolInfo && computeMintingRate(protocolInfo.ck_btc_locked.current.data, protocolInfo.participation_per_ns, satoshisToCurrency);
+  const mintingRate = protocolParameters && totalLocked && computeMintingRate(totalLocked.current.data, protocolParameters.participation_per_ns, satoshisToCurrency);
 
   const { theme, setTheme } = useContext(ThemeContext);
 

@@ -19,84 +19,100 @@ const ProtocolInfo = () => {
 
     const { formatSatoshis, satoshisToCurrency, currencySymbol } = useCurrencyContext();
 
-    const { data: protocolInfo, call: refreshProtocolInfo } = protocolActor.useQueryCall({
-        functionName: "get_protocol_info",
+    const { data: protocolParameters, call: refreshProtocolParameters } = protocolActor.useQueryCall({
+        functionName: "get_protocol_parameters",
+        args: [],
+    });
+
+    const { data: totalLocked, call: refreshTotalLocked } = protocolActor.useQueryCall({
+        functionName: "get_total_locked",
+        args: [],
+    });
+
+    const { data: amountMinted, call: refreshAmountMinted } = protocolActor.useQueryCall({
+        functionName: "get_amount_minted",
         args: [],
     });
 
     useEffect(() => {
-        refreshProtocolInfo();
+        refreshProtocolParameters();
+        refreshTotalLocked();
+        refreshAmountMinted();
     }
     , []);
 
     const participationRate = useMemo(() => {
-        if (protocolInfo === undefined) {
+        if (protocolParameters === undefined || totalLocked === undefined) {
             return undefined;
         }
         return map_filter_timeline(
-            to_number_timeline(protocolInfo.ck_btc_locked), (value: number) => 
-                computeMintingRate(BigInt(value), protocolInfo.participation_per_ns, satoshisToCurrency)
+            to_number_timeline(totalLocked), (value: number) => 
+                computeMintingRate(BigInt(value), protocolParameters.participation_per_ns, satoshisToCurrency)
         );
-    }, [protocolInfo, satoshisToCurrency]);
+    }, [protocolParameters, satoshisToCurrency]);
       
     return (
-        protocolInfo ? (
-            <div className="flex flex-col items-center border-t border-x dark:border-gray-700 border-gray-300 w-2/3">
-                { participationRate && <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-4 w-full">
-                        <div className="flex flex-row items-center space-x-1">
-                            <span>{PARTICIPATION_EMOJI}</span>
-                            <span className="text-gray-700 dark:text-gray-300">Participation rate:</span>
-                            <span className="text-lg">
-                                {`${fromE8s(BigInt(participationRate.current.data))} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
-                            </span>
-                        </div>
-                        <DurationChart
-                            duration_timeline={participationRate}
-                            format_value={ (value: number) => `${fromE8s(BigInt(value)).toString()} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day` }
-                            fillArea={true}
-                            color={CHART_COLORS.PURPLE}
-                        />
+        <div className="flex flex-col items-center border-t border-x dark:border-gray-700 border-gray-300 w-2/3">
+            { participationRate && <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-4 w-full">
+                    <div className="flex flex-row items-center space-x-1">
+                        <span>{PARTICIPATION_EMOJI}</span>
+                        <span className="text-gray-700 dark:text-gray-300">Participation rate:</span>
+                        <span className="text-lg">
+                            {`${fromE8s(BigInt(participationRate.current.data))} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
+                        </span>
                     </div>
-                }
+                    <DurationChart
+                        duration_timeline={participationRate}
+                        format_value={ (value: number) => `${fromE8s(BigInt(value)).toString()} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day` }
+                        fillArea={true}
+                        color={CHART_COLORS.PURPLE}
+                    />
+                </div>
+            }
+            { protocolParameters && 
                 <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-1 w-full space-x-1 justify-center">
                     <span>{DISCERNMENT_EMOJI}</span>
                     <span className="text-gray-700 dark:text-gray-300">Discernment factor:</span>
                     <span className="text-lg">
-                        {protocolInfo.discernment_factor.toFixed(2)}
+                        {protocolParameters.discernment_factor.toFixed(2)}
                     </span>
                 </div>
+            }
+            { totalLocked && 
                 <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-4 w-full">
                     <div className="flex flex-row items-center space-x-1">
                         <BitcoinIcon />
                         <div className="text-gray-700 dark:text-gray-300">Total locked:</div>
                         <span className="text-lg">
-                            {`${formatSatoshis(protocolInfo.ck_btc_locked.current.data)} BTC`}
+                            {`${formatSatoshis(totalLocked.current.data)} BTC`}
                         </span>
                     </div>
                     <DurationChart
-                        duration_timeline={to_number_timeline(protocolInfo.ck_btc_locked)} 
+                        duration_timeline={to_number_timeline(totalLocked)} 
                         format_value={ (value: number) => (formatSatoshis(BigInt(value))) } 
                         fillArea={true}
                         color={CHART_COLORS.YELLOW}
                     />
                 </div>
+            }
+            { amountMinted && 
                 <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-4 w-full">
                     <div className="flex flex-row items-center space-x-1">
                         <ResonanceCoinIcon />
                         <div className="text-gray-700 dark:text-gray-300">Resonance minted:</div>
                         <span className="text-lg">
-                            {formatBalanceE8s(protocolInfo.resonance_minted.current.data, RESONANCE_TOKEN_SYMBOL, 0)}
+                            {formatBalanceE8s(amountMinted.current.data, RESONANCE_TOKEN_SYMBOL, 0)}
                         </span>
                     </div>
                     <DurationChart
-                        duration_timeline={to_number_timeline(protocolInfo.resonance_minted)}
+                        duration_timeline={to_number_timeline(amountMinted)}
                         format_value={ (value: number) => `${formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL, 0)}` }
                         fillArea={true}
                         color={CHART_COLORS.GREEN}
                     />
                 </div>
-            </div>
-        ) : <div>Participation Info not found</div>
+            }
+        </div>
     )
 }
 

@@ -1,6 +1,5 @@
 import { protocolActor } from "../actors/ProtocolActor";
 import { EYesNoChoice, toCandid } from "../utils/conversions/yesnochoice";
-import { MINIMUM_BALLOT_AMOUNT } from "../constants";
 import { useEffect, useRef, useState } from "react";
 import { BallotInfo } from "./types";
 import ResetIcon from "./icons/ResetIcon";
@@ -37,6 +36,11 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
     },
   });
 
+  const { data: protocolParameters } = protocolActor.useQueryCall({
+    functionName: "get_protocol_parameters",
+    args: [],
+  });
+
   const triggerVote = () => {
     putBallot([{
       vote_id,
@@ -48,7 +52,10 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
   };
 
   const isTooSmall = () : boolean => {
-    return ballot.amount < MINIMUM_BALLOT_AMOUNT;
+    if (!protocolParameters) {
+      return false;
+    }
+    return ballot.amount < protocolParameters.minimum_ballot_amount;
   }
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -99,9 +106,11 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
           Lock ballot
         </button>
       </div>
-      <div className={`${isTooSmall() ? "text-red-500" : "text-gray-500"} text-sm`}>
-        Minimum {formatSatoshis(MINIMUM_BALLOT_AMOUNT)}
-      </div>
+      { protocolParameters && 
+        <div className={`${isTooSmall() ? "text-red-500" : "text-gray-500"} text-sm`}>
+          Minimum {formatSatoshis(protocolParameters?.minimum_ballot_amount)}
+        </div>
+      }
     </div>
   );
 };
