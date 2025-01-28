@@ -19,9 +19,14 @@ const Vote = () => {
     const actualVote = vote ? fromNullable(vote) : undefined;
 
     return (
-        actualVote && <div className="flex flex-col border-x border-t dark:border-gray-700 bg-white dark:bg-slate-900 w-2/3">
-            <VoteView vote={actualVote} selected={id} setSelected={()=>{}}/>
-        </div>
+        actualVote && actualVote.info.visible ?
+            <div className="flex flex-col border-x border-t dark:border-gray-700 bg-white dark:bg-slate-900 w-2/3">
+                <VoteView vote={actualVote} selected={id} setSelected={()=>{}}/>
+            </div> 
+        : actualVote ? 
+            <span>Vote not found</span>
+        : 
+            <span>Loading...</span>
     );
 }
 

@@ -54,7 +54,7 @@ function VoteList() {
       <ul>
         {
           votes && votes.map((vote: SYesNoVote, index) => (
-            <li key={index}>
+            vote.info.visible && <li key={index}>
               <VoteView selected={selectedVote} setSelected={setSelectedVote} vote={vote} refreshVotes={refreshVotes}/>
             </li>
           ))

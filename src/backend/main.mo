@@ -16,16 +16,18 @@ shared({ caller = admin }) actor class Backend() = this {
     type YesNoAggregate = ProtocolTypes.YesNoAggregate;
     type YesNoChoice = ProtocolTypes.YesNoChoice;
     type SVoteType = ProtocolTypes.SVoteType;
-    type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate, YesNoChoice> and {
-        text: ?Text;
+    type VoteInfo = {
+        text: Text;
+        visible: Bool;
     };
+    type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate, YesNoChoice> and { info: VoteInfo };
     type Account = ProtocolTypes.Account;
     type UUID = ProtocolTypes.UUID;
 
     type SNewVoteResult = Result.Result<SYesNoVote, SNewVoteError>;
     type SNewVoteError = ProtocolTypes.NewVoteError or { #AnonymousCaller; #CategoryNotFound; };
 
-    stable let _texts = Map.new<UUID, Text>();
+    stable let _infos = Map.new<UUID, VoteInfo>();
 
     public shared({ caller }) func new_vote({
         text: Text;
@@ -43,25 +45,22 @@ shared({ caller = admin }) actor class Backend() = this {
         Result.mapOk(new_result, func(vote_type: SVoteType) : SYesNoVote {
             switch(vote_type) {
                 case(#YES_NO(vote)) {
-                    Map.set(_texts, Map.thash, vote.vote_id, text);
+                    let info = { text; visible = true; };
+                    Map.set(_infos, Map.thash, vote.vote_id, info);
                     switch(Map.get(_categories, Map.thash, category)) {
                         case(null){ /* Shall not happen */ };
                         case(?ids) { Map.set(_categories, Map.thash, category, Array.append(ids, [vote.vote_id])); };
                     };
-                    { vote with text = ?text; };
+                    { vote with info; };
                 };
             };
         });
     };
 
-    public query func get_vote_text({ vote_id: UUID }) : async ?Text {
-        Map.get<UUID, Text>(_texts, Map.thash, vote_id);
-    };
-
     public composite query func get_vote({ vote_id: UUID }) : async ?SYesNoVote {
         let vote = await Protocol.find_vote({ vote_id; });
         Option.map(vote, func(vote_type: SVoteType) : SYesNoVote {
-            with_text(vote_type);
+            with_info(vote_type);
         });
     };
 
@@ -74,7 +73,7 @@ shared({ caller = admin }) actor class Backend() = this {
         });
         let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); filter_ids; });
         Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {
-            with_text(vote_type);
+            with_info(vote_type);
         });
     };
   
@@ -98,10 +97,28 @@ shared({ caller = admin }) actor class Backend() = this {
         Iter.toArray(Map.entries(_categories));
     };
 
-    func with_text(vote_type: SVoteType) : SYesNoVote {
+    public shared({caller}) func set_vote_visible({vote_id: UUID; visible: Bool; }) : async Result.Result<(), Text> {
+
+        if (caller != admin) {
+            return #err("Only the admin can set or unset the visibility of a vote");
+        };
+
+        let info = switch(Map.get<UUID, VoteInfo>(_infos, Map.thash, vote_id)){
+            case(null) { return #err("Vote not found"); };
+            case(?i) { i; };
+        };
+
+        Map.set(_infos, Map.thash, vote_id, { info with visible; });
+        #ok;
+    };
+
+    func with_info(vote_type: SVoteType) : SYesNoVote {
         switch(vote_type){
-            case(#YES_NO(vote)) { 
-                { vote with text = Map.get<UUID, Text>(_texts, Map.thash, vote.vote_id); };
+            case(#YES_NO(vote)) {
+                switch(Map.get<UUID, VoteInfo>(_infos, Map.thash, vote.vote_id)){
+                    case(null) { Debug.trap("Vote info not found"); };
+                    case(?info) { { vote with info; }; };
+                };
             };
         };
     };
