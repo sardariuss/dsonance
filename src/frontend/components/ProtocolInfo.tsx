@@ -8,11 +8,15 @@ import ResonanceCoinIcon from "./icons/ResonanceCoinIcon";
 import BitcoinIcon from "./icons/BitcoinIcon";
 import { useProtocolInfoContext } from "./ProtocolInfoContext";
 
-export const computeMintingRate = (ck_btc_locked: bigint, participation_per_ns: number, satoshisToCurrency: (satoshis: bigint) => number) => {
+export const computeMintingRate = (ck_btc_locked: bigint, participation_per_ns: number, satoshisToCurrency: (satoshis: bigint) => number | undefined) => {
     if (ck_btc_locked === 0n) {
         return undefined;
     }
-    return Math.floor(participation_per_ns * 86_400_000_000_000 / satoshisToCurrency(ck_btc_locked));
+    let amount = satoshisToCurrency(ck_btc_locked);
+    if (amount === undefined) {
+        return undefined;
+    }
+    return Math.floor(participation_per_ns * 86_400_000_000_000 / amount);
 }
 
 const ProtocolInfo = () => {
@@ -74,7 +78,7 @@ const ProtocolInfo = () => {
                     </div>
                     <DurationChart
                         duration_timeline={to_number_timeline(totalLocked)} 
-                        format_value={ (value: number) => (formatSatoshis(BigInt(value))) } 
+                        format_value={ (value: number) => (formatSatoshis(BigInt(value)) ?? "") } 
                         fillArea={true}
                         color={CHART_COLORS.YELLOW}
                     />

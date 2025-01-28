@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { currencyToE8s, e8sToCurrency, formatBalanceE8s, formatCurrency } from "../utils/conversions/token";
-import { BITCOIN_TOKEN_SYMBOL, PRICE_BTC_IN_USD, SAT_TOKEN_SYMBOL, USD_TOKEN_SYMBOL } from "../constants";
+import { BITCOIN_TOKEN_SYMBOL, SAT_TOKEN_SYMBOL, USD_TOKEN_SYMBOL } from "../constants";
+import { icpCoinsActor } from "../actors/IcpCoinsActor";
 
 export enum SupportedCurrency {
   BTC = "BTC",
@@ -17,14 +18,35 @@ interface CurrencyContextType {
   currency: SupportedCurrency;
   currencySymbol: string;
   setCurrency: (currency: SupportedCurrency) => void;
-  currencyToSatoshis: (amount: number) => bigint;
-  satoshisToCurrency: (amountE8s: bigint) => number;
-  formatSatoshis: (amountE8s: bigint) => string;
+  currencyToSatoshis: (amount: number) => bigint | undefined;
+  satoshisToCurrency: (amountE8s: bigint) => number | undefined;
+  formatSatoshis: (amountE8s: bigint) => string | undefined;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+
+  const { call: fetchLatestPrices } = icpCoinsActor.useQueryCall({
+    functionName: "get_latest",
+    args: [],
+    onSuccess: (data) => {
+      if(data !== undefined) {
+        let btcUsdPair = data.at(0);
+        if (btcUsdPair !== undefined) {
+          setPriceBtcInUsd(Number(btcUsdPair[2]));
+          return;
+        }
+      }
+      setPriceBtcInUsd(undefined);
+    }
+  });
+
+  const [priceBtcInUsd, setPriceBtcInUsd] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    fetchLatestPrices();
+  }, []);
   
   const [currency, setCurrency] = useState<SupportedCurrency>(() => {
     // Retrieve the saved currency state from localStorage on initial render
@@ -53,33 +75,42 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem("currency", currency.toString());
   }, [currency]);
 
-  const currencyToSatoshis = (amount: number) : bigint => {
+  const currencyToSatoshis = (amount: number) : bigint | undefined => {
     if (currency === "BTC") {
       return currencyToE8s(amount, 1);
     } else if (currency === "SAT") {
       return BigInt(amount);
     } else { // Default to USD
-      return currencyToE8s(amount, PRICE_BTC_IN_USD);
+      if (priceBtcInUsd !== undefined) {
+        return currencyToE8s(amount, priceBtcInUsd);
+      } 
+      return undefined;
     }
   }
 
-  const satoshisToCurrency = (amountE8s: bigint) : number => {
+  const satoshisToCurrency = (amountE8s: bigint) : number | undefined => {
     if (currency === "BTC") {
       return e8sToCurrency(amountE8s, 1);
     } else if (currency === "SAT") {
       return Number(amountE8s);
     } else { // Default to USD
-      return e8sToCurrency(amountE8s, PRICE_BTC_IN_USD);
+      if (priceBtcInUsd !== undefined) {
+        return e8sToCurrency(amountE8s, priceBtcInUsd);
+      }
+      return undefined;
     }
   }
 
-  const formatSatoshis = (amountE8s: bigint) : string => {
+  const formatSatoshis = (amountE8s: bigint) : string | undefined => {
     if (currency === "BTC") {
       return formatBalanceE8s(amountE8s, BITCOIN_TOKEN_SYMBOL);
     } else if (currency === "SAT") {
       return formatCurrency(Number(amountE8s), SAT_TOKEN_SYMBOL);
     } else { // Default to USD
-      return formatCurrency(e8sToCurrency(amountE8s, PRICE_BTC_IN_USD), USD_TOKEN_SYMBOL);
+      if (priceBtcInUsd !== undefined) {
+        return formatCurrency(e8sToCurrency(amountE8s, priceBtcInUsd), USD_TOKEN_SYMBOL);
+      }
+      return undefined;
     }
   };
 

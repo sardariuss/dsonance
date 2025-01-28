@@ -45,7 +45,7 @@ const User = () => {
   , 0n);
   
   return (
-    <div className="flex flex-col items-center w-2/3 border-x dark:border-gray-700">
+    <div className="flex flex-col items-center w-2/3 border-x dark:border-gray-700 border-t">
       <div className="flex flex-col items-center w-full border-b dark:border-gray-700">
         <Wallet/>
       </div>

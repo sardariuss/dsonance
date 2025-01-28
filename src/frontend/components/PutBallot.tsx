@@ -62,7 +62,10 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
 
   useEffect(() => {
     if (inputRef.current && !isActive) { // Only update if input is not focused, meaning that it comes from an external stimulus
-      inputRef.current.value = satoshisToCurrency(ballot.amount).toString();
+      let amount = satoshisToCurrency(ballot.amount);
+      if (amount !== undefined) {
+        inputRef.current.value = amount.toString();
+      }
     }
   },
   [ballot]);

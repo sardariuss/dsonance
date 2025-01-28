@@ -52,11 +52,6 @@ function App() {
       // Fall back to system theme
       rawSetTheme(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     }, []);
-
-//    useEffect(() => {
-//      console.log("Save theme in local storage:", theme);
-//      window.localStorage.setItem("color-theme", theme);
-//    }, [theme]);
   }
 
   return (

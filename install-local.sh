@@ -83,6 +83,7 @@ dfx deploy protocol --argument '( variant {
 # Deploy other canisters
 dfx deploy backend &
 dfx deploy minter &
+dfx deploy icp_coins &
 wait
 
 # Internet Identity

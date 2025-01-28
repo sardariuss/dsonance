@@ -99,7 +99,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         start: points[0],
         end: points[1],
         percentage: ((initialLockEnd - baseTimestamp) / (actualLockEnd - baseTimestamp)) * 100,
-        label: formatSatoshis(amount)
+        label: formatSatoshis(amount) ?? "",
       });
     });
 
