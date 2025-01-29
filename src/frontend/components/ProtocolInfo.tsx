@@ -41,7 +41,7 @@ const ProtocolInfo = () => {
     }, [protocolParameters, satoshisToCurrency]);
       
     return (
-        <div className="flex flex-col items-center border-t border-x dark:border-gray-700 border-gray-300 w-2/3">
+        <div className="flex flex-col items-center border-t border-x dark:border-gray-700 border-gray-300 w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
             { participationRate && <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-4 w-full">
                     <div className="flex flex-row items-center space-x-1">
                         <span>{PARTICIPATION_EMOJI}</span>

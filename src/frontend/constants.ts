@@ -9,3 +9,5 @@ export const DISCERNMENT_EMOJI = "🎯";
 export const LOCK_EMOJI = "🔒";
 export const TIMESTAMP_EMOJI = "📅";
 export const PRICE_BTC_IN_USD = 100_000;
+export const MOBILE_MAX_WIDTH_QUERY = "(max-width: 640px)";
+export const DOCS_URL = "https://sardarius-corp.gitbook.io/resonance-defi";

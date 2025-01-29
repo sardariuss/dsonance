@@ -7,6 +7,8 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { protocolActor } from "../../actors/ProtocolActor";
 import { format } from "date-fns";
 import { ThemeContext } from "../App";
+import { useMediaQuery } from "react-responsive";
+import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
 
 export enum CHART_COLORS {
   BLUE = "rgb(59 130 246)",
@@ -37,6 +39,8 @@ interface DurationChartProps {
 const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max, color, last_timestamp }: DurationChartProps) => {
 
   const { theme } = useContext(ThemeContext);
+
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
   
@@ -120,7 +124,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
           enableArea={fillArea}
           animate={false}
           enablePoints={false}
-          margin={{ top: 20, bottom: 50, right: 50, left: 90 }}
+          margin={ isMobile ? { top: 20, bottom: 50, right: 20, left: 20 } : { top: 20, bottom: 50, right: 50, left: 90 }}
           colors={color}
           areaOpacity={0.7} // Adjust transparency of the area
           fill={fillArea ? [{ match: '*', id: `gradientA_${COLOR_NAMES[color]}` }] : undefined}
@@ -157,7 +161,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
           axisLeft={{
             renderTick: ({ tickIndex, x, y, value }) => {
               return (
-                tickIndex % 2 ? <></> :
+                (isMobile || tickIndex % 2) ? <></> :
                 <g transform={`translate(${x},${y})`}>
                 <text
                   x={-36}

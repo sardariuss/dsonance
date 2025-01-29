@@ -5,9 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 import { BallotInfo } from './types';
 import { get_cursor, get_no_votes, get_total_votes, get_yes_votes } from '../utils/conversions/vote';
 import { useCurrencyContext } from './CurrencyContext';
+import { useMediaQuery } from 'react-responsive';
+import { MOBILE_MAX_WIDTH_QUERY } from '../constants';
 
-const CURSOR_HEIGHT = "1rem";
-const LIMIT_DISPLAY_RATIO = 0.2; // 20%
+const CURSOR_HEIGHT = "1.3rem";
 // Avoid 0 division, arbitrary use 0.001 and 0.999 values instead of 0 and 1
 const MIN_CURSOR = 0.001;
 const MAX_CURSOR = 0.999;
@@ -28,6 +29,8 @@ type Props = {
 const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDown}: Props) => {
 
   const { formatSatoshis } = useCurrencyContext();
+
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const initCursor = clampCursor(get_cursor(vote));
 
@@ -65,30 +68,35 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
   },
   [ballot, vote]);
 
+  const limitDisplayRatio = isMobile ? 0.3 : 0.2;
+
 	return (
     <div id={"cursor_" + id} className="w-full flex flex-col items-center" style={{ position: 'relative' }}>
-      <div className="flex w-full rounded-sm overflow-hidden z-0" style={{ height: CURSOR_HEIGHT, position: 'relative' }}>
+      <div className="flex w-full rounded-sm z-0" style={{ height: CURSOR_HEIGHT, position: 'relative' }}>
         {
           cursor > MIN_CURSOR &&
             <div 
-              className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-brand-true border border-black dark:border-white`}
+              className={`flex flex-col justify-center items-center text-xs font-medium leading-none text-white bg-brand-true border-y border-l border-black dark:border-white h-full`}
               style={{ width: `${cursor * 100 + "%"}`}}
             >
               { 
-                cursor > LIMIT_DISPLAY_RATIO && 
-                  <span className={ballot.choice === EYesNoChoice.Yes && (ballot.amount ?? 0n) > 0n ? `animate-pulse` : ``}>
+                cursor > limitDisplayRatio && 
+                  <span className={`truncate ${ballot.choice === EYesNoChoice.Yes && (ballot.amount ?? 0n) > 0n ? "animate-pulse" : ""}`}>
                     { formatSatoshis(get_yes_votes(vote) + (ballot.choice === EYesNoChoice.Yes ? (ballot.amount ?? 0n) : 0n)) + " " + EYesNoChoice.Yes } 
                   </span>
               }
             </div>
         }
+        <div className="absolute text-xl overflow-visible" style={{ left: `${(cursor * 100 - (isMobile ? 4 : 1)) + "%"}`, top: -4, bottom: 0, width: 0, zIndex: 20 }}>
+          { ballot.choice === EYesNoChoice.Yes ? "👍" : "👎" }
+        </div>
         {
           cursor < MAX_CURSOR &&    
-            <div className={`text-xs font-medium text-center p-0.5 leading-none text-white bg-brand-false border border-black dark:border-white`}
+            <div className={`flex flex-col justify-center items-center text-xs font-medium text-center leading-none text-white bg-brand-false border-y border-r border-black dark:border-white h-full`}
               style={{ width: `${( 1 - cursor) * 100 + "%"}`}}>
               { 
-                (1 - cursor) > LIMIT_DISPLAY_RATIO && 
-                  <span className={ballot.choice === EYesNoChoice.No && (ballot.amount ?? 0n) > 0n ? `animate-pulse` : ``}>
+                (1 - cursor) > limitDisplayRatio && 
+                  <span className={`truncate ${ballot.choice === EYesNoChoice.No && (ballot.amount ?? 0n) > 0n ? "animate-pulse" : ""}`}>
                     { formatSatoshis(get_no_votes(vote) + (ballot.choice === EYesNoChoice.No ? (ballot.amount ?? 0n) : 0n)) + " " + EYesNoChoice.No }
                   </span>
               }
@@ -110,7 +118,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
         onMouseUp={(e) => onMouseUp()}
         onTouchStart={(e) => onMouseDown()}
         onMouseDown={(e) => onMouseDown()}
-        className={`w-full z-10 appearance-none focus:outline-none`} 
+        className={`w-full z-10 appearance-none focus:outline-none`}
         style={{position: 'absolute', background: 'transparent', height: CURSOR_HEIGHT, cursor: 'pointer'}}
         disabled={disabled}
       />

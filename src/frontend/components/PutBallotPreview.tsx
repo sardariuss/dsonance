@@ -40,13 +40,13 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
 
   return (
     <div>
-      {
-        preview && 'ok' in preview && 
-          <div className="flex flex-row w-full items-center space-x-4 justify-center">
-            <span> { LOCK_EMOJI + " ≥ " + formatDuration(get_current(unwrapLock(preview.ok).duration_ns).data) } </span>
-            <span> { DISSENT_EMOJI + " " + formatDissent(preview.ok.YES_NO.dissent) } </span>
-          </div>
-      }
+    {
+      preview && 'ok' in preview && 
+        <div className="flex flex-row w-full items-center space-x-4 justify-center">
+          <span> { LOCK_EMOJI + " ≥ " + formatDuration(get_current(unwrapLock(preview.ok).duration_ns).data) } </span>
+          <span> { DISSENT_EMOJI + " " + formatDissent(preview.ok.YES_NO.dissent) } </span>
+        </div>
+    }
     </div>
   );
 };

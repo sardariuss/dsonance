@@ -16,6 +16,37 @@
   font-style: normal;
 }
 
+/* Custom slider track and thumb styles */
+
+/* For WebKit browsers (Chrome, Edge, Safari) */
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none; /* Override native styling */
+  width: 20px; /* Thumb width */
+  height: 20px; /* Thumb height */
+  background-color: #ffffff00; /* Track color */
+  border-radius: 50%; /* Make it circular */
+  cursor: pointer; /* Pointer cursor */
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 1.3rem; /* Track height */
+  background-color: #ffffff00; /* Track color */
+}
+
+/* For Firefox */
+input[type="range"]::-moz-range-thumb {
+  width: 20px; /* Thumb width */
+  height: 20px; /* Thumb height */
+  background-color: #ffffff00; /* Track color */
+  border-radius: 50%; /* Make it circular */
+  cursor: pointer; /* Pointer cursor */
+}
+
+input[type="range"]::-moz-range-track {
+  height: 1.3rem; /* Track height */
+  background-color: #ffffff00; /* Track color */
+}
+
 * {
   padding: 0;
   margin: 0;

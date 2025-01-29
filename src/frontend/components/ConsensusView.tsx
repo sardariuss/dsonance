@@ -2,17 +2,10 @@ import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { useMemo } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import { BallotInfo } from "./types";
-import { get_total_votes, get_yes_votes } from "../utils/conversions/vote";
-
-type Consensus = {
-  choice: EYesNoChoice;
-  ratio: number;
-};
-
-interface ConsensusViewProps {
-  vote: SYesNoVote;
-  ballot?: BallotInfo;
-}
+import { get_yes_votes } from "../utils/conversions/vote";
+import DateSpan from "./DateSpan";
+import BitcoinIcon from "./icons/BitcoinIcon";
+import { useCurrencyContext } from "./CurrencyContext";
 
 // Utility to blend two colors based on a ratio (0 to 1)
 const blendColors = (color1: string, color2: string, ratio: number) => {
@@ -30,9 +23,22 @@ const blendColors = (color1: string, color2: string, ratio: number) => {
   return rgbToHex(blended);
 };
 
-const ConsensusView: React.FC<ConsensusViewProps> = ({ vote, ballot }) => {
+type Consensus = {
+  choice: EYesNoChoice;
+  ratio: number;
+};
+
+interface ConsensusViewProps {
+  vote: SYesNoVote;
+  ballot?: BallotInfo;
+  total: bigint;
+}
+
+const ConsensusView: React.FC<ConsensusViewProps> = ({ vote, ballot, total }) => {
+
+  const { formatSatoshis } = useCurrencyContext();
+
   const consensus = useMemo((): Consensus | undefined => {
-    const total = get_total_votes(vote) + (ballot?.amount ?? 0n);
     if (total === 0n) {
       return undefined;
     }
@@ -48,19 +54,26 @@ const ConsensusView: React.FC<ConsensusViewProps> = ({ vote, ballot }) => {
   }, [consensus]);
 
   return (
-    <div className="grid grid-cols-[minmax(200px,_1fr)_100px] grid-gap-2 justify-items-center items-baseline grow">
-      <div className="justify-self-start flex flex-row grow">{vote.info.text}</div>
-      {consensus && (
-        <div
-          className={`flex flex-row items-baseline space-x-1 ${
-            ballot && ballot?.amount > 0n ? `animate-pulse` : ``
-          }`}
-          style={{ color: blendedColor }} // Apply blended color
-        >
-          <div className={`text-lg hidden`}>{consensus.choice}</div>
-          <div className={`text-lg leading-none`}>{consensus.ratio?.toFixed(2)}</div>
+    <div className="grid grid-cols-[minmax(200px,_1fr)_60px] sm:grid-cols-[minmax(400px,_1fr)_100px] gap-x-2 sm:gap-x-4 justify-items-center items-center grow">
+      <span className="justify-self-start grow">
+        {vote.info.text}
+        <span className="text-gray-400 text-sm">{" · "}</span>
+        <DateSpan timestamp={vote.date}/>
+      </span>
+      <div className="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-6 justify-self-center space-y-2 sm:space-y-0">
+        { consensus && (
+          <div
+            className={`text-lg leading-none ${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
+            style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
+          >
+            {consensus.ratio?.toFixed(2)}
+          </div>
+        )}
+        <div className="flex flex-row items-center justify-self-center">
+          <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(total)}</span>
+          <BitcoinIcon />
         </div>
-      )}
+      </div>
     </div>
   );
 };

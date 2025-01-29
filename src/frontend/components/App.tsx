@@ -85,11 +85,11 @@ const MobileWarning = () => (
 
 function AppContent() {
 
-  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-
-  if (isMobile) {
-    return <MobileWarning />;
-  }
+//  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+//
+//  if (isMobile) {
+//    return <MobileWarning />;
+//  }
 
   return (
     <>

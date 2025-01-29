@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState }          from "react";
+import { useContext, useEffect, useMemo, useRef, useState }          from "react";
 import { protocolActor }                         from "../../actors/ProtocolActor";
 import { STimeline_3 }                           from "@/declarations/protocol/protocol.did";
 import { SYesNoVote }                            from "@/declarations/backend/backend.did";
@@ -37,6 +37,7 @@ const computeChartProps = ({ currentTime, currentDecay, duration, aggregate } : 
   let nextAggregateIndex = 0;
 
   let aggregate_history = [...aggregate.history, aggregate.current];
+
   
   dates.forEach(({ date }) => {
     // Update aggregate while the next timestamp is within range
@@ -78,19 +79,19 @@ const computePriceLevels = (min: number, max: number) : number[] => {
   return levels;
 }
 
-const getHeightLine = (levels: number[]) => {
-  return (320 - 2 * MARGIN) / (levels.length - 1);
+const getHeightLine = (levels: number[], chartHeight: number) => {
+  return (chartHeight - 2 * MARGIN) / (levels.length - 1);
 }
 
 const MARGIN = 50;
 
-const marginTop = (levels: number[], maxY: number) => {
+const marginTop = (levels: number[], maxY: number, chartHeight: number) => {
   if (levels.length === 0) {
     return 0;
   }
   const lastLine = levels[levels.length - 1];
   const ratio = lastLine / maxY;
-  const height = 320 - 2 * MARGIN;
+  const height = chartHeight - 2 * MARGIN;
   const margin = (height * ratio - height);
   return margin / 2;
 }
@@ -105,6 +106,28 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
   const { theme } = useContext(ThemeContext);
   const [duration, setDuration] = useState<DurationUnit>(DurationUnit.WEEK);
   const [refreshVoteData, setRefreshVoteData] = useState<boolean>(false);
+  
+  const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
+  const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
+
+  useEffect(() => {
+    // Function to update the width
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth - 20); // 20 px to make room for the slider bar if any
+      }
+    };
+
+    // Set initial width
+    updateWidth();
+
+    // Update width on window resize
+    window.addEventListener('resize', updateWidth);
+
+    return () => {
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, []);
 
   const { formatSatoshis } = useCurrencyContext();
 
@@ -165,8 +188,9 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
   }, [voteData, ballot]);  
 
   return (
-    <div className="flex flex-col items-center space-y-2">
-      <div style={{ position: 'relative' }} className="h-[320px] w-[50rem]">
+    <div className="flex flex-col items-center space-y-2 w-full" ref={containerRef}>
+      { containerWidth && 
+      <div style={{ position: 'relative', width: `${containerWidth}px`, height: `${containerWidth * 0.5}px` }}>
         <div style={{ position: 'absolute', top: MARGIN, right: 59, bottom: MARGIN, left: 59 }} className="flex flex-col border-x border-slate-300 z-10">
           <ul className="flex flex-col w-full" key={vote.vote_id}>
             {
@@ -174,7 +198,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                 <li key={index}>
                   {
                     (index < (priceLevels.length - 1)) ? 
-                    <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
+                    <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels, containerWidth * 0.5)}px` }}>
                       <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
                         <div className="text-xs" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div>
                         <div className="flex w-full h-[0.5px] bg-slate-500 dark:bg-white opacity-50" style={{ position: 'absolute', bottom: 0 }}/>
@@ -194,7 +218,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
           endLabel={false}
           align= "end"
           data={chartData}
-          margin={{ top: MARGIN + marginTop(priceLevels, max), right: 60, bottom: MARGIN, left: 0 }}
+          margin={{ top: MARGIN + marginTop(priceLevels, max, containerWidth * 0.5), right: 60, bottom: MARGIN, left: 0 }}
           spacing={0}
           colors={["rgb(7 227 68)", "rgb(0 203 253)"]} // brand-true, brand-false
           blendMode="normal"
@@ -227,6 +251,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
           }}
         />
       </div>
+      }
       <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
     </div>
   );

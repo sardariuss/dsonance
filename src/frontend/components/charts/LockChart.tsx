@@ -10,6 +10,8 @@ import { get_current, get_first } from '../../utils/timeline';
 import { unwrapLock } from '../../utils/conversions/ballot';
 import { useCurrencyContext } from '../CurrencyContext';
 import { ThemeContext } from '../App';
+import { useMediaQuery } from 'react-responsive';
+import { MOBILE_MAX_WIDTH_QUERY } from '../../constants';
 
 interface LockChartProps {
   ballots: SBallotType[];
@@ -19,10 +21,11 @@ interface LockChartProps {
 
 const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
+
   const { theme } = useContext(ThemeContext)
 
   const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
-  
   const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
 
   useEffect(() => {
@@ -342,7 +345,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
             axisLeft={null}
             enablePoints={false}
             lineWidth={20}
-            margin={{ top: 50, right: 50, bottom: 50, left: 60 }}
+            margin={isMobile ? { top: 25, right: 25, bottom: 25, left: 25 } : { top: 50, right: 50, bottom: 50, left: 60 }}
             markers={currentTime ? [
               {
                 axis: 'x',
