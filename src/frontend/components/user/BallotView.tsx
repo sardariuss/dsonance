@@ -12,9 +12,11 @@ import BitcoinIcon from "../icons/BitcoinIcon";
 
 import { SBallotType } from "@/declarations/protocol/protocol.did";
 import ResonanceCoinIcon from "../icons/ResonanceCoinIcon";
-import { get_total_votes } from "../../utils/conversions/vote";
+import { compute_vote_details } from "../../utils/conversions/votedetails";
 import { DesktopBallotDetails, MobileBallotDetails } from "./BallotDetails";
 import { useMediaQuery } from "react-responsive";
+import { useProtocolInfoContext } from "../ProtocolInfoContext";
+import { useMemo } from "react";
 
 interface VoteConsensusProps {
   is_selected: boolean;
@@ -28,12 +30,23 @@ const VoteConsensus = ({ is_selected, vote_id }: VoteConsensusProps) => {
     args: [{ vote_id }],
   });
 
-  const vote = opt_vote ? fromNullable(opt_vote) : undefined;
+  const { info : { currentDecay } } = useProtocolInfoContext();
+  
+  const vote = useMemo(() => {
+    return opt_vote ? fromNullable(opt_vote) : undefined;
+  }, [opt_vote]);
+
+  const voteDetails = useMemo(() => {
+    if (currentDecay === undefined || vote === undefined) {
+      return undefined;
+    }
+    return compute_vote_details(vote, currentDecay);
+  }, [vote, currentDecay]);
 
   return (
-    vote === undefined ? 
+    vote === undefined || voteDetails === undefined ? 
       <span>Loading...</span> : is_selected ? 
-        <ConsensusView vote={vote} total={get_total_votes(vote)} /> : 
+        <ConsensusView voteDetails={voteDetails} text={vote.info.text} timestamp={vote.date} /> :
         <span className="truncate">{vote.info.text}</span>
   )
 }

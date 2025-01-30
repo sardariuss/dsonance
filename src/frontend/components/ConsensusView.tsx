@@ -1,8 +1,6 @@
-import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { useMemo } from "react";
-import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import { BallotInfo } from "./types";
-import { get_yes_votes } from "../utils/conversions/vote";
+import { add_ballot, VoteDetails } from "../utils/conversions/votedetails";
 import DateSpan from "./DateSpan";
 import BitcoinIcon from "./icons/BitcoinIcon";
 import { useCurrencyContext } from "./CurrencyContext";
@@ -23,56 +21,47 @@ const blendColors = (color1: string, color2: string, ratio: number) => {
   return rgbToHex(blended);
 };
 
-type Consensus = {
-  choice: EYesNoChoice;
-  ratio: number;
-};
-
 interface ConsensusViewProps {
-  vote: SYesNoVote;
+  voteDetails: VoteDetails;
+  text: string;
+  timestamp: bigint;
   ballot?: BallotInfo;
-  total: bigint;
 }
 
-const ConsensusView: React.FC<ConsensusViewProps> = ({ vote, ballot, total }) => {
+const ConsensusView: React.FC<ConsensusViewProps> = ({ voteDetails, text, timestamp, ballot }) => {
 
   const { formatSatoshis } = useCurrencyContext();
 
-  const consensus = useMemo((): Consensus | undefined => {
-    if (total === 0n) {
-      return undefined;
+  const liveDetails = useMemo(() => {
+    if (ballot) {
+      return add_ballot(voteDetails, ballot);
     }
-    const ratio =
-      Number(get_yes_votes(vote) + (ballot?.choice === EYesNoChoice.Yes ? ballot.amount : 0n)) /
-      Number(total);
-    return { choice: ratio >= 0.5 ? EYesNoChoice.Yes : EYesNoChoice.No, ratio };
-  }, [vote, ballot]);
+    return voteDetails;
+  }, [voteDetails, ballot]);
 
   const blendedColor = useMemo(() => {
-    if (!consensus) return "#000"; // Default color if no consensus
-    return blendColors("#07E344", "#03B5FD", consensus.ratio); // Blend yes and no colors
-  }, [consensus]);
+    if (!liveDetails.cursor) return "#000"; // Default color if no consensus
+    return blendColors("#07E344", "#03B5FD", liveDetails.cursor); // Blend yes and no colors
+  }, [liveDetails]);
 
   return (
-    <div className="grid grid-cols-[minmax(200px,_1fr)_60px] sm:grid-cols-[minmax(400px,_1fr)_100px] gap-x-2 sm:gap-x-4 justify-items-center items-center grow">
+    <div className="grid grid-cols-[minmax(200px,_1fr)_60px_60px] sm:grid-cols-[minmax(400px,_1fr)_100px_100px] gap-x-2 sm:gap-x-4 justify-items-center items-center grow">
       <span className="justify-self-start grow">
-        {vote.info.text}
+        {text}
         <span className="text-gray-400 text-sm">{" · "}</span>
-        <DateSpan timestamp={vote.date}/>
+        <DateSpan timestamp={timestamp}/>
       </span>
-      <div className="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-6 justify-self-center space-y-2 sm:space-y-0">
-        { consensus && (
-          <div
-            className={`text-lg leading-none ${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
-            style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
-          >
-            {consensus.ratio?.toFixed(2)}
-          </div>
-        )}
-        <div className="flex flex-row items-center justify-self-center">
-          <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(total)}</span>
-          <BitcoinIcon />
+      { liveDetails.cursor && (
+        <div
+          className={`text-lg leading-none ${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
+          style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
+        >
+          { liveDetails.cursor.toFixed(2) }
         </div>
+      )}
+      <div className="flex flex-row items-center justify-self-center">
+        <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(BigInt(Math.trunc(liveDetails.total)))}</span>
+        <BitcoinIcon />
       </div>
     </div>
   );

@@ -8,6 +8,8 @@ interface ProtocolInfoContextType {
     protocolParameters: ProtocolParameters | undefined;
     totalLocked: STimeline_1 | undefined;
     amountMinted: STimeline_1 | undefined;
+    currentTime: bigint | undefined;
+    currentDecay: number | undefined;
   };
   refreshInfo: () => void;
 }
@@ -22,29 +24,39 @@ export const ProtocolProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return null;
   };
 
-const { data: protocolParameters, call: refreshProtocolParameters } = protocolActor.useQueryCall({
-    functionName: "get_protocol_parameters",
-    args: [],
-});
+  const { data: protocolParameters, call: refreshProtocolParameters } = protocolActor.useQueryCall({
+      functionName: "get_protocol_parameters",
+      args: [],
+  });
 
-const { data: totalLocked, call: refreshTotalLocked } = protocolActor.useQueryCall({
-    functionName: "get_total_locked",
-    args: [],
-});
+  const { data: totalLocked, call: refreshTotalLocked } = protocolActor.useQueryCall({
+      functionName: "get_total_locked",
+      args: [],
+  });
 
-const { data: amountMinted, call: refreshAmountMinted } = protocolActor.useQueryCall({
-    functionName: "get_amount_minted",
-    args: [],
-});
+  const { data: amountMinted, call: refreshAmountMinted } = protocolActor.useQueryCall({
+      functionName: "get_amount_minted",
+      args: [],
+  });
+
+  const { data: currentTime, call: refreshCurrentTime } = protocolActor.useQueryCall({
+    functionName: "get_time",
+  });
+
+  const { data: currentDecay, call: refreshCurrentDecay } = protocolActor.useQueryCall({
+    functionName: "current_decay",
+  });
 
   const refreshInfo = () => {
     refreshProtocolParameters();
     refreshTotalLocked();
     refreshAmountMinted();
+    refreshCurrentTime();
+    refreshCurrentDecay();
   };
 
   return (
-    <ProtocolInfoContext.Provider value={{ info : { protocolParameters, totalLocked, amountMinted }, refreshInfo }}>
+    <ProtocolInfoContext.Provider value={{ info : { protocolParameters, totalLocked, amountMinted, currentTime, currentDecay }, refreshInfo }}>
       {children}
     </ProtocolInfoContext.Provider>
   );

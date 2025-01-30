@@ -49,8 +49,8 @@ const Logo = () => (
             </g>
             </g>
         </g>
-        <polygon className="fill-none stroke-brand-line stroke-[8] shadow-lg dark:shadow-lg shadow-red-400" points="148.61 5.87 417.41 221.17 7.41 221.17 148.61 5.87"/>
-        </svg>
+        <polygon className="fill-none stroke-brand-line stroke-[8]" points="148.61 5.87 417.41 221.17 7.41 221.17 148.61 5.87"/>
+    </svg>
 );
   
 export default Logo;

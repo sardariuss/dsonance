@@ -1,14 +1,13 @@
-import { SYesNoVote } from '@/declarations/backend/backend.did';
-
 import { EYesNoChoice } from '../utils/conversions/yesnochoice';
 import { useEffect, useRef, useState } from 'react';
 import { BallotInfo } from './types';
-import { get_cursor, get_no_votes, get_total_votes, get_yes_votes } from '../utils/conversions/vote';
+import { add_ballot, deduce_ballot, VoteDetails } from '../utils/conversions/votedetails';
 import { useCurrencyContext } from './CurrencyContext';
 import { useMediaQuery } from 'react-responsive';
 import { MOBILE_MAX_WIDTH_QUERY } from '../constants';
 
 const CURSOR_HEIGHT = "1.3rem";
+const DEFAULT_CURSOR = 0.5;
 // Avoid 0 division, arbitrary use 0.001 and 0.999 values instead of 0 and 1
 const MIN_CURSOR = 0.001;
 const MAX_CURSOR = 0.999;
@@ -19,54 +18,44 @@ const clampCursor = (cursor: number) => {
 type Props = {
   id: string;
   disabled: boolean;
-  vote: SYesNoVote
+  voteDetails: VoteDetails;
   ballot: BallotInfo;
   setBallot: (ballot: BallotInfo) => void;
   onMouseUp: () => (void);
   onMouseDown: () => (void);
 };
 
-const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDown}: Props) => {
+const VoteSlider = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onMouseDown}: Props) => {
 
   const { formatSatoshis } = useCurrencyContext();
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  const initCursor = clampCursor(get_cursor(vote));
+  const initCursor = voteDetails.cursor ?? DEFAULT_CURSOR
 
   const [cursor, setCursor] = useState(initCursor);
 
   const updateBallot = (value: number) => {
-
     value = clampCursor(value);
     setCursor(value);
-
-    const total = Number(get_total_votes(vote));
-    const yes = Number(get_yes_votes(vote));
-
-    const choice = value < initCursor ? EYesNoChoice.No : EYesNoChoice.Yes;
-    const amount = BigInt(Math.floor(choice === EYesNoChoice.No ? (yes / value - total) : ((value * total - yes) / (1 - value))));
-
-    setBallot({choice, amount});
+    setBallot(deduce_ballot(voteDetails, value));
   };
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [isActive, setIsActive] = useState(false);
 
-  const updateInputValue = (ballot: BallotInfo) => {
+  const updateCursor = (ballot: BallotInfo) => {
     if (inputRef.current && !isActive) { // Only update if input is not focused, i.e. the stimulus comes from an external component
-      const amount = ballot.amount ?? 0n;
-      let newCursor = Number(get_yes_votes(vote) + (ballot.choice === EYesNoChoice.Yes ? amount : 0n));
-      newCursor = newCursor / Number(get_total_votes(vote) + amount);
-      setCursor(newCursor);
-      inputRef.current.value = newCursor.toString();
+      const liveDetails = add_ballot(voteDetails, ballot);
+      setCursor(liveDetails.cursor);
+      inputRef.current.value = liveDetails.cursor.toString();
     }
   };
 
   useEffect(() => {
-    updateInputValue(ballot);
+    updateCursor(ballot);
   },
-  [ballot, vote]);
+  [ballot, voteDetails]);
 
   const limitDisplayRatio = isMobile ? 0.3 : 0.2;
 
@@ -82,7 +71,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
               { 
                 cursor > limitDisplayRatio && 
                   <span className={`truncate ${ballot.choice === EYesNoChoice.Yes && (ballot.amount ?? 0n) > 0n ? "animate-pulse" : ""}`}>
-                    { formatSatoshis(get_yes_votes(vote) + (ballot.choice === EYesNoChoice.Yes ? (ballot.amount ?? 0n) : 0n)) + " " + EYesNoChoice.Yes } 
+                    { formatSatoshis(BigInt(Math.trunc(voteDetails.yes + (ballot.choice === EYesNoChoice.Yes ? Number(ballot.amount) : 0)))) + " " + EYesNoChoice.Yes } 
                   </span>
               }
             </div>
@@ -97,7 +86,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
               { 
                 (1 - cursor) > limitDisplayRatio && 
                   <span className={`truncate ${ballot.choice === EYesNoChoice.No && (ballot.amount ?? 0n) > 0n ? "animate-pulse" : ""}`}>
-                    { formatSatoshis(get_no_votes(vote) + (ballot.choice === EYesNoChoice.No ? (ballot.amount ?? 0n) : 0n)) + " " + EYesNoChoice.No }
+                    { formatSatoshis(BigInt(Math.trunc(voteDetails.no + (ballot.choice === EYesNoChoice.No ? Number(ballot.amount) : 0)))) + " " + EYesNoChoice.No } 
                   </span>
               }
             </div>
@@ -110,7 +99,7 @@ const VoteSlider = ({id, disabled, vote, ballot, setBallot, onMouseUp, onMouseDo
         max="1"
         step="0.01"
         type="range"
-        defaultValue={initCursor.toString()}
+        defaultValue={initCursor}
         onFocus={() => setIsActive(true)}
         onBlur={() => setIsActive(false)}
         onChange={(e) => updateBallot(Number(e.target.value))}
