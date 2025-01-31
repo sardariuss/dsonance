@@ -10,6 +10,8 @@ import IntervalPicker                                       from "./IntervalPick
 import { useCurrencyContext }                               from "../CurrencyContext";
 import { ThemeContext }                                     from "../App";
 import { useProtocolInfoContext }                           from "../ProtocolInfoContext";
+import { useMediaQuery }                                    from "react-responsive";
+import { MOBILE_MAX_WIDTH_QUERY }                           from "../../constants";
 
 // WATCHOUT: This component uses an IntractiveAreaBump chart which uses X as a category, not as a time value, hence it is 
 // up to the coder to make it so the interval between the time values are constant.
@@ -26,14 +28,14 @@ interface ComputeChartPropsArgs {
   aggregate: STimeline_3;
 }
 
-type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[]}>[];
+type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[], color: string}>[];
 type ChartProperties = { chartData: ChartData, total: { maximum: number, current: number }, priceLevels: number[], dateTicks: number[] };
 
 const computeChartProps = ({ currentTime, decayParams, duration, aggregate } : ComputeChartPropsArgs) : ChartProperties => {
 
   let chartData : ChartData = [
-    { id: EYesNoChoice.Yes, data: [] },
-    { id: EYesNoChoice.No, data: [] },
+    { id: EYesNoChoice.Yes, data: [], color: "rgb(7 227 68)" },
+    { id: EYesNoChoice.No, data: [], color: "rgb(0 203 253)" },
   ];
 
   const { dates, ticks } = computeInterval(currentTime, duration, decayParams);
@@ -91,8 +93,6 @@ const computePriceLevels = (min: number, max: number) : number[] => {
   return levels;
 }
 
-const MARGIN = 50;
-
 interface VoteChartrops {
   vote: SYesNoVote;
   ballot: BallotInfo;
@@ -105,6 +105,10 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
   
   const [containerSize, setContainerSize] = useState<Size | undefined>(undefined); // State to store the size of the div
   const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
+
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
+
+  const AXIS_MARGIN = isMobile ? 20 : 30;
 
   useEffect(() => {
     // Function to update the size
@@ -167,7 +171,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
         if (serie.id === (ballot.choice.toString())) {
           const lastPoint = serie.data[serie.data.length - 1];
           const newLastPoint = { x: lastPoint.x, y: lastPoint.y + Number(ballot.amount) };
-          return { id: serie.id, data: [...serie.data.slice(0, serie.data.length - 1), newLastPoint] };
+          return { id: serie.id, data: [...serie.data.slice(0, serie.data.length - 1), newLastPoint], color: serie.color };
         };
         return serie;
       }),
@@ -182,7 +186,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
     if (containerSize === undefined) {
       throw new Error("Container size is undefined");
     }
-    return (containerSize.height - 2 * MARGIN) / (levels.length - 1);
+    return (containerSize.height - 2 * AXIS_MARGIN) / (levels.length - 1);
   }
 
   const marginTop = (levels: number[], maxY: number) => {
@@ -194,15 +198,15 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
     }
     const lastLine = levels[levels.length - 1];
     const ratio = ( lastLine - maxY ) / lastLine;
-    const height = containerSize.height - 2 * MARGIN;
+    const height = containerSize.height - 2 * AXIS_MARGIN;
     return height * ratio;
   }
 
   return (
     <div className="flex flex-col items-center space-y-2 w-full" ref={containerRef}>
       { containerSize &&
-      <div style={{ position: 'relative', width: `${containerSize.width}px`, height: `${containerSize.height}px` }}>
-        <div style={{ position: 'absolute', top: MARGIN, right: 59, bottom: MARGIN, left: 59 }} className="flex flex-col border-x border-slate-300 z-10">
+      <div style={{ position: 'relative', width: `${containerSize.width}px`, height: `${containerSize.height}px`, zIndex: 10 }}>
+        <div style={{ position: 'absolute', top: AXIS_MARGIN, right: 0, bottom: AXIS_MARGIN, left: 0, zIndex: 5 }} className="flex flex-col">
           <ul className="flex flex-col w-full" key={vote.vote_id}>
             {
               priceLevels.slice().reverse().map((price, index) => (
@@ -211,8 +215,8 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                     (index < (priceLevels.length - 1)) ? 
                     <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
                       <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
-                        <div className="text-xs" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div>
-                        <div className="flex w-full h-[0.5px] bg-slate-500 dark:bg-white opacity-50" style={{ position: 'absolute', bottom: 0 }}/>
+                        { !isMobile && <div className="text-xs" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div> }
+                        <div className="flex w-full h-[2.0px] bg-slate-800 dark:bg-white" style={{ position: 'absolute', bottom: 0, opacity: 0.3 }}/>
                       </div>
                     </div> : <></>
                   }
@@ -222,6 +226,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
           </ul>
         </div>
         <ResponsiveAreaBump
+          layers={['grid', 'areas', 'axes']}
           isInteractive={false}
           animate={false}
           enableGridX={false}
@@ -231,11 +236,14 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
           xPadding={0} // Important to avoid "bump effects" in the chart (because AreaBump consider the x values as categories)
           align= "end"
           data={chartData}
-          margin={{ top: MARGIN + marginTop(priceLevels, Math.max(total.maximum, total.current)), right: 60, bottom: MARGIN, left: 0 }}
+          margin={{ top: AXIS_MARGIN + marginTop(priceLevels, Math.max(total.maximum, total.current)), bottom: AXIS_MARGIN }}
           spacing={0}
-          colors={["rgb(7 227 68)", "rgb(0 203 253)"]} // brand-true, brand-false
+          activeBorderOpacity={0.5}
+          colors={(serie) => serie.color}
+          borderColor={(serie) => serie.color}
+          fillOpacity={0.7}
+          borderWidth={2}
           blendMode="normal"
-          borderColor={theme === "dark" ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.5)"}
           axisTop={null}
           axisBottom={{
             tickSize: 5,
@@ -245,22 +253,24 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
             legend: '',
             legendPosition: 'middle',
             legendOffset: 0,
-            renderTick: ({ x, y, value }) => (
-              <g transform={`translate(${x},${y})`}>
-                <text
-                  x={0}
-                  y={16}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  style={{
-                    fontSize: '12px',
-                    fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
-                  }}
-                >
-                  { CHART_CONFIGURATIONS.get(duration)!.format(new Date(value)) }
-                </text>
-              </g>
-            ),
+            renderTick: ({ tickIndex, x, y, value }) => {
+              return (
+                (isMobile && tickIndex % 2) ? <></> :
+                <g transform={`translate(${x},${y})`}>
+                  <text
+                    x={0}
+                    y={16}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    style={{
+                      fontSize: '12px',
+                      fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
+                    }}
+                  >
+                    { CHART_CONFIGURATIONS.get(duration)!.format(new Date(value)) }
+                  </text>
+                </g>
+              )}
           }}
         />
       </div>

@@ -54,7 +54,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
         selected === vote.vote_id && vote.vote_id !== undefined && (
           <div className="flex flex-col items-center space-y-2">
             {
-              voteDetails.total > 0 && <div className="flex flex-col space-y-2 items-center w-full px-2">
+              voteDetails.total > 0 && <div className="flex flex-col space-y-2 items-center w-5/6">
                 <VoteChart vote={vote} ballot={ballot}/>
                 <VoteSlider id={vote.vote_id} disabled={false} voteDetails={voteDetails} ballot={ballot} setBallot={setBallot} onMouseUp={() => {}} onMouseDown={() => {}}/>
               </div>
@@ -86,7 +86,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
         selected === vote.vote_id && vote.vote_id !== undefined && (
           <div className="flex flex-col space-y-2 items-center">
             {
-              voteDetails.total > 0 && <div className="flex flex-col space-y-2 items-center w-4/5">
+              voteDetails.total > 0 && <div className="flex flex-col space-y-2 items-center w-2/3">
                 <VoteChart vote={vote} ballot={ballot}/>
                 <VoteSlider id={vote.vote_id} disabled={false} voteDetails={voteDetails} ballot={ballot} setBallot={setBallot} onMouseUp={() => {}} onMouseDown={() => {}}/>
               </div>
