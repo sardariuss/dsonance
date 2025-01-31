@@ -6,7 +6,7 @@ import { DOCS_URL, MOBILE_MAX_WIDTH_QUERY, PARTICIPATION_EMOJI, RESONANCE_TOKEN_
 import { fromE8s } from "../utils/conversions/token";
 import UserIcon from "./icons/UserIcon";
 import LoginIcon from "./icons/LoginIcon";
-import { computeMintingRate } from "./ProtocolInfo";
+import { computeMintingRate } from "./Dashboard";
 import BtcBalance from "./BtcBalance";
 import { useProtocolInfoContext } from "./ProtocolInfoContext";
 import Logo from "./icons/Logo";
@@ -155,7 +155,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
       {
          showMenu && (
           <div ref={menuRef} className="absolute top-20 left-0 flex flex-col w-full bg-slate-200 dark:bg-gray-800 text-lg py-2 px-4">
-            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/' ? 'bg-purple-700' : ''}`}>
+            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/' ? 'bg-purple-700 text-white' : ''}`}>
               <span />
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
@@ -165,7 +165,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 Home
               </Link>
             </div>
-            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/dashboard' ? 'bg-purple-700' : ''}`}>
+            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/dashboard' ? 'bg-purple-700 text-white' : ''}`}>
               <span />
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
@@ -175,7 +175,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 Dashboard
               </Link>
             </div>
-            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg items-center ${location.pathname === DOCS_URL ? 'bg-purple-700' : ''}`}>
+            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg items-center ${location.pathname === DOCS_URL ? 'bg-purple-700 text-white' : ''}`}>
               <LinkIcon/>
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
@@ -189,7 +189,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
             {authenticated && identity ? (
               <Link
                 className={`grid grid-cols-12 py-2 px-4 rounded-lg flex flex-row items-center stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer ${
-                  location.pathname === `/user/${identity.getPrincipal()}` ? 'bg-purple-700' : ''
+                  location.pathname === `/user/${identity.getPrincipal()}` ? 'bg-purple-700 text-white' : ''
                 }`}
                 to={`/user/${identity.getPrincipal()}`}
                 onClick={() => setShowMenu(false)}

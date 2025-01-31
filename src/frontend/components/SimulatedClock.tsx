@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { protocolActor } from "../actors/ProtocolActor";
-import { timeToDate } from "../utils/conversions/date";
+import { formatDateTime, timeToDate } from "../utils/conversions/date";
 
 const SimulatedClock = () => {
-
-  const speed = 1.0;
 
   const { call: refreshClockInfo, data: clockInfo } = protocolActor.useQueryCall({
     functionName: "clock_info",
@@ -43,10 +41,14 @@ const SimulatedClock = () => {
 
   return (
     currentTime ? 
-      <div className="flex flex-row items-center space-x-2">
-        <span className="dark:text-gray-400 text-gray-600 text-sm">Simulation time:</span>
-        <span>{currentTime.toLocaleString()}</span>
-      </div> : <></>
+      <div className="flex flex-row items-center space-x-1">
+          <span>🧪</span>
+          <span className="text-gray-700 dark:text-gray-300">Simulation time:</span>
+          <span className="text-lg">
+              {formatDateTime(currentTime)}
+          </span>
+      </div>
+      : <></>
   );
 };
 

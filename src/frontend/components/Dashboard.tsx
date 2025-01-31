@@ -7,6 +7,7 @@ import { useCurrencyContext } from "./CurrencyContext";
 import ResonanceCoinIcon from "./icons/ResonanceCoinIcon";
 import BitcoinIcon from "./icons/BitcoinIcon";
 import { useProtocolInfoContext } from "./ProtocolInfoContext";
+import SimulatedClock from "./SimulatedClock";
 
 export const computeMintingRate = (ck_btc_locked: bigint, participation_per_ns: number, satoshisToCurrency: (satoshis: bigint) => number | undefined) => {
     if (ck_btc_locked === 0n) {
@@ -19,7 +20,7 @@ export const computeMintingRate = (ck_btc_locked: bigint, participation_per_ns: 
     return Math.floor(participation_per_ns * 86_400_000_000_000 / amount);
 }
 
-const ProtocolInfo = () => {
+const Dashboard = () => {
 
     const { formatSatoshis, satoshisToCurrency, currencySymbol } = useCurrencyContext();
 
@@ -42,7 +43,19 @@ const ProtocolInfo = () => {
       
     return (
         <div className="flex flex-col items-center border-t border-x dark:border-gray-700 border-gray-300 w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
-            { participationRate && <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-4 w-full">
+            <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full">
+                <SimulatedClock />
+            </div>
+            { protocolParameters && 
+                <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full space-x-1 justify-center">
+                    <span>{DISCERNMENT_EMOJI}</span>
+                    <span className="text-gray-700 dark:text-gray-300">Discernment factor:</span>
+                    <span className="text-lg">
+                        {protocolParameters.discernment_factor.toFixed(2)}
+                    </span>
+                </div>
+            }
+            { participationRate && <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-2 w-full">
                     <div className="flex flex-row items-center space-x-1">
                         <span>{PARTICIPATION_EMOJI}</span>
                         <span className="text-gray-700 dark:text-gray-300">Participation rate:</span>
@@ -58,17 +71,8 @@ const ProtocolInfo = () => {
                     />
                 </div>
             }
-            { protocolParameters && 
-                <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-1 w-full space-x-1 justify-center">
-                    <span>{DISCERNMENT_EMOJI}</span>
-                    <span className="text-gray-700 dark:text-gray-300">Discernment factor:</span>
-                    <span className="text-lg">
-                        {protocolParameters.discernment_factor.toFixed(2)}
-                    </span>
-                </div>
-            }
             { totalLocked && 
-                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-4 w-full">
+                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-2 w-full">
                     <div className="flex flex-row items-center space-x-1">
                         <BitcoinIcon />
                         <div className="text-gray-700 dark:text-gray-300">Total locked:</div>
@@ -85,7 +89,7 @@ const ProtocolInfo = () => {
                 </div>
             }
             { amountMinted && 
-                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-4 w-full">
+                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-2 w-full">
                     <div className="flex flex-row items-center space-x-1">
                         <ResonanceCoinIcon />
                         <div className="text-gray-700 dark:text-gray-300">Resonance minted:</div>
@@ -105,4 +109,4 @@ const ProtocolInfo = () => {
     )
 }
 
-export default ProtocolInfo;
+export default Dashboard;

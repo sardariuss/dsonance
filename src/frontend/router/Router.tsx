@@ -3,7 +3,7 @@ import { useAuth } from "@ic-reactor/react";
 
 import VoteList from "../components/VoteList";
 import User from "../components/user/User";
-import ProtocolInfo from "../components/ProtocolInfo";
+import Dashboard from "../components/Dashboard";
 import Vote from "../components/Vote";
 
 const Router = () => {
@@ -12,7 +12,7 @@ const Router = () => {
     return (
       <Routes>
         <Route path={"/"} element={<VoteList />} />
-        <Route path={"/dashboard"} element={<ProtocolInfo />} />
+        <Route path={"/dashboard"} element={<Dashboard />} />
         <Route path={"/user/:principal"} element={<User />} />
         <Route path={"/vote/:id"} element={<Vote />} />
       </Routes>
