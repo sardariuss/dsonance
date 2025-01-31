@@ -1,70 +1,30 @@
 import { Link, useLocation, useNavigate }      from "react-router-dom";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@ic-reactor/react";
-import Select from "react-select";
-import { SupportedCurrency, useCurrencyContext } from "./CurrencyContext";
-import BitcoinIcon from "./icons/BitcoinIcon";
+import { useCurrencyContext } from "./CurrencyContext";
 import { DOCS_URL, MOBILE_MAX_WIDTH_QUERY, PARTICIPATION_EMOJI, RESONANCE_TOKEN_SYMBOL } from "../constants";
 import { fromE8s } from "../utils/conversions/token";
 import UserIcon from "./icons/UserIcon";
 import LoginIcon from "./icons/LoginIcon";
 import { computeMintingRate } from "./ProtocolInfo";
 import BtcBalance from "./BtcBalance";
-import { ThemeContext } from "./App";
 import { useProtocolInfoContext } from "./ProtocolInfoContext";
 import Logo from "./icons/Logo";
 import { useMediaQuery } from "react-responsive";
 import { Identity } from "@dfinity/agent";
 import LinkIcon from "./icons/LinkIcon";
+import CurrencyConverter from "./CurrencyConverter";
+import ThemeToggle from "./ThemeToggle";
 
 interface HeaderProps {
   mintingRate?: number;
-  currency: SupportedCurrency;
-  setCurrency: (currency: SupportedCurrency) => void;
   currencySymbol: string;
-  toggleTheme: () => void;
-  theme: string;
   authenticated: boolean;
   identity: Identity | null;
   login: () => void;
 }
 
-const ThemeToggle: React.FC<{ theme: string, toggleTheme: () => void }> = ({ theme, toggleTheme }) => {
-  return (
-    <button
-      id="theme-toggle"
-      type="button"
-      className="rounded-lg text-sm"
-      onClick={toggleTheme}
-    >
-      {theme === "dark" ? (
-        <svg
-          id="theme-toggle-light-icon"
-          className="w-5 h-5 fill-yellow-400 hover:fill-yellow-300"
-          viewBox="0 0 20 20"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-            fillRule="evenodd"
-            clipRule="evenodd"
-          />
-        </svg>
-      ) : (
-        <svg
-          id="theme-toggle-dark-icon"
-          className="w-5 h-5 fill-purple-700 hover:fill-purple-800"
-          viewBox="0 0 20 20"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-        </svg>
-      )}
-    </button>
-  );
-};
-
-const DesktopHeader: React.FC<HeaderProps> = ({ mintingRate, currency, setCurrency, currencySymbol, toggleTheme, theme, authenticated, identity, login }) => {
+const DesktopHeader: React.FC<HeaderProps> = ({ mintingRate, currencySymbol, authenticated, identity, login }) => {
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
       
@@ -86,60 +46,24 @@ const DesktopHeader: React.FC<HeaderProps> = ({ mintingRate, currency, setCurren
         <div className="flex-grow"></div>
 
         {/* Centered Minting Rate Info */}
-        { mintingRate && location.pathname !== "/protocol_info" && (
-          <Link
-            className="absolute left-1/2 transform -translate-x-1/2 flex flex-row items-center justify-center space-x-1 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer"
-            to="/protocol_info"
+        { mintingRate && location.pathname !== "/dashboard" && (
+          <div
+            className="absolute left-1/2 transform -translate-x-1/2 flex flex-row items-center justify-center space-x-1"
           >
             <span>{PARTICIPATION_EMOJI}</span>
             <span>Participation rate:</span>
             <span className="text-lg">
               {`${fromE8s(BigInt(mintingRate)).toString()} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
             </span>
-          </Link>
+          </div>
         )}
         
         {/* Right-aligned Profile and Theme Toggle */}
         <div className="flex flex-row items-center justify-end md:space-x-6 space-x-2">
-          <div className="flex flex-row items-center space-x-1 mr-8">
-            <span>View</span>
-            <BitcoinIcon />
-            <span className="pr-2">in</span>
-            <Select
-              options={Object.values(SupportedCurrency).map((currency) => ({
-                value: currency,
-                label: currency,
-              }))}
-              value={{ value: currency, label: currency }}
-              onChange={(option) => {
-                if (option !== null) setCurrency(option.value as SupportedCurrency);
-              }}
-              styles={{
-                control: (provided, state) => ({
-                  ...provided,
-                  color: "#fff",
-                  backgroundColor: "#ddd",
-                  borderColor: state.isFocused ? "rgb(168 85 247) !important" : "#ccc !important", // Enforce purple border
-                  boxShadow: state.isFocused
-                    ? "0 0 0 0.5px rgb(168, 85, 247) !important"
-                    : "none !important", // Enforce purple focus ring
-                  outline: "none", // Remove browser default outline
-                }),
-                singleValue: (provided) => ({
-                  ...provided,
-                  color: "#000",
-                }),
-                option: (provided) => ({
-                  ...provided,
-                  color: "#000",
-                  backgroundColor: "#fff",
-                  "&:hover": {
-                    backgroundColor: "#ddd",
-                  },
-                }),
-              }}
-            />
-          </div>
+          <CurrencyConverter />
+          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/dashboard"}>
+            Dashboard
+          </Link>
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={DOCS_URL}>
             Docs
           </Link>
@@ -154,7 +78,7 @@ const DesktopHeader: React.FC<HeaderProps> = ({ mintingRate, currency, setCurren
             </div>
           }
           </div>
-          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+          <ThemeToggle/>
         </div>
       </div>
       <span className="flex flex-row w-full bg-purple-700 dark:bg-purple-700 items-center justify-center text-white">
@@ -164,7 +88,7 @@ const DesktopHeader: React.FC<HeaderProps> = ({ mintingRate, currency, setCurren
   );
 }
 
-const MobileHeader: React.FC<HeaderProps> = ({ mintingRate, currency, setCurrency, currencySymbol, toggleTheme, theme, authenticated, identity, login }) => {
+const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }) => {
 
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null); // Reference to the menu
@@ -241,14 +165,14 @@ const MobileHeader: React.FC<HeaderProps> = ({ mintingRate, currency, setCurrenc
                 Home
               </Link>
             </div>
-            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/protocol_info' ? 'bg-purple-700' : ''}`}>
+            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/dashboard' ? 'bg-purple-700' : ''}`}>
               <span />
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
-                to="/protocol_info"
+                to="/dashboard"
                 onClick={() => setShowMenu(false)}
               >
-                Protocol Info
+                Dashboard
               </Link>
             </div>
             <div className={`grid grid-cols-12 py-2 px-4 rounded-lg items-center ${location.pathname === DOCS_URL ? 'bg-purple-700' : ''}`}>
@@ -303,7 +227,7 @@ const Header = () => {
 
   const { info: { protocolParameters, totalLocked }, refreshInfo } = useProtocolInfoContext();
 
-  const { currency, setCurrency, currencySymbol, satoshisToCurrency } = useCurrencyContext();
+  const { currencySymbol, satoshisToCurrency } = useCurrencyContext();
 
   useEffect(() => {
     refreshInfo();
@@ -311,16 +235,10 @@ const Header = () => {
 
   const mintingRate = protocolParameters && totalLocked && computeMintingRate(totalLocked.current.data, protocolParameters.participation_per_ns, satoshisToCurrency);
 
-  const { theme, setTheme } = useContext(ThemeContext);
-
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
-
   return (
     isMobile ? 
-      <MobileHeader mintingRate={mintingRate} currency={currency} setCurrency={setCurrency} currencySymbol={currencySymbol} toggleTheme={toggleTheme} theme={theme} authenticated={authenticated} identity={identity} login={login} /> :
-      <DesktopHeader mintingRate={mintingRate} currency={currency} setCurrency={setCurrency} currencySymbol={currencySymbol} toggleTheme={toggleTheme} theme={theme} authenticated={authenticated} identity={identity} login={login} />
+      <MobileHeader mintingRate={mintingRate} currencySymbol={currencySymbol} authenticated={authenticated} identity={identity} login={login} /> :
+      <DesktopHeader mintingRate={mintingRate} currencySymbol={currencySymbol} authenticated={authenticated} identity={identity} login={login} />
   );
 }
 

@@ -9,10 +9,15 @@ import BitcoinIcon from "../icons/BitcoinIcon";
 
 import BallotView from "./BallotView";
 import { unwrapLock } from "../../utils/conversions/ballot";
+import { useMediaQuery } from "react-responsive";
+import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
+import CurrencyConverter from "../CurrencyConverter";
+import ThemeToggle from "../ThemeToggle";
 
 const User = () => {
   
   const { principal } = useParams();
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   if (!principal) {
     return <div>Invalid principal</div>;
@@ -49,6 +54,13 @@ const User = () => {
       <div className="flex flex-col items-center w-full border-b dark:border-gray-700">
         <Wallet/>
       </div>
+      {
+        isMobile && 
+          <div className="flex flex-row justify-center w-full border-b dark:border-gray-700 py-2">
+            <CurrencyConverter/>
+            <ThemeToggle/>
+          </div>
+      }
       { ballots && ballots?.length > 0 && 
         <div className="flex flex-col items-center w-full border-b dark:border-gray-700 py-2">
           <div className="flex flex-row w-full space-x-1 justify-center items-baseline">

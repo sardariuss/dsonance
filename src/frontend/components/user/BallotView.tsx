@@ -17,6 +17,7 @@ import { DesktopBallotDetails, MobileBallotDetails } from "./BallotDetails";
 import { useMediaQuery } from "react-responsive";
 import { useProtocolInfoContext } from "../ProtocolInfoContext";
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface VoteConsensusProps {
   is_selected: boolean;
@@ -61,18 +62,23 @@ interface BallotProps {
 const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
 
   const { formatSatoshis } = useCurrencyContext();
+  const navigate = useNavigate();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const releaseTimestamp = ballot.YES_NO.timestamp + (unwrapLock(ballot).duration_ns).current.data;
 
+  const onBallotClick = () => {
+    if (isSelected) {
+      navigate(`/vote/${ballot.YES_NO.vote_id}`);
+    } else {
+      selectBallot();
+    }
+  }
+
   return (
     now === undefined ? <></> :
-    <div
-      className="border-b dark:border-gray-700 border-gray-300 py-2 px-2 hover:bg-slate-50 dark:hover:bg-slate-850 hover:cursor-pointer w-full"
-    >
-
-      <div className="flex flex-col w-full" onClick={() => selectBallot()}>
-      
+    <div className="border-b dark:border-gray-700 border-gray-300 py-2 px-2 hover:bg-slate-50 dark:hover:bg-slate-850 hover:cursor-pointer w-full">
+      <div className="flex flex-col w-full" onClick={() => onBallotClick() }>
         <div className="flex flex-row space-x-1 items-baseline">
           <span>{formatSatoshis(ballot.YES_NO.amount)}</span>
           <div className="flex self-center h-4 w-4">

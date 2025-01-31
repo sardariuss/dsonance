@@ -7,12 +7,14 @@ import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
 import { resonanceLedgerActor } from '../actors/ResonanceLedgerActor';
 import { formatBalanceE8s } from '../utils/conversions/token';
-import { BITCOIN_TOKEN_SYMBOL, RESONANCE_TOKEN_SYMBOL } from '../constants';
+import { RESONANCE_TOKEN_SYMBOL } from '../constants';
 import { minterActor } from '../actors/MinterActor';
 import BitcoinIcon from './icons/BitcoinIcon';
 import ResonanceCoinIcon from './icons/ResonanceCoinIcon';
 import LogoutIcon from './icons/LogoutIcon';
 import { Link } from 'react-router-dom';
+import { useCurrencyContext } from './CurrencyContext';
+import { useWalletContext } from './WalletContext';
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -29,6 +31,8 @@ const accountToString = (account: Account | undefined) : string =>  {
 const Wallet = () => {
 
   const { authenticated, identity, logout } = useAuth({});
+  const { formatSatoshis } = useCurrencyContext();
+  const { btcBalance, refreshBtcBalance } = useWalletContext();
 
   if (!authenticated || identity === null) {
     return (
@@ -49,11 +53,6 @@ const Wallet = () => {
   };
 
   const { data: resonanceBalance } = resonanceLedgerActor.useQueryCall({
-    functionName: 'icrc1_balance_of',
-    args: [account]
-  });
-
-  const { call: refreshBalance, data: btcBalance } = ckBtcActor.useQueryCall({
     functionName: 'icrc1_balance_of',
     args: [account]
   });
@@ -99,14 +98,14 @@ const Wallet = () => {
         console.error(error);
       }).finally(
         () => {
-          refreshAllowance().then(() => refreshBalance);
+          refreshAllowance().then(() => refreshBtcBalance);
         }
       );
     }).catch((error) => {
       console.error(error);
     }).finally(
       () => {
-        refreshBalance();
+        refreshBtcBalance();
         refreshAirdropAvailable();
       }
     );
@@ -124,7 +123,7 @@ const Wallet = () => {
 
   // Hook to refresh balance and allowance when account changes
   useEffect(() => {
-    refreshBalance();
+    refreshBtcBalance();
     refreshAllowance();
   }, [authenticated, identity]);
 
@@ -163,13 +162,13 @@ const Wallet = () => {
           <div className="h-5 w-5">
             <BitcoinIcon />
           </div>
-          <span className="text-gray-700 dark:text-white font-medium">Bitcoins:</span>
+          <span className="text-gray-700 dark:text-white font-medium">Bitcoin:</span>
         </div>
-        <span className="text-md font-semibold">
-          {formatBalanceE8s(btcBalance ?? 0n, BITCOIN_TOKEN_SYMBOL)}
-        </span>
+        { btcBalance !== undefined && 
+          <span className="text-md font-semibold">
+            {formatSatoshis(btcBalance)}
+          </span> }
       </div>
-
 
       {/* Resonance Balance */}
       <div className="flex w-full items-center justify-between rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-100 dark:bg-gray-800">

@@ -116,7 +116,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
       if (containerRef.current) {
         setContainerSize({ 
           width: containerRef.current.offsetWidth - 20, // 20 px to make room for the slider bar if any
-          height: containerRef.current.offsetWidth * 0.5
+          height: containerRef.current.offsetWidth * 0.4
         });
       }
     };
@@ -206,6 +206,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
     <div className="flex flex-col items-center space-y-2 w-full" ref={containerRef}>
       { containerSize &&
       <div style={{ position: 'relative', width: `${containerSize.width}px`, height: `${containerSize.height}px`, zIndex: 10 }}>
+        { /* TODO: fix opacity of price levels via a custom layer */ }
         <div style={{ position: 'absolute', top: AXIS_MARGIN, right: 0, bottom: AXIS_MARGIN, left: 0, zIndex: 5 }} className="flex flex-col">
           <ul className="flex flex-col w-full" key={vote.vote_id}>
             {
@@ -216,7 +217,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                     <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
                       <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
                         { !isMobile && <div className="text-xs" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div> }
-                        <div className="flex w-full h-[2.0px] bg-slate-800 dark:bg-white" style={{ position: 'absolute', bottom: 0, opacity: 0.3 }}/>
+                        <div className="flex w-full h-[2.0px] bg-slate-500 dark:bg-white" style={{ position: 'absolute', bottom: 0, opacity: 0.3 }}/>
                       </div>
                     </div> : <></>
                   }
