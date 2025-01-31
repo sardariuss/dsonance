@@ -101,6 +101,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().current_decay();
     };
 
+    public query func decay_params() : async Types.DecayParameters {
+        getFacade().decay_params();
+    };
+
     public query func get_parameters() : async Types.SClockParameters {
         getFacade().get_parameters();
     };

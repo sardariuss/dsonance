@@ -43,6 +43,7 @@ module {
     type ProtocolParameters = Types.ProtocolParameters;
     type MintingInfo = Types.MintingInfo;
     type Timeline<T> = Types.Timeline<T>;
+    type DecayParameters = Types.DecayParameters;
 
     type WeightParams = {
         ballot: BallotType;
@@ -254,6 +255,10 @@ module {
 
         public func current_decay() : Float {
             decay_model.compute_decay(clock.get_time());
+        };
+
+        public func decay_params() : DecayParameters {
+            decay_model.get_params();
         };
 
         public func get_clock() : Clock.Clock {

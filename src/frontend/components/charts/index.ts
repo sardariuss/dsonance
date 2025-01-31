@@ -1,6 +1,7 @@
 import { format }             from "date-fns";
 import { DurationUnit, toNs } from "../../utils/conversions/duration";
 import { nsToMs }             from "../../utils/conversions/date";
+import { DecayParameters }    from "@/declarations/protocol/protocol.did";
 
 export type DurationParameters = {
     duration: bigint; 
@@ -21,18 +22,22 @@ export type Interval = {
     ticks: number[];
 }
 
-export const computeInterval = (end: bigint, e_duration: DurationUnit): Interval => {
+const computeDecay = (date: bigint, decay_params: DecayParameters): number => {
+    return Math.exp(decay_params.lambda * Number(date) - decay_params.shift);
+}
+
+export const computeInterval = (end: bigint, e_duration: DurationUnit, decay_params: DecayParameters): Interval => {
     
     const { duration, sample, tick } = CHART_CONFIGURATIONS.get(e_duration)!;
     let dates : { date :number; decay: number }[] = [];
     // Add the last date
-    dates.push({ date: nsToMs(end), decay: 1 }); 
+    dates.push({ date: nsToMs(end), decay: computeDecay(end, decay_params) }); 
     // Compute the next dates, falling on every sample
     let date = end - end % sample;
     const startDate = date - duration;
     if (date === end) date -= sample; // If the last date has already been added, skip it
     while (date >= startDate) {
-        dates.push({ date: nsToMs(date), decay: 1 });
+        dates.push({ date: nsToMs(date), decay: computeDecay(date, decay_params) });
         date -= sample;
     };
     dates.reverse();

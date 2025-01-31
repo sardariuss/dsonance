@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { protocolActor } from "../actors/ProtocolActor";
-import { ProtocolParameters, STimeline_1 } from "@/declarations/protocol/protocol.did";
+import { DecayParameters, ProtocolParameters, STimeline_1 } from "@/declarations/protocol/protocol.did";
 
 interface ProtocolInfoContextType {
   info: {
@@ -10,6 +10,7 @@ interface ProtocolInfoContextType {
     amountMinted: STimeline_1 | undefined;
     currentTime: bigint | undefined;
     currentDecay: number | undefined;
+    decayParams: DecayParameters | undefined
   };
   refreshInfo: () => void;
 }
@@ -47,16 +48,21 @@ export const ProtocolProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     functionName: "current_decay",
   });
 
+  const { data: decayParams, call: refreshDecayParams } = protocolActor.useQueryCall({
+    functionName: "decay_params",
+  });
+
   const refreshInfo = () => {
     refreshProtocolParameters();
     refreshTotalLocked();
     refreshAmountMinted();
     refreshCurrentTime();
     refreshCurrentDecay();
+    refreshDecayParams();
   };
 
   return (
-    <ProtocolInfoContext.Provider value={{ info : { protocolParameters, totalLocked, amountMinted, currentTime, currentDecay }, refreshInfo }}>
+    <ProtocolInfoContext.Provider value={{ info : { protocolParameters, totalLocked, amountMinted, currentTime, currentDecay, decayParams }, refreshInfo }}>
       {children}
     </ProtocolInfoContext.Provider>
   );

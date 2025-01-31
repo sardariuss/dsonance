@@ -149,6 +149,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
           <select
             className={`w-20 h-9 appearance-none bg-gray-100 dark:bg-gray-900 border dark:border-gray-300 border-gray-900 rounded px-2 focus:outline outline-1 outline-purple-500 ${ballot.choice === EYesNoChoice.Yes ? "text-brand-true" : "text-brand-false"}`}
             value={ballot.choice}
+            style={{ textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
             onChange={(e) => setBallot({ choice: e.target.value as EYesNoChoice, amount: ballot.amount })}
             disabled={loading}
           >

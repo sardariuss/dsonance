@@ -31,6 +31,7 @@ module {
     type TimerParameters = Types.TimerParameters;
     type STimeline<T> = Types.STimeline<T>;
     type ProtocolParameters = Types.ProtocolParameters;
+    type DecayParameters = Types.DecayParameters;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -85,6 +86,10 @@ module {
 
         public func current_decay() : Float {
             controller.current_decay();
+        };
+
+        public func decay_params() : DecayParameters {
+            controller.decay_params();
         };
 
         public func get_parameters() : SClockParameters {

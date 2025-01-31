@@ -8,6 +8,7 @@ module {
     type Time = Int;
     type Duration = Types.Duration;
     type Decayed = Types.Decayed;
+    type DecayParameters = Types.DecayParameters;
 
     public func add(a: Decayed, b: Decayed) : Decayed {
         switch(a) {
@@ -41,6 +42,10 @@ module {
 
         public func compute_decay(time: Time) : Float {
             Float.exp(_lambda * Float.fromInt(time) - _shift);
+        };
+
+        public func get_params() : DecayParameters {
+            { lambda = _lambda; shift = _shift; };
         };
         
     };

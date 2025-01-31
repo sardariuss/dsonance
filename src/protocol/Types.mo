@@ -193,11 +193,6 @@ module {
         shift: Float;
     };
 
-    public type LocksParams = {
-        ns_per_sat: Nat;
-        decay_params: DecayParameters;
-    };
-
     public type AggregateHistoryType = {
         #YES_NO: [TimedData<YesNoAggregate>];
     };
