@@ -5,7 +5,7 @@ import { MOBILE_MAX_WIDTH_QUERY } from '../constants';
 const DesktopFooter: React.FC = () => {
 
   return (
-    <footer className="w-full bg-slate-200 dark:bg-gray-800 shadow flex flex-row items-center justify-between px-4 xl:min-h-18 lg:min-h-16 md:min-h-14 min-h-14">
+    <footer className="w-full bg-slate-200 dark:bg-gray-800 shadow flex flex-row items-center justify-between px-4 h-16 min-h-16">
       <a href="https://internetcomputer.org/">
       <div className="flex flex-row items-center">
         <div className="sm:text-center text-l font-semibold dark:text-gray-200 dark:hover:text-white">

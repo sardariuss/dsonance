@@ -25,10 +25,10 @@ interface HeaderProps {
 }
 
 const DesktopHeader: React.FC<HeaderProps> = ({ mintingRate, currencySymbol, authenticated, identity, login }) => {
+  // WATCHOUT: the size of the header is set to 22 (16 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
-      
-      <div className="flex flex-row bg-slate-200 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 xl:h-18 lg:h-16 md:h-14 h-14 relative">
+      <nav className="flex flex-row bg-slate-200 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 h-16 min-h-16 relative">
         {/* Left-aligned RESONANCE Link */}
         <Link to="/" className="flex flex-row items-baseline 2xl:pt-6 xl:pt-5 lg:pt-4 md:pt-3 pt-2">
           <div className="h-8 sm:h-9 md:h-10 lg:h-11 xl:h-12 w-16 sm:w-18 md:w-20 lg:w-22 xl:w-24 pt-1 lg:pt-2 pr-1 lg:pr-2">
@@ -80,8 +80,8 @@ const DesktopHeader: React.FC<HeaderProps> = ({ mintingRate, currencySymbol, aut
           </div>
           <ThemeToggle/>
         </div>
-      </div>
-      <span className="flex flex-row w-full bg-purple-700 dark:bg-purple-700 items-center justify-center text-white">
+      </nav>
+      <span className="flex flex-row w-full bg-purple-700 dark:bg-purple-700 items-center justify-center text-white h-6 min-h-6">
         ⚠️ This is a simulated version. All coins and transactions have no real monetary value.
       </span>
     </header>
@@ -118,9 +118,10 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
   }
   , [showMenu]);
 
+  // WATCHOUT: the size of the header is set to 26 (20 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
-      <nav className="flex flex-row items-center bg-slate-200 dark:bg-gray-800 sticky top-0 z-30 w-full h-20 relative">
+      <nav className="flex flex-row items-center bg-slate-200 dark:bg-gray-800 sticky top-0 z-30 w-full h-20 min-h-20 relative">
         {/* Centered RESONANCE Link */}
         <div className="flex flex-grow justify-center pt-4">
           <span className="flex flex-row items-baseline">
@@ -149,7 +150,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
           </button>
         </div>
       </nav>
-      <span className="flex flex-row w-full bg-purple-700 dark:bg-purple-700 items-center justify-center text-white">
+      <span className="flex flex-row w-full bg-purple-700 dark:bg-purple-700 items-center justify-center text-white h-6 min-h-6">
         ⚠️ This is a simulated version.
       </span>
       {

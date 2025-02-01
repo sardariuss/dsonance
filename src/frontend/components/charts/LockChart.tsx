@@ -15,8 +15,8 @@ import { MOBILE_MAX_WIDTH_QUERY } from '../../constants';
 
 interface LockChartProps {
   ballots: SBallotType[];
-  selected: number | undefined;
-  select_ballot: (index: number | undefined) => void;
+  selected: string | null;
+  select_ballot: (index: string | null) => void;
 };
 
 const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
@@ -72,7 +72,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
     const segments : Segment[] = [];
 
     ballots.forEach((ballot, index) => {
-      const { YES_NO: { timestamp, amount } } = ballot;
+      const { YES_NO: { timestamp, amount, ballot_id } } = ballot;
       const duration_ns = unwrapLock(ballot).duration_ns;
 
       // Compute timestamps
@@ -93,12 +93,12 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
       ];
 
       data.push({
-        id: index.toString(), // Use index as id
+        id: index.toString(),
         data: points,
       });
 
       segments.push({
-        id: index.toString(),
+        id: ballot_id,
         start: points[0],
         end: points[1],
         percentage: ((initialLockEnd - baseTimestamp) / (actualLockEnd - baseTimestamp)) * 100,
@@ -200,14 +200,14 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
           const y1 = yScale(start.y);
           const y2 = yScale(end.y);
 
-          const id = Number(segment.id)
+          const ballot_id = String(segment.id);
 
           const border_width = 2;
   
           return (
             <Fragment key={`segment-${index}`}>
               {/* Border line */}
-              { id === selected && <line
+              { ballot_id === selected && <line
                 key={`border-${index}`}
                 x1={x1-border_width}
                 x2={x2+border_width}
@@ -246,7 +246,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                   y2={y2}
                   stroke={`url(#lineGradient-${index})`}
                   strokeWidth={20}
-                  onClick={() => select_ballot(selected === id ? undefined : id)}
+                  onClick={() => select_ballot(selected === ballot_id ? null : ballot_id)}
                   cursor="pointer"
                   style={{
                     zIndex: 1
@@ -260,7 +260,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         {/* Render custom lock labels */}
         {processedSegments.map((segment, index) => {
           const { start, end } = segment;
-          const id = Number(segment.id);
+          const ballot_id = String(segment.id);
           const x1 = xScale(start.x);
           const x2 = xScale(end.x);
           const y = yScale(start.y);
@@ -274,7 +274,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
               alignmentBaseline="middle"
               fontSize={12}
               fill="white"
-              onClick={() => select_ballot(selected === id ? undefined : id)}
+              onClick={() => select_ballot(selected === ballot_id ? null : ballot_id)}
               cursor="pointer"
             >
               {segment.label}

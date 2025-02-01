@@ -1,6 +1,6 @@
 import { Principal } from "@dfinity/principal";
-import { useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import LockChart from "../charts/LockChart";
 import { protocolActor } from "../../actors/ProtocolActor";
 import Wallet from "../Wallet";
@@ -17,19 +17,21 @@ import ThemeToggle from "../ThemeToggle";
 const User = () => {
   
   const { principal } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const ballotRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   if (!principal) {
     return <div>Invalid principal</div>;
   }
 
-  const { formatSatoshis } = useCurrencyContext();
+  const selectedBallotId = useMemo(() => searchParams.get("ballotId"), [searchParams]);
 
-  const [selected, setSelected] = useState<number | undefined>(undefined);
-
-  const selectBallot = (index: number | undefined) => {
-    setSelected(index === undefined ? undefined : index === selected ? undefined : index);
+  const selectBallot = (ballotId: string | null) => {
+    setSearchParams(ballotId ? { ballotId: ballotId } : {});
   }
+
+  const { formatSatoshis } = useCurrencyContext();
 
   const { call: refreshNow, data: now } = protocolActor.useQueryCall({
     functionName: "get_time",
@@ -48,6 +50,22 @@ const User = () => {
   const totalLocked = now && ballots?.reduce((acc, ballot) =>
     acc + ((ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data) > now ? ballot.YES_NO.amount : 0n)
   , 0n);
+
+  useEffect(() => {
+    if (ballots && selectedBallotId !== null) {
+      const ballotElement = ballotRefs.current.get(selectedBallotId);
+      
+      if (ballotElement) {
+        setTimeout(() => {
+          ballotElement.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 50);
+      }
+    }
+  }, [selectedBallotId, ballots]);
+  
   
   return (
     <div className="flex flex-col items-center border-x dark:border-gray-700 border-t w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
@@ -70,14 +88,15 @@ const User = () => {
               <BitcoinIcon/>
             </div>
           </div>
-          <LockChart ballots={ballots} select_ballot={selectBallot} selected={selected}/>
+          <LockChart ballots={ballots} select_ballot={selectBallot} selected={selectedBallotId}/>
         </div>
       }
       <ul className="w-full">
         {
+          /* Size of the header is 26 on mobile and 22 on desktop */
           ballots?.map((ballot, index) => (
-            <li key={index} className="w-full">
-              <BallotView ballot={ballot} isSelected={index === selected} selectBallot={() => selectBallot(index)} now={now}/>
+            <li key={index} ref={(el) => (ballotRefs.current.set(ballot.YES_NO.ballot_id, el))} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]"> 
+              <BallotView ballot={ballot} isSelected={selectedBallotId === ballot.YES_NO.ballot_id} selectBallot={() => selectBallot(ballot.YES_NO.ballot_id)} now={now}/>
             </li>
           ))
         }
