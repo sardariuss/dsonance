@@ -30,13 +30,13 @@ module {
 
     public func build(args: State and { provider: Principal; admin: Principal; }) : Controller.Controller {
 
-        let { clock_parameters; vote_register; ballot_register; lock_register; deposit; resonance; parameters; provider; admin; minting_info; } = args;
+        let { vote_register; ballot_register; lock_register; deposit; resonance; parameters; provider; admin; minting_info; } = args;
         let { nominal_lock_duration; decay; } = parameters;
 
         let deposit_ledger = LedgerFacade.LedgerFacade({ deposit with provider; });
         let resonance_ledger = LedgerFacade.LedgerFacade({ resonance with provider; });
 
-        let clock = Clock.Clock(clock_parameters);
+        let clock = Clock.Clock(parameters.clock);
 
         let deposit_debt = DebtProcessor.DebtProcessor({
             deposit with 
@@ -123,6 +123,7 @@ module {
 
         let protocol_timer = ProtocolTimer.ProtocolTimer({
             admin;
+            parameters = parameters.timer;
         });
 
         Controller.Controller({
@@ -133,7 +134,6 @@ module {
             vote_type_controller;
             deposit_debt;
             resonance_debt;
-            decay_model;
             participation_dispenser;
             protocol_timer;
             minting_info;

@@ -5,7 +5,7 @@ import { backendActor } from "../actors/BackendActor";
 import { useState, useEffect } from "react";
 
 import { v4 as uuidv4 } from 'uuid';
-import { useProtocolInfoContext } from "./ProtocolInfoContext";
+import { useProtocolContext } from "./ProtocolContext";
 import { useCurrencyContext } from "./CurrencyContext";
 import BitcoinIcon from "./icons/BitcoinIcon";
 import { useWalletContext } from "./WalletContext";
@@ -24,7 +24,7 @@ function NewVote({ category } : NewVoteProps) {
   
   const [text, setText] = useState("");
 
-  const { info: { protocolParameters }, refreshInfo } = useProtocolInfoContext();
+  const { parameters, refreshParameters } = useProtocolContext();
   const { formatSatoshis } = useCurrencyContext();
   const { refreshBtcBalance } = useWalletContext();
   const navigate = useNavigate();
@@ -51,7 +51,7 @@ function NewVote({ category } : NewVoteProps) {
 
   useEffect(() => {
 
-    refreshInfo();
+    refreshParameters();
     
     let proposeVoteInput = document.getElementById(INPUT_BOX_ID);
 
@@ -84,7 +84,7 @@ function NewVote({ category } : NewVoteProps) {
         >
           <div className="flex flex-row items-baseline space-x-1">
             <span>Open</span>
-            { protocolParameters && <span className="text-sm">{"· " + formatSatoshis(protocolParameters.opening_vote_fee) } </span> }
+            { parameters && <span className="text-sm">{"· " + formatSatoshis(parameters.opening_vote_fee) } </span> }
             <span className="flex self-center">
               <BitcoinIcon />
             </span>

@@ -40,7 +40,6 @@ const ConsensusView: React.FC<ConsensusViewProps> = ({ voteDetails, text, timest
   }, [voteDetails, ballot]);
 
   const blendedColor = useMemo(() => {
-    if (!liveDetails.cursor) return "#000"; // Default color if no consensus
     return blendColors("#07E344", "#03B5FD", liveDetails.cursor); // Blend yes and no colors
   }, [liveDetails]);
 
@@ -51,14 +50,12 @@ const ConsensusView: React.FC<ConsensusViewProps> = ({ voteDetails, text, timest
         <span className="text-gray-400 text-sm">{" · "}</span>
         <DateSpan timestamp={timestamp}/>
       </span>
-      { liveDetails.cursor && (
-        <div
-          className={`text-lg leading-none ${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
-          style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
-        >
-          { liveDetails.cursor.toFixed(2) }
-        </div>
-      )}
+      <div
+        className={`text-lg leading-none ${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
+        style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
+      >
+        { liveDetails.cursor.toFixed(2) }
+      </div>
       <div className="flex flex-row items-center justify-self-center space-x-1">
         <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(BigInt(Math.trunc(liveDetails.total)))}</span>
         <BitcoinIcon />

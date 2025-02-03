@@ -1,7 +1,7 @@
 import { protocolActor } from "../actors/ProtocolActor";
 import { toCandid } from "../utils/conversions/yesnochoice";
 import { useEffect } from "react";
-import { formatDuration } from "../utils/conversions/duration";
+import { formatDuration } from "../utils/conversions/durationUnit";
 import { DISSENT_EMOJI, LOCK_EMOJI } from "../constants";
 import { BallotInfo } from "./types";
 import { get_current } from "../utils/timeline";

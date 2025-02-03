@@ -11,8 +11,9 @@ export type VoteDetails = {
   cursor: number;
 };
 
-export const compute_vote_details = (vote: SYesNoVote, decay: number): VoteDetails => {
+export const compute_vote_details = (vote: SYesNoVote, compute_decay: (time: bigint) => number): VoteDetails => {
   const aggregate = vote.aggregate.current.data;
+  const decay = compute_decay(vote.date);
   const yes = aggregate.current_yes.DECAYED / decay;
   const no = aggregate.current_no.DECAYED / decay;
   const total = yes + no;

@@ -15,7 +15,7 @@ import ResonanceCoinIcon from "../icons/ResonanceCoinIcon";
 import { compute_vote_details } from "../../utils/conversions/votedetails";
 import { DesktopBallotDetails, MobileBallotDetails } from "./BallotDetails";
 import { useMediaQuery } from "react-responsive";
-import { useProtocolInfoContext } from "../ProtocolInfoContext";
+import { useProtocolContext } from "../ProtocolContext";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -31,18 +31,18 @@ const VoteConsensus = ({ is_selected, vote_id }: VoteConsensusProps) => {
     args: [{ vote_id }],
   });
 
-  const { info : { currentDecay } } = useProtocolInfoContext();
+  const { computeDecay } = useProtocolContext();
   
   const vote = useMemo(() => {
     return opt_vote ? fromNullable(opt_vote) : undefined;
   }, [opt_vote]);
 
   const voteDetails = useMemo(() => {
-    if (currentDecay === undefined || vote === undefined) {
+    if (vote === undefined || computeDecay === undefined) {
       return undefined;
     }
-    return compute_vote_details(vote, currentDecay);
-  }, [vote, currentDecay]);
+    return compute_vote_details(vote, computeDecay);
+  }, [vote, computeDecay]);
 
   return (
     vote === undefined || voteDetails === undefined ? 

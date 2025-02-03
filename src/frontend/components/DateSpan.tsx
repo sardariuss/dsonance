@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { protocolActor } from "../actors/ProtocolActor";
 import { niceFormatDate, timeToDate } from "../utils/conversions/date";
+import { useProtocolContext } from "./ProtocolContext";
 
 interface DateSpanProps {
     timestamp: bigint;
@@ -8,18 +9,16 @@ interface DateSpanProps {
 
 const DateSpan: React.FC<DateSpanProps> = ({ timestamp }) => {
 
-    const { call: refreshNow, data: now } = protocolActor.useQueryCall({
-        functionName: "get_time",
-    });
+    const { info, refreshInfo } = useProtocolContext();
 
     useEffect(() => {
-        refreshNow();
+        refreshInfo();
     }
     , [timestamp]);
 
     return (
         <span className="text-gray-400 text-sm">
-            { (now !== undefined ? niceFormatDate(timeToDate(timestamp), timeToDate(now)) : "") } 
+            { (info !== undefined ? niceFormatDate(timeToDate(timestamp), timeToDate(info.current_time)) : "") } 
         </span>
     );
 }

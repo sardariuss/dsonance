@@ -11,7 +11,7 @@ import ConsensusView from "./ConsensusView";
 import LinkIcon from "./icons/LinkIcon";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
-import { useProtocolInfoContext } from "./ProtocolInfoContext";
+import { useProtocolContext } from "./ProtocolContext";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -26,13 +26,13 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
 
-  const { info : { currentDecay } } = useProtocolInfoContext();
+  const { computeDecay } = useProtocolContext();
 
   const voteDetails = useMemo(() => {
-    if (currentDecay === undefined) {
+    if (computeDecay === undefined) {
       return undefined;
     }
-    return compute_vote_details(vote, currentDecay);
+    return compute_vote_details(vote, computeDecay);
   }, [vote]);
 
   const resetVote = () => {

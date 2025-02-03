@@ -1,4 +1,4 @@
-import { formatDuration } from "../../utils/conversions/duration";
+import { formatDuration } from "../../utils/conversions/durationUnit";
 import { dateToTime, niceFormatDate, timeToDate } from "../../utils/conversions/date";
 
 import { LOCK_EMOJI, RESONANCE_TOKEN_SYMBOL, CONSENT_EMOJI, PARTICIPATION_EMOJI, DISCERNMENT_EMOJI, TIMESTAMP_EMOJI, DISSENT_EMOJI } from "../../constants";

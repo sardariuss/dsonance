@@ -1,26 +1,32 @@
 import React, { useState, useEffect, useRef } from "react";
-import { protocolActor } from "../actors/ProtocolActor";
 import { formatDateTime, timeToDate } from "../utils/conversions/date";
+import { useProtocolContext } from "./ProtocolContext";
 
 const SimulatedClock = () => {
 
-  const { call: refreshClockInfo, data: clockInfo } = protocolActor.useQueryCall({
-    functionName: "clock_info",
-  });
+  const { info, parameters, refreshInfo, refreshParameters } = useProtocolContext();
+  const [currentTime, setCurrentTime] = useState<Date | undefined>(undefined);
+  const [currentSpeed, setCurrentSpeed] = useState<number>(1.0); // Store the current speed
+  const lastRealTimeRef = useRef<number>(Date.now()); // Store the last real timestamp
 
   useEffect(() => {
-    refreshClockInfo();
+    refreshInfo();
+    refreshParameters();
   }, []);
 
   useEffect(() => {
-    setCurrentTime(clockInfo !== undefined ? timeToDate(clockInfo.time) : undefined);
-    setCurrentSpeed(clockInfo !== undefined ? clockInfo.dilation_factor : 1.0);
-  }, [clockInfo]);
-  
-  const [currentTime, setCurrentTime] = useState<Date | undefined>(undefined);
-  const [currentSpeed, setCurrentSpeed] = useState<number>(1.0); // Store the current speed
-  
-  const lastRealTimeRef = useRef<number>(Date.now()); // Store the last real timestamp
+    setCurrentTime(info !== undefined ? timeToDate(info.current_time) : undefined);
+    
+  }, [info]);
+
+  useEffect(() => {
+    if (parameters !== undefined && 'SIMULATED' in parameters.clock){
+      setCurrentSpeed(parameters.clock.SIMULATED.dilation_factor);
+    } else {
+      setCurrentSpeed(1.0);
+    }
+    
+  }, [parameters]);
   
   useEffect(() => {
 

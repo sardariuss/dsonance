@@ -21,7 +21,7 @@ const Vote = () => {
     return (
         actualVote && actualVote.info.visible ?
             <div className="flex flex-col border-x border-t dark:border-gray-700 w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
-                <VoteView vote={actualVote} selected={id} setSelected={()=>{}}/>
+                <VoteView vote={actualVote} selected={true} setSelected={()=>{}}/>
             </div> 
         : actualVote ? 
             <span>Vote not found</span>

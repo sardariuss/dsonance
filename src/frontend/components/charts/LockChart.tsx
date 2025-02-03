@@ -2,7 +2,7 @@ import { useMemo, useEffect, useRef, useState, Fragment, useContext } from 'reac
 import { ResponsiveLine, Serie } from '@nivo/line';
 import { SBallotType } from '@/declarations/protocol/protocol.did';
 import IntervalPicker from './IntervalPicker';
-import { DurationUnit, toNs } from '../../utils/conversions/duration';
+import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
 import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
 import { protocolActor } from '../../actors/ProtocolActor';
 import { formatDate, msToNs, nsToMs, timeToDate } from '../../utils/conversions/date';
@@ -12,6 +12,7 @@ import { useCurrencyContext } from '../CurrencyContext';
 import { ThemeContext } from '../App';
 import { useMediaQuery } from 'react-responsive';
 import { MOBILE_MAX_WIDTH_QUERY } from '../../constants';
+import { useProtocolContext } from '../ProtocolContext';
 
 interface LockChartProps {
   ballots: SBallotType[];
@@ -50,9 +51,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
   const { formatSatoshis } = useCurrencyContext();
 
-  const { data: currentTime } = protocolActor.useQueryCall({
-    functionName: "get_time",
-  });
+  const { info } = useProtocolContext();
 
   const [duration, setDuration] = useState<DurationUnit>(DurationUnit.YEAR);
 
@@ -346,16 +345,16 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
             enablePoints={false}
             lineWidth={20}
             margin={isMobile ? { top: 25, right: 25, bottom: 25, left: 25 } : { top: 50, right: 50, bottom: 50, left: 60 }}
-            markers={currentTime ? [
+            markers={info ? [
               {
                 axis: 'x',
-                value: timeToDate(currentTime).getTime(),
+                value: timeToDate(info.current_time).getTime(),
                 lineStyle: {
                   stroke: theme === "dark" ? "yellow" : "black",
                   strokeWidth: 1,
                   zIndex: 20,
                 },
-                legend: formatDate(timeToDate(currentTime)),
+                legend: formatDate(timeToDate(info.current_time)),
                 legendOrientation: 'horizontal',
                 legendPosition: 'top',
                 textStyle: {

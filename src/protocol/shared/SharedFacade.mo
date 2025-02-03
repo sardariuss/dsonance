@@ -26,12 +26,10 @@ module {
     type SNewVoteResult = Types.SNewVoteResult;
     type NewVoteError = Types.NewVoteError;
     type SProtocolInfo = Types.SProtocolInfo;
-    type SClockParameters = Types.SClockParameters;
-    type ClockInfo = Types.ClockInfo;
     type TimerParameters = Types.TimerParameters;
     type STimeline<T> = Types.STimeline<T>;
     type ProtocolParameters = Types.ProtocolParameters;
-    type DecayParameters = Types.DecayParameters;
+    type SProtocolParameters = Types.SProtocolParameters;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -49,18 +47,6 @@ module {
 
         public func run() : async* () {
             await* controller.run();
-        };
-
-        public func get_amount_minted() : STimeline<Nat> {
-            SharedConversions.shareTimeline(controller.get_amount_minted());
-        };
-
-        public func get_total_locked() : STimeline<Nat> {
-            SharedConversions.shareTimeline(controller.get_total_locked());
-        };
-
-        public func get_protocol_parameters() : ProtocolParameters {
-            controller.get_protocol_parameters();
         };
 
         public func get_votes({origin: Principal; filter_ids: ?[UUID] }) : [SVoteType] {
@@ -84,44 +70,32 @@ module {
             Option.map<BallotType, SBallotType>(controller.find_ballot(ballot_id), SharedConversions.shareBallotType);
         };
 
-        public func current_decay() : Float {
-            controller.current_decay();
+        public func set_timer_interval({ caller: Principal; interval_s: Nat; }) : async* Result<(), Text> {
+            await* controller.set_timer_interval({ caller; interval_s; });
         };
 
-        public func decay_params() : DecayParameters {
-            controller.decay_params();
-        };
-
-        public func get_parameters() : SClockParameters {
-            SharedConversions.shareClockParameters(controller.get_clock().get_parameters());
-        };
-
-        public func clock_info() : ClockInfo {
-            controller.get_clock().clock_info();
-        };
-
-        public func add_offset(duration: Duration) : Result<(), Text> {
-            controller.get_clock().add_offset(duration);
-        };
-
-        public func set_dilation_factor(dilation_factor: Float) : Result<(), Text> {
-            controller.get_clock().set_dilation_factor(dilation_factor);
-        };
-
-        public func get_timer() : ?TimerParameters {
-            controller.get_timer();
-        };
-
-        public func set_timer({ caller: Principal; duration_s: Nat; }) : async* Result<(), Text> {
-            await* controller.set_timer({ caller; duration_s; });
+        public func start_timer({ caller: Principal; }) : async* Result<(), Text> {
+            await* controller.start_timer({ caller; });
         };
 
         public func stop_timer({ caller: Principal }) : Result<(), Text> {
             controller.stop_timer({ caller; });
         };
 
-        public func get_time() : Time {
-            controller.get_clock().get_time();
+        public func add_clock_offset(duration: Duration) : Result<(), Text> {
+            controller.get_clock().add_offset(duration);
+        };
+
+        public func set_clock_dilation_factor(dilation_factor: Float) : Result<(), Text> {
+            controller.get_clock().set_dilation_factor(dilation_factor);
+        };
+
+        public func get_info() : SProtocolInfo {
+            SharedConversions.shareProtocolInfo(controller.get_info());
+        };
+
+        public func get_parameters() : SProtocolParameters {
+            SharedConversions.shareProtocolParameters(controller.get_parameters());
         };
         
     };

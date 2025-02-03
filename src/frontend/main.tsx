@@ -12,7 +12,7 @@ import { ResonanceLedgerActorProvider } from './actors/ResonanceLedgerActor';
 import { CurrencyProvider }             from './components/CurrencyContext';
 import { MinterActorProvider }          from './actors/MinterActor';
 import { WalletProvider }               from './components/WalletContext';
-import { ProtocolProvider }             from './components/ProtocolInfoContext';
+import { ProtocolProvider }             from './components/ProtocolContext';
 import { IcpCoinsActorProvider }        from './actors/IcpCoinsActor';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(

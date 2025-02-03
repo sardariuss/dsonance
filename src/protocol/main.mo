@@ -4,7 +4,6 @@ import Factory        "Factory";
 import MigrationTypes "migrations/Types";
 import Migrations     "migrations/Migrations";
 
-import Time           "mo:base/Time";
 import Principal      "mo:base/Principal";
 import Debug          "mo:base/Debug";
 import Option         "mo:base/Option";
@@ -70,18 +69,6 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         await* getFacade().run();
     };
 
-    public query func get_amount_minted() : async Types.STimeline<Nat> {
-        getFacade().get_amount_minted();
-    };
-
-    public query func get_total_locked() : async Types.STimeline<Nat> {
-        getFacade().get_total_locked();
-    };
-
-    public query func get_protocol_parameters() : async Types.ProtocolParameters {
-        getFacade().get_protocol_parameters();
-    };
-
     // Get the ballots of the given account
     public query func get_ballots(account: Types.Account) : async [Types.SBallotType] {
         getFacade().get_ballots(account);
@@ -97,44 +84,32 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().find_ballot(ballot_id);
     };
 
-    public query func current_decay() : async Float {
-        getFacade().current_decay();
+    public shared func add_clock_offset(duration: Types.Duration) : async Result.Result<(), Text> {
+        getFacade().add_clock_offset(duration);
     };
 
-    public query func decay_params() : async Types.DecayParameters {
-        getFacade().decay_params();
+    public shared func set_clock_dilation_factor(dilation_factor: Float) : async Result.Result<(), Text> {
+        getFacade().set_clock_dilation_factor(dilation_factor);
     };
 
-    public query func get_parameters() : async Types.SClockParameters {
-        getFacade().get_parameters();
+    public shared({caller}) func set_timer_interval({ interval_s: Nat }) : async Result.Result<(), Text> {
+        await* getFacade().set_timer_interval({ caller; interval_s; });
     };
 
-    public query func clock_info() : async Types.ClockInfo {
-        getFacade().clock_info();
-    };
-
-    public shared func add_offset(duration: Types.Duration) : async Result.Result<(), Text> {
-        getFacade().add_offset(duration);
-    };
-
-    public shared func set_dilation_factor(dilation_factor: Float) : async Result.Result<(), Text> {
-        getFacade().set_dilation_factor(dilation_factor);
-    };
-
-    public query func get_time() : async Time.Time {
-        getFacade().get_time();
-    };
-
-    public query func get_timer() : async ?Types.TimerParameters {
-        getFacade().get_timer();
-    };
-
-    public shared({caller}) func set_timer({ duration_s: Nat }) : async Result.Result<(), Text> {
-        await* getFacade().set_timer({ caller; duration_s; });
+    public shared({caller}) func start_timer() : async Result.Result<(), Text> {
+        await* getFacade().start_timer({ caller; });
     };
 
     public shared({caller}) func stop_timer() : async Result.Result<(), Text> {
         getFacade().stop_timer({ caller; });
+    };
+
+    public query func get_info() : async Types.SProtocolInfo {
+        getFacade().get_info();
+    };
+
+    public query func get_parameters() : async Types.SProtocolParameters {
+        getFacade().get_parameters();
     };
 
     func getFacade() : SharedFacade.SharedFacade {

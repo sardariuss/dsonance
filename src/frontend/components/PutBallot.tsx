@@ -11,6 +11,7 @@ import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@ic-reactor/react";
+import { useProtocolContext } from "./ProtocolContext";
 
 interface PutBallotProps {
   vote_id: string;
@@ -50,10 +51,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
     },
   });
 
-  const { data: protocolParameters } = protocolActor.useQueryCall({
-    functionName: "get_protocol_parameters",
-    args: [],
-  });
+  const { parameters } = useProtocolContext();
 
   const triggerVote = () => {
     if (!authenticated) {
@@ -72,9 +70,9 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
   const [tooSmall, setTooSmall] = useState(false);
 
   useEffect(() => {
-    setTooSmall(protocolParameters ? ballot.amount < protocolParameters.minimum_ballot_amount : false);
+    setTooSmall(parameters ? ballot.amount < parameters.minimum_ballot_amount : false);
   }
-  , [ballot, protocolParameters]);
+  , [ballot, parameters]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [isActive, setIsActive] = useState(false);
@@ -134,9 +132,9 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
         </button>
         <span>{/*spacer*/}</span>
         <span>{/*spacer*/}</span>
-        {protocolParameters && tooSmall && (
+        {parameters && tooSmall && (
           <div className="text-sm text-red-500 truncate col-span-4 text-center">
-            Minimum {formatSatoshis(protocolParameters?.minimum_ballot_amount)}
+            Minimum {formatSatoshis(parameters.minimum_ballot_amount)}
           </div>
         )}
       </div>
@@ -180,9 +178,9 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
           Lock ballot
         </button>
       </div>
-      { protocolParameters && 
+      { parameters && 
         <div className={`${tooSmall ? "text-red-500" : "text-gray-500"} text-sm`}>
-          Minimum {formatSatoshis(protocolParameters?.minimum_ballot_amount)}
+          Minimum {formatSatoshis(parameters.minimum_ballot_amount)}
         </div>
       }
     </div>

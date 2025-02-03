@@ -43,7 +43,7 @@ module {
     type ProtocolParameters = Types.ProtocolParameters;
     type MintingInfo = Types.MintingInfo;
     type Timeline<T> = Types.Timeline<T>;
-    type DecayParameters = Types.DecayParameters;
+    type ProtocolInfo = Types.ProtocolInfo;
 
     type WeightParams = {
         ballot: BallotType;
@@ -75,7 +75,6 @@ module {
         vote_type_controller: VoteTypeController.VoteTypeController;
         deposit_debt: DebtProcessor.DebtProcessor;
         resonance_debt: DebtProcessor.DebtProcessor;
-        decay_model: Decay.DecayModel;
         participation_dispenser: ParticipationDispenser.ParticipationDispenser;
         protocol_timer: ProtocolTimer.ProtocolTimer;
         minting_info: MintingInfo;
@@ -253,40 +252,33 @@ module {
             Map.get(ballot_register.ballots, Map.thash, ballot_id);
         };
 
-        public func current_decay() : Float {
-            decay_model.compute_decay(clock.get_time());
-        };
-
-        public func decay_params() : DecayParameters {
-            decay_model.get_params();
-        };
-
         public func get_clock() : Clock.Clock {
             clock;
         };
 
-        public func get_timer() : ?TimerParameters {
-            protocol_timer.get_timer();
+        public func set_timer_interval({ caller: Principal; interval_s: Nat; }) : async* Result<(), Text> {
+            await* protocol_timer.set_interval({ caller; interval_s; fn = run;});
         };
 
-        public func set_timer({ caller: Principal; duration_s: Nat; }) : async* Result<(), Text> {
-            await* protocol_timer.set_timer({ caller; duration_s; fn = run;});
+        public func start_timer({ caller: Principal; }) : async* Result<(), Text> {
+            await* protocol_timer.start_timer({ caller; fn = run; });
         };
 
         public func stop_timer({ caller: Principal }) : Result<(), Text> {
             protocol_timer.stop_timer({ caller });
         };
 
-        public func get_amount_minted() : Timeline<Nat> {
-            minting_info.amount_minted;
-        };
-
-        public func get_total_locked() : Timeline<Nat> {
-            lock_scheduler.get_total_locked();
-        };
-
-        public func get_protocol_parameters() : ProtocolParameters {
+        public func get_parameters() : ProtocolParameters {
             parameters;
+        };
+
+        public func get_info() : ProtocolInfo {
+            {
+                current_time = clock.get_time();
+                last_run = participation_dispenser.get_last_dispense();
+                ck_btc_locked = lock_scheduler.get_total_locked();
+                resonance_minted = minting_info.amount_minted;
+            };
         };
 
     };

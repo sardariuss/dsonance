@@ -14,6 +14,7 @@ import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
 import CurrencyConverter from "../CurrencyConverter";
 import ThemeToggle from "../ThemeToggle";
 import { useAuth } from "@ic-reactor/react";
+import { useProtocolContext } from "../ProtocolContext";
 
 const User = () => {
   
@@ -40,9 +41,7 @@ const User = () => {
 
   const { formatSatoshis } = useCurrencyContext();
 
-  const { call: refreshNow, data: now } = protocolActor.useQueryCall({
-    functionName: "get_time",
-  });
+  const { info, refreshInfo } = useProtocolContext();
 
   const { data: ballots, call: refreshBallots } = protocolActor.useQueryCall({
     functionName: "get_ballots",
@@ -50,12 +49,12 @@ const User = () => {
   });
 
   useEffect(() => {
-    refreshNow();
+    refreshInfo();
     refreshBallots();
   }, []);
 
-  const totalLocked = now && ballots?.reduce((acc, ballot) =>
-    acc + ((ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data) > now ? ballot.YES_NO.amount : 0n)
+  const totalLocked = info && ballots?.reduce((acc, ballot) =>
+    acc + ((ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data) > info.current_time ? ballot.YES_NO.amount : 0n)
   , 0n);
 
   useEffect(() => {
@@ -106,7 +105,7 @@ const User = () => {
                 ballot={ballot}
                 isSelected={selectedBallotId === ballot.YES_NO.ballot_id}
                 selectBallot={() => selectBallot(selectedBallotId === ballot.YES_NO.ballot_id ? null : ballot.YES_NO.ballot_id)}
-                now={now}
+                now={info?.current_time}
               />
             </li>
           ))

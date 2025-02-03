@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { ThemeContext } from "../App";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
+import { useProtocolContext } from "../ProtocolContext";
 
 export enum CHART_COLORS {
   BLUE = "rgb(59 130 246)",
@@ -66,9 +67,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
     };
   }, []);
 
-  const { data: currentTime } = protocolActor.useQueryCall({
-    functionName: "get_time",
-  });
+  const { info } = useProtocolContext();
 
   // Set up the chart container ref
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
@@ -85,7 +84,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
       x: new Date(nsToMs(duration_timeline.current.timestamp)),
       y: duration_timeline.current.data
     });
-    let timestamp = last_timestamp ?? currentTime;
+    let timestamp = last_timestamp ?? info?.current_time;
     if (timestamp) {
       points.push({
         x: new Date(nsToMs(timestamp)),
@@ -97,7 +96,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
       data: points
     });
     return data;
-  }, [duration_timeline, currentTime]);
+  }, [duration_timeline, info]);
 
   return (
     <div className="flex flex-col items-center space-y-1 w-full" ref={containerRef}>

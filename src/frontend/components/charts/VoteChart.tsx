@@ -1,15 +1,15 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { DecayParameters, STimeline_3, YesNoAggregate }     from "@/declarations/protocol/protocol.did";
+import { STimeline_3, YesNoAggregate }                      from "@/declarations/protocol/protocol.did";
 import { SYesNoVote }                                       from "@/declarations/backend/backend.did";
 import { EYesNoChoice }                                     from "../../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump }                from "@nivo/bump";
 import { BallotInfo }                                       from "../types";
-import { DurationUnit, toNs }                               from "../../utils/conversions/duration";
+import { DurationUnit, toNs }                               from "../../utils/conversions/durationUnit";
 import { CHART_CONFIGURATIONS, computeInterval }            from ".";
 import IntervalPicker                                       from "./IntervalPicker";
 import { useCurrencyContext }                               from "../CurrencyContext";
 import { ThemeContext }                                     from "../App";
-import { useProtocolInfoContext }                           from "../ProtocolInfoContext";
+import { useProtocolContext }                               from "../ProtocolContext";
 import { useMediaQuery }                                    from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY }                           from "../../constants";
 
@@ -23,7 +23,7 @@ interface Size {
 
 interface ComputeChartPropsArgs {
   currentTime: bigint;
-  decayParams: DecayParameters;
+  computeDecay: (time: bigint) => number;
   duration: DurationUnit;
   aggregate: STimeline_3;
 }
@@ -31,14 +31,14 @@ interface ComputeChartPropsArgs {
 type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[], color: string}>[];
 type ChartProperties = { chartData: ChartData, total: { maximum: number, current: number }, priceLevels: number[], dateTicks: number[] };
 
-const computeChartProps = ({ currentTime, decayParams, duration, aggregate } : ComputeChartPropsArgs) : ChartProperties => {
+const computeChartProps = ({ currentTime, computeDecay, duration, aggregate } : ComputeChartPropsArgs) : ChartProperties => {
 
   let chartData : ChartData = [
     { id: EYesNoChoice.Yes, data: [], color: "rgb(7 227 68)" },
     { id: EYesNoChoice.No, data: [], color: "rgb(0 203 253)" },
   ];
 
-  const { dates, ticks } = computeInterval(currentTime, duration, decayParams);
+  const { dates, ticks } = computeInterval(currentTime, duration, computeDecay);
 
   let max = 0;
   let total = 0;
@@ -134,25 +134,25 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
 
   const { formatSatoshis } = useCurrencyContext();
 
-  const { info: { currentTime, decayParams} } = useProtocolInfoContext();
+  const { info, parameters, computeDecay } = useProtocolContext();
      
   const voteData = useMemo<ChartProperties>(() => {
-    if (!currentTime || !decayParams) {
+    if (!info || !parameters || !computeDecay) {
       return ({ chartData: [], total: { current: 0, maximum: 0 }, priceLevels: [], dateTicks: [] });
     }
     return computeChartProps({ 
-      currentTime,
-      decayParams,
+      currentTime: info.current_time,
+      computeDecay,
       duration,
       aggregate: vote.aggregate 
     });
   }, 
-  [currentTime, decayParams, duration]);
+  [info, parameters, computeDecay, duration]);
 
   useEffect(() => {
     // Set the duration based on the current time
-    if (currentTime){
-      let timeDifference = currentTime - vote.aggregate.history[0].timestamp;
+    if (info){
+      let timeDifference = info.current_time - vote.aggregate.history[0].timestamp;
       if (timeDifference < toNs(1, DurationUnit.WEEK)){
         setDuration(DurationUnit.WEEK);
       } else if (timeDifference < toNs(1, DurationUnit.MONTH)){
@@ -162,7 +162,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
       }
     }
   }
-  , [currentTime]);
+  , [info]);
 
   const { chartData, total, priceLevels, dateTicks } = useMemo<ChartProperties>(() => {
     const newTotal = { maximum : voteData.total.maximum, current: voteData.total.current + Number(ballot.amount) };

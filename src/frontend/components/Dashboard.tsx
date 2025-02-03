@@ -6,8 +6,9 @@ import { DISCERNMENT_EMOJI, PARTICIPATION_EMOJI, RESONANCE_TOKEN_SYMBOL } from "
 import { useCurrencyContext } from "./CurrencyContext";
 import ResonanceCoinIcon from "./icons/ResonanceCoinIcon";
 import BitcoinIcon from "./icons/BitcoinIcon";
-import { useProtocolInfoContext } from "./ProtocolInfoContext";
+import { useProtocolContext } from "./ProtocolContext";
 import SimulatedClock from "./SimulatedClock";
+import { timeDifference, timeToDate } from "../utils/conversions/date";
 
 export const computeMintingRate = (ck_btc_locked: bigint, participation_per_ns: number, satoshisToCurrency: (satoshis: bigint) => number | undefined) => {
     if (ck_btc_locked === 0n) {
@@ -24,34 +25,54 @@ const Dashboard = () => {
 
     const { formatSatoshis, satoshisToCurrency, currencySymbol } = useCurrencyContext();
 
-    const { info: { protocolParameters, totalLocked, amountMinted }, refreshInfo } = useProtocolInfoContext();
+    const { info, parameters, refreshInfo, refreshParameters } = useProtocolContext();
 
     useEffect(() => {
         refreshInfo();
+        refreshParameters();
     }
     , []);
 
     const participationRate = useMemo(() => {
-        if (protocolParameters === undefined || totalLocked === undefined) {
+        if (parameters === undefined || info === undefined) {
             return undefined;
         }
         return map_filter_timeline(
-            to_number_timeline(totalLocked), (value: number) => 
-                computeMintingRate(BigInt(value), protocolParameters.participation_per_ns, satoshisToCurrency)
+            to_number_timeline(info.ck_btc_locked), (value: number) => 
+                computeMintingRate(BigInt(value), parameters.participation_per_ns, satoshisToCurrency)
         );
-    }, [protocolParameters, satoshisToCurrency]);
+    }, [parameters, satoshisToCurrency]);
       
     return (
         <div className="flex flex-col items-center border-t border-x dark:border-gray-700 border-gray-300 w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
             <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full">
                 <SimulatedClock />
             </div>
-            { protocolParameters && 
+            { parameters && 
+                <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full space-x-1 justify-center">
+                    <span>{DISCERNMENT_EMOJI}</span>
+                    <span className="text-gray-700 dark:text-gray-300">Dispense interval:</span>
+                    <span className="text-lg">
+                        {parameters.timer.interval_s.toString()}s
+                    </span>
+                </div>
+            }
+            { info && parameters && 
+                <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full space-x-1 justify-center">
+                    <span>{DISCERNMENT_EMOJI}</span>
+                    <span className="text-gray-700 dark:text-gray-300">Next dispense in:</span>
+                    <span className="text-lg">
+                        { /* TODO: fix the time difference */ }
+                        { timeDifference(timeToDate(info.current_time), timeToDate(info.last_run + parameters.timer.interval_s * 1_000_000_000n) ) }
+                    </span>
+                </div>
+            }
+            { parameters && 
                 <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full space-x-1 justify-center">
                     <span>{DISCERNMENT_EMOJI}</span>
                     <span className="text-gray-700 dark:text-gray-300">Discernment factor:</span>
                     <span className="text-lg">
-                        {protocolParameters.discernment_factor.toFixed(2)}
+                        {parameters.discernment_factor.toFixed(2)}
                     </span>
                 </div>
             }
@@ -71,34 +92,34 @@ const Dashboard = () => {
                     />
                 </div>
             }
-            { totalLocked && 
+            { info && 
                 <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-2 w-full">
                     <div className="flex flex-row items-center space-x-1">
                         <BitcoinIcon />
                         <div className="text-gray-700 dark:text-gray-300">Total locked:</div>
                         <span className="text-lg">
-                            {`${formatSatoshis(totalLocked.current.data)} BTC`}
+                            {`${formatSatoshis(info.ck_btc_locked.current.data)} BTC`}
                         </span>
                     </div>
                     <DurationChart
-                        duration_timeline={to_number_timeline(totalLocked)} 
+                        duration_timeline={to_number_timeline(info.ck_btc_locked)} 
                         format_value={ (value: number) => (formatSatoshis(BigInt(value)) ?? "") } 
                         fillArea={true}
                         color={CHART_COLORS.YELLOW}
                     />
                 </div>
             }
-            { amountMinted && 
+            { info && 
                 <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-2 w-full">
                     <div className="flex flex-row items-center space-x-1">
                         <ResonanceCoinIcon />
                         <div className="text-gray-700 dark:text-gray-300">Resonance minted:</div>
                         <span className="text-lg">
-                            {formatBalanceE8s(amountMinted.current.data, RESONANCE_TOKEN_SYMBOL, 0)}
+                            {formatBalanceE8s(info.resonance_minted.current.data, RESONANCE_TOKEN_SYMBOL, 0)}
                         </span>
                     </div>
                     <DurationChart
-                        duration_timeline={to_number_timeline(amountMinted)}
+                        duration_timeline={to_number_timeline(info.resonance_minted)}
                         format_value={ (value: number) => `${formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL, 0)}` }
                         fillArea={true}
                         color={CHART_COLORS.GREEN}

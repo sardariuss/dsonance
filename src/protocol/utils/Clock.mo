@@ -13,22 +13,11 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     type ClockParameters = Types.ClockParameters;
-    type ClockInfo = Types.ClockInfo;
 
     public class Clock(params: ClockParameters) {
 
         public func get_parameters() : ClockParameters {
             params;
-        };
-
-        public func clock_info() : ClockInfo {
-            {
-                time = get_time();
-                dilation_factor = switch(params){
-                    case(#REAL) { 1.0; };
-                    case(#SIMULATED(p)) { p.dilation_factor; };
-                };
-            };
         };
 
         public func add_offset(duration: Duration) : Result<(), Text> {
