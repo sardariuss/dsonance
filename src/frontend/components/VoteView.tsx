@@ -16,8 +16,8 @@ import { useProtocolInfoContext } from "./ProtocolInfoContext";
 interface VoteViewProps {
   vote: SYesNoVote;
   refreshVotes?: () => void;
-  selected: string | null;
-  setSelected: (selected: string | null) => void;
+  selected: boolean;
+  setSelected: () => void;
 }
 
 const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSelected }) => {
@@ -47,11 +47,11 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
     isMobile ? 
   (
     (voteDetails !== undefined) && <div className="flex flex-col content-center border-b dark:border-gray-700 px-2 py-1 hover:cursor-pointer space-y-2 w-full hover:bg-slate-50 hover:dark:bg-slate-850">
-      <div className="w-full flex flex-row space-x-1 items-baseline" onClick={(e) => { setSelected(selected === vote.vote_id ? null : vote.vote_id) }}>
+      <div className="w-full flex flex-row space-x-1 items-baseline" onClick={() => setSelected() }>
         <ConsensusView voteDetails={voteDetails} text={vote.info.text} timestamp={vote.date} ballot={ballot}/>
       </div>
       {
-        selected === vote.vote_id && vote.vote_id !== undefined && (
+        selected && vote.vote_id !== undefined && (
           <div className="flex flex-col items-center space-y-2">
             {
               voteDetails.total > 0 && <div className="flex flex-col space-y-2 items-center w-5/6">
@@ -74,7 +74,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
     </div>
   ) : (
     (voteDetails !== undefined) && <div className="flex flex-col content-center border-b dark:border-gray-700 px-5 py-1 hover:cursor-pointer space-y-2 w-full hover:bg-slate-50 hover:dark:bg-slate-850">
-      <div className="w-full grid grid-cols-[minmax(300px,_1fr)_50px] items-center gap-x-8" onClick={(e) => { setSelected(selected === vote.vote_id ? null : vote.vote_id) }}>
+      <div className="w-full grid grid-cols-[minmax(300px,_1fr)_50px] items-center gap-x-8" onClick={() => setSelected() }>
         <ConsensusView voteDetails={voteDetails} text={vote.info.text} timestamp={vote.date} ballot={ballot}/>
         <div className="flex flex-row dark:stroke-gray-200 dark:hover:stroke-white hover:stroke-black stroke-gray-800 hover:cursor-pointer"
           onClick={(e) => { e.stopPropagation(); window.open(`/vote/${vote.vote_id}`, "_blank") }}
@@ -83,7 +83,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
         </div>
       </div>
       {
-        selected === vote.vote_id && vote.vote_id !== undefined && (
+        selected && vote.vote_id !== undefined && (
           <div className="flex flex-col space-y-2 items-center">
             {
               voteDetails.total > 0 && <div className="flex flex-col space-y-2 items-center w-2/3">

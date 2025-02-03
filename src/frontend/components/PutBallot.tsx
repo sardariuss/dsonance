@@ -9,6 +9,8 @@ import BitcoinIcon from "./icons/BitcoinIcon";
 import { useWalletContext } from "./WalletContext";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@ic-reactor/react";
 
 interface PutBallotProps {
   vote_id: string;
@@ -21,6 +23,8 @@ interface PutBallotProps {
 const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, setBallot, resetVote }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
+  const navigate = useNavigate();
+  const { authenticated, identity, login } = useAuth({});
 
   const { formatSatoshis, currencySymbol, currencyToSatoshis, satoshisToCurrency } = useCurrencyContext();
 
@@ -28,11 +32,18 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
 
   const { call: putBallot, loading } = protocolActor.useUpdateCall({
     functionName: "put_ballot",
-    onSuccess: () => {
-      if (refreshVotes){
-        refreshVotes();
-      };
-      refreshBtcBalance();
+    onSuccess: (result) => {
+      if (result === undefined) {
+        return;
+      }
+      if ('err' in result) {
+        console.error(result.err);
+        return;
+      }
+      if (identity !== null) {
+        refreshBtcBalance();
+        navigate(`/user/${identity.getPrincipal()}?ballotId=${result.ok.YES_NO.ballot_id}`);
+      }
     },
     onError: (error) => {
       console.error(error);
@@ -45,6 +56,10 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, se
   });
 
   const triggerVote = () => {
+    if (!authenticated) {
+      login();
+      return;
+    }
     putBallot([{
       vote_id,
       ballot_id: uuidv4(),

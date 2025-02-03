@@ -59,7 +59,7 @@ const ConsensusView: React.FC<ConsensusViewProps> = ({ voteDetails, text, timest
           { liveDetails.cursor.toFixed(2) }
         </div>
       )}
-      <div className="flex flex-row items-center justify-self-center">
+      <div className="flex flex-row items-center justify-self-center space-x-1">
         <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(BigInt(Math.trunc(liveDetails.total)))}</span>
         <BitcoinIcon />
       </div>

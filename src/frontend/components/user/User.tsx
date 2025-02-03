@@ -13,16 +13,23 @@ import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
 import CurrencyConverter from "../CurrencyConverter";
 import ThemeToggle from "../ThemeToggle";
+import { useAuth } from "@ic-reactor/react";
 
 const User = () => {
   
   const { principal } = useParams();
+  const { identity } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const ballotRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
+  const [triggerScroll, setTriggerScroll] = useState(false);
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  if (!principal) {
+  if (!principal || !identity) {
     return <div>Invalid principal</div>;
+  }
+
+  if (principal !== identity.getPrincipal().toString()) {
+    return <div>Unauthorized</div>;
   }
 
   const selectedBallotId = useMemo(() => searchParams.get("ballotId"), [searchParams]);
@@ -64,8 +71,7 @@ const User = () => {
         }, 50);
       }
     }
-  }, [selectedBallotId, ballots]);
-  
+  }, [triggerScroll, ballots]);
   
   return (
     <div className="flex flex-col items-center border-x dark:border-gray-700 border-t w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
@@ -88,7 +94,7 @@ const User = () => {
               <BitcoinIcon/>
             </div>
           </div>
-          <LockChart ballots={ballots} select_ballot={selectBallot} selected={selectedBallotId}/>
+          <LockChart ballots={ballots} select_ballot={(id) => { setTriggerScroll(!triggerScroll); selectBallot(id); }} selected={selectedBallotId}/>
         </div>
       }
       <ul className="w-full">
@@ -96,7 +102,12 @@ const User = () => {
           /* Size of the header is 26 on mobile and 22 on desktop */
           ballots?.map((ballot, index) => (
             <li key={index} ref={(el) => (ballotRefs.current.set(ballot.YES_NO.ballot_id, el))} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]"> 
-              <BallotView ballot={ballot} isSelected={selectedBallotId === ballot.YES_NO.ballot_id} selectBallot={() => selectBallot(ballot.YES_NO.ballot_id)} now={now}/>
+              <BallotView 
+                ballot={ballot}
+                isSelected={selectedBallotId === ballot.YES_NO.ballot_id}
+                selectBallot={() => selectBallot(selectedBallotId === ballot.YES_NO.ballot_id ? null : ballot.YES_NO.ballot_id)}
+                now={now}
+              />
             </li>
           ))
         }

@@ -1,5 +1,4 @@
 import { Route, Routes } from "react-router-dom";
-import { useAuth } from "@ic-reactor/react";
 
 import VoteList from "../components/VoteList";
 import User from "../components/user/User";
@@ -7,7 +6,6 @@ import Dashboard from "../components/Dashboard";
 import Vote from "../components/Vote";
 
 const Router = () => {
-    const { identity } = useAuth({});
   
     return (
       <Routes>

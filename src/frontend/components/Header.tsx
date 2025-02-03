@@ -1,14 +1,10 @@
 import { Link, useLocation, useNavigate }      from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@ic-reactor/react";
-import { useCurrencyContext } from "./CurrencyContext";
-import { DOCS_URL, MOBILE_MAX_WIDTH_QUERY, PARTICIPATION_EMOJI, RESONANCE_TOKEN_SYMBOL } from "../constants";
-import { fromE8s } from "../utils/conversions/token";
+import { DOCS_URL, MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import UserIcon from "./icons/UserIcon";
 import LoginIcon from "./icons/LoginIcon";
-import { computeMintingRate } from "./Dashboard";
 import BtcBalance from "./BtcBalance";
-import { useProtocolInfoContext } from "./ProtocolInfoContext";
 import Logo from "./icons/Logo";
 import { useMediaQuery } from "react-responsive";
 import { Identity } from "@dfinity/agent";
@@ -17,14 +13,12 @@ import CurrencyConverter from "./CurrencyConverter";
 import ThemeToggle from "./ThemeToggle";
 
 interface HeaderProps {
-  mintingRate?: number;
-  currencySymbol: string;
   authenticated: boolean;
   identity: Identity | null;
   login: () => void;
 }
 
-const DesktopHeader: React.FC<HeaderProps> = ({ mintingRate, currencySymbol, authenticated, identity, login }) => {
+const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }) => {
   // WATCHOUT: the size of the header is set to 22 (16 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
@@ -44,19 +38,6 @@ const DesktopHeader: React.FC<HeaderProps> = ({ mintingRate, currencySymbol, aut
 
         {/* Spacer to center the second element */}
         <div className="flex-grow"></div>
-
-        {/* Centered Minting Rate Info */}
-        { mintingRate && location.pathname !== "/dashboard" && (
-          <div
-            className="absolute left-1/2 transform -translate-x-1/2 flex flex-row items-center justify-center space-x-1"
-          >
-            <span>{PARTICIPATION_EMOJI}</span>
-            <span>Participation rate:</span>
-            <span className="text-lg">
-              {`${fromE8s(BigInt(mintingRate)).toString()} ${RESONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
-            </span>
-          </div>
-        )}
         
         {/* Right-aligned Profile and Theme Toggle */}
         <div className="flex flex-row items-center justify-end md:space-x-6 space-x-2">
@@ -226,20 +207,10 @@ const Header = () => {
     },
   });
 
-  const { info: { protocolParameters, totalLocked }, refreshInfo } = useProtocolInfoContext();
-
-  const { currencySymbol, satoshisToCurrency } = useCurrencyContext();
-
-  useEffect(() => {
-    refreshInfo();
-  }, []);
-
-  const mintingRate = protocolParameters && totalLocked && computeMintingRate(totalLocked.current.data, protocolParameters.participation_per_ns, satoshisToCurrency);
-
   return (
     isMobile ? 
-      <MobileHeader mintingRate={mintingRate} currencySymbol={currencySymbol} authenticated={authenticated} identity={identity} login={login} /> :
-      <DesktopHeader mintingRate={mintingRate} currencySymbol={currencySymbol} authenticated={authenticated} identity={identity} login={login} />
+      <MobileHeader authenticated={authenticated} identity={identity} login={login} /> :
+      <DesktopHeader authenticated={authenticated} identity={identity} login={login} />
   );
 }
 

@@ -11,3 +11,6 @@ export const TIMESTAMP_EMOJI = "📅";
 export const PRICE_BTC_IN_USD = 100_000;
 export const MOBILE_MAX_WIDTH_QUERY = "(max-width: 640px)";
 export const DOCS_URL = "https://sardarius-corp.gitbook.io/resonance-defi";
+// TODO: this limit shall be embedded in the protocol
+export const VOTE_MAX_CHARACTERS = 500;
+export const NEW_VOTE_PLACEHOLDER = "Suggest a statement—see where consensus stands.";

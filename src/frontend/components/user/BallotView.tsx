@@ -67,7 +67,7 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
 
   const releaseTimestamp = ballot.YES_NO.timestamp + (unwrapLock(ballot).duration_ns).current.data;
 
-  const onBallotClick = () => {
+  const onVoteClick = () => {
     if (isSelected) {
       navigate(`/vote/${ballot.YES_NO.vote_id}`);
     } else {
@@ -78,7 +78,7 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
   return (
     now === undefined ? <></> :
     <div className="border-b dark:border-gray-700 border-gray-300 py-2 px-2 hover:bg-slate-50 dark:hover:bg-slate-850 hover:cursor-pointer w-full">
-      <div className="flex flex-col w-full" onClick={() => onBallotClick() }>
+      <div className="flex flex-col w-full" onClick={() => selectBallot() }>
         <div className="flex flex-row space-x-1 items-baseline">
           <span>{formatSatoshis(ballot.YES_NO.amount)}</span>
           <div className="flex self-center h-4 w-4">
@@ -110,7 +110,7 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
           </div>
         </div>
 
-        <div className="flex flex-row space-x-1 items-top w-full justify-between grow">
+        <div className="flex flex-row space-x-1 items-top w-full justify-between grow" onClick={(e) => { e.stopPropagation(); onVoteClick(); } }>
           <VoteConsensus vote_id={ballot.YES_NO.vote_id} is_selected={isSelected}/>
         </div>
 
