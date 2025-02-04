@@ -34,22 +34,10 @@ module {
 
     public func init(args: InitArgs) : State {
 
-        let { simulated; deposit; resonance; parameters; } = args;
+        let { deposit; resonance; parameters; } = args;
         let now = Time.now();
 
         #v0_1_0({
-            clock_parameters = switch(simulated) {
-                case(false) { 
-                    #REAL; 
-                };
-                case(true) { 
-                    #SIMULATED({
-                        var time_ref = now;
-                        var offset_ns = 0;
-                        var dilation_factor = 1.0;
-                    });
-                };
-            };
             vote_register = { 
                 votes = Map.new<UUID, VoteType>();
                 by_origin = Map.new<Principal, Set.Set<UUID>>();
@@ -75,9 +63,22 @@ module {
             };
             parameters = { parameters with
                 participation_per_ns = Float.fromInt(parameters.participation_per_day) / Float.fromInt(Duration.NS_IN_DAY);
+                timer = {
+                    var interval_s = parameters.timer_interval_s;
+                };
                 decay = {
                     half_life = parameters.ballot_half_life;
                     time_init = now;
+                };
+                clock : Types.ClockParameters = switch(parameters.clock) {
+                    case(#REAL) { #REAL; };
+                    case(#SIMULATED({ dilation_factor; })) { 
+                        #SIMULATED({
+                            var time_ref = now;
+                            var offset_ns = 0;
+                            var dilation_factor = dilation_factor;
+                        });
+                    };
                 };
             };
             minting_info = {

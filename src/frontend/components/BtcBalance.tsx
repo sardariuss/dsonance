@@ -14,10 +14,10 @@ const BtcBalance = () => {
 
   return (
     <div className="flex flex-row items-center space-x-1">
-      <BitcoinIcon />
       <span className="text-lg">
         {btcBalance !== undefined ? formatSatoshis(btcBalance) : ""}
       </span>
+      <BitcoinIcon />
     </div>
   );
 }

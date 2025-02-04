@@ -22,14 +22,14 @@ shared({ caller = owner }) actor class Minter() {
             var total_distributed = 0;
             map_distributed = Map.new<Principal, Nat>();
         };
-        var is_simulated = false;
+        var is_restricted = false;
     };
 
     let airdrop = Airdrop.Airdrop(state.airdrop_info);
 
     public shared({caller}) func mint({amount: Nat; to: Account}) : async ckBTC.TransferResult {
         
-        if (not state.is_simulated and caller != owner) {
+        if (state.is_restricted and caller != owner) {
             Debug.trap("Only the owner of the canister can call this function!");
         };
 
@@ -63,8 +63,8 @@ shared({ caller = owner }) actor class Minter() {
         #ok;
     };
 
-    public func set_simulated(is_simulated : Bool) {
-        state.is_simulated := is_simulated;
+    public func set_restricted(is_restricted : Bool) {
+        state.is_restricted := is_restricted;
     };
 
 };

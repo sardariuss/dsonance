@@ -1,4 +1,4 @@
-import { DurationUnit } from "../../utils/conversions/duration";
+import { DurationUnit } from "../../utils/conversions/durationUnit";
 
 interface IntervalPickerProps {
     duration: DurationUnit; // Current interval

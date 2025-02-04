@@ -22,6 +22,12 @@ module {
     type SLockInfo = Types.SLockInfo;
     type ClockParameters = Types.ClockParameters;
     type SClockParameters = Types.SClockParameters;
+    type TimerParameters = Types.TimerParameters;
+    type STimerParameters = Types.STimerParameters;
+    type ProtocolParameters = Types.ProtocolParameters;
+    type SProtocolParameters = Types.SProtocolParameters;
+    type ProtocolInfo = Types.ProtocolInfo;
+    type SProtocolInfo = Types.SProtocolInfo;
 
     public func shareVoteType(vote_type: VoteType) : SVoteType {
         switch(vote_type){
@@ -75,6 +81,27 @@ module {
         switch(clock_parameters){
             case(#REAL) { #REAL; };
             case(#SIMULATED(p)) { #SIMULATED({ time_ref = p.time_ref; offset = Duration.fromTime(p.offset_ns); dilation_factor = p.dilation_factor; }); };
+        };
+    };
+
+    public func shareTimerParameters(timer_parameters: TimerParameters) : STimerParameters {
+        { interval_s = timer_parameters.interval_s; };
+    };
+
+    public func shareProtocolInfo(protocol_info: ProtocolInfo) : SProtocolInfo {
+        {
+            current_time = protocol_info.current_time;
+            last_run = protocol_info.last_run;
+            ck_btc_locked = shareTimeline(protocol_info.ck_btc_locked);
+            resonance_minted = shareTimeline(protocol_info.resonance_minted);
+        };
+    };
+
+    public func shareProtocolParameters(protocol_parameters: ProtocolParameters) : SProtocolParameters {
+        {
+            protocol_parameters with 
+            timer = shareTimerParameters(protocol_parameters.timer);
+            clock = shareClockParameters(protocol_parameters.clock);
         };
     };
 

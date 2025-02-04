@@ -50,6 +50,7 @@ module {
     public type BallotRegister     = Types.Current.BallotRegister;
     public type Rewards            = Types.Current.Rewards;
     public type ProtocolParameters = Types.Current.ProtocolParameters;
+    public type TimerParameters    = Types.Current.TimerParameters;
 
     // CANISTER ARGS
 
@@ -138,11 +139,10 @@ module {
     };
 
     public type SProtocolInfo = {
-        participation_per_ns: Float;
-        time_last_dispense: Time;
+        current_time: Time;
+        last_run: Time;
         ck_btc_locked: STimeline<Nat>;
         resonance_minted: STimeline<Nat>;
-        discernment_factor: Float;
     };
 
     public type SClockParameters = {
@@ -154,24 +154,33 @@ module {
         };
     };
 
+    public type STimerParameters = {
+        interval_s: Nat;
+    };
+
+    public type SProtocolParameters = {
+        participation_per_ns: Float;
+        discernment_factor: Float;
+        nominal_lock_duration: Duration;
+        minimum_ballot_amount: Nat;
+        dissent_steepness: Float;
+        consent_steepness: Float;
+        opening_vote_fee: Nat;
+        timer: STimerParameters;
+        decay: {
+            half_life: Duration;
+            time_init: Time;
+        };
+        clock: SClockParameters;
+    };
+
     // CUSTOM TYPES
 
     public type ProtocolInfo = {
-        participation_per_ns: Float; // Will probably be changed participation_per_day
-        time_last_dispense: Time;// OK
-        ck_btc_locked: Timeline<Nat>; // OK
-        resonance_minted: Timeline<Nat>; // OK
-        discernment_factor: Float; // Will be removed
-    };
-
-    public type ClockInfo = {
-        time: Time;
-        dilation_factor: Float;
-    };
-
-    public type TimerParameters = {
-        id: Nat;
-        duration_s: Nat;
+        current_time: Time;
+        last_run: Time;
+        ck_btc_locked: Timeline<Nat>;
+        resonance_minted: Timeline<Nat>;
     };
 
     public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
@@ -186,16 +195,6 @@ module {
             dissent: Float;
             consent: Float;
         };
-    };
-    
-    public type DecayParameters = {
-        lambda: Float;
-        shift: Float;
-    };
-
-    public type LocksParams = {
-        ns_per_sat: Nat;
-        decay_params: DecayParameters;
     };
 
     public type AggregateHistoryType = {

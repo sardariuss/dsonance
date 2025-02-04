@@ -268,6 +268,17 @@ module {
         amount_minted: Timeline<Nat>;
     };
 
+    public type TimerParameters = {
+        var interval_s: Nat;
+    };
+
+    public type ClockInitArgs = {
+        #REAL;
+        #SIMULATED: {
+            dilation_factor: Float;
+        };
+    };
+
     public type ClockParameters = {
         #REAL;
         #SIMULATED: {
@@ -296,10 +307,12 @@ module {
         dissent_steepness: Float;
         consent_steepness: Float;
         opening_vote_fee: Nat;
+        timer: TimerParameters;
         decay: {
             half_life: Duration;
             time_init: Time;
         };
+        clock: ClockParameters;
     };
 
     public type Args = {
@@ -310,7 +323,6 @@ module {
     };
 
     public type InitArgs = {
-        simulated: Bool;
         deposit: {
             ledger: Principal;
             fee: Nat;
@@ -320,14 +332,16 @@ module {
             fee: Nat;
         };
         parameters: {
-            participation_per_day: Nat; // minting
-            discernment_factor: Float; // minting
+            participation_per_day: Nat;
+            discernment_factor: Float;
             ballot_half_life: Duration;
             nominal_lock_duration: Duration;
             minimum_ballot_amount: Nat;
             dissent_steepness: Float;
             consent_steepness: Float;
             opening_vote_fee: Nat;
+            timer_interval_s: Nat;
+            clock: ClockInitArgs;
         };
     };
     public type UpgradeArgs = {
@@ -336,7 +350,6 @@ module {
     };
 
     public type State = {
-        clock_parameters: ClockParameters;
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
         lock_register: LockRegister;

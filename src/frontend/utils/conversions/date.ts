@@ -55,6 +55,13 @@ export const timeDifference = (date: Date, now: Date): string => {
   }
 }
 
+export const formatDateTime = (date: Date) : string => {
+  const iso = date.toISOString();
+  let split = iso.split('T')
+  let time = split[1].split('.')[0];
+  return `${split[0]} ${time}`;
+}
+
 export const formatDate = (date: Date) : string => {
   return date.toISOString().split('T')[0];
 }

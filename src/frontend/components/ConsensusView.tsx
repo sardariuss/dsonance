@@ -1,18 +1,9 @@
-import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { useMemo } from "react";
-import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import { BallotInfo } from "./types";
-import { get_total_votes, get_yes_votes } from "../utils/conversions/vote";
-
-type Consensus = {
-  choice: EYesNoChoice;
-  ratio: number;
-};
-
-interface ConsensusViewProps {
-  vote: SYesNoVote;
-  ballot?: BallotInfo;
-}
+import { add_ballot, VoteDetails } from "../utils/conversions/votedetails";
+import DateSpan from "./DateSpan";
+import BitcoinIcon from "./icons/BitcoinIcon";
+import { useCurrencyContext } from "./CurrencyContext";
 
 // Utility to blend two colors based on a ratio (0 to 1)
 const blendColors = (color1: string, color2: string, ratio: number) => {
@@ -30,37 +21,45 @@ const blendColors = (color1: string, color2: string, ratio: number) => {
   return rgbToHex(blended);
 };
 
-const ConsensusView: React.FC<ConsensusViewProps> = ({ vote, ballot }) => {
-  const consensus = useMemo((): Consensus | undefined => {
-    const total = get_total_votes(vote) + (ballot?.amount ?? 0n);
-    if (total === 0n) {
-      return undefined;
+interface ConsensusViewProps {
+  voteDetails: VoteDetails;
+  text: string;
+  timestamp: bigint;
+  ballot?: BallotInfo;
+}
+
+const ConsensusView: React.FC<ConsensusViewProps> = ({ voteDetails, text, timestamp, ballot }) => {
+
+  const { formatSatoshis } = useCurrencyContext();
+
+  const liveDetails = useMemo(() => {
+    if (ballot) {
+      return add_ballot(voteDetails, ballot);
     }
-    const ratio =
-      Number(get_yes_votes(vote) + (ballot?.choice === EYesNoChoice.Yes ? ballot.amount : 0n)) /
-      Number(total);
-    return { choice: ratio >= 0.5 ? EYesNoChoice.Yes : EYesNoChoice.No, ratio };
-  }, [vote, ballot]);
+    return voteDetails;
+  }, [voteDetails, ballot]);
 
   const blendedColor = useMemo(() => {
-    if (!consensus) return "#000"; // Default color if no consensus
-    return blendColors("#07E344", "#03B5FD", consensus.ratio); // Blend yes and no colors
-  }, [consensus]);
+    return blendColors("#07E344", "#03B5FD", liveDetails.cursor); // Blend yes and no colors
+  }, [liveDetails]);
 
   return (
-    <div className="grid grid-cols-[minmax(200px,_1fr)_100px] grid-gap-2 justify-items-center items-baseline grow">
-      <div className="justify-self-start flex flex-row grow">{vote.info.text}</div>
-      {consensus && (
-        <div
-          className={`flex flex-row items-baseline space-x-1 ${
-            ballot && ballot?.amount > 0n ? `animate-pulse` : ``
-          }`}
-          style={{ color: blendedColor }} // Apply blended color
-        >
-          <div className={`text-lg hidden`}>{consensus.choice}</div>
-          <div className={`text-lg leading-none`}>{consensus.ratio?.toFixed(2)}</div>
-        </div>
-      )}
+    <div className="grid grid-cols-[minmax(200px,_1fr)_60px_60px] sm:grid-cols-[minmax(400px,_1fr)_100px_100px] gap-x-2 sm:gap-x-4 justify-items-center items-center grow">
+      <span className="justify-self-start grow">
+        {text}
+        <span className="text-gray-400 text-sm">{" · "}</span>
+        <DateSpan timestamp={timestamp}/>
+      </span>
+      <div
+        className={`text-lg leading-none ${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
+        style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
+      >
+        { liveDetails.cursor.toFixed(2) }
+      </div>
+      <div className="flex flex-row items-center justify-self-center space-x-1">
+        <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(BigInt(Math.trunc(liveDetails.total)))}</span>
+        <BitcoinIcon />
+      </div>
     </div>
   );
 };

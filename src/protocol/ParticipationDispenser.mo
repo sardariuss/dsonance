@@ -64,6 +64,10 @@ module {
             // Update the time of the last dispense
             lock_register.time_last_dispense := time;
         };
+
+        public func get_last_dispense() : Time {
+            lock_register.time_last_dispense;
+        };
         
     };
 };

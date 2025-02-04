@@ -1,5 +1,5 @@
 import { format }             from "date-fns";
-import { DurationUnit, toNs } from "../../utils/conversions/duration";
+import { DurationUnit, toNs } from "../../utils/conversions/durationUnit";
 import { nsToMs }             from "../../utils/conversions/date";
 
 export type DurationParameters = {
@@ -21,18 +21,14 @@ export type Interval = {
     ticks: number[];
 }
 
-export const computeInterval = (end: bigint, e_duration: DurationUnit): Interval => {
+export const computeInterval = (end: bigint, e_duration: DurationUnit, compute_decay: (time: bigint) => number): Interval => {
     
     const { duration, sample, tick } = CHART_CONFIGURATIONS.get(e_duration)!;
     let dates : { date :number; decay: number }[] = [];
-    // Add the last date
-    dates.push({ date: nsToMs(end), decay: 1 }); 
-    // Compute the next dates, falling on every sample
-    let date = end - end % sample;
-    const startDate = date - duration;
-    if (date === end) date -= sample; // If the last date has already been added, skip it
+    let date = end;
+    const startDate = end - duration;
     while (date >= startDate) {
-        dates.push({ date: nsToMs(date), decay: 1 });
+        dates.push({ date: nsToMs(date), decay: compute_decay(date) });
         date -= sample;
     };
     dates.reverse();

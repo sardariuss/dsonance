@@ -2,7 +2,7 @@ import { useMemo, useEffect, useRef, useState, Fragment, useContext } from 'reac
 import { ResponsiveLine, Serie } from '@nivo/line';
 import { SBallotType } from '@/declarations/protocol/protocol.did';
 import IntervalPicker from './IntervalPicker';
-import { DurationUnit, toNs } from '../../utils/conversions/duration';
+import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
 import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
 import { protocolActor } from '../../actors/ProtocolActor';
 import { formatDate, msToNs, nsToMs, timeToDate } from '../../utils/conversions/date';
@@ -10,19 +10,23 @@ import { get_current, get_first } from '../../utils/timeline';
 import { unwrapLock } from '../../utils/conversions/ballot';
 import { useCurrencyContext } from '../CurrencyContext';
 import { ThemeContext } from '../App';
+import { useMediaQuery } from 'react-responsive';
+import { MOBILE_MAX_WIDTH_QUERY } from '../../constants';
+import { useProtocolContext } from '../ProtocolContext';
 
 interface LockChartProps {
   ballots: SBallotType[];
-  selected: number | undefined;
-  select_ballot: (index: number | undefined) => void;
+  selected: string | null;
+  select_ballot: (index: string | null) => void;
 };
 
 const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
+
   const { theme } = useContext(ThemeContext)
 
   const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
-  
   const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
 
   useEffect(() => {
@@ -47,9 +51,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
   const { formatSatoshis } = useCurrencyContext();
 
-  const { data: currentTime } = protocolActor.useQueryCall({
-    functionName: "get_time",
-  });
+  const { info } = useProtocolContext();
 
   const [duration, setDuration] = useState<DurationUnit>(DurationUnit.YEAR);
 
@@ -69,7 +71,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
     const segments : Segment[] = [];
 
     ballots.forEach((ballot, index) => {
-      const { YES_NO: { timestamp, amount } } = ballot;
+      const { YES_NO: { timestamp, amount, ballot_id } } = ballot;
       const duration_ns = unwrapLock(ballot).duration_ns;
 
       // Compute timestamps
@@ -90,12 +92,12 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
       ];
 
       data.push({
-        id: index.toString(), // Use index as id
+        id: index.toString(),
         data: points,
       });
 
       segments.push({
-        id: index.toString(),
+        id: ballot_id,
         start: points[0],
         end: points[1],
         percentage: ((initialLockEnd - baseTimestamp) / (actualLockEnd - baseTimestamp)) * 100,
@@ -197,14 +199,14 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
           const y1 = yScale(start.y);
           const y2 = yScale(end.y);
 
-          const id = Number(segment.id)
+          const ballot_id = String(segment.id);
 
           const border_width = 2;
   
           return (
             <Fragment key={`segment-${index}`}>
               {/* Border line */}
-              { id === selected && <line
+              { ballot_id === selected && <line
                 key={`border-${index}`}
                 x1={x1-border_width}
                 x2={x2+border_width}
@@ -243,7 +245,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                   y2={y2}
                   stroke={`url(#lineGradient-${index})`}
                   strokeWidth={20}
-                  onClick={() => select_ballot(selected === id ? undefined : id)}
+                  onClick={() => select_ballot(selected === ballot_id ? null : ballot_id)}
                   cursor="pointer"
                   style={{
                     zIndex: 1
@@ -257,7 +259,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         {/* Render custom lock labels */}
         {processedSegments.map((segment, index) => {
           const { start, end } = segment;
-          const id = Number(segment.id);
+          const ballot_id = String(segment.id);
           const x1 = xScale(start.x);
           const x2 = xScale(end.x);
           const y = yScale(start.y);
@@ -271,7 +273,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
               alignmentBaseline="middle"
               fontSize={12}
               fill="white"
-              onClick={() => select_ballot(selected === id ? undefined : id)}
+              onClick={() => select_ballot(selected === ballot_id ? null : ballot_id)}
               cursor="pointer"
             >
               {segment.label}
@@ -342,17 +344,17 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
             axisLeft={null}
             enablePoints={false}
             lineWidth={20}
-            margin={{ top: 50, right: 50, bottom: 50, left: 60 }}
-            markers={currentTime ? [
+            margin={isMobile ? { top: 25, right: 25, bottom: 25, left: 25 } : { top: 50, right: 50, bottom: 50, left: 60 }}
+            markers={info ? [
               {
                 axis: 'x',
-                value: timeToDate(currentTime).getTime(),
+                value: timeToDate(info.current_time).getTime(),
                 lineStyle: {
                   stroke: theme === "dark" ? "yellow" : "black",
                   strokeWidth: 1,
                   zIndex: 20,
                 },
-                legend: formatDate(timeToDate(currentTime)),
+                legend: formatDate(timeToDate(info.current_time)),
                 legendOrientation: 'horizontal',
                 legendPosition: 'top',
                 textStyle: {

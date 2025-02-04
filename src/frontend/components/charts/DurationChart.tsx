@@ -7,6 +7,9 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { protocolActor } from "../../actors/ProtocolActor";
 import { format } from "date-fns";
 import { ThemeContext } from "../App";
+import { useMediaQuery } from "react-responsive";
+import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
+import { useProtocolContext } from "../ProtocolContext";
 
 export enum CHART_COLORS {
   BLUE = "rgb(59 130 246)",
@@ -38,6 +41,8 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
 
   const { theme } = useContext(ThemeContext);
 
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
+
   const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
   
   const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
@@ -62,9 +67,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
     };
   }, []);
 
-  const { data: currentTime } = protocolActor.useQueryCall({
-    functionName: "get_time",
-  });
+  const { info } = useProtocolContext();
 
   // Set up the chart container ref
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
@@ -81,7 +84,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
       x: new Date(nsToMs(duration_timeline.current.timestamp)),
       y: duration_timeline.current.data
     });
-    let timestamp = last_timestamp ?? currentTime;
+    let timestamp = last_timestamp ?? info?.current_time;
     if (timestamp) {
       points.push({
         x: new Date(nsToMs(timestamp)),
@@ -93,7 +96,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
       data: points
     });
     return data;
-  }, [duration_timeline, currentTime]);
+  }, [duration_timeline, info]);
 
   return (
     <div className="flex flex-col items-center space-y-1 w-full" ref={containerRef}>
@@ -120,7 +123,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
           enableArea={fillArea}
           animate={false}
           enablePoints={false}
-          margin={{ top: 20, bottom: 50, right: 50, left: 90 }}
+          margin={ isMobile ? { top: 20, bottom: 50, right: 20, left: 20 } : { top: 20, bottom: 50, right: 50, left: 90 }}
           colors={color}
           areaOpacity={0.7} // Adjust transparency of the area
           fill={fillArea ? [{ match: '*', id: `gradientA_${COLOR_NAMES[color]}` }] : undefined}
@@ -157,7 +160,7 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
           axisLeft={{
             renderTick: ({ tickIndex, x, y, value }) => {
               return (
-                tickIndex % 2 ? <></> :
+                (isMobile || tickIndex % 2) ? <></> :
                 <g transform={`translate(${x},${y})`}>
                 <text
                   x={-36}

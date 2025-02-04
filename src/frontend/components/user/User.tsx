@@ -1,6 +1,6 @@
 import { Principal } from "@dfinity/principal";
-import { useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import LockChart from "../charts/LockChart";
 import { protocolActor } from "../../actors/ProtocolActor";
 import Wallet from "../Wallet";
@@ -9,26 +9,39 @@ import BitcoinIcon from "../icons/BitcoinIcon";
 
 import BallotView from "./BallotView";
 import { unwrapLock } from "../../utils/conversions/ballot";
+import { useMediaQuery } from "react-responsive";
+import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
+import CurrencyConverter from "../CurrencyConverter";
+import ThemeToggle from "../ThemeToggle";
+import { useAuth } from "@ic-reactor/react";
+import { useProtocolContext } from "../ProtocolContext";
 
 const User = () => {
   
   const { principal } = useParams();
+  const { identity } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const ballotRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
+  const [triggerScroll, setTriggerScroll] = useState(false);
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  if (!principal) {
+  if (!principal || !identity) {
     return <div>Invalid principal</div>;
+  }
+
+//  if (principal !== identity.getPrincipal().toString()) {
+//    return <div>Unauthorized</div>;
+//  }
+
+  const selectedBallotId = useMemo(() => searchParams.get("ballotId"), [searchParams]);
+
+  const selectBallot = (ballotId: string | null) => {
+    setSearchParams(ballotId ? { ballotId: ballotId } : {});
   }
 
   const { formatSatoshis } = useCurrencyContext();
 
-  const [selected, setSelected] = useState<number | undefined>(undefined);
-
-  const selectBallot = (index: number | undefined) => {
-    setSelected(index === undefined ? undefined : index === selected ? undefined : index);
-  }
-
-  const { call: refreshNow, data: now } = protocolActor.useQueryCall({
-    functionName: "get_time",
-  });
+  const { info, refreshInfo } = useProtocolContext();
 
   const { data: ballots, call: refreshBallots } = protocolActor.useQueryCall({
     functionName: "get_ballots",
@@ -36,19 +49,41 @@ const User = () => {
   });
 
   useEffect(() => {
-    refreshNow();
+    refreshInfo();
     refreshBallots();
   }, []);
 
-  const totalLocked = now && ballots?.reduce((acc, ballot) =>
-    acc + ((ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data) > now ? ballot.YES_NO.amount : 0n)
+  const totalLocked = info && ballots?.reduce((acc, ballot) =>
+    acc + ((ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data) > info.current_time ? ballot.YES_NO.amount : 0n)
   , 0n);
+
+  useEffect(() => {
+    if (ballots && selectedBallotId !== null) {
+      const ballotElement = ballotRefs.current.get(selectedBallotId);
+      
+      if (ballotElement) {
+        setTimeout(() => {
+          ballotElement.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 50);
+      }
+    }
+  }, [triggerScroll, ballots]);
   
   return (
-    <div className="flex flex-col items-center w-2/3 border-x dark:border-gray-700 border-t">
+    <div className="flex flex-col items-center border-x dark:border-gray-700 border-t w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
       <div className="flex flex-col items-center w-full border-b dark:border-gray-700">
         <Wallet/>
       </div>
+      {
+        isMobile && 
+          <div className="flex flex-row justify-center w-full border-b dark:border-gray-700 py-2">
+            <CurrencyConverter/>
+            <ThemeToggle/>
+          </div>
+      }
       { ballots && ballots?.length > 0 && 
         <div className="flex flex-col items-center w-full border-b dark:border-gray-700 py-2">
           <div className="flex flex-row w-full space-x-1 justify-center items-baseline">
@@ -58,14 +93,20 @@ const User = () => {
               <BitcoinIcon/>
             </div>
           </div>
-          <LockChart ballots={ballots} select_ballot={selectBallot} selected={selected}/>
+          <LockChart ballots={ballots} select_ballot={(id) => { setTriggerScroll(!triggerScroll); selectBallot(id); }} selected={selectedBallotId}/>
         </div>
       }
       <ul className="w-full">
         {
+          /* Size of the header is 26 on mobile and 22 on desktop */
           ballots?.map((ballot, index) => (
-            <li key={index} className="w-full">
-              <BallotView ballot={ballot} isSelected={index === selected} selectBallot={() => selectBallot(index)} now={now}/>
+            <li key={index} ref={(el) => (ballotRefs.current.set(ballot.YES_NO.ballot_id, el))} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]"> 
+              <BallotView 
+                ballot={ballot}
+                isSelected={selectedBallotId === ballot.YES_NO.ballot_id}
+                selectBallot={() => selectBallot(selectedBallotId === ballot.YES_NO.ballot_id ? null : ballot.YES_NO.ballot_id)}
+                now={info?.current_time}
+              />
             </li>
           ))
         }

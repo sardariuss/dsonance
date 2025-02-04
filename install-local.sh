@@ -56,9 +56,9 @@ wait
 # https://www.desmos.com/calculator/8iww2wlp2t
 # dissent_steepness be between 0 and 1, the closer to 1 the steepest (the less the majority is rewarded)
 # consent_steepness be between 0 and 0.25, the closer to 0 the steepest
+# 216 seconds timer interval, with a 100x dilation factor, means 6 hours in simulated time
 dfx deploy protocol --argument '( variant { 
   init = record {
-    simulated = true;
     deposit = record {
       ledger = principal "'${CK_BTC_PRINCIPAL}'";
       fee = 10;
@@ -76,6 +76,8 @@ dfx deploy protocol --argument '( variant {
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
       opening_vote_fee = 30;
+      timer_interval_s = 216;
+      clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
     };
   }
 })'
@@ -93,8 +95,6 @@ dfx deps deploy internet_identity
 
 # Protocol initialization and frontend generation
 dfx canister call protocol init_facade
-dfx canister call protocol set_dilation_factor '(100.0)'
-dfx canister call minter set_simulated '(true)'
 dfx canister call backend add_categories '(
   vec {
     "🔬 Science";
@@ -110,5 +110,6 @@ dfx generate resonance_ledger
 dfx generate backend # Will generate protocol as well
 dfx generate internet_identity
 dfx generate minter
+dfx generate icp_coins
 
 dfx deploy frontend
