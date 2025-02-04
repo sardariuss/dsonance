@@ -5,7 +5,7 @@ export const RESONANCE_TOKEN_SYMBOL = "Ꞧ";
 export const DISSENT_EMOJI = "⚔️";
 export const CONSENT_EMOJI = "🤝";
 export const PARTICIPATION_EMOJI = "🙋";
-export const DISCERNMENT_EMOJI = "🎯";
+export const DISCERNMENT_EMOJI = "🔮";
 export const LOCK_EMOJI = "🔒";
 export const TIMESTAMP_EMOJI = "📅";
 export const PRICE_BTC_IN_USD = 100_000;
@@ -14,3 +14,5 @@ export const DOCS_URL = "https://sardarius-corp.gitbook.io/resonance-defi";
 // TODO: this limit shall be embedded in the protocol
 export const VOTE_MAX_CHARACTERS = 500;
 export const NEW_VOTE_PLACEHOLDER = "Suggest a statement—see where consensus stands.";
+export const SIMULATION_EMOJI = "🧪";
+export const MINTING_EMOJI = "🌱";
