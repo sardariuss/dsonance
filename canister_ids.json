@@ -1,0 +1,20 @@
+{
+  "backend": {
+    "ic": "hysvo-fqaaa-aaaap-anxgq-cai"
+  },
+  "ck_btc": {
+    "ic": "hewp7-sqaaa-aaaap-anxeq-cai"
+  },
+  "frontend": {
+    "ic": "hrr6s-tyaaa-aaaap-anxha-cai"
+  },
+  "minter": {
+    "ic": "h7tt2-iiaaa-aaaap-anxga-cai"
+  },
+  "protocol": {
+    "ic": "hkucx-jaaaa-aaaap-anxfq-cai"
+  },
+  "resonance_ledger": {
+    "ic": "hnved-eyaaa-aaaap-anxfa-cai"
+  }
+}

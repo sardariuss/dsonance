@@ -1,14 +1,6 @@
 #!/bin/bash
 set -ex
 
-dfx canister create --all
-
-# Fetch canister IDs dynamically
-for canister in ck_btc resonance_ledger protocol minter; do
-  export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
-done
-
-# Parallel deployment for independent canisters
 dfx deploy ck_btc --argument '(opt record {
   icrc1 = opt record {
     name              = opt "ckBTC";
@@ -19,7 +11,7 @@ dfx deploy ck_btc --argument '(opt record {
     min_burn_amount   = opt 1_000;
     initial_balances  = vec {};
     minting_account   = opt record { 
-      owner = principal "'${MINTER_PRINCIPAL}'";
+      owner = principal "h7tt2-iiaaa-aaaap-anxga-cai";
       subaccount = null; 
     };
     advanced_settings = null;
@@ -27,7 +19,8 @@ dfx deploy ck_btc --argument '(opt record {
   icrc2 = null;
   icrc3 = null;
   icrc4 = null;
-})' &
+})' --ic
+
 dfx deploy resonance_ledger --argument '(opt record {
   icrc1 = opt record {
     name              = opt "Resonance Token";
@@ -38,7 +31,7 @@ dfx deploy resonance_ledger --argument '(opt record {
     min_burn_amount   = opt 1_000;
     initial_balances  = vec {};
     minting_account   = opt record { 
-      owner = principal "'${PROTOCOL_PRINCIPAL}'";
+      owner = principal "hkucx-jaaaa-aaaap-anxfq-cai";
       subaccount = null; 
     };
     advanced_settings = null;
@@ -46,8 +39,7 @@ dfx deploy resonance_ledger --argument '(opt record {
   icrc2 = null;
   icrc3 = null;
   icrc4 = null;
-})' &
-wait
+})' --ic
 
 # Deploy protocol with dependencies
 # Hundred million e8s participation per day
@@ -60,11 +52,11 @@ wait
 dfx deploy protocol --argument '( variant { 
   init = record {
     deposit = record {
-      ledger = principal "'${CK_BTC_PRINCIPAL}'";
+      ledger = principal "hewp7-sqaaa-aaaap-anxeq-cai";
       fee = 10;
     };
     resonance = record {
-      ledger  = principal "'${RESONANCE_LEDGER_PRINCIPAL}'";
+      ledger  = principal "hnved-eyaaa-aaaap-anxfa-cai";
       fee = 10;
     };
     parameters = record {
@@ -80,21 +72,14 @@ dfx deploy protocol --argument '( variant {
       clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
     };
   }
-})'
+})' --ic
 
 # Deploy other canisters
-dfx deploy backend &
-dfx deploy minter &
-dfx deploy icp_coins &
-wait
-
-# Internet Identity
-dfx deps pull
-dfx deps init
-dfx deps deploy internet_identity
+dfx deploy backend --ic
+dfx deploy minter --ic
 
 # Protocol initialization and frontend generation
-dfx canister call protocol init_facade
+dfx canister call protocol init_facade --ic
 dfx canister call backend add_categories '(
   vec {
     "🔬 Science";
@@ -103,13 +88,6 @@ dfx canister call backend add_categories '(
     "🌎 Geopolitics";
     "👫 Social";
   }
-)'
+)' --ic
 
-dfx generate ck_btc
-dfx generate resonance_ledger
-dfx generate backend # Will generate protocol as well
-dfx generate internet_identity
-dfx generate minter
-dfx generate icp_coins
-
-dfx deploy frontend
+dfx deploy frontend --ic
