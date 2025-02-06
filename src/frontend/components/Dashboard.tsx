@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import DurationChart, { CHART_COLORS } from "./charts/DurationChart";
 import { map_filter_timeline, to_number_timeline } from "../utils/timeline";
 import { formatBalanceE8s, fromE8s } from "../utils/conversions/token";
-import { DISCERNMENT_EMOJI, MINTING_EMOJI, PARTICIPATION_EMOJI, DSONANCE_TOKEN_SYMBOL, SIMULATION_EMOJI } from "../constants";
+import { DISCERNMENT_EMOJI, MINTING_EMOJI, PARTICIPATION_EMOJI, PRESENCE_COIN_SYMBOL, SIMULATION_EMOJI } from "../constants";
 import { useCurrencyContext } from "./CurrencyContext";
-import DsonanceCoinIcon from "./icons/DsonanceCoinIcon";
+import PresenceCoinIcon from "./icons/PresenceCoinIcon";
 import BitcoinIcon from "./icons/BitcoinIcon";
 import { useProtocolContext } from "./ProtocolContext";
 import { formatDateTime, timeDifference, timeToDate } from "../utils/conversions/date";
@@ -150,12 +150,12 @@ const Dashboard = () => {
                         <span>{PARTICIPATION_EMOJI}</span>
                         <span className="text-gray-700 dark:text-gray-300">Participation rate:</span>
                         <span className="text-lg">
-                            {`${fromE8s(BigInt(memo.participationRate.current.data))} ${DSONANCE_TOKEN_SYMBOL}/${currencySymbol}/day`}
+                            {`${fromE8s(BigInt(memo.participationRate.current.data))} ${PRESENCE_COIN_SYMBOL}/${currencySymbol}/day`}
                         </span>
                     </div>
                     <DurationChart
                         duration_timeline={memo.participationRate}
-                        format_value={ (value: number) => `${fromE8s(BigInt(value)).toString()} ${DSONANCE_TOKEN_SYMBOL}/${currencySymbol}/day` }
+                        format_value={ (value: number) => `${fromE8s(BigInt(value)).toString()} ${PRESENCE_COIN_SYMBOL}/${currencySymbol}/day` }
                         fillArea={true}
                         color={CHART_COLORS.PURPLE}
                     />
@@ -181,15 +181,15 @@ const Dashboard = () => {
             { info && 
                 <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-2 w-full">
                     <div className="flex flex-row items-center space-x-1">
-                        <DsonanceCoinIcon />
-                        <div className="text-gray-700 dark:text-gray-300">Dsonance minted:</div>
+                        <PresenceCoinIcon />
+                        <div className="text-gray-700 dark:text-gray-300">Presence minted:</div>
                         <span className="text-lg">
-                            {formatBalanceE8s(info.dsonance_minted.current.data, DSONANCE_TOKEN_SYMBOL, 0)}
+                            {formatBalanceE8s(info.presence_minted.current.data, PRESENCE_COIN_SYMBOL, 0)}
                         </span>
                     </div>
                     <DurationChart
-                        duration_timeline={to_number_timeline(info.dsonance_minted)}
-                        format_value={ (value: number) => `${formatBalanceE8s(BigInt(value), DSONANCE_TOKEN_SYMBOL, 0)}` }
+                        duration_timeline={to_number_timeline(info.presence_minted)}
+                        format_value={ (value: number) => `${formatBalanceE8s(BigInt(value), PRESENCE_COIN_SYMBOL, 0)}` }
                         fillArea={true}
                         color={CHART_COLORS.GREEN}
                     />

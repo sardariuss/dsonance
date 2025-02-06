@@ -1,7 +1,7 @@
 export const BITCOIN_TOKEN_SYMBOL = "₿";
 export const SAT_TOKEN_SYMBOL = "𝕊";
 export const USD_TOKEN_SYMBOL = "$";
-export const DSONANCE_TOKEN_SYMBOL = "Ð";
+export const PRESENCE_COIN_SYMBOL = "₱";
 export const DISSENT_EMOJI = "⚔️";
 export const CONSENT_EMOJI = "🤝";
 export const PARTICIPATION_EMOJI = "🙋";

@@ -100,17 +100,14 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
       <nav className="flex flex-row items-center bg-slate-200 dark:bg-gray-800 sticky top-0 z-30 w-full h-20 min-h-20 relative">
-        {/* Centered DSONANCE Link */}
+        {/* Centered Dsonance Link */}
         <Link className="flex flex-grow justify-center pt-4" to="/">
           <span className="flex flex-row items-baseline">
             <div className="h-10 w-20 pt-1 pr-1">
               <Logo />
             </div>
             <span className="text-4xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold ">
-            DSONANCE
-            </span>
-            <span className="text-7xl font-cafe whitespace-nowrap drop-shadow shadow-red-500 neon-effect">
-              .defi
+              DSONANCE
             </span>
           </span>
         </Link>

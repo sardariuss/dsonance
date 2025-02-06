@@ -74,7 +74,7 @@ module {
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
         deposit_debt: DebtProcessor.DebtProcessor;
-        dsonance_debt: DebtProcessor.DebtProcessor;
+        presence_debt: DebtProcessor.DebtProcessor;
         participation_dispenser: ParticipationDispenser.ParticipationDispenser;
         protocol_timer: ProtocolTimer.ProtocolTimer;
         minting_info: MintingInfo;
@@ -89,7 +89,7 @@ module {
                 return #err(#VoteAlreadyExists({vote_id}));
             };
 
-            // TODO: should be a dsonance fee instead!
+            // TODO: should be a presence fee instead!
             let transfer = await* deposit_debt.get_ledger().transfer_from({
                 from = account;
                 amount = parameters.opening_vote_fee;
@@ -219,7 +219,7 @@ module {
             let transfers = Buffer.Buffer<async* ()>(3);
 
             transfers.add(deposit_debt.transfer_owed());
-            transfers.add(dsonance_debt.transfer_owed());
+            transfers.add(presence_debt.transfer_owed());
 
             for (call in transfers.vals()){
                 await* call;
@@ -277,7 +277,7 @@ module {
                 current_time = clock.get_time();
                 last_run = participation_dispenser.get_last_dispense();
                 ck_btc_locked = lock_scheduler.get_total_locked();
-                dsonance_minted = minting_info.amount_minted;
+                presence_minted = minting_info.amount_minted;
             };
         };
 

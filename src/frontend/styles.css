@@ -69,31 +69,6 @@ p {
   text-align: center;
 }
 
-.neon-effect {
-  --shadow-color: #5be7dc;
-  --shadow-color-light: #5be7dc;
-  color:white;
-  animation: neon 3s infinite;
-}
-
-@keyframes neon {
-  0% {
-    text-shadow: -100px -100px 100px var(--shadow-color-light), -100px 100px 100px var(--shadow-color-light), 100px -100px 100px var(--shadow-color-light), 100px 100px 100px var(--shadow-color-light),
-    0 0 3px var(--shadow-color-light), 0 0 10px var(--shadow-color-light), 0 0 20px var(--shadow-color-light),
-    0 0 30px var(--shadow-color), 0 0 40px var(--shadow-color), 0 0 50px var(--shadow-color), 0 0 70px var(--shadow-color), 0 0 100px var(--shadow-color), 0 0 200px var(--shadow-color);
-  }
-  50% {
-    text-shadow: -100px -100px 100px var(--shadow-color-light), -100px 100px 100px var(--shadow-color-light), 100px -100px 100px var(--shadow-color-light), 100px 100px 100px var(--shadow-color-light),
-    0 0 5px var(--shadow-color-light), 0 0 15px var(--shadow-color-light), 0 0 25px var(--shadow-color-light),
-    0 0 40px var(--shadow-color), 0 0 50px var(--shadow-color), 0 0 60px var(--shadow-color), 0 0 80px var(--shadow-color), 0 0 110px var(--shadow-color), 0 0 210px var(--shadow-color);
-  }
-  100% {
-    text-shadow: -100px -100px 100px var(--shadow-color-light), -100px 100px 100px var(--shadow-color-light), 100px -100px 100px var(--shadow-color-light), 100px 100px 100px var(--shadow-color-light),
-    0 0 3px var(--shadow-color-light), 0 0 10px var(--shadow-color-light), 0 0 20px var(--shadow-color-light),
-    0 0 30px var(--shadow-color), 0 0 40px var(--shadow-color), 0 0 50px var(--shadow-color), 0 0 70px var(--shadow-color), 0 0 100px var(--shadow-color), 0 0 200px var(--shadow-color);
-  }
-}
-
 @layer components {
   .button-blue{
     @apply

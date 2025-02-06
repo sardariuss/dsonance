@@ -59,7 +59,7 @@ module {
             consent = shareTimeline(ballot.consent);
             rewards = shareTimeline(ballot.rewards);
             ck_btc = shareDebtInfo(ballot.ck_btc);
-            dsonance = shareDebtInfo(ballot.dsonance);
+            presence = shareDebtInfo(ballot.presence);
             tx_id = ballot.tx_id;
             from = ballot.from;
             hotness = ballot.hotness;
@@ -93,7 +93,7 @@ module {
             current_time = protocol_info.current_time;
             last_run = protocol_info.last_run;
             ck_btc_locked = shareTimeline(protocol_info.ck_btc_locked);
-            dsonance_minted = shareTimeline(protocol_info.dsonance_minted);
+            presence_minted = shareTimeline(protocol_info.presence_minted);
         };
     };
 
