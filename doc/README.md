@@ -1,6 +1,6 @@
 # Introduction
 
-**Resonance.defi** is a platform that enables users to lock Bitcoin and participate in a decentralized consensus system. By fostering continuous, stake-weighted voting, the platform ensures that collective decisions are nuanced, evolving, and resistant to manipulation. Participants are rewarded for their contributions and their ability to anticipate the future consensus, fostering a fair and transparent system that values foresight, genuine opinions, and strategic thinking.
+**Dsonance** is a platform that enables users to lock Bitcoin and participate in a decentralized consensus system. By fostering continuous, stake-weighted voting, the platform ensures that collective decisions are nuanced, evolving, and resistant to manipulation. Participants are rewarded for their contributions and their ability to anticipate the future consensus, fostering a fair and transparent system that values foresight, genuine opinions, and strategic thinking.
 
 #### 🎯 **Goals**
 

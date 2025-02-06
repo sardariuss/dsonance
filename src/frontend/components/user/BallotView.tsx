@@ -1,7 +1,7 @@
 import { niceFormatDate, timeDifference, timeToDate } from "../../utils/conversions/date";
 import { backendActor } from "../../actors/BackendActor";
 
-import { MOBILE_MAX_WIDTH_QUERY, RESONANCE_TOKEN_SYMBOL } from "../../constants";
+import { MOBILE_MAX_WIDTH_QUERY, DSONANCE_TOKEN_SYMBOL } from "../../constants";
 import { fromNullable } from "@dfinity/utils";
 import { unwrapLock } from "../../utils/conversions/ballot";
 import { useCurrencyContext } from "../CurrencyContext";
@@ -11,7 +11,7 @@ import ConsensusView from "../ConsensusView";
 import BitcoinIcon from "../icons/BitcoinIcon";
 
 import { SBallotType } from "@/declarations/protocol/protocol.did";
-import ResonanceCoinIcon from "../icons/ResonanceCoinIcon";
+import DsonanceCoinIcon from "../icons/DsonanceCoinIcon";
 import { compute_vote_details } from "../../utils/conversions/votedetails";
 import { DesktopBallotDetails, MobileBallotDetails } from "./BallotDetails";
 import { useMediaQuery } from "react-responsive";
@@ -98,15 +98,15 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
         <div className="flex flex-row space-x-1 items-baseline">
           { releaseTimestamp <= now ?
             <div className="flex flex-row space-x-1 items-baseline">
-              <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation + ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}</span>
+              <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation + ballot.YES_NO.rewards.current.data.discernment)), DSONANCE_TOKEN_SYMBOL, 2)}</span>
             </div> :
             <div className="flex flex-row space-x-1 items-baseline">
-              <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL, 2)}</span>
-              <span className="italic text-gray-600 dark:text-gray-400 animate-pulse">{`+ ${formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}`}</span>
+              <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), DSONANCE_TOKEN_SYMBOL, 2)}</span>
+              <span className="italic text-gray-600 dark:text-gray-400 animate-pulse">{`+ ${formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), DSONANCE_TOKEN_SYMBOL, 2)}`}</span>
             </div>
           }
           <div className="flex self-center h-4 w-4">
-            <ResonanceCoinIcon/>
+            <DsonanceCoinIcon/>
           </div>
         </div>
 

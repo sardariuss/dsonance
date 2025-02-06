@@ -139,7 +139,7 @@ module {
                 consent = Timeline.initialize<Float>(timestamp, consent);
                 rewards = Timeline.initialize<Rewards>(timestamp, { participation = 0.0; discernment = 0.0; });
                 ck_btc = DebtProcessor.init_debt_info(timestamp, from);
-                resonance = DebtProcessor.init_debt_info(timestamp, from);
+                dsonance = DebtProcessor.init_debt_info(timestamp, from);
                 decay = decay_model.compute_decay(timestamp);
                 var hotness = 0.0;
                 var lock : ?LockInfo = null;

@@ -30,11 +30,11 @@ module {
 
     public func build(args: State and { provider: Principal; admin: Principal; }) : Controller.Controller {
 
-        let { vote_register; ballot_register; lock_register; deposit; resonance; parameters; provider; admin; minting_info; } = args;
+        let { vote_register; ballot_register; lock_register; deposit; dsonance; parameters; provider; admin; minting_info; } = args;
         let { nominal_lock_duration; decay; } = parameters;
 
         let deposit_ledger = LedgerFacade.LedgerFacade({ deposit with provider; });
-        let resonance_ledger = LedgerFacade.LedgerFacade({ resonance with provider; });
+        let dsonance_ledger = LedgerFacade.LedgerFacade({ dsonance with provider; });
 
         let clock = Clock.Clock(parameters.clock);
 
@@ -52,17 +52,17 @@ module {
             on_successful_transfer = null;
         });
 
-        let resonance_debt = DebtProcessor.DebtProcessor({
-            resonance with 
+        let dsonance_debt = DebtProcessor.DebtProcessor({
+            dsonance with 
             get_debt_info = func (id: UUID) : DebtInfo {
                 switch(Map.get(ballot_register.ballots, Map.thash, id)) {
                     case(null) { Debug.trap("Debt not found"); };
                     case(?ballot) {
-                        BallotUtils.unwrap_yes_no(ballot).resonance;
+                        BallotUtils.unwrap_yes_no(ballot).dsonance;
                     };
                 };
             };
-            ledger = resonance_ledger;
+            ledger = dsonance_ledger;
             on_successful_transfer = ?(
                 func({amount: Nat}) {
                     // Update the total amount minted
@@ -74,7 +74,7 @@ module {
         let participation_dispenser = ParticipationDispenser.ParticipationDispenser({
             lock_register;
             parameters;
-            debt_processor = resonance_debt;
+            debt_processor = dsonance_debt;
         });
 
         let duration_calculator = DurationCalculator.PowerScaler({
@@ -93,7 +93,7 @@ module {
                 participation_dispenser.dispense(time);
                 
                 // Transfer the discernment
-                resonance_debt.add_debt({
+                dsonance_debt.add_debt({
                     amount = Timeline.current(ballot.rewards).discernment;
                     id = ballot.ballot_id;
                     time;
@@ -133,7 +133,7 @@ module {
             lock_scheduler;
             vote_type_controller;
             deposit_debt;
-            resonance_debt;
+            dsonance_debt;
             participation_dispenser;
             protocol_timer;
             minting_info;

@@ -23,16 +23,13 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
       <nav className="flex flex-row bg-slate-200 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 h-16 min-h-16 relative">
-        {/* Left-aligned RESONANCE Link */}
-        <Link to="/" className="flex flex-row items-baseline 2xl:pt-6 xl:pt-5 lg:pt-4 md:pt-3 pt-2">
-          <div className="h-8 sm:h-9 md:h-10 lg:h-11 xl:h-12 w-16 sm:w-18 md:w-20 lg:w-22 xl:w-24 pt-1 lg:pt-2 pr-1 lg:pr-2">
+        {/* Left-aligned Dsonance Link */}
+        <Link to="/" className="flex flex-row items-baseline">
+          <div className="w-16 sm:w-18 md:w-20 lg:w-22 xl:w-24 pr-2 pt-1 lg:pt-2">
             <Logo />
           </div>
-          <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">
-            RESONANCE
-          </span>
-          <span className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-cafe whitespace-nowrap drop-shadow shadow-red-500 neon-effect">
-            .defi
+          <span className="text-3xl md:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">
+            DSONANCE
           </span>
         </Link>
 
@@ -103,20 +100,20 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
       <nav className="flex flex-row items-center bg-slate-200 dark:bg-gray-800 sticky top-0 z-30 w-full h-20 min-h-20 relative">
-        {/* Centered RESONANCE Link */}
-        <div className="flex flex-grow justify-center pt-4">
+        {/* Centered DSONANCE Link */}
+        <Link className="flex flex-grow justify-center pt-4" to="/">
           <span className="flex flex-row items-baseline">
             <div className="h-10 w-20 pt-1 pr-1">
               <Logo />
             </div>
-            <span className="text-4xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">
-              RESONANCE
+            <span className="text-4xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold ">
+            DSONANCE
             </span>
             <span className="text-7xl font-cafe whitespace-nowrap drop-shadow shadow-red-500 neon-effect">
               .defi
             </span>
           </span>
-        </div>
+        </Link>
 
         {/* Right-aligned Button */}
         <div ref={menuButtonRef}>

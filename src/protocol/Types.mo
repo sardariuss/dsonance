@@ -118,7 +118,7 @@ module {
         consent: STimeline<Float>;
         rewards: STimeline<Rewards>;
         ck_btc: SDebtInfo;
-        resonance: SDebtInfo;
+        dsonance: SDebtInfo;
         tx_id: Nat;
         from: Account;
         decay: Float;
@@ -142,7 +142,7 @@ module {
         current_time: Time;
         last_run: Time;
         ck_btc_locked: STimeline<Nat>;
-        resonance_minted: STimeline<Nat>;
+        dsonance_minted: STimeline<Nat>;
     };
 
     public type SClockParameters = {
@@ -180,7 +180,7 @@ module {
         current_time: Time;
         last_run: Time;
         ck_btc_locked: Timeline<Nat>;
-        resonance_minted: Timeline<Nat>;
+        dsonance_minted: Timeline<Nat>;
     };
 
     public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;

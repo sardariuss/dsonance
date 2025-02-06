@@ -1,7 +1,7 @@
 # FAQ
 
-**Q: What is the purpose of Resonance.defi?**\
-**A:** Resonance.defi aims to establish a precise and decentralized view of community consensus on a variety of topics. By incentivizing genuine participation, the platform ensures that the consensus authentically reflects the collective perspective.
+**Q: What is the purpose of Dsonance?**\
+**A:** Dsonance aims to establish a precise and decentralized view of community consensus on a variety of topics. By incentivizing genuine participation, the platform ensures that the consensus authentically reflects the collective perspective.
 
 ***
 

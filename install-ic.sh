@@ -21,9 +21,9 @@ dfx deploy ck_btc --argument '(opt record {
   icrc4 = null;
 })' --ic
 
-dfx deploy resonance_ledger --argument '(opt record {
+dfx deploy dsonance_ledger --argument '(opt record {
   icrc1 = opt record {
-    name              = opt "Resonance Token";
+    name              = opt "Dsonance Token";
     symbol            = opt "RSN";
     decimals          = 8;
     fee               = opt variant { Fixed = 10 };
@@ -55,7 +55,7 @@ dfx deploy protocol --argument '( variant {
       ledger = principal "hewp7-sqaaa-aaaap-anxeq-cai";
       fee = 10;
     };
-    resonance = record {
+    dsonance = record {
       ledger  = principal "hnved-eyaaa-aaaap-anxfa-cai";
       fee = 10;
     };

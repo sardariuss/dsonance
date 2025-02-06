@@ -8,7 +8,7 @@ import { AgentProvider }                from "@ic-reactor/react";
 import { BackendActorProvider }         from "./actors/BackendActor"
 import { CkBtcActorProvider }           from './actors/CkBtcActor';
 import { ProtocolActorProvider }        from './actors/ProtocolActor';
-import { ResonanceLedgerActorProvider } from './actors/ResonanceLedgerActor';
+import { DsonanceLedgerActorProvider } from './actors/DsonanceLedgerActor';
 import { CurrencyProvider }             from './components/CurrencyContext';
 import { MinterActorProvider }          from './actors/MinterActor';
 import { WalletProvider }               from './components/WalletContext';
@@ -20,7 +20,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <AgentProvider withProcessEnv>
       <BackendActorProvider>
         <CkBtcActorProvider>
-          <ResonanceLedgerActorProvider>
+          <DsonanceLedgerActorProvider>
             <ProtocolActorProvider>
               <MinterActorProvider>
                 <IcpCoinsActorProvider>
@@ -34,7 +34,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                 </IcpCoinsActorProvider>
               </MinterActorProvider>
             </ProtocolActorProvider>
-          </ResonanceLedgerActorProvider>
+          </DsonanceLedgerActorProvider>
         </CkBtcActorProvider>
       </BackendActorProvider>
     </AgentProvider>

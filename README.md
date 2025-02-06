@@ -2,7 +2,7 @@
 icon: hand-wave
 ---
 
-# Resonance.defi
+# Dsonance
 
 _My views are changing as much as the world itself is changing. Your views should change when the evidence changes and assumptions that you had in the past are proven wrong \[...] If you pay enough attention you can rate your own performance, just as if you're betting on sports \[...] To tell the truth is my main view and I plan to do that to the best of my ability._
 

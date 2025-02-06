@@ -1,6 +1,6 @@
 # Stake-weighted voting
 
-At the heart of the Resonance protocol is a **stake-weighted voting system** based on binary votes. Participants cast votes on statements to determine whether they are true or false. To vote, users select an outcome (_True_ or _False_), specify the amount of Bitcoin they wish to lock, and commit their stake. The more Bitcoin a user locks, the more their vote influences the outcome in the chosen direction.
+At the heart of the Dsonance protocol is a **stake-weighted voting system** based on binary votes. Participants cast votes on statements to determine whether they are true or false. To vote, users select an outcome (_True_ or _False_), specify the amount of Bitcoin they wish to lock, and commit their stake. The more Bitcoin a user locks, the more their vote influences the outcome in the chosen direction.
 
 <figure><img src="../.gitbook/assets/consensus.png" alt=""><figcaption><p>Example of consensus expressed between 0 and 1</p></figcaption></figure>
 

@@ -4,7 +4,7 @@ set -ex
 dfx canister create --all
 
 # Fetch canister IDs dynamically
-for canister in ck_btc resonance_ledger protocol minter; do
+for canister in ck_btc dsonance_ledger protocol minter; do
   export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
 done
 
@@ -28,9 +28,9 @@ dfx deploy ck_btc --argument '(opt record {
   icrc3 = null;
   icrc4 = null;
 })' &
-dfx deploy resonance_ledger --argument '(opt record {
+dfx deploy dsonance_ledger --argument '(opt record {
   icrc1 = opt record {
-    name              = opt "Resonance Token";
+    name              = opt "Dsonance Token";
     symbol            = opt "RSN";
     decimals          = 8;
     fee               = opt variant { Fixed = 10 };
@@ -63,8 +63,8 @@ dfx deploy protocol --argument '( variant {
       ledger = principal "'${CK_BTC_PRINCIPAL}'";
       fee = 10;
     };
-    resonance = record {
-      ledger  = principal "'${RESONANCE_LEDGER_PRINCIPAL}'";
+    dsonance = record {
+      ledger  = principal "'${DSONANCE_LEDGER_PRINCIPAL}'";
       fee = 10;
     };
     parameters = record {
@@ -106,7 +106,7 @@ dfx canister call backend add_categories '(
 )'
 
 dfx generate ck_btc
-dfx generate resonance_ledger
+dfx generate dsonance_ledger
 dfx generate backend # Will generate protocol as well
 dfx generate internet_identity
 dfx generate minter

@@ -1,7 +1,7 @@
 import { formatDuration } from "../../utils/conversions/durationUnit";
 import { dateToTime, niceFormatDate, timeToDate } from "../../utils/conversions/date";
 
-import { LOCK_EMOJI, RESONANCE_TOKEN_SYMBOL, CONSENT_EMOJI, PARTICIPATION_EMOJI, DISCERNMENT_EMOJI, TIMESTAMP_EMOJI, DISSENT_EMOJI } from "../../constants";
+import { LOCK_EMOJI, DSONANCE_TOKEN_SYMBOL, CONSENT_EMOJI, PARTICIPATION_EMOJI, DISCERNMENT_EMOJI, TIMESTAMP_EMOJI, DISSENT_EMOJI } from "../../constants";
 import { get_current, map_timeline, to_number_timeline } from "../../utils/timeline";
 import DurationChart, { CHART_COLORS } from "../charts/DurationChart";
 import { unwrapLock } from "../../utils/conversions/ballot";
@@ -81,11 +81,11 @@ export const DesktopBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, no
             <div className="flex flex-row space-x-1 items-baseline">
               <span>{PARTICIPATION_EMOJI}</span>
               <span className="italic text-gray-600 dark:text-gray-400 text-sm">Participation:</span>
-              <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL, 2) }</span>
+              <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), DSONANCE_TOKEN_SYMBOL, 2) }</span>
             </div>
             <DurationChart 
               duration_timeline={map_timeline(ballot.YES_NO.rewards, (reward) => reward.participation ) } 
-              format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL, 2)) } 
+              format_value={ (value: number) => (formatBalanceE8s(BigInt(value), DSONANCE_TOKEN_SYMBOL, 2)) } 
               fillArea={true}
               color={CHART_COLORS.GREEN}
               last_timestamp={releaseTimestamp <= now ? now : releaseTimestamp }
@@ -97,11 +97,11 @@ export const DesktopBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, no
             <div className="flex flex-row space-x-1 items-baseline">
               <span>{DISCERNMENT_EMOJI}</span>
               <span className="italic text-gray-600 dark:text-gray-400 text-sm">Discernment:</span>
-              <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}</span>
+              <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), DSONANCE_TOKEN_SYMBOL, 2)}</span>
             </div>
             <DurationChart 
               duration_timeline={map_timeline(ballot.YES_NO.rewards, (reward) => reward.discernment ) } 
-              format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL, 2)) }
+              format_value={ (value: number) => (formatBalanceE8s(BigInt(value), DSONANCE_TOKEN_SYMBOL, 2)) }
               fillArea={true}
               color={CHART_COLORS.GREEN}
               last_timestamp={releaseTimestamp <= now ? now : releaseTimestamp }
@@ -200,14 +200,14 @@ export const MobileBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now
                     <span className="italic text-gray-600 dark:text-gray-400 text-sm">Participation:</span> 
                 </span>
                 <span className="col-span-4 justify-self-end">
-                    { formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), RESONANCE_TOKEN_SYMBOL, 2) }
+                    { formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), DSONANCE_TOKEN_SYMBOL, 2) }
                 </span>
             </div>
             { (chartToggle === CHART_TOGGLE.PARTICIPATION) && 
                 <div className="flex flex-col w-full">
                     <DurationChart 
                         duration_timeline={map_timeline(ballot.YES_NO.rewards, (reward) => reward.participation ) } 
-                        format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL, 2)) } 
+                        format_value={ (value: number) => (formatBalanceE8s(BigInt(value), DSONANCE_TOKEN_SYMBOL, 2)) } 
                         fillArea={true}
                         color={CHART_COLORS.GREEN}
                         last_timestamp={releaseTimestamp <= now ? now : releaseTimestamp }
@@ -232,14 +232,14 @@ export const MobileBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now
                     <span className="italic text-gray-600 dark:text-gray-400 text-sm">Discernment:</span> 
                 </span>
                 <span className="col-span-4 justify-self-end">
-                    { formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), RESONANCE_TOKEN_SYMBOL, 2)}
+                    { formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), DSONANCE_TOKEN_SYMBOL, 2)}
                 </span>
             </div>
             { (chartToggle === CHART_TOGGLE.DISCERNMENT) && 
                 <div className="flex flex-col w-full">
                     <DurationChart 
                         duration_timeline={map_timeline(ballot.YES_NO.rewards, (reward) => reward.discernment ) } 
-                        format_value={ (value: number) => (formatBalanceE8s(BigInt(value), RESONANCE_TOKEN_SYMBOL, 2)) }
+                        format_value={ (value: number) => (formatBalanceE8s(BigInt(value), DSONANCE_TOKEN_SYMBOL, 2)) }
                         fillArea={true}
                         color={CHART_COLORS.GREEN}
                         last_timestamp={releaseTimestamp <= now ? now : releaseTimestamp }

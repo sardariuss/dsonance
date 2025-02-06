@@ -34,7 +34,7 @@ module {
 
     public func init(args: InitArgs) : State {
 
-        let { deposit; resonance; parameters; } = args;
+        let { deposit; dsonance; parameters; } = args;
         let now = Time.now();
 
         #v0_1_0({
@@ -56,9 +56,9 @@ module {
                 fee = deposit.fee;
                 owed = Set.new<UUID>();
             };
-            resonance = {
-                ledger : ICRC1 and ICRC2 = actor(Principal.toText(resonance.ledger));
-                fee = resonance.fee;
+            dsonance = {
+                ledger : ICRC1 and ICRC2 = actor(Principal.toText(dsonance.ledger));
+                fee = dsonance.fee;
                 owed = Set.new<UUID>();
             };
             parameters = { parameters with

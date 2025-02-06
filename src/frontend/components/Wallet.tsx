@@ -5,12 +5,12 @@ import { useAuth } from '@ic-reactor/react';
 import { ckBtcActor } from '../actors/CkBtcActor';
 import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
-import { resonanceLedgerActor } from '../actors/ResonanceLedgerActor';
+import { dsonanceLedgerActor } from '../actors/DsonanceLedgerActor';
 import { formatBalanceE8s } from '../utils/conversions/token';
-import { RESONANCE_TOKEN_SYMBOL } from '../constants';
+import { DSONANCE_TOKEN_SYMBOL } from '../constants';
 import { minterActor } from '../actors/MinterActor';
 import BitcoinIcon from './icons/BitcoinIcon';
-import ResonanceCoinIcon from './icons/ResonanceCoinIcon';
+import DsonanceCoinIcon from './icons/DsonanceCoinIcon';
 import LogoutIcon from './icons/LogoutIcon';
 import { Link } from 'react-router-dom';
 import { useCurrencyContext } from './CurrencyContext';
@@ -52,7 +52,7 @@ const Wallet = () => {
     setTimeout(() => setCopied(false), 2000); // Hide tooltip after 2 seconds
   };
 
-  const { data: resonanceBalance } = resonanceLedgerActor.useQueryCall({
+  const { data: dsonanceBalance } = dsonanceLedgerActor.useQueryCall({
     functionName: 'icrc1_balance_of',
     args: [account]
   });
@@ -170,16 +170,16 @@ const Wallet = () => {
           </span> }
       </div>
 
-      {/* Resonance Balance */}
+      {/* Dsonance Balance */}
       <div className="flex w-full items-center justify-between rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-100 dark:bg-gray-800">
         <div className="flex items-center space-x-2">
           <div className="h-5 w-5">
-            <ResonanceCoinIcon />
+            <DsonanceCoinIcon />
           </div>
-          <span className="text-gray-700 dark:text-white font-medium">Resonance:</span>
+          <span className="text-gray-700 dark:text-white font-medium">Dsonance:</span>
         </div>
         <span className="text-md font-semibold">
-          {formatBalanceE8s(resonanceBalance ?? 0n, RESONANCE_TOKEN_SYMBOL)}
+          {formatBalanceE8s(dsonanceBalance ?? 0n, DSONANCE_TOKEN_SYMBOL)}
         </span>
       </div>
 

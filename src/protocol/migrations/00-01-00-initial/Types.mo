@@ -232,7 +232,7 @@ module {
         consent: Timeline<Float>;
         rewards: Timeline<Rewards>;
         ck_btc: DebtInfo;
-        resonance: DebtInfo;
+        dsonance: DebtInfo;
         tx_id: Nat;
         from: Account;
         decay: Float;
@@ -327,7 +327,7 @@ module {
             ledger: Principal;
             fee: Nat;
         };
-        resonance: {
+        dsonance: {
             ledger: Principal;
             fee: Nat;
         };
@@ -358,7 +358,7 @@ module {
             fee: Nat;
             owed: Set<UUID>;
         };
-        resonance: {
+        dsonance: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
             owed: Set<UUID>;
