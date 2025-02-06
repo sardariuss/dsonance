@@ -48,7 +48,7 @@ dfx deploy presence_ledger --argument '(opt record {
 # https://www.desmos.com/calculator/8iww2wlp2t
 # dissent_steepness be between 0 and 1, the closer to 1 the steepest (the less the majority is rewarded)
 # consent_steepness be between 0 and 0.25, the closer to 0 the steepest
-# 216 seconds timer interval, with a 100x dilation factor, means 6 hours in simulated time
+# 1 hour timer interval, with a 24x dilation factor, means 1 day in simulated time
 dfx deploy protocol --argument '( variant { 
   init = record {
     deposit = record {
@@ -68,8 +68,8 @@ dfx deploy protocol --argument '( variant {
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
       opening_vote_fee = 30;
-      timer_interval_s = 216;
-      clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
+      timer_interval_s = 3600;
+      clock = variant { SIMULATED = record { dilation_factor = 24.0; } };
     };
   }
 })' --ic
