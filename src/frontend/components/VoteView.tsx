@@ -32,7 +32,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, selected, setSelected }) => {
       return undefined;
     }
     return compute_vote_details(vote, computeDecay);
-  }, [vote]);
+  }, [vote, computeDecay]);
 
   const resetVote = () => {
     setBallot({ choice: EYesNoChoice.Yes, amount: 0n });

@@ -2,7 +2,7 @@
 import { SYesNoVote } from "../../declarations/backend/backend.did";
 import { backendActor } from "../actors/BackendActor";
 import VoteView from "./VoteView";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import NewVote from "./NewVote";
 import { TabButton } from "./TabButton";
 import { toNullable } from "@dfinity/utils";
@@ -92,7 +92,7 @@ const VoteList = () => {
       }
       <ul>
         {
-          votes && votes.map((vote: SYesNoVote, index) => (
+          votes.map((vote: SYesNoVote, index) => (
             vote.info.visible && <li key={index} ref={(el) => (voteRefs.current.set(vote.vote_id, el))} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]">
               <VoteView 
                 selected={selectedVoteId === vote.vote_id}
