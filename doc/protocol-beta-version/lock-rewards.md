@@ -1,3 +1,8 @@
+---
+cover: ../.gitbook/assets/logo.png
+coverY: 0
+---
+
 # Lock rewards
 
 In its initial phase, the protocol rewards voters with **Presence tokens**, a fixed amount of which is minted daily. These rewards are divided into two parts: one portion incentivizes participation in the protocol, while the larger portion rewards voter discernment.
@@ -7,4 +12,3 @@ Participation rewards are distributed **continuously throughout the active perio
 
 **Discernment Rewards**\
 Discernment rewards are distributed **at the end of a lock**. The voter’s reward depends on how well their ballot choice aligns with the current consensus and the extent to which their choice represented a minority opinion at the time of casting. Stronger alignment with consensus and bolder minority positions yield greater rewards.
-

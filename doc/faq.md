@@ -1,3 +1,8 @@
+---
+cover: .gitbook/assets/logo.png
+coverY: 0
+---
+
 # FAQ
 
 **Q: What is the purpose of Dsonance?**\
@@ -27,4 +32,3 @@
 
 **Q: I am sure most consensuses do not reflect the actual opinion. Can I contact a moderator to change them?**\
 **A:** Each consensus is determined by the collective votes of the participants and evolves over time based on the active input of the community. Since the platform is decentralized, there is no moderator who can alter the consensus. However, you are encouraged to participate and cast your vote to help shape the consensus in line with your perspective.
-
