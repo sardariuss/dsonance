@@ -1,3 +1,8 @@
+---
+cover: .gitbook/assets/logo.png
+coverY: 0
+---
+
 # Introduction
 
 **Dsonance** is a platform that enables users to lock Bitcoin and participate in a decentralized consensus system. By fostering continuous, stake-weighted voting, the platform ensures that collective decisions are nuanced, evolving, and resistant to manipulation. Participants are rewarded for their contributions and their ability to anticipate the future consensus, fostering a fair and transparent system that values foresight, genuine opinions, and strategic thinking.
@@ -21,6 +26,3 @@
 * **Boldness is rewarded**: Minority opinions are incentivized, but the consensus must shift before their lock expires.
 * **Limited whale influence**: Large stakeholders can shift consensus rapidly but face smaller rewards and longer lock durations.
 * **Strategic voting**: Voting opens opportunities for opponents to respond strategically, increasing the stakes and prolonging lock durations.
-
-
-
