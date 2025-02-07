@@ -15,13 +15,12 @@ import { useProtocolContext } from "./ProtocolContext";
 
 interface PutBallotProps {
   vote_id: string;
-  refreshVotes?: () => void;
   ballot: BallotInfo;
   setBallot: (ballot: BallotInfo) => void;
   resetVote: () => void;
 }
 
-const PutBallot: React.FC<PutBallotProps> = ({ vote_id, refreshVotes, ballot, setBallot, resetVote }) => {
+const PutBallot: React.FC<PutBallotProps> = ({ vote_id, ballot, setBallot, resetVote }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const navigate = useNavigate();

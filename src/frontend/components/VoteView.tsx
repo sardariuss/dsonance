@@ -15,12 +15,11 @@ import { useProtocolContext } from "./ProtocolContext";
 
 interface VoteViewProps {
   vote: SYesNoVote;
-  refreshVotes?: () => void;
   selected: boolean;
   setSelected: () => void;
 }
 
-const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSelected }) => {
+const VoteView: React.FC<VoteViewProps> = ({ vote, selected, setSelected }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
@@ -62,7 +61,6 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
             <PutBallotPreview vote_id={vote.vote_id} ballot={ballot} />
             <PutBallot 
               vote_id={vote.vote_id} 
-              refreshVotes={refreshVotes} 
               ballot={ballot}
               setBallot={setBallot}
               resetVote={resetVote}
@@ -93,8 +91,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, refreshVotes, selected, setSe
             }
             <PutBallotPreview vote_id={vote.vote_id} ballot={ballot} />
             <PutBallot 
-              vote_id={vote.vote_id} 
-              refreshVotes={refreshVotes} 
+              vote_id={vote.vote_id}
               ballot={ballot}
               setBallot={setBallot}
               resetVote={resetVote}
