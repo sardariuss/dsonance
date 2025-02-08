@@ -24,4 +24,4 @@ Where:
 
 **Note:** The consensus remains **unaffected** by whether the Bitcoins from ballots are still **locked** or have been **reimbursed**. Once a ballot is cast, it continues to influence the vote **indefinitely**, though its impact gradually decreases over time due to the decay factor.
 
-TODO: formula of the decay used + half life parameter
+The decay factor follows standard exponential decay, with the **ballot's half-life as a protocol-defined parameter**.
