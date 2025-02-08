@@ -3,12 +3,128 @@ cover: ../.gitbook/assets/logo.png
 coverY: 0
 ---
 
-# Lock rewards
+# Voting rewards
 
-In its initial phase, the protocol rewards voters with **Presence tokens**, a fixed amount of which is minted daily. These rewards are divided into two parts: one portion incentivizes participation in the protocol, while the larger portion rewards voter discernment.
+#### **Rewards Structure**
 
-**Participation Rewards**\
-Participation rewards are distributed **continuously throughout the active period of a lock**. The amount each voter receives is proportional to the amount of Bitcoin in their lock relative to the total Bitcoin locked in the protocol.
+In its initial phase, the protocol rewards voters with **Presence tokens**, a fixed amount of which is minted daily. These rewards are divided into two parts:
 
-**Discernment Rewards**\
-Discernment rewards are distributed **at the end of a lock**. The voter’s reward depends on how well their ballot choice aligns with the current consensus and the extent to which their choice represented a minority opinion at the time of casting. Stronger alignment with consensus and bolder minority positions yield greater rewards.
+1. **Participation Rewards** – Rewarding engagement in the protocol.
+2. **Discernment Rewards** – Rewarding thoughtful voting behavior.
+
+***
+
+#### **Participation Rewards**
+
+Participation rewards are distributed continuously throughout the active period of a lock. The amount each voter receives is proportional to the amount of Bitcoin in their lock relative to the total Bitcoin locked in the protocol.
+
+* **Ballot choice does not impact participation rewards**—only the total locked amount matters.
+* Since total locked Bitcoin changes over time, contribution is computed using a **time-weighted integral**, ensuring fairness.
+
+$$
+\text{participation} = \int_{t_{\text{lock}}}^{t_{\text{unlock}}} \left( \frac{\text{ballot\_amount}}{\text{total\_locked}(t)} \right) \times \text{minting\_rate} \, dt
+$$
+
+***
+
+#### **Dissent and Consent**
+
+{% hint style="info" %}
+Totals expressed in the following paragraphs represent the sum of ballots amounts weighted by their decay as expressed in the [stake-weighted-voting.md](stake-weighted-voting.md "mention") chapter.
+{% endhint %}
+
+Before defining _discernment rewards_, it is important to introduce two key metrics:
+
+**Dissent**
+
+Dissent measures how much a given ballot challenges the current consensus. It is defined as:
+
+$$
+\text{dissent} =
+\begin{cases} 
+1 - \text{consensus} = \frac{\text{total\_false}}{\text{total\_false} + \text{total\_true}}, & \text{if choice is true} \\ 
+\text{consensus} = \frac{\text{total\_true}}{\text{total\_false} + \text{total\_true}}, & \text{if choice is false} 
+\end{cases}
+$$
+
+This simplifies to:
+
+$$
+\text{dissent} = \frac{\text{total\_opposit}}{\text{total}}
+$$
+
+where $$\text{total\_opposit}$$ represents the amount of Bitcoin locked in ballots that voted the opposite way.
+
+To avoid completely disincentivizing voting when the consensus is already aligned with the voter’s choice, the **dissent** **is adjusted** using a power function:
+
+$$
+\text{adjusted\_dissent} = \text{dissent}^p
+$$
+
+Since the **ballot itself influences the consensus**, we must account for its weight. The **ballot dissent** is calculated as:
+
+$$
+\text{ballot\_dissent} = \int_0^{\text{amount}} \text{adjusted\_dissent}(x) \, dx = \int_0^{\text{amount}} \left( \frac{\text{total\_opposit}}{\text{total} + x} \right)^p dx
+$$
+
+where $$p$$ (dissent steepness) is a protocol parameter between 0 and 1:
+
+* The closer $$p$$ is to 1, the steeper the curve (meaning the majority is rewarded less).
+* The closer $$p$$ is to 0, the more the majority is rewarded.
+
+{% hint style="info" %}
+The beta version slightly modifies the dissent formulation to ensure that a ballot can have dissent even when no previous ballots have been placed in a vote. This adjustment prevents early voters from being unfairly assigned a dissent of zero.  This limitation will be removed once limit orders are implemented.
+{% endhint %}
+
+$$
+\text{ballot\_dissent} = \int_0^{\text{amount}} \left( \min \left( \frac{\text{total\_opposit} + K}{\text{total} + x}, 1 \right) \right)^p dx
+$$
+
+where $$K$$ is the **initial\_dissent\_addend** protocol parameter.
+
+***
+
+#### Consent
+
+The **consent** measures how well the ballot’s choice **aligns** with the current consensus.
+
+$$
+\text{consent} =
+\begin{cases} 
+\text{consensus} = \frac{\text{total\_true}}{\text{total\_false} + \text{total\_true}}, & \text{if choice is right} \\ 
+1 - \text{consensus} = \frac{\text{total\_false}}{\text{total\_false} + \text{total\_true}}, & \text{if choice is false}
+\end{cases}
+$$
+
+This can be simplified as:
+
+$$
+\text{consent} = \frac{\text{total\_same}}{\text{total}}
+$$
+
+To incentivize participants whose choice aligns with the consensus, the consent is adjusted using a logistic function:
+
+$$
+\text{ballot\_consent} = \text{adjusted\_consent} = \frac{1}{1 + e^{-\frac{\text{consent} - \mu}{\sigma}}}
+$$
+
+Where:
+
+* $$\mu = \text{total} * 0.5$$
+* $$\sigma = \text{total} * \text{consent\_steepness}$$
+
+***
+
+#### Discernment rewards
+
+Discernment rewards are distributed **at the end of a lock** and depend on:
+
+1. How bold the choice was at the time of casting (_dissent_).
+2. How well the ballot aligns with the final consensus (_consent_).
+
+The discernment reward is calculated as:
+
+$$
+\text{discernment} = \text{participation} \times \text{ballot\_dissent}_{t_0} \times \text{ballot\_consent}_{t_{\text{end}}}
+$$
+

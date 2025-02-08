@@ -22,6 +22,8 @@ Where:
 * $$A_j$$ = Amount of Bitcoin in all ballots (_True_ and _False_)
 * $$d_i, d_j$$ = Decay factor of each ballot, giving more recent ballots higher weight
 
-**Note:** The consensus remains **unaffected** by whether the Bitcoins from ballots are still **locked** or have been **reimbursed**. Once a ballot is cast, it continues to influence the vote **indefinitely**, though its impact gradually decreases over time due to the decay factor.
+{% hint style="info" %}
+The consensus remains **unaffected** by whether the Bitcoins from ballots are still **locked** or have been **transferred back** to the user. Once a ballot is cast, it continues to influence the vote **indefinitely**, though its impact gradually decreases over time due to the decay factor.
+{% endhint %}
 
 The decay factor follows standard exponential decay, with the **ballot's half-life as a protocol-defined parameter**.
