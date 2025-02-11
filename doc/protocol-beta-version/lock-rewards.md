@@ -55,11 +55,13 @@ $$
 
 where $$\text{total\_opposit}$$ represents the amount of Bitcoin locked in ballots that voted the opposite way.
 
-To avoid completely disincentivizing voting when the consensus is already aligned with the voter’s choice, the **dissent** **is adjusted** using a power function:
+To avoid completely disincentivizing voting when the consensus is already aligned with the voter’s choice, the **dissent** **is adjusted** using a power function controlled by the protocol parameter _**dissent\_steepness**_:
 
 $$
 \text{adjusted\_dissent} = \text{dissent}^p
 $$
+
+Where $$p$$ is the dissent\_steepness.
 
 <div align="center"><figure><img src="../.gitbook/assets/image (1).png" alt="" width="532"><figcaption><p>In X, the ratio total_opposit/ total, in Y the dissent. The red curve is the original dissent, the purple curve is the adjusted dissent.</p></figcaption></figure></div>
 
@@ -104,7 +106,7 @@ $$
 \text{consent} = \frac{\text{total\_same}}{\text{total}}
 $$
 
-To incentivize participants whose choice aligns with the consensus, the consent is adjusted using a logistic function:
+To incentivize participants whose choice aligns with the consensus, the consent is adjusted using a logistic function controlled by the protocol parameter _**consent\_steepness.**_
 
 $$
 \text{ballot\_consent} = \text{adjusted\_consent} = \frac{1}{1 + e^{-\frac{\text{consent} - \mu}{\sigma}}}
@@ -124,7 +126,7 @@ Where:
 Discernment rewards are distributed **at the end of a lock** and depend on:
 
 1. How bold the choice was at the time of casting: $$\text{ballot\_dissent}_{t_0}$$
-2. How well the ballot aligns with the final consensus: $$\text{ballot\_consent}_{t_{\text{end}}}$$$$f(x) = x * e^{2 pi i \xi x}$$
+2. How well the ballot aligns with the final consensus: $$\text{ballot\_consent}_{t_{\text{end}}}$$
 
 The discernment reward is calculated as:
 
