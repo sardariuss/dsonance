@@ -1,3 +1,8 @@
+---
+cover: .gitbook/assets/logo.png
+coverY: 0
+---
+
 # Introduction
 
 <img src="../.gitbook/assets/consensus.png" alt="">
@@ -24,6 +29,3 @@
 * **Boldness is rewarded**: Minority opinions are incentivized, but the consensus must shift before their lock expires.
 * **Limited whale influence**: Large stakeholders can shift consensus rapidly but face smaller rewards and longer lock durations.
 * **Strategic voting**: Voting opens opportunities for opponents to respond strategically, increasing the stakes and prolonging lock durations.
-
-
-
