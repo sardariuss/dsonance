@@ -1,6 +1,5 @@
-import Types  "../Types";
-import Math   "../utils/Math";
-import Duration "../duration/Duration";
+import Types    "../Types";
+import Math     "../utils/Math";
 
 import Float  "mo:base/Float";
 import Int    "mo:base/Int";
@@ -33,11 +32,11 @@ module {
             case(#YES) { { same = total_yes; opposit = total_no;  }; };
             case(#NO)  { { same = total_no;  opposit = total_yes; }; };
         };
-        let length = same + opposit;
+        let total = same + opposit;
         Math.logistic_regression({
             x = same;
-            mu = length * 0.5;
-            sigma = length * steepness;
+            mu = total * 0.5;
+            sigma = total * steepness;
         });
     };
 
