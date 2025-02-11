@@ -37,7 +37,7 @@ Before defining _discernment rewards_, it is important to introduce two key metr
 
 **Dissent**
 
-Dissent measures how much a given ballot challenges the current consensus. It is defined as:
+Dissent measures how much a single satoshi challenges the current consensus. It is defined as:
 
 $$
 \text{dissent} =
@@ -61,20 +61,18 @@ $$
 \text{adjusted\_dissent} = \text{dissent}^p
 $$
 
-Where $$p$$ is the dissent\_steepness.
+Where $$p$$ (dissent steepness) is a protocol parameter between 0 and 1:
 
-<div align="center"><figure><img src="../.gitbook/assets/image (1).png" alt="" width="532"><figcaption><p>In X, the ratio total_opposit/ total, in Y the dissent. The red curve is the original dissent, the purple curve is the adjusted dissent.</p></figcaption></figure></div>
+* The closer $$p$$ is to 1, the steeper the curve (meaning the majority is rewarded less).
+* The closer $$p$$ is to 0, the more the majority is rewarded.
+
+<div align="center" data-full-width="true"><figure><img src="../.gitbook/assets/image (1).png" alt=""><figcaption><p>In X, the ratio total_opposit/ total, in Y the dissent. The red curve is the original dissent, the purple curve is the adjusted dissent.</p></figcaption></figure></div>
 
 Since the **ballot itself influences the consensus**, we must account for its weight. The **ballot dissent** is calculated as:
 
 $$
 \text{ballot\_dissent} = \int_0^{\text{amount}} \text{adjusted\_dissent}(x) \, dx = \int_0^{\text{amount}} \left( \frac{\text{total\_opposit}}{\text{total} + x} \right)^p dx
 $$
-
-where $$p$$ (dissent steepness) is a protocol parameter between 0 and 1:
-
-* The closer $$p$$ is to 1, the steeper the curve (meaning the majority is rewarded less).
-* The closer $$p$$ is to 0, the more the majority is rewarded.
 
 {% hint style="info" %}
 The beta version slightly modifies the dissent formulation to ensure that a ballot can have dissent even when no previous ballots have been placed in a vote. This adjustment prevents early voters from being unfairly assigned a dissent of zero.  This limitation will be removed once limit orders are implemented.
@@ -90,7 +88,7 @@ where $$K$$ is the _**initial\_dissent\_addend**_ protocol parameter.
 
 #### Consent
 
-The **consent** measures how well the ballot’s choice **aligns** with the current consensus.
+The **consent** measures how well a single satoshi **aligns** with the current consensus.
 
 $$
 \text{consent} =
@@ -115,9 +113,9 @@ $$
 Where:
 
 * $$\mu = \text{total} * 0.5$$
-* $$\sigma = \text{total} * \text{consent\_steepness}$$
+* $$\sigma = \text{total} * \text{consent\_steepness}$$. The closer p&#x20;
 
-<figure><img src="../.gitbook/assets/image (2).png" alt="" width="543"><figcaption><p>In X the ratio total_same/total, in Y the consent. The red curve is the original consent, the blue curve is the adjusted consent. </p></figcaption></figure>
+<div data-full-width="false"><figure><img src="../.gitbook/assets/image (2).png" alt=""><figcaption><p>In X the ratio total_same/total, in Y the consent. The red curve is the original consent, the blue curve is the adjusted consent. </p></figcaption></figure></div>
 
 ***
 
