@@ -61,6 +61,8 @@ $$
 \text{adjusted\_dissent} = \text{dissent}^p
 $$
 
+<div align="center"><figure><img src="../.gitbook/assets/image (1).png" alt="" width="532"><figcaption><p>In X, the ratio total_opposit/ total, in Y the dissent. The red curve is the original dissent, the purple curve is the adjusted dissent.</p></figcaption></figure></div>
+
 Since the **ballot itself influences the consensus**, we must account for its weight. The **ballot dissent** is calculated as:
 
 $$
@@ -80,7 +82,7 @@ $$
 \text{ballot\_dissent} = \int_0^{\text{amount}} \left( \min \left( \frac{\text{total\_opposit} + K}{\text{total} + x}, 1 \right) \right)^p dx
 $$
 
-where $$K$$ is the **initial\_dissent\_addend** protocol parameter.
+where $$K$$ is the _**initial\_dissent\_addend**_ protocol parameter.
 
 ***
 
@@ -113,14 +115,16 @@ Where:
 * $$\mu = \text{total} * 0.5$$
 * $$\sigma = \text{total} * \text{consent\_steepness}$$
 
+<figure><img src="../.gitbook/assets/image (2).png" alt="" width="543"><figcaption><p>In X the ratio total_same/total, in Y the consent. The red curve is the original consent, the blue curve is the adjusted consent. </p></figcaption></figure>
+
 ***
 
 #### Discernment rewards
 
 Discernment rewards are distributed **at the end of a lock** and depend on:
 
-1. How bold the choice was at the time of casting (_dissent_).
-2. How well the ballot aligns with the final consensus (_consent_).
+1. How bold the choice was at the time of casting: $$\text{ballot\_dissent}_{t_0}$$
+2. How well the ballot aligns with the final consensus: $$\text{ballot\_consent}_{t_{\text{end}}}$$$$f(x) = x * e^{2 pi i \xi x}$$
 
 The discernment reward is calculated as:
 
