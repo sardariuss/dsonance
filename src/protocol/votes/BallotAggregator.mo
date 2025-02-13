@@ -2,8 +2,6 @@ import Types              "../Types";
 
 module {
 
-    type Time = Int;
-
     type UpdateAggregate<A, B>      = Types.UpdateAggregate<A, B>;
     type ComputeDissent<A, B>       = Types.ComputeDissent<A, B>;
     type ComputeConsent<A, B>       = Types.ComputeConsent<A, B>;
@@ -19,7 +17,7 @@ module {
             aggregate: A;
             choice: B;
             amount: Nat;
-            time: Time;
+            time: Nat;
         }) : BallotAggregatorOutcome<A> {
 
             // Compute the dissent before updating the aggregate
@@ -40,7 +38,7 @@ module {
         public func get_consent({
             aggregate: A;
             choice: B;
-            time: Time;
+            time: Nat;
         }) : Float {
             compute_consent({ aggregate; choice; time; });
         };

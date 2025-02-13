@@ -11,7 +11,7 @@ import ConsensusView from "../ConsensusView";
 import BitcoinIcon from "../icons/BitcoinIcon";
 
 import { SBallotType } from "@/declarations/protocol/protocol.did";
-import PresenceCoinIcon from "../icons/PresenceCoinIcon";
+import DsonanceCoinIcon from "../icons/DsonanceCoinIcon";
 import { compute_vote_details } from "../../utils/conversions/votedetails";
 import { DesktopBallotDetails, MobileBallotDetails } from "./BallotDetails";
 import { useMediaQuery } from "react-responsive";
@@ -106,7 +106,7 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
             </div>
           }
           <div className="flex self-center h-4 w-4">
-            <PresenceCoinIcon/>
+            <DsonanceCoinIcon/>
           </div>
         </div>
 

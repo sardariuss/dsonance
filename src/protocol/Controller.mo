@@ -1,10 +1,8 @@
 import Types                   "Types";
 import DebtProcessor           "DebtProcessor";
 import ProtocolTimer           "ProtocolTimer";
-import ParticipationDispenser  "ParticipationDispenser";
 import LockScheduler           "LockScheduler";
 import MapUtils                "utils/Map";
-import Decay                   "duration/Decay";
 import Timeline                "utils/Timeline";
 import Clock                   "utils/Clock";
 import SharedConversions       "shared/SharedConversions";
@@ -73,9 +71,8 @@ module {
         ballot_register: BallotRegister;
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
-        deposit_debt: DebtProcessor.DebtProcessor;
-        presence_debt: DebtProcessor.DebtProcessor;
-        participation_dispenser: ParticipationDispenser.ParticipationDispenser;
+        btc_debt: DebtProcessor.DebtProcessor;
+        dsn_debt: DebtProcessor.DebtProcessor;
         protocol_timer: ProtocolTimer.ProtocolTimer;
         minting_info: MintingInfo;
         parameters: ProtocolParameters;
@@ -89,8 +86,8 @@ module {
                 return #err(#VoteAlreadyExists({vote_id}));
             };
 
-            // TODO: should be a presence fee instead!
-            let transfer = await* deposit_debt.get_ledger().transfer_from({
+            // TODO: should be a dsonance fee instead!
+            let transfer = await* btc_debt.get_ledger().transfer_from({
                 from = account;
                 amount = parameters.opening_vote_fee;
             });
@@ -156,7 +153,7 @@ module {
                 return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount; }));
             };
 
-            let transfer = await* deposit_debt.get_ledger().transfer_from({
+            let transfer = await* btc_debt.get_ledger().transfer_from({
                 from = { owner = caller; subaccount = from_subaccount; };
                 amount;
             });
@@ -214,12 +211,11 @@ module {
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
             lock_scheduler.try_unlock(time);
-            participation_dispenser.dispense(time);
 
             let transfers = Buffer.Buffer<async* ()>(3);
 
-            transfers.add(deposit_debt.transfer_owed());
-            transfers.add(presence_debt.transfer_owed());
+            transfers.add(btc_debt.transfer_owed());
+            transfers.add(dsn_debt.transfer_owed());
 
             for (call in transfers.vals()){
                 await* call;
@@ -275,9 +271,9 @@ module {
         public func get_info() : ProtocolInfo {
             {
                 current_time = clock.get_time();
-                last_run = participation_dispenser.get_last_dispense();
-                ck_btc_locked = lock_scheduler.get_total_locked();
-                presence_minted = minting_info.amount_minted;
+                last_run = lock_scheduler.get_last_dispense();
+                btc_locked = lock_scheduler.get_total_locked();
+                dsn_minted = minting_info.amount_minted;
             };
         };
 

@@ -4,7 +4,7 @@ set -ex
 dfx canister create --all
 
 # Fetch canister IDs dynamically
-for canister in ck_btc presence_ledger protocol minter; do
+for canister in ck_btc dsn_ledger protocol minter; do
   export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
 done
 
@@ -28,10 +28,10 @@ dfx deploy ck_btc --argument '(opt record {
   icrc3 = null;
   icrc4 = null;
 })' &
-dfx deploy presence_ledger --argument '(opt record {
+dfx deploy dsn_ledger --argument '(opt record {
   icrc1 = opt record {
-    name              = opt "Presence Coin";
-    symbol            = opt "PRSC";
+    name              = opt "Dsonance Coin";
+    symbol            = opt "DSN";
     decimals          = 8;
     fee               = opt variant { Fixed = 10 };
     max_supply        = opt 2_100_000_000_000_000;
@@ -59,17 +59,18 @@ wait
 # 216 seconds timer interval, with a 100x dilation factor, means 6 hours in simulated time
 dfx deploy protocol --argument '( variant { 
   init = record {
-    deposit = record {
+    btc = record {
       ledger = principal "'${CK_BTC_PRINCIPAL}'";
       fee = 10;
     };
-    presence = record {
-      ledger  = principal "'${PRESENCE_LEDGER_PRINCIPAL}'";
+    dsn = record {
+      ledger  = principal "'${DSN_LEDGER_PRINCIPAL}'";
       fee = 10;
     };
     parameters = record {
       participation_per_day = 100_000_000_000;
-      discernment_factor = 9.0;
+      age_coefficient = 0.25;
+      max_age = variant { YEARS = 4 };
       ballot_half_life = variant { YEARS = 1 };
       nominal_lock_duration = variant { DAYS = 3 };
       minimum_ballot_amount = 100;
@@ -106,7 +107,7 @@ dfx canister call backend add_categories '(
 )'
 
 dfx generate ck_btc
-dfx generate presence_ledger
+dfx generate dsn_ledger
 dfx generate backend # Will generate protocol as well
 dfx generate internet_identity
 dfx generate minter

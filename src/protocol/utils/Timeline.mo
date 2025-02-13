@@ -4,7 +4,6 @@ import Debug "mo:base/Debug";
 
 module {
 
-  type Time = Int;
   type Result<Ok, Err> = Result.Result<Ok, Err>;
 
   type Timeline<T> = {
@@ -13,20 +12,29 @@ module {
   };
 
   public type TimedData<T> = {
-    timestamp: Time;
+    timestamp: Nat;
     data: T;
   };
 
   // Initialize the history with the first entry
-  public func initialize<T>(timestamp: Time, data: T): Timeline<T> {
+  public func initialize<T>(timestamp: Nat, data: T): Timeline<T> {
     {
       var current = { timestamp; data };
       var history = [];
     }
   };
 
+  public func deepCopy<T>(timeline: Timeline<T>): Timeline<T> {
+    {
+      var current = { timestamp = timeline.current.timestamp; data = timeline.current.data };
+      var history = Array.map<TimedData<T>, TimedData<T>>(timeline.history, func(entry) {
+        { timestamp = entry.timestamp; data = entry.data }
+      });
+    }
+  };
+
   // Add a new entry to the history
-  public func add<T>(timeline: Timeline<T>, timestamp: Time, data: T) {
+  public func add<T>(timeline: Timeline<T>, timestamp: Nat, data: T) {
     if (timestamp < timeline.current.timestamp) {
       Debug.trap("Date must be greater than the last date");
     };

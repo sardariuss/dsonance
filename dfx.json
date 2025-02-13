@@ -4,7 +4,7 @@
       "main": "src/ledger/main.mo",
       "type": "motoko"
     },
-    "presence_ledger": {
+    "dsn_ledger": {
       "main": "src/ledger/main.mo",
       "type": "motoko"
     },

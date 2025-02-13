@@ -6,7 +6,6 @@ import DurationCalculator     "duration/DurationCalculator";
 import VoteFactory            "votes/VoteFactory";
 import VoteTypeController     "votes/VoteTypeController";
 import LedgerFacade           "payement/LedgerFacade";
-import ParticipationDispenser "ParticipationDispenser";
 import LockScheduler          "LockScheduler";
 import Clock                  "utils/Clock";
 import HotMap                 "locks/HotMap";
@@ -30,39 +29,39 @@ module {
 
     public func build(args: State and { provider: Principal; admin: Principal; }) : Controller.Controller {
 
-        let { vote_register; ballot_register; lock_register; deposit; presence; parameters; provider; admin; minting_info; } = args;
+        let { vote_register; ballot_register; lock_register; btc; dsn; parameters; provider; admin; minting_info; } = args;
         let { nominal_lock_duration; decay; } = parameters;
 
-        let deposit_ledger = LedgerFacade.LedgerFacade({ deposit with provider; });
-        let presence_ledger = LedgerFacade.LedgerFacade({ presence with provider; });
+        let btc_ledger = LedgerFacade.LedgerFacade({ btc with provider; });
+        let dsn_ledger = LedgerFacade.LedgerFacade({ dsn with provider; });
 
         let clock = Clock.Clock(parameters.clock);
 
-        let deposit_debt = DebtProcessor.DebtProcessor({
-            deposit with 
+        let btc_debt = DebtProcessor.DebtProcessor({
+            btc with 
             get_debt_info = func (id: UUID) : DebtInfo {
                 switch(Map.get(ballot_register.ballots, Map.thash, id)) {
                     case(null) { Debug.trap("Debt not found"); };
                     case(?ballot) {
-                        BallotUtils.unwrap_yes_no(ballot).ck_btc;
+                        BallotUtils.unwrap_yes_no(ballot).btc_debt;
                     };
                 };
             };
-            ledger = deposit_ledger;
+            ledger = btc_ledger;
             on_successful_transfer = null;
         });
 
-        let presence_debt = DebtProcessor.DebtProcessor({
-            presence with 
+        let dsn_debt = DebtProcessor.DebtProcessor({
+            dsn with 
             get_debt_info = func (id: UUID) : DebtInfo {
                 switch(Map.get(ballot_register.ballots, Map.thash, id)) {
                     case(null) { Debug.trap("Debt not found"); };
                     case(?ballot) {
-                        BallotUtils.unwrap_yes_no(ballot).presence;
+                        BallotUtils.unwrap_yes_no(ballot).dsn_debt;
                     };
                 };
             };
-            ledger = presence_ledger;
+            ledger = dsn_ledger;
             on_successful_transfer = ?(
                 func({amount: Nat}) {
                     // Update the total amount minted
@@ -71,41 +70,18 @@ module {
             );
         });
 
-        let participation_dispenser = ParticipationDispenser.ParticipationDispenser({
-            lock_register;
-            parameters;
-            debt_processor = presence_debt;
-        });
-
         let duration_calculator = DurationCalculator.PowerScaler({
             nominal_duration = nominal_lock_duration;
         });
         
         let lock_scheduler = LockScheduler.LockScheduler({
+            parameters;
             lock_register;
-            update_lock_duration = func(ballot: YesNoBallot, time: Time) {
+            update_lock_duration = func(ballot: YesNoBallot, time: Nat) {
                 duration_calculator.update_lock_duration(ballot, ballot.hotness, time);
             };
-            about_to_add = func (_: YesNoBallot, time: Time) {
-                participation_dispenser.dispense(time);
-            };
-            about_to_remove = func (ballot: YesNoBallot, time: Time) {
-                participation_dispenser.dispense(time);
-                
-                // Transfer the discernment
-                presence_debt.add_debt({
-                    amount = Timeline.current(ballot.rewards).discernment;
-                    id = ballot.ballot_id;
-                    time;
-                });
-                
-                // Unlock the BTC deposit
-                deposit_debt.add_debt({ 
-                    amount = Float.fromInt(ballot.amount);
-                    id = ballot.ballot_id;
-                    time;
-                });
-            };
+            btc_debt;
+            dsn_debt;
         });
 
         let decay_model = Decay.DecayModel(decay);
@@ -132,9 +108,8 @@ module {
             ballot_register;
             lock_scheduler;
             vote_type_controller;
-            deposit_debt;
-            presence_debt;
-            participation_dispenser;
+            btc_debt;
+            dsn_debt;
             protocol_timer;
             minting_info;
             parameters;

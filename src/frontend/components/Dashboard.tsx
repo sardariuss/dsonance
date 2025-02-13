@@ -2,19 +2,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import DurationChart, { CHART_COLORS } from "./charts/DurationChart";
 import { map_filter_timeline, to_number_timeline } from "../utils/timeline";
 import { formatBalanceE8s, fromE8s } from "../utils/conversions/token";
-import { DISCERNMENT_EMOJI, MINTING_EMOJI, PARTICIPATION_EMOJI, PRESENCE_COIN_SYMBOL, SIMULATION_EMOJI } from "../constants";
+import { MINTING_EMOJI, PARTICIPATION_EMOJI, PRESENCE_COIN_SYMBOL, SIMULATION_EMOJI } from "../constants";
 import { useCurrencyContext } from "./CurrencyContext";
-import PresenceCoinIcon from "./icons/PresenceCoinIcon";
+import DsonanceCoinIcon from "./icons/DsonanceCoinIcon";
 import BitcoinIcon from "./icons/BitcoinIcon";
 import { useProtocolContext } from "./ProtocolContext";
 import { formatDateTime, timeDifference, timeToDate } from "../utils/conversions/date";
 import { formatDuration } from "../utils/conversions/durationUnit";
 
-export const computeMintingRate = (ck_btc_locked: bigint, participation_per_ns: number, satoshisToCurrency: (satoshis: bigint) => number | undefined) => {
-    if (ck_btc_locked === 0n) {
+export const computeMintingRate = (btc_locked: bigint, participation_per_ns: number, satoshisToCurrency: (satoshis: bigint) => number | undefined) => {
+    if (btc_locked === 0n) {
         return undefined;
     }
-    let amount = satoshisToCurrency(ck_btc_locked);
+    let amount = satoshisToCurrency(btc_locked);
     if (amount === undefined) {
         return undefined;
     }
@@ -37,7 +37,7 @@ const Dashboard = () => {
             return undefined;
         } else {
             const participationRate = map_filter_timeline(
-                to_number_timeline(info.ck_btc_locked), (value: number) => 
+                to_number_timeline(info.btc_locked), (value: number) => 
                     computeMintingRate(BigInt(value), parameters.participation_per_ns, satoshisToCurrency));
     
             const dilationFactor = ('SIMULATED' in parameters.clock) ? parameters.clock.SIMULATED.dilation_factor : 1.0;
@@ -137,10 +137,17 @@ const Dashboard = () => {
             }
             { parameters && 
                 <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full space-x-1 justify-center">
-                    <span>{DISCERNMENT_EMOJI}</span>
-                    <span className="text-gray-700 dark:text-gray-300">Discernment factor:</span>
+                    <span className="text-gray-700 dark:text-gray-300">Age coefficient:</span>
                     <span className="text-lg">
-                        {parameters.discernment_factor.toFixed(2)}
+                        {parameters.age_coefficient.toFixed(2)}
+                    </span>
+                </div>
+            }
+            { parameters && 
+                <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full space-x-1 justify-center">
+                    <span className="text-gray-700 dark:text-gray-300">Max age:</span>
+                    <span className="text-lg">
+                        {formatDuration(parameters.max_age)}
                     </span>
                 </div>
             }
@@ -167,11 +174,11 @@ const Dashboard = () => {
                         <BitcoinIcon />
                         <div className="text-gray-700 dark:text-gray-300">Total locked:</div>
                         <span className="text-lg">
-                            {`${formatSatoshis(info.ck_btc_locked.current.data)} BTC`}
+                            {`${formatSatoshis(info.btc_locked.current.data)} ckBTC`}
                         </span>
                     </div>
                     <DurationChart
-                        duration_timeline={to_number_timeline(info.ck_btc_locked)} 
+                        duration_timeline={to_number_timeline(info.btc_locked)} 
                         format_value={ (value: number) => (formatSatoshis(BigInt(value)) ?? "") } 
                         fillArea={true}
                         color={CHART_COLORS.YELLOW}
@@ -181,14 +188,14 @@ const Dashboard = () => {
             { info && 
                 <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-2 w-full">
                     <div className="flex flex-row items-center space-x-1">
-                        <PresenceCoinIcon />
-                        <div className="text-gray-700 dark:text-gray-300">Presence minted:</div>
+                        <DsonanceCoinIcon />
+                        <div className="text-gray-700 dark:text-gray-300">Dsonance minted:</div>
                         <span className="text-lg">
-                            {formatBalanceE8s(info.presence_minted.current.data, PRESENCE_COIN_SYMBOL, 0)}
+                            {formatBalanceE8s(info.dsn_minted.current.data, PRESENCE_COIN_SYMBOL, 0)}
                         </span>
                     </div>
                     <DurationChart
-                        duration_timeline={to_number_timeline(info.presence_minted)}
+                        duration_timeline={to_number_timeline(info.dsn_minted)}
                         format_value={ (value: number) => `${formatBalanceE8s(BigInt(value), PRESENCE_COIN_SYMBOL, 0)}` }
                         fillArea={true}
                         color={CHART_COLORS.GREEN}

@@ -22,7 +22,6 @@ module {
     type ProtocolParameters   = Types.ProtocolParameters;
     
     type Iter<T>              = Iter.Iter<T>;
-    type Time                 = Int;
 
     public func build_yes_no({
         parameters: ProtocolParameters;
@@ -32,7 +31,7 @@ module {
     }) : VoteController<YesNoAggregate, YesNoChoice> {
 
         let ballot_aggregator = BallotAggregator.BallotAggregator<YesNoAggregate, YesNoChoice>({
-            update_aggregate = func({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time;}) : YesNoAggregate {
+            update_aggregate = func({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Nat;}) : YesNoAggregate {
                 switch(choice){
                     case(#YES) {{
                         aggregate with 
@@ -46,7 +45,7 @@ module {
                     }};
                 };
             };
-            compute_dissent = func({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Time}) : Float {
+            compute_dissent = func({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Nat}) : Float {
                 Incentives.compute_dissent({
                     initial_addend = Float.fromInt(parameters.minimum_ballot_amount);
                     steepness = parameters.dissent_steepness;
@@ -56,7 +55,7 @@ module {
                     total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
                 });
             };
-            compute_consent = func ({aggregate: YesNoAggregate; choice: YesNoChoice; time: Time;}) : Float {
+            compute_consent = func ({aggregate: YesNoAggregate; choice: YesNoChoice; time: Nat;}) : Float {
                 Incentives.compute_consent({ 
                     steepness = parameters.consent_steepness;
                     choice;

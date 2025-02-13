@@ -18,13 +18,14 @@ module {
     type Ballot<B> = Types.Ballot<B>;
     type LockInfo = Types.LockInfo;
     type Rewards = Types.Rewards;
+    type Foresight = Types.Foresight;
+    type Contribution = Types.Contribution;
 
-    type Time = Int;
     type Iter<T> = Iter.Iter<T>;
 
     public type PutBallotArgs = {
         ballot_id: UUID;
-        timestamp: Time;
+        timestamp: Nat;
         amount: Nat;
         tx_id: Nat;
         from: Account;
@@ -42,7 +43,7 @@ module {
         public func new_vote({
             vote_id: UUID;
             tx_id: Nat;
-            date: Time;
+            date: Nat;
             origin: Principal;
         }) : Vote<A, B> {
             {
@@ -137,9 +138,10 @@ module {
                 choice;
                 dissent;
                 consent = Timeline.initialize<Float>(timestamp, consent);
-                rewards = Timeline.initialize<Rewards>(timestamp, { participation = 0.0; discernment = 0.0; });
-                ck_btc = DebtProcessor.init_debt_info(timestamp, from);
-                presence = DebtProcessor.init_debt_info(timestamp, from);
+                foresight = Timeline.initialize<Foresight>(timestamp, { reward = 0; apr = { current = 0.0; potential = 0.0; }; });
+                contribution = Timeline.initialize<Contribution>(timestamp, { earned = 0.0; pending = 0.0; });
+                btc_debt = DebtProcessor.init_debt_info(timestamp, from);
+                dsn_debt = DebtProcessor.init_debt_info(timestamp, from);
                 decay = decay_model.compute_decay(timestamp);
                 var hotness = 0.0;
                 var lock : ?LockInfo = null;

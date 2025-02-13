@@ -7,7 +7,7 @@ coverY: 0
 
 #### **Rewards Structure**
 
-In its initial phase, the protocol rewards voters with **Presence tokens**, a fixed amount of which is minted daily. These rewards are divided into two parts:
+In its initial phase, the protocol rewards voters with **Dsonance tokens**, a fixed amount of which is minted daily. These rewards are divided into two parts:
 
 1. **Participation Rewards** – Rewarding engagement in the protocol.
 2. **Discernment Rewards** – Rewarding thoughtful voting behavior.
