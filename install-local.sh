@@ -50,7 +50,7 @@ dfx deploy dsn_ledger --argument '(opt record {
 wait
 
 # Deploy protocol with dependencies
-# Hundred million e8s participation per day
+# Hundred million e8s contribution per day
 # With a discernment factor of 9, it leads to max one trillion e8s per day (probably more 400 billions per day)
 # minimum_ballot_amount shall be greater than 0
 # https://www.desmos.com/calculator/8iww2wlp2t
@@ -68,7 +68,7 @@ dfx deploy protocol --argument '( variant {
       fee = 10;
     };
     parameters = record {
-      participation_per_day = 100_000_000_000;
+      contribution_per_day = 100_000_000_000;
       age_coefficient = 0.25;
       max_age = variant { YEARS = 4 };
       ballot_half_life = variant { YEARS = 1 };
@@ -106,11 +106,11 @@ dfx canister call backend add_categories '(
   }
 )'
 
-dfx generate ck_btc
-dfx generate dsn_ledger
-dfx generate backend # Will generate protocol as well
-dfx generate internet_identity
-dfx generate minter
-dfx generate icp_coins
-
-dfx deploy frontend
+#dfx generate ck_btc
+#dfx generate dsn_ledger
+#dfx generate backend # Will generate protocol as well
+#dfx generate internet_identity
+#dfx generate minter
+#dfx generate icp_coins
+#
+#dfx deploy frontend

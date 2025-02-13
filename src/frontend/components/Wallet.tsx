@@ -7,7 +7,7 @@ import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
 import { dsonanceLedgerActor } from '../actors/DsonanceLedgerActor';
 import { formatBalanceE8s } from '../utils/conversions/token';
-import { PRESENCE_COIN_SYMBOL } from '../constants';
+import { DSONANCE_COIN_SYMBOL } from '../constants';
 import { minterActor } from '../actors/MinterActor';
 import BitcoinIcon from './icons/BitcoinIcon';
 import DsonanceCoinIcon from './icons/DsonanceCoinIcon';
@@ -179,7 +179,7 @@ const Wallet = () => {
           <span className="text-gray-700 dark:text-white font-medium">Dsonance:</span>
         </div>
         <span className="text-md font-semibold">
-          {formatBalanceE8s(dsonanceBalance ?? 0n, PRESENCE_COIN_SYMBOL)}
+          {formatBalanceE8s(dsonanceBalance ?? 0n, DSONANCE_COIN_SYMBOL)}
         </span>
       </div>
 

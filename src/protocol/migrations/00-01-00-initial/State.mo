@@ -63,7 +63,7 @@ module {
                 owed = Set.new<UUID>();
             };
             parameters = { parameters with
-                participation_per_ns = Float.fromInt(parameters.participation_per_day) / Float.fromInt(Duration.NS_IN_DAY);
+                contribution_per_ns = Float.fromInt(parameters.contribution_per_day) / Float.fromInt(Duration.NS_IN_DAY);
                 max_age = Duration.toTime(parameters.max_age);
                 timer = {
                     var interval_s = parameters.timer_interval_s;

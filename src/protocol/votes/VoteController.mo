@@ -17,7 +17,6 @@ module {
     type Vote<A, B> = Types.Vote<A, B>;
     type Ballot<B> = Types.Ballot<B>;
     type LockInfo = Types.LockInfo;
-    type Rewards = Types.Rewards;
     type Foresight = Types.Foresight;
     type Contribution = Types.Contribution;
 

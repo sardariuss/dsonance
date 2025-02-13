@@ -1,7 +1,7 @@
 import { niceFormatDate, timeDifference, timeToDate } from "../../utils/conversions/date";
 import { backendActor } from "../../actors/BackendActor";
 
-import { MOBILE_MAX_WIDTH_QUERY, PRESENCE_COIN_SYMBOL } from "../../constants";
+import { MOBILE_MAX_WIDTH_QUERY, DSONANCE_COIN_SYMBOL } from "../../constants";
 import { fromNullable } from "@dfinity/utils";
 import { unwrapLock } from "../../utils/conversions/ballot";
 import { useCurrencyContext } from "../CurrencyContext";
@@ -65,7 +65,16 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  const releaseTimestamp = ballot.YES_NO.timestamp + (unwrapLock(ballot).duration_ns).current.data;
+  const { releaseTimestamp, totalContribution, foresightAPR } = useMemo(() => {
+      let contribution = ballot.YES_NO.contribution.current.data;
+      return {
+        totalContribution: BigInt(Math.floor(contribution.earned + contribution.pending)),
+        foresightAPR: ballot.YES_NO.foresight.current.data.apr.potential,
+        releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data 
+      }
+    },
+    [ballot]
+  );
 
   const onVoteClick = () => {
     if (isSelected) {
@@ -96,15 +105,12 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
         </div>
 
         <div className="flex flex-row space-x-1 items-baseline">
-          { releaseTimestamp <= now ?
-            <div className="flex flex-row space-x-1 items-baseline">
-              <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation + ballot.YES_NO.rewards.current.data.discernment)), PRESENCE_COIN_SYMBOL, 2)}</span>
-            </div> :
-            <div className="flex flex-row space-x-1 items-baseline">
-              <span>{formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.participation)), PRESENCE_COIN_SYMBOL, 2)}</span>
-              <span className="italic text-gray-600 dark:text-gray-400 animate-pulse">{`+ ${formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.rewards.current.data.discernment)), PRESENCE_COIN_SYMBOL, 2)}`}</span>
-            </div>
-          }
+          <div className="flex flex-row space-x-1 items-baseline">
+            <span>{formatBalanceE8s(totalContribution, DSONANCE_COIN_SYMBOL, 2)}</span>
+            <span className={`italic text-gray-600 dark:text-gray-400 ${ releaseTimestamp > now ? "animate-pulse" : "" }`}>
+              {`+ APR ${foresightAPR.toFixed(2)}%`}
+            </span>
+          </div>
           <div className="flex self-center h-4 w-4">
             <DsonanceCoinIcon/>
           </div>

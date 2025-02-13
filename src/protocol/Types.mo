@@ -47,7 +47,6 @@ module {
     public type MintingInfo        = Types.Current.MintingInfo;
     public type BallotType         = Types.Current.BallotType;
     public type BallotRegister     = Types.Current.BallotRegister;
-    public type Rewards            = Types.Current.Rewards;
     public type ProtocolParameters = Types.Current.ProtocolParameters;
     public type TimerParameters    = Types.Current.TimerParameters;
     public type Foresight          = Types.Current.Foresight;
@@ -161,7 +160,7 @@ module {
     };
 
     public type SProtocolParameters = {
-        participation_per_ns: Float;
+        contribution_per_ns: Float;
         age_coefficient: Float;
         max_age: Nat;
         nominal_lock_duration: Duration;

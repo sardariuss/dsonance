@@ -21,12 +21,12 @@ coverY: 0
 ***
 
 **Q: How are rewards distributed?**\
-**A:** Rewards are divided into participation rewards, distributed continuously during the lock period, and discernment rewards, which are granted at the end of a lock based on how well your vote aligns with the consensus and its minority positioning.
+**A:** Rewards are divided into contribution rewards, distributed continuously during the lock period, and discernment rewards, which are granted at the end of a lock based on how well your vote aligns with the consensus and its minority positioning.
 
 ***
 
 **Q: I didn’t plan for my lock duration to increase so much. Is there anything I can do to unlock it?**\
-**A:** Unfortunately, once a lock is placed, its duration cannot be manually reduced or undone. The increasing duration is a key part of the protocol’s design, ensuring that sufficient time is allowed for the truth to emerge on important topics. However, you will continue to receive participation rewards throughout the lock period, with potentially greater discernment rewards at its conclusion.
+**A:** Unfortunately, once a lock is placed, its duration cannot be manually reduced or undone. The increasing duration is a key part of the protocol’s design, ensuring that sufficient time is allowed for the truth to emerge on important topics. However, you will continue to receive contribution rewards throughout the lock period, with potentially greater discernment rewards at its conclusion.
 
 ***
 

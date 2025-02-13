@@ -215,11 +215,6 @@ module {
         var transfers: [Transfer];
     };
 
-    public type Rewards = {
-        participation: Float;
-        discernment: Float;
-    };
-
     public type Foresight = {
         reward: Nat;
         apr: {
@@ -312,7 +307,7 @@ module {
     };
 
     public type ProtocolParameters = {
-        participation_per_ns: Float;
+        contribution_per_ns: Float;
         nominal_lock_duration: Duration;
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
@@ -345,7 +340,7 @@ module {
             fee: Nat;
         };
         parameters: {
-            participation_per_day: Nat;
+            contribution_per_day: Nat;
             age_coefficient: Float;
             max_age: Duration;
             ballot_half_life: Duration;

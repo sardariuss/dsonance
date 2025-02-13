@@ -102,14 +102,15 @@ module {
                 let dispense_duration_year = Float.fromInt(lock.release_date - copy_time_last_dispense) / Float.fromInt(Duration.NS_IN_YEAR);
                 copy_total_yield += Float.fromInt(copy_total_amount) * dispense_duration_year * yield_rate;
                 // Compute the reward for the lock
-                let reward = Float.toInt(weighted_sum(copy_locks, time) * copy_total_yield);
+                let reward = Float.toInt(compute_foresight(ballot, copy_locks, time) * copy_total_yield);
                 let lock_duration_year = Float.fromInt(lock.release_date - ballot.timestamp) / Float.fromInt(Duration.NS_IN_YEAR);
+                let apr = (100 * Float.fromInt(reward) / Float.fromInt(ballot.amount)) / lock_duration_year;
                 let foresight = {
                     reward = Int.abs(reward);
                     apr = {
-                        current = Float.fromInt(reward) / lock_duration_year;
+                        current = apr;
                         // Dividing by the consent is similar making consent = 1 in the reward calculation
-                        potential = (Float.fromInt(reward) / Timeline.current(ballot.consent)) / lock_duration_year;
+                        potential = apr / Timeline.current(ballot.consent);
                     };
                 };
                 Timeline.add(ballot.foresight, time, foresight);
@@ -175,11 +176,11 @@ module {
             // Dispense contribution over the period
             label dispense for ((lock, ballot) in BTree.entries(lock_register.locks)) {
 
-                let { participation_per_ns } = parameters;
+                let { contribution_per_ns } = parameters;
 
                 let earned = Timeline.current(ballot.contribution).earned;
-                let to_add = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(period) * participation_per_ns;
-                let pending = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(lock.release_date - end) * participation_per_ns;
+                let to_add = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(period) * contribution_per_ns;
+                let pending = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(lock.release_date - end) * contribution_per_ns;
 
                 // Save in the contribution timeline
                 Timeline.add(ballot.contribution, end, { earned = earned + to_add; pending; });
@@ -193,19 +194,22 @@ module {
             lock_register.time_last_dispense;
         };
 
-        func weighted_sum(locks: BTree<Lock, YesNoBallot>, time: Nat) : Float {
+        func compute_foresight(ballot: YesNoBallot, locks: BTree<Lock, YesNoBallot>, time: Nat) : Float {
             var total = 0.0;
-            for ((lock, ballot) in BTree.entries(locks)){
+            for ((_, b) in BTree.entries(locks)){
                 // TODO: save the discernment in the ballot?
-                let discernment = Incentives.compute_discernment({
-                    dissent = ballot.dissent;
-                    consent = Timeline.current(ballot.consent);
-                    lock_duration = lock.release_date - ballot.timestamp;
-                    parameters;
-                });
-                total += discernment * Float.fromInt(ballot.amount) * Float.fromInt(time - ballot.timestamp);
+                total += compute_discernment(b) * Float.fromInt(b.amount) * Float.fromInt(time - b.timestamp);
             };
-            total;
+            (compute_discernment(ballot) * Float.fromInt(ballot.amount) * Float.fromInt(time - ballot.timestamp)) / total;
+        };
+
+        func compute_discernment(ballot: YesNoBallot) : Float {
+            Incentives.compute_discernment({
+                dissent = ballot.dissent;
+                consent = Timeline.current(ballot.consent);
+                lock_duration = get_lock(ballot).release_date - ballot.timestamp;
+                parameters;
+            });
         };
 
         func get_lock(ballot: YesNoBallot) : Lock {

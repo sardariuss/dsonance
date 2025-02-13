@@ -29,9 +29,9 @@ const User = () => {
     return <div>Invalid principal</div>;
   }
 
-  if (principal !== identity.getPrincipal().toString()) {
-    return <div>Unauthorized</div>;
-  }
+//  if (principal !== identity.getPrincipal().toString()) {
+//    return <div>Unauthorized</div>;
+//  }
 
   const selectedBallotId = useMemo(() => searchParams.get("ballotId"), [searchParams]);
 
