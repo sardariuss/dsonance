@@ -1,5 +1,5 @@
 import { Account } from '@/declarations/protocol/protocol.did';
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
 import { useAuth } from '@ic-reactor/react';
 import { ckBtcActor } from '../actors/CkBtcActor';
@@ -11,22 +11,8 @@ import { DSONANCE_COIN_SYMBOL } from '../constants';
 import { minterActor } from '../actors/MinterActor';
 import BitcoinIcon from './icons/BitcoinIcon';
 import DsonanceCoinIcon from './icons/DsonanceCoinIcon';
-import LogoutIcon from './icons/LogoutIcon';
-import { Link } from 'react-router-dom';
 import { useCurrencyContext } from './CurrencyContext';
 import { useWalletContext } from './WalletContext';
-
-const accountToString = (account: Account | undefined) : string =>  {
-  let str = "";
-  if (account !== undefined) {
-    str = account.owner.toString();
-    let subaccount = fromNullable(account.subaccount);
-    if (subaccount !== undefined) {
-      str += " " + uint8ArrayToHexString(subaccount); 
-    }
-  }
-  return str;
-}
 
 const Wallet = () => {
 
@@ -40,17 +26,10 @@ const Wallet = () => {
     );
   }
 
-  const account : Account = {
+  const account : Account = useMemo(() => ({
     owner: identity?.getPrincipal(),
     subaccount: []
-  };
-
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(accountToString(account));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000); // Hide tooltip after 2 seconds
-  };
+  }), [identity]);
 
   const { data: dsonanceBalance } = dsonanceLedgerActor.useQueryCall({
     functionName: 'icrc1_balance_of',
@@ -129,32 +108,6 @@ const Wallet = () => {
 
   return (
     <div className="flex flex-col space-y-4 p-4 w-full items-center">
-
-      <div className="relative group">
-        <div className="flex flex-row items-center space-x-2">
-          <span
-            className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white font-medium self-center hover:cursor-pointer"
-            onClick={handleCopy}
-          >
-            {accountToString(account)}
-          </span>
-          <Link 
-            className="self-end fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white p-2.5 rounded-lg hover:cursor-pointer"
-            onClick={()=>{logout()}}
-            to="/">
-            <LogoutIcon />
-          </Link>
-        </div>
-        { copied && (
-          <div
-            className={`absolute -top-6 left-1/2 z-50 transform -translate-x-1/2 bg-white text-black text-xs rounded px-2 py-1 transition-opacity duration-500 ${
-              copied ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            Copied!
-          </div>
-        )}
-      </div>
 
       {/* Bitcoin Balance */}
       <div className="flex w-full items-center justify-between rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-100 dark:bg-gray-800">

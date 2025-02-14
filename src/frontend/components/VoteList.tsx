@@ -70,15 +70,15 @@ const VoteList = () => {
   }, [votes]);
 
   return (
-    <div className="flex flex-col border-x dark:border-gray-700 w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
-      <ul className="flex flex-wrap text-sm text-gray-800 dark:text-gray-200 font-medium text-center w-full">
-        { categories && <li key={0} className={`border-b dark:border-gray-700 grow`}>
+    <div className="flex flex-col gap-y-1 my-4 w-full sm:w-4/5 md:w-3/4 lg:w-2/3 rounded-md">
+      <ul className="flex flex-wrap text-sm text-gray-800 dark:text-gray-200 font-medium text-center w-full gap-x-1">
+        { categories && <li key={0} className={`bg-slate-50 dark:bg-slate-850 grow ${categories.length === 0 ? "rounded-t-md" : "rounded-tl-md"}`}>
           <TabButton label={"All"} isCurrent={selectedCategory === undefined} setIsCurrent={() => { selectCategory(undefined); }}/>
         </li>
         }
         {
           categories && categories.map((cat, index) => (
-            <li key={index + 1} className={`border-b dark:border-gray-700 border-l grow`}>
+            <li key={index + 1} className={`bg-slate-50 dark:bg-slate-850 grow ${index === (categories.length - 1) ? "rounded-tr-md" : ""}`}>
               {/* TODO: remove this hack which only shows the emoji on mobile */}
               <TabButton label={(cat === selectedCategory || !isMobile) ? cat : cat.split(" ")[0]} isCurrent={cat === selectedCategory} setIsCurrent={() => { selectCategory(cat); }}/>
             </li>
@@ -86,11 +86,11 @@ const VoteList = () => {
         }
       </ul>
       {
-        selectedCategory && <div className="w-full" onClick={() => selectVote(null)}>
+        <div className="w-full" onClick={() => selectVote(null)}>
           <NewVote category={selectedCategory}/>
         </div>
       }
-      <ul>
+      <ul className="w-full flex flex-col gap-y-1">
         {
           votes.map((vote: SYesNoVote, index) => (
             vote.info.visible && <li key={index} ref={(el) => (voteRefs.current.set(vote.vote_id, el))} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]">

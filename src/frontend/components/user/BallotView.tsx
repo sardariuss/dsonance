@@ -8,10 +8,8 @@ import { useCurrencyContext } from "../CurrencyContext";
 import { formatBalanceE8s } from "../../utils/conversions/token";
 import ChoiceView from "../ChoiceView";
 import ConsensusView from "../ConsensusView";
-import BitcoinIcon from "../icons/BitcoinIcon";
 
 import { SBallotType } from "@/declarations/protocol/protocol.did";
-import DsonanceCoinIcon from "../icons/DsonanceCoinIcon";
 import { compute_vote_details } from "../../utils/conversions/votedetails";
 import { DesktopBallotDetails, MobileBallotDetails } from "./BallotDetails";
 import { useMediaQuery } from "react-responsive";

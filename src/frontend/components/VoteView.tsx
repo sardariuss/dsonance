@@ -45,7 +45,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, selected, setSelected }) => {
   return ( 
     isMobile ? 
   (
-    (voteDetails !== undefined) && <div className="flex flex-col content-center border-b dark:border-gray-700 px-2 py-1 hover:cursor-pointer space-y-2 w-full hover:bg-slate-50 hover:dark:bg-slate-850">
+    (voteDetails !== undefined) && <div className="flex flex-col content-center px-2 py-1 w-full bg-slate-50 dark:bg-slate-850">
       <div className="w-full flex flex-row space-x-1 items-baseline" onClick={() => setSelected() }>
         <ConsensusView voteDetails={voteDetails} text={vote.info.text} timestamp={vote.date} ballot={ballot}/>
       </div>
@@ -71,7 +71,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, selected, setSelected }) => {
       }
     </div>
   ) : (
-    (voteDetails !== undefined) && <div className="flex flex-col content-center border-b dark:border-gray-700 px-5 py-1 hover:cursor-pointer space-y-2 w-full hover:bg-slate-50 hover:dark:bg-slate-850">
+    (voteDetails !== undefined) && <div className="flex flex-col content-center px-5 py-3 w-full bg-slate-50 dark:bg-slate-850">
       <div className="w-full grid grid-cols-[minmax(300px,_1fr)_50px] items-center gap-x-8" onClick={() => setSelected() }>
         <ConsensusView voteDetails={voteDetails} text={vote.info.text} timestamp={vote.date} ballot={ballot}/>
         <div className="flex flex-row dark:stroke-gray-200 dark:hover:stroke-white hover:stroke-black stroke-gray-800 hover:cursor-pointer"

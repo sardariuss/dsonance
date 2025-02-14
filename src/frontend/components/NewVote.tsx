@@ -71,7 +71,7 @@ function NewVote({ category } : NewVoteProps) {
   }, []);
 
   return (
-    <div className="flex flex-col w-full gap-y-1 border-b dark:border-gray-700">
+    <div className="flex flex-col w-full gap-y-1 bg-slate-50 dark:bg-slate-850">
       <div id={INPUT_BOX_ID} className={`input-box break-words w-full text-sm
         ${text.length > 0 ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}`}
         data-placeholder={NEW_VOTE_PLACEHOLDER} contentEditable="true">

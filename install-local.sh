@@ -106,11 +106,11 @@ dfx canister call backend add_categories '(
   }
 )'
 
-#dfx generate ck_btc
-#dfx generate dsn_ledger
-#dfx generate backend # Will generate protocol as well
-#dfx generate internet_identity
-#dfx generate minter
-#dfx generate icp_coins
-#
-#dfx deploy frontend
+dfx generate ck_btc
+dfx generate dsn_ledger
+dfx generate backend # Will generate protocol as well
+dfx generate internet_identity
+dfx generate minter
+dfx generate icp_coins
+
+dfx deploy frontend
