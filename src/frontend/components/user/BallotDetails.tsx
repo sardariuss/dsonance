@@ -144,7 +144,7 @@ export const MobileBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now
             onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.DURATION ? undefined : CHART_TOGGLE.DURATION )} 
           >
             <div className="grid grid-cols-9 items-center text-center justify-center w-full pl-2 pr-10">
-                { chartToggle === CHART_TOGGLE.DURATION ? <ChevronDownIcon/> : <ChevronUpIcon/> }
+                { chartToggle === CHART_TOGGLE.DURATION ? <ChevronUpIcon/> : <ChevronDownIcon/> }
                 <span className="flex flex-row space-x-1 col-span-4">
                     <span>{LOCK_EMOJI}</span>
                     <span className="italic text-gray-600 dark:text-gray-400 text-sm">Duration:</span> 
@@ -169,7 +169,7 @@ export const MobileBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now
             onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.CONSENT ? undefined : CHART_TOGGLE.CONSENT )} 
           >
             <div className="grid grid-cols-9 items-center text-center justify-center w-full pl-2 pr-10">
-                { chartToggle === CHART_TOGGLE.CONSENT ? <ChevronDownIcon/> : <ChevronUpIcon/> }
+                { chartToggle === CHART_TOGGLE.CONSENT ? <ChevronUpIcon/> : <ChevronDownIcon/> }
                 <span className="flex flex-row space-x-1 col-span-4">
                     <span>{CONSENT_EMOJI}</span>
                     <span className="italic text-gray-600 dark:text-gray-400 text-sm">Consent:</span> 
@@ -196,7 +196,7 @@ export const MobileBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now
             onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.CONTRIBUTION ? undefined : CHART_TOGGLE.CONTRIBUTION )} 
           >
             <div className="grid grid-cols-9 items-center text-center justify-center w-full pl-2 pr-10">
-                { chartToggle === CHART_TOGGLE.CONTRIBUTION ? <ChevronDownIcon/> : <ChevronUpIcon/> }
+                { chartToggle === CHART_TOGGLE.CONTRIBUTION ? <ChevronUpIcon/> : <ChevronDownIcon/> }
                 <span className="flex flex-row space-x-1 col-span-4">
                     <span>{CONTRIBUTION_EMOJI}</span>
                     <span className="italic text-gray-600 dark:text-gray-400 text-sm">Earned contribution:</span> 
@@ -228,7 +228,7 @@ export const MobileBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now
             onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.DISCERNMENT ? undefined : CHART_TOGGLE.DISCERNMENT )} 
           >
             <div className="grid grid-cols-9 items-center text-center justify-center w-full pl-2 pr-10">
-                { chartToggle === CHART_TOGGLE.DISCERNMENT ? <ChevronDownIcon/> : <ChevronUpIcon/> }
+                { chartToggle === CHART_TOGGLE.DISCERNMENT ? <ChevronUpIcon/> : <ChevronDownIcon/> }
                 <span className="flex flex-row space-x-1 col-span-4">
                     <span>{DISCERNMENT_EMOJI}</span>
                     <span className="italic text-gray-600 dark:text-gray-400 text-sm">Current foresight:</span> 

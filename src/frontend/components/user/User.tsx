@@ -73,19 +73,19 @@ const User = () => {
   }, [triggerScroll, ballots]);
   
   return (
-    <div className="flex flex-col items-center border-x dark:border-gray-700 border-t w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
-      <div className="flex flex-col items-center w-full border-b dark:border-gray-700">
+    <div className="flex flex-col gap-y-2 items-center bg-slate-50 dark:bg-slate-850 px-2 rounded-md w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
+      <div className="flex flex-col items-center w-full bg-slate-100 dark:bg-slate-900 rounded-md shadow-md">
         <Wallet/>
       </div>
       {
         isMobile && 
-          <div className="flex flex-row justify-center w-full border-b dark:border-gray-700 py-2">
+          <div className="flex flex-row justify-center w-full bg-slate-100 dark:bg-slate-900 rounded-md shadow-md">
             <CurrencyConverter/>
             <ThemeToggle/>
           </div>
       }
       { ballots && ballots?.length > 0 && 
-        <div className="flex flex-col items-center w-full border-b dark:border-gray-700 py-2">
+        <div className="flex flex-col items-center w-full bg-slate-100 dark:bg-slate-900 rounded-md shadow-md">
           <div className="flex flex-row w-full space-x-1 justify-center items-baseline">
             <span>Total locked:</span>
             <span className="text-lg">{ totalLocked !== undefined ? formatSatoshis(totalLocked) : "N/A" }</span>
@@ -96,7 +96,7 @@ const User = () => {
           <LockChart ballots={ballots} select_ballot={(id) => { setTriggerScroll(!triggerScroll); selectBallot(id); }} selected={selectedBallotId}/>
         </div>
       }
-      <ul className="w-full">
+      <ul className="w-full flex flex-col gap-y-2">
         {
           /* Size of the header is 26 on mobile and 22 on desktop */
           ballots?.map((ballot, index) => (

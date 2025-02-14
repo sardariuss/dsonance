@@ -18,6 +18,8 @@ import { useMediaQuery } from "react-responsive";
 import { useProtocolContext } from "../ProtocolContext";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import ChevronDownIcon from "../icons/ChevronDownIcon";
+import ChevronUpIcon from "../icons/ChevronUpIcon";
 
 interface VoteConsensusProps {
   is_selected: boolean;
@@ -65,59 +67,61 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  const { releaseTimestamp, totalContribution, foresightAPR } = useMemo(() => {
-      let contribution = ballot.YES_NO.contribution.current.data;
+  const { releaseTimestamp, contribution, foresightAPR } = useMemo(() => {
       return {
-        totalContribution: BigInt(Math.floor(contribution.earned + contribution.pending)),
-        foresightAPR: ballot.YES_NO.foresight.current.data.apr.potential,
+        contribution: BigInt(Math.floor(ballot.YES_NO.contribution.current.data.earned)),
+        foresightAPR: ballot.YES_NO.foresight.current.data.apr.potential * 100 / Number(ballot.YES_NO.amount),
         releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data 
       }
     },
     [ballot]
   );
 
-  const onVoteClick = () => {
-    if (isSelected) {
-      navigate(`/vote/${ballot.YES_NO.vote_id}`);
-    } else {
-      selectBallot();
-    }
-  }
-
   return (
     now === undefined ? <></> :
-    <div className="border-b dark:border-gray-700 border-gray-300 py-2 px-2 hover:bg-slate-50 dark:hover:bg-slate-850 hover:cursor-pointer w-full">
-      <div className="flex flex-col w-full" onClick={() => selectBallot() }>
-        <div className="flex flex-row space-x-1 items-baseline">
-          <span>{formatSatoshis(ballot.YES_NO.amount)}</span>
-          <div className="flex self-center h-4 w-4">
-            <BitcoinIcon/>
-          </div>
-          <span className="text-gray-600 dark:text-gray-400 text-sm">on</span>
+    <div className="bg-slate-100 dark:bg-slate-900 hover:cursor-pointer w-full rounded-md shadow-md">
+      <div className="grid grid-cols-[minmax(100px,1fr)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)] gap-10 w-full items-center pl-5">
+
+        <div className="flex flex-row space-x-1" onClick={(e) => navigate(`/vote/${ballot.YES_NO.vote_id}`) }>
+          <VoteConsensus vote_id={ballot.YES_NO.vote_id} is_selected={isSelected}/>
+        </div>
+
+        <div className="grid grid-rows-2 w-full justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Vote</span>
           <ChoiceView ballot={ballot}/>
-          <span className="text-gray-600 dark:text-gray-400 text-sm">{" · "}</span>
-          <span className="text-gray-600 dark:text-gray-400 text-sm">
-            {releaseTimestamp <= now ? 
-              `${niceFormatDate(timeToDate(releaseTimestamp), timeToDate(now))}` : 
-              `${timeDifference(timeToDate(releaseTimestamp), timeToDate(now))} left`
-            }
+        </div>
+
+        <div className="grid grid-rows-2 w-full justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Lock</span>
+          <span>{formatSatoshis(ballot.YES_NO.amount)}</span>
+        </div>
+
+        <div className="grid grid-rows-2 w-full justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Contribution</span>
+          <span>
+            {formatBalanceE8s(contribution, DSONANCE_COIN_SYMBOL, 2)}
           </span>
         </div>
 
-        <div className="flex flex-row space-x-1 items-baseline">
-          <div className="flex flex-row space-x-1 items-baseline">
-            <span>{formatBalanceE8s(totalContribution, DSONANCE_COIN_SYMBOL, 2)}</span>
-            <span className={`italic text-gray-600 dark:text-gray-400 ${ releaseTimestamp > now ? "animate-pulse" : "" }`}>
-              {`+ APR ${foresightAPR.toFixed(2)}%`}
-            </span>
-          </div>
-          <div className="flex self-center h-4 w-4">
-            <DsonanceCoinIcon/>
-          </div>
+        <div className="grid grid-rows-2 w-full justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">APR</span>
+          <span className="text-brand-true">
+            {`${foresightAPR.toFixed(2)}%`}
+          </span>
         </div>
 
-        <div className="flex flex-row space-x-1 items-top w-full justify-between grow" onClick={(e) => { e.stopPropagation(); onVoteClick(); } }>
-          <VoteConsensus vote_id={ballot.YES_NO.vote_id} is_selected={isSelected}/>
+        <div className="grid grid-rows-2 w-full justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Time left</span>
+          <span>
+            {releaseTimestamp <= now ? 
+              `expired` : 
+              `${timeDifference(timeToDate(releaseTimestamp), timeToDate(now))}`
+            }
+          </span>
+        </div>
+        
+        <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full p-1 w-8 h-8" onClick={(e) => { e.stopPropagation(); selectBallot(); }}>
+          { isSelected ? <ChevronUpIcon /> : <ChevronDownIcon /> }
         </div>
 
       </div>
