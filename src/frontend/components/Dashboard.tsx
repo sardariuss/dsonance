@@ -73,7 +73,7 @@ const Dashboard = () => {
                 refreshInfo();
             };
         }
-    }, [currentTime]);
+    }, [currentTime, memo, refreshInfo]);
 
     useEffect(() => {
     
@@ -93,10 +93,10 @@ const Dashboard = () => {
       }, [memo]);
       
     return (
-        <div className="flex flex-col items-center border-t border-x dark:border-gray-700 border-gray-300 w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
+        <div className="flex flex-col items-center w-full sm:w-4/5 md:w-3/4 lg:w-2/3 p-4 space-y-4">
             {/* TODO: adapt if the protocol is not in simulation */}
             { currentTime && 
-                <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full space-x-1 justify-center">
+                <div className="flex flex-row items-center py-2 w-full space-x-1 justify-center bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
                     <span>{SIMULATION_EMOJI}</span>
                     <span className="text-gray-700 dark:text-gray-300">Simulation time:</span>
                     <span className="text-lg">
@@ -105,7 +105,7 @@ const Dashboard = () => {
                 </div>
             }
             { memo && info && currentTime && 
-                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full space-x-1 justify-center">
+                <div className="flex flex-col items-center py-2 w-full space-x-1 justify-center bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
                     <div className="flex flex-row items-center space-x-1 justify-center w-full">
                         <span>{MINTING_EMOJI}</span>
                         <span className="text-gray-700 dark:text-gray-300">Minting</span>
@@ -136,7 +136,7 @@ const Dashboard = () => {
                 </div> 
             }
             { parameters && 
-                <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full space-x-1 justify-center">
+                <div className="flex flex-row items-center py-2 w-full space-x-1 justify-center bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
                     <span className="text-gray-700 dark:text-gray-300">Age coefficient:</span>
                     <span className="text-lg">
                         {parameters.age_coefficient.toFixed(2)}
@@ -144,7 +144,7 @@ const Dashboard = () => {
                 </div>
             }
             { parameters && 
-                <div className="flex flex-row items-center border-b dark:border-gray-700 border-gray-300 py-2 w-full space-x-1 justify-center">
+                <div className="flex flex-row items-center py-2 w-full space-x-1 justify-center bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
                     <span className="text-gray-700 dark:text-gray-300">Max age:</span>
                     <span className="text-lg">
                         {formatDuration(parameters.max_age)}
@@ -152,7 +152,7 @@ const Dashboard = () => {
                 </div>
             }
             { memo && memo.contributionRate && 
-                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-2 w-full">
+                <div className="flex flex-col items-center pt-2 w-full bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
                     <div className="flex flex-row items-center space-x-1">
                         <span>{CONTRIBUTION_EMOJI}</span>
                         <span className="text-gray-700 dark:text-gray-300">Contribution rate:</span>
@@ -169,7 +169,7 @@ const Dashboard = () => {
                 </div>
             }
             { info && 
-                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-2 w-full">
+                <div className="flex flex-col items-center pt-2 w-full bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
                     <div className="flex flex-row items-center space-x-1">
                         <BitcoinIcon />
                         <div className="text-gray-700 dark:text-gray-300">Total locked:</div>
@@ -186,7 +186,7 @@ const Dashboard = () => {
                 </div>
             }
             { info && 
-                <div className="flex flex-col items-center border-b dark:border-gray-700 border-gray-300 pt-2 w-full">
+                <div className="flex flex-col items-center pt-2 w-full bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
                     <div className="flex flex-row items-center space-x-1">
                         <DsonanceCoinIcon />
                         <div className="text-gray-700 dark:text-gray-300">Dsonance minted:</div>

@@ -1,20 +1,20 @@
 
 import { SYesNoVote } from "../../declarations/backend/backend.did";
 import { backendActor } from "../actors/BackendActor";
-import VoteView from "./VoteView";
 import { useEffect, useMemo, useRef, useState } from "react";
-import NewVote from "./NewVote";
-import { TabButton } from "./TabButton";
+import { MainTabButton } from "./MainTabButton";
 import { toNullable } from "@dfinity/utils";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import { useSearchParams } from "react-router-dom";
+import VoteItem from "./VoteItem";
+import BitcoinIcon from "./icons/BitcoinIcon";
 
 const VoteList = () => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const [searchParams, setSearchParams] = useSearchParams();
-  const voteRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
+  const voteRefs = useRef<Map<string, (HTMLTableRowElement | null)>>(new Map());
   const selectedVoteId = useMemo(() => searchParams.get("voteId"), [searchParams]);
   const selectedCategory = useMemo(() => searchParams.get("category"), [searchParams]);
 
@@ -70,39 +70,46 @@ const VoteList = () => {
   }, [votes]);
 
   return (
-    <div className="flex flex-col gap-y-1 my-4 w-full sm:w-4/5 md:w-3/4 lg:w-2/3 rounded-md">
-      <ul className="flex flex-wrap text-sm text-gray-800 dark:text-gray-200 font-medium text-center w-full gap-x-1">
-        { categories && <li key={0} className={`bg-slate-50 dark:bg-slate-850 grow ${categories.length === 0 ? "rounded-t-md" : "rounded-tl-md"}`}>
-          <TabButton label={"All"} isCurrent={selectedCategory === undefined} setIsCurrent={() => { selectCategory(undefined); }}/>
+    <div className="flex flex-col gap-y-1 w-full bg-slate-50 dark:bg-slate-850 rounded-md">
+      <ul className="flex flex-wrap text-sm text-gray-800 dark:text-gray-200 font-medium text-center w-full gap-x-1 px-2 pt-2">
+        { categories && <li key={0} className={`grow`}>
+          <MainTabButton label={"All"} isCurrent={selectedCategory === undefined} setIsCurrent={() => { selectCategory(undefined); }}/>
         </li>
         }
         {
           categories && categories.map((cat, index) => (
-            <li key={index + 1} className={`bg-slate-50 dark:bg-slate-850 grow ${index === (categories.length - 1) ? "rounded-tr-md" : ""}`}>
+            <li key={index + 1} className={`grow`}>
               {/* TODO: remove this hack which only shows the emoji on mobile */}
-              <TabButton label={(cat === selectedCategory || !isMobile) ? cat : cat.split(" ")[0]} isCurrent={cat === selectedCategory} setIsCurrent={() => { selectCategory(cat); }}/>
+              <MainTabButton label={(cat === selectedCategory || !isMobile) ? cat : cat.split(" ")[0]} isCurrent={cat === selectedCategory} setIsCurrent={() => { selectCategory(cat); }}/>
             </li>
           ))
         }
       </ul>
-      {
-        <div className="w-full" onClick={() => selectVote(null)}>
-          <NewVote category={selectedCategory}/>
-        </div>
-      }
-      <ul className="w-full flex flex-col gap-y-1">
+      <table className="w-full px-10">
+        <thead className="w-full">
+          <tr className="w-full px-6">
+            <th scope="col" className="text-left text-gray-600 dark:text-slate-850 font-light pl-6 py-5">#</th>
+            <th scope="col" className="text-left text-gray-600 dark:text-gray-400 font-light px-3 py-5">Statement</th>
+            <th scope="col" className="text-right text-gray-600 dark:text-gray-400 font-light px-3 py-5 flex flex-row items-center justify-self-center space-x-1">
+              <BitcoinIcon />
+              <span>TVL</span>
+            </th>
+            <th scope="col" className="text-right text-gray-600 dark:text-gray-400 font-light pl-3 pr-6 py-5">Consensus</th>
+          </tr>
+        </thead>
+        <tbody className="">
         {
           votes.map((vote: SYesNoVote, index) => (
-            vote.info.visible && <li key={index} ref={(el) => (voteRefs.current.set(vote.vote_id, el))} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]">
-              <VoteView 
-                selected={selectedVoteId === vote.vote_id}
-                setSelected={() => selectVote(selectedVoteId === vote.vote_id ? null : vote.vote_id)}
+            vote.info.visible && 
+              <VoteItem
                 vote={vote}
+                index={index}
+                setRef={(el) => (voteRefs.current.set(vote.vote_id, el))}
               />
-            </li>
           ))
         }
-      </ul>
+        </tbody>
+      </table>
     </div>
   );
 }

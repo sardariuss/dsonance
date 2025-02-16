@@ -11,9 +11,9 @@ export const TabButton: React.FC<TabButtonProps> = ({ label, isCurrent, setIsCur
   return (
     <button 
       className={
-        "w-full inline-block text-md xl:px-4 lg:px-3 sm:px-2 px-1 py-3 border-b-2 " 
-        + (isCurrent ? "border-purple-700 font-semibold text-black dark:text-white" : 
-          "border-transparent hover:border-gray-300 hover:text-black dark:hover:text-white")
+        "w-full inline-block text-lg border-b-2 font-semibold " 
+        + (isCurrent ? "border-purple-700 text-black dark:text-white" : 
+          "border-transparent hover:border-gray-300 text-gray-400 dark:text-gray-600")
       } 
       type="button"
       role="tab"

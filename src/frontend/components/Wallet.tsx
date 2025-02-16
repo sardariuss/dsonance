@@ -110,7 +110,7 @@ const Wallet = () => {
     <div className="flex flex-col space-y-4 p-4 w-full items-center">
 
       {/* Bitcoin Balance */}
-      <div className="flex w-full items-center justify-between rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-100 dark:bg-gray-800">
+      <div className="flex w-full items-center justify-between rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
         <div className="flex items-center space-x-2">
           <div className="h-5 w-5">
             <BitcoinIcon />
@@ -124,7 +124,7 @@ const Wallet = () => {
       </div>
 
       {/* Dsonance Balance */}
-      <div className="flex w-full items-center justify-between rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-100 dark:bg-gray-800">
+      <div className="flex w-full items-center justify-between rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
         <div className="flex items-center space-x-2">
           <div className="h-5 w-5">
             <DsonanceCoinIcon />

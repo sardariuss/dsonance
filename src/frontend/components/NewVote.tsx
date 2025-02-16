@@ -71,12 +71,12 @@ function NewVote({ category } : NewVoteProps) {
   }, []);
 
   return (
-    <div className="flex flex-col w-full gap-y-1 bg-slate-50 dark:bg-slate-850">
-      <div id={INPUT_BOX_ID} className={`input-box break-words w-full text-sm
+    <div className="flex flex-row w-full gap-x-1 px-2">
+      <div id={INPUT_BOX_ID} className={`input-box break-words w-full text-sm bg-slate-100 dark:bg-slate-900 rounded
         ${text.length > 0 ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}`}
         data-placeholder={NEW_VOTE_PLACEHOLDER} contentEditable="true">
       </div>
-      <div className="flex flex-row space-x-2 items-center place-self-end mx-2 mb-1">
+      <div className="flex flex-row space-x-2 items-center place-self-end">
         <button 
           className="flex flex-row button-simple w-36 min-w-36 h-9 justify-center items-center text-base"
           disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS}
