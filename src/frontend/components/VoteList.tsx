@@ -1,90 +1,91 @@
-
 import { SYesNoVote } from "../../declarations/backend/backend.did";
 import { backendActor } from "../actors/BackendActor";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MainTabButton } from "./MainTabButton";
-import { toNullable } from "@dfinity/utils";
-import { useMediaQuery } from "react-responsive";
-import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import { useSearchParams } from "react-router-dom";
 import VoteItem from "./VoteItem";
 import BitcoinIcon from "./icons/BitcoinIcon";
 
 const VoteList = () => {
 
-  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const [searchParams, setSearchParams] = useSearchParams();
   const voteRefs = useRef<Map<string, (HTMLTableRowElement | null)>>(new Map());
   const selectedVoteId = useMemo(() => searchParams.get("voteId"), [searchParams]);
-  const selectedCategory = useMemo(() => searchParams.get("category"), [searchParams]);
+  
+  // Store selected categories as an array
+  const selectedCategories = useMemo(() => {
+    const categories = searchParams.get("categories");
+    return categories ? categories.split(",") : [];
+  }, [searchParams]);
 
-  // Somehow a useState is required otherwise the votes require two fetches to show up
   const [votes, setVotes] = useState<SYesNoVote[]>([]);
-
-  const selectCategory = (category: string | undefined) => {
-    setSearchParams(category ? { category: category } : {});
-  }
-
-  const selectVote = (voteId: string | null) => {
-    // Do not remove the selected category when selecting a vote
-    setSearchParams(oldParams => {
-      const newParams = new URLSearchParams(oldParams);
-      if (voteId) {
-        newParams.set("voteId", voteId);
-      } else {
-        newParams.delete("voteId");
-      }
-      return newParams;
-    });
-  }
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [checkedCategories, setCheckedCategories] = useState<string[]>(selectedCategories);
 
   const { call: fetchVotes } = backendActor.useQueryCall({
-    functionName: 'get_votes',
+    functionName: "get_votes",
   });
 
   const { data: categories } = backendActor.useQueryCall({
-    functionName: 'get_categories',
+    functionName: "get_categories",
   });
 
   useEffect(() => {
     const fetchAndSetVotes = async () => {
-      const fetchedVotes = await fetchVotes([{ category: toNullable(selectedCategory) }]);
+      const fetchedVotes = await fetchVotes([{ categories: checkedCategories.length ? [checkedCategories] : [] }]);
       setVotes(fetchedVotes ?? []);
     };
     fetchAndSetVotes();
-  }, [selectedCategory]);
+  }, [checkedCategories]);
 
   useEffect(() => {
     if (votes && selectedVoteId !== null) {
       const voteElement = voteRefs.current.get(selectedVoteId);
-      
       if (voteElement) {
         setTimeout(() => {
-          voteElement.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
+          voteElement.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 50);
       }
     }
   }, [votes]);
 
+  // Handle category selection
+  const toggleCategory = (category: string) => {
+    setCheckedCategories((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
+    );
+  };
+
   return (
     <div className="flex flex-col gap-y-1 w-full bg-slate-50 dark:bg-slate-850 rounded-md">
-      <ul className="flex flex-wrap text-sm text-gray-800 dark:text-gray-200 font-medium text-center w-full gap-x-1 px-2 pt-2">
-        { categories && <li key={0} className={`grow`}>
-          <MainTabButton label={"All"} isCurrent={selectedCategory === undefined} setIsCurrent={() => { selectCategory(undefined); }}/>
-        </li>
-        }
-        {
-          categories && categories.map((cat, index) => (
-            <li key={index + 1} className={`grow`}>
-              {/* TODO: remove this hack which only shows the emoji on mobile */}
-              <MainTabButton label={(cat === selectedCategory || !isMobile) ? cat : cat.split(" ")[0]} isCurrent={cat === selectedCategory} setIsCurrent={() => { selectCategory(cat); }}/>
-            </li>
-          ))
-        }
-      </ul>
+      {/* Dropdown Button */}
+      <div className="relative p-2">
+        <button
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded-md"
+        >
+          Filter Categories
+        </button>
+
+        {dropdownOpen && (
+          <div className="absolute mt-2 bg-white dark:bg-gray-800 shadow-md rounded-md p-3 w-48">
+            <ul>
+              {categories &&
+                categories.map((cat, index) => (
+                  <li key={index} className="flex items-center gap-2 p-1">
+                    <input
+                      type="checkbox"
+                      checked={checkedCategories.includes(cat)}
+                      onChange={() => toggleCategory(cat)}
+                    />
+                    <span>{cat}</span>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Vote List */}
       <table className="w-full px-10">
         <thead className="w-full">
           <tr className="w-full px-6">
@@ -97,21 +98,19 @@ const VoteList = () => {
             <th scope="col" className="text-right text-gray-600 dark:text-gray-400 font-light pl-3 pr-6 py-5">Consensus</th>
           </tr>
         </thead>
-        <tbody className="">
-        {
-          votes.map((vote: SYesNoVote, index) => (
+        <tbody>
+          {votes.map((vote: SYesNoVote, index) => (
             vote.info.visible && 
               <VoteItem
                 vote={vote}
                 index={index}
-                setRef={(el) => (voteRefs.current.set(vote.vote_id, el))}
+                setRef={(el) => voteRefs.current.set(vote.vote_id, el)}
               />
-          ))
-        }
+          ))}
         </tbody>
       </table>
     </div>
   );
-}
+};
 
 export default VoteList;

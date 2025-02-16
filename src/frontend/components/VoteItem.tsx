@@ -47,7 +47,7 @@ const VoteItem: React.FC<VoteItemProps> = ({ vote, index, setRef }) => {
     voteDetails === undefined ? <></> : 
     <tr key={index} ref={(el) => {setRef(el)}} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px] bg-slate-50 dark:bg-slate-850 border-t-2 border-slate-100 dark:border-slate-900">
       <td className="text-start pl-6 py-3">
-      🔬
+        {vote.info.category.split(" ")[0]}
       </td>
       <td scope="row" className="text-base text-start grow px-3 py-3">
         {vote.info.text}

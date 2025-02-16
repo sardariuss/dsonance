@@ -1,12 +1,14 @@
 import ProtocolTypes "../protocol/Types";
 
 import Map           "mo:map/Map";
+import Set           "mo:map/Set";
 import Array         "mo:base/Array";
 import Principal     "mo:base/Principal";
 import Result        "mo:base/Result";
 import Option        "mo:base/Option";
 import Iter          "mo:base/Iter";
 import Debug         "mo:base/Debug";
+import Buffer        "mo:base/Buffer";
 
 import Protocol      "canister:protocol";
 
@@ -19,6 +21,7 @@ shared({ caller = admin }) actor class Backend() = this {
     type VoteInfo = {
         text: Text;
         visible: Bool;
+        category: Text;
     };
     type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate, YesNoChoice> and { info: VoteInfo };
     type Account = ProtocolTypes.Account;
@@ -28,6 +31,7 @@ shared({ caller = admin }) actor class Backend() = this {
     type SNewVoteError = ProtocolTypes.NewVoteError or { #AnonymousCaller; #CategoryNotFound; };
 
     stable let _infos = Map.new<UUID, VoteInfo>();
+    stable let _categories = Map.new<Text, [UUID]>();
 
     public shared({ caller }) func new_vote({
         text: Text;
@@ -45,7 +49,7 @@ shared({ caller = admin }) actor class Backend() = this {
         Result.mapOk(new_result, func(vote_type: SVoteType) : SYesNoVote {
             switch(vote_type) {
                 case(#YES_NO(vote)) {
-                    let info = { text; visible = true; };
+                    let info = { text; visible = true; category; };
                     Map.set(_infos, Map.thash, vote.vote_id, info);
                     switch(Map.get(_categories, Map.thash, category)) {
                         case(null){ /* Shall not happen */ };
@@ -64,20 +68,28 @@ shared({ caller = admin }) actor class Backend() = this {
         });
     };
 
-    public composite query func get_votes({ category: ?Text }) : async [SYesNoVote] {
-        let filter_ids = Option.map(category, func(cat: Text) : [UUID] {
-            switch(Map.get(_categories, Map.thash, cat)){
-                case(null) { Debug.trap("Category not found"); };
-                case(?ids) { ids; };
+    public composite query func get_votes({ categories: ?[Text] }) : async [SYesNoVote] {
+        let filter_ids = switch (categories) {
+            case (null) { null };  // No categories = no filter
+            case (?c) { 
+                let buffer = Buffer.Buffer<[UUID]>(0); // Use UUID type
+                for (category in Array.vals(c)) { // Directly iterate over `categories`
+                    switch (Map.get(_categories, Map.thash, category)) {
+                        case (null) { }; // Ignore missing categories
+                        case (?ids) { buffer.add(ids) }; // Add valid category IDs
+                    };
+                };
+
+                ?Array.flatten(Buffer.toArray(buffer)); // Ensure correct type
             };
-        });
-        let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); filter_ids; });
+        };
+
+        let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); filter_ids });
+
         Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {
             with_info(vote_type);
         });
     };
-  
-    stable let _categories = Map.new<Text, [UUID]>();
 
     public shared func add_categories(categories: [Text]) : async () {
         for (category in Array.vals(categories)) {
