@@ -5,10 +5,7 @@ coverY: 0
 
 # Introduction
 
-<img src="../.gitbook/assets/consensus.png" alt="">
-![Dsonance](./gitbook/assets/logo.png)
-
-**Dsonance** is a platform that enables users to lock Bitcoin and participate in a decentralized consensus system. By fostering continuous, stake-weighted voting, the platform ensures that collective decisions are nuanced, evolving, and resistant to manipulation. Participants are rewarded for their contributions and their ability to anticipate the future consensus, fostering a fair and transparent system that values foresight, genuine opinions, and strategic thinking.
+**Dsonance** is a platform that enables users to **earn yield on their Bitcoin** and **win additional rewards** by voting on a list of **empirical statements**. By harnessing the power of **Proof-of-Foresight**, the platform ensures that consensus remains **genuine**, adapts in **real-time** to shifts in public opinion, and **resists manipulation**.
 
 #### 🎯 **Goals**
 
