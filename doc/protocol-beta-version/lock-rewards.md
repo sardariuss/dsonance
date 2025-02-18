@@ -5,8 +5,6 @@ coverY: 0
 
 # Voting rewards
 
-#### **Rewards Structure**
-
 Rewards are divided into two parts:
 
 1. **DSN Rewards** – Rewarding participation in the protocol.
