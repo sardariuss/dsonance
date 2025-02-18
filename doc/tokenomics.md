@@ -1,54 +1,48 @@
 # Tokenomics
 
-The platform uses two tokens:
+Dsonance operates with two tokens:
 
-* The **ckBTC token**, the wrapped version of **BTC** for the Internet Computer.
-* The **DSN token**, the native **Dsonance utility and governance token**
+* **ckBTC** – A wrapped version of Bitcoin (BTC) on the Internet Computer (ICP).
+* **DSN** – The native utility and governance token of the Dsonance platform.
 
-### ckBTC token
+### **ckBTC Token**
 
-ckBTC is a token on the **Internet Computer (ICP)** blockchain that represents **Bitcoin (BTC) in a wrapped form**. It allows users to transact BTC **quickly and cheaply** within the Internet Computer ecosystem while still being **fully backed 1:1 by real Bitcoin**.
+ckBTC is a tokenized version of Bitcoin on the Internet Computer, allowing fast and low-cost BTC transactions while maintaining full 1:1 backing through **chain-key cryptography**. Since it functions identically to BTC, the terms **ckBTC** and **BTC** are used interchangeably in this documentation, though the platform specifically operates with ckBTC.
 
-{% hint style="info" %}
-Since ckBTC is backed 1:1 by BTC and secured by chain-key cryptography, it effectively functions as BTC. Therefore, both terms are used interchangeably throughout this documentation, even though, in practice, the Dsonance platform specifically uses ckBTC.
-{% endhint %}
+BTC plays a central role in Dsonance:
 
-BTC serves multiple functions:
+* **Required to vote** – and shape consensus.
+* **Incentive** – Generates BTC yield for voters whose past votes align with the current consensus.
+* **Borrowing** – Can be borrowed against DSN tokens.
 
-* Input: required to participate (vote) in order to shape consensus
-* Incentive: BTC yield to reward voters which past vote aligns with current consensus
-* Borrowed: to be borrowed against DSN tokens
+### **DSN Token**
 
-### DSN token
+The DSN token is the native utility and governance token of Dsonance, enabling governance through the DAO and serving key roles in the platform.
 
-The DSN token is the **native utility and governance token** of the Dsonance platform. It grants holders the power to shape the future of the platform through the **Dsonance DAO**, influencing key decisions and protocol upgrades.
+**Functions:**
 
-DSN serves multiple functions:
+* **Rewards** – 50% of the token is distributed to active participants.
+* **Burn Mechanism** – Required for certain platform actions.
+* **Collateral** – Used to borrow BTC.
 
-* **Rewards:** Distributed to users who actively participate in the platform.
-* **Burn Mechanism:** Users must burn DSN to engage in certain platform activities.
-* **Collateral:** Used as collateral for borrowing BTC.
+The minting of DSN rewards follow an **exponential decay model** with a **4-year half-life**. Early users earn more, while emissions gradually decrease, ensuring long-term scarcity and sustainability
 
-#### **BTC Yield Mechanism in Dsonance**
+### **BTC Yield Mechanism**
 
-Dsonance generates BTC yield by enabling users to **borrow BTC against their DSN tokens**. The borrowed BTC comes from **ballot-locked funds**, effectively turning the voting process into a decentralized lending protocol.
+Dsonance **generates BTC yield** by allowing users to **borrow BTC against their DSN holdings**. The borrowed BTC originates from ballot-locked funds, effectively turning **voting into a decentralized lending system**.
 
-To maintain a balanced market, Dsonance implements a **utilization-based interest rate model**, dynamically adjusting borrowing and lending rates based on supply and demand—similar to established DeFi platforms like **Aave and Compound**.
+To ensure stability, the platform employs a **utilization-based interest rate model**, dynamically adjusting borrowing and lending rates based on supply and demand—similar to **Aave and Compound**.
 
-Additionally, a **ckBTC/DSN liquidity pool** will be **bootstrapped using a portion of the ICP treasury from the SNS swap**, ensuring sufficient liquidity and price stability. This pool will also allow the protocol to **sell DSN collateral when necessary**, mitigating risks and securing the system's long-term sustainability.
+Additionally, a **ckBTC/DSN liquidity pool** will be **bootstrapped using a portion of the ICP treasury from the SNS swap**, ensuring liquidity and price stability. This pool also enables the protocol to **sell DSN collateral when necessary**, protecting the system from insolvency.
 
-#### **BTC Buyback & Burn**
+### **Supply Dynamics & Deflationary Mechanisms**
 
-From launch, the platform will allocate **10% of the BTC yield** it generates to **buy back and burn DSN tokens**. This continuous burn mechanism helps reduce supply, driving long-term value appreciation.
+The DSN token follows a **two-phase economic model**:
 
-By combining **early incentives** with a **gradual shift toward scarcity**, these mechanisms encourage early adoption while empowering the long-term value growth of DSN.
+1. **Inflationary Phase** – Initially, DSN rewards will be abundant, and burn requirements will be minimal to encourage adoption.
+2. **Deflationary Phase** – Over time, DSN rewards will decrease, while burning requirements will increase, leading to a progressively scarcer supply.
 
-#### Supply Dynamics
-
-The DSN tokenomics follow a **two-phase model**:
-
-1. **Inflationary Phase** – Initially, DSN rewards will be abundant, while burn requirements remain low.
-2. **Deflationary Phase** – Over time, rewards will decrease and burning costs will rise, leading to a scarcer supply.
+To reinforce this deflationary shift, **10% of all BTC yield generated** by the platform will be used to **buy back and burn DSN tokens**. This continuous reduction in supply helps drive long-term value appreciation and ensures the sustainability of the ecosystem.
 
 #### **DSN Token Allocation**
 
