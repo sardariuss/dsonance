@@ -14,12 +14,11 @@ coverY: 0
 * **Combat bribery**: Ensure decisions remain immune to external financial influence, a timeless issue in human decision-making.
 * **Value user attention**: Incentivize participants to vote on topics they are most knowledgeable about, so not everyone is required to vote on every issue, improving focus and engagement.
 
-#### ⚙️ **How It Works**
+#### ⚙️ **Proof-of-Foresight**
 
-* **Stake-weighted voting**: Users lock Bitcoin to vote on specific statements, with voting power proportional to their stake.
-* **Dynamic lock duration**: Lock durations are tailored to each ballot and can extend over time as the topic gains popularity.
-* **Continuous voting**: Results decay over time, allowing past consensus to be re-evaluated as opinions evolve.
-* **Sensible rewards**: Voters are rewarded not just for participating but for their discernment, with greater rewards given to opinions that stand the test of time.
+* **Stake-weighted voting:** Users lock Bitcoin to vote on specific statements, with voting power proportional to their stake.
+* **Dynamic lock duration:** Lock durations adjust to each ballot and extend over time as topics gain popularity.
+* **Earn twice:** Get DSN tokens for your participation—and maximize your BTC yield with your foresight!
 
 #### 🎲 **Game Theory**
 
