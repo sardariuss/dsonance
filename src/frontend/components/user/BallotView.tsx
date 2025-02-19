@@ -66,7 +66,7 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
   const { releaseTimestamp, contribution, foresightAPR } = useMemo(() => {
       return {
         contribution: BigInt(Math.floor(ballot.YES_NO.contribution.current.data.earned)),
-        foresightAPR: ballot.YES_NO.foresight.current.data.apr.potential * 100 / Number(ballot.YES_NO.amount),
+        foresightAPR: ballot.YES_NO.foresight.current.data.apr.current,
         releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data 
       }
     },

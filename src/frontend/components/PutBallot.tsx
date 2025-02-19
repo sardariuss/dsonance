@@ -42,7 +42,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, ballot, setBallot, reset
       }
       if (identity !== null) {
         refreshBtcBalance();
-        navigate(`/user/${identity.getPrincipal()}?ballotId=${result.ok.YES_NO.ballot_id}`);
+        navigate(`/?tab=ballots\&ballotId=${result.ok.YES_NO.ballot_id}`);
       }
     },
     onError: (error) => {

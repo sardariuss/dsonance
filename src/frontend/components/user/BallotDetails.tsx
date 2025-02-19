@@ -94,17 +94,46 @@ export const DesktopBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, no
 
           <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-200 dark:border-gray-800 py-1">
             <div className="flex flex-row space-x-1 items-baseline">
-              <span>{DISCERNMENT_EMOJI}</span>
-              <span className="italic text-gray-600 dark:text-gray-400 text-sm">Current foresight:</span>
-              <span>{ formatSatoshis(ballot.YES_NO.foresight.current.data.reward)}</span>
+              <span>{CONTRIBUTION_EMOJI}</span>
+              <span className="italic text-gray-600 dark:text-gray-400 text-sm">Pending contribution:</span>
+              <span>{ formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.contribution.current.data.pending)), DSONANCE_COIN_SYMBOL, 2) }</span>
             </div>
             <DurationChart 
-              duration_timeline={map_timeline(ballot.YES_NO.foresight, (foresight) => Number(foresight.reward) ) } 
-              format_value={ (value: number) => (formatSatoshis(BigInt(value)) ?? "") }
+              duration_timeline={map_timeline(ballot.YES_NO.contribution, (contribution) => contribution.pending ) } 
+              format_value={ (value: number) => (formatBalanceE8s(BigInt(value), DSONANCE_COIN_SYMBOL, 2)) } 
               fillArea={true}
               color={CHART_COLORS.GREEN}
             />
           </div>
+
+          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-200 dark:border-gray-800 py-1">
+            <div className="flex flex-row space-x-1 items-baseline">
+              <span>{DISCERNMENT_EMOJI}</span>
+              <span className="italic text-gray-600 dark:text-gray-400 text-sm">Current APR:</span>
+              <span>{ ballot.YES_NO.foresight.current.data.apr.current.toFixed(2) + "%" }</span>
+            </div>
+            <DurationChart 
+              duration_timeline={map_timeline(ballot.YES_NO.foresight, (foresight) => Number(foresight.apr.current) ) } 
+              format_value={ (value: number) => (value.toFixed(2)) }
+              fillArea={true}
+              color={CHART_COLORS.GREEN}
+            />
+          </div>
+
+          <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-200 dark:border-gray-800 py-1">
+            <div className="flex flex-row space-x-1 items-baseline">
+              <span>{DISCERNMENT_EMOJI}</span>
+              <span className="italic text-gray-600 dark:text-gray-400 text-sm">Potential APR:</span>
+              <span>{ ballot.YES_NO.foresight.current.data.apr.potential.toFixed(2) + "%" }</span>
+            </div>
+            <DurationChart 
+              duration_timeline={map_timeline(ballot.YES_NO.foresight, (foresight) => Number(foresight.apr.potential) ) } 
+              format_value={ (value: number) => (value.toFixed(2)) }
+              fillArea={true}
+              color={CHART_COLORS.GREEN}
+            />
+          </div>
+
         </div>
     );
 }

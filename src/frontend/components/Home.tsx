@@ -3,12 +3,9 @@ import { useEffect } from "react";
 import { TabButton } from "./TabButton";
 import VoteList from "./VoteList";
 import BallotList from "./user/BallotList";
-import { useAuth } from "@ic-reactor/react";
-import { Principal } from "@dfinity/principal";
 
 const Home = () => {
 
-  const { identity } = useAuth();
   const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,7 +45,7 @@ const Home = () => {
 
       {/* Content */}
       <div className="w-full">
-        {selectedTab === "votes" ? <VoteList /> : <BallotList principal={identity?.getPrincipal() ?? Principal.anonymous() }/>}
+        {selectedTab === "votes" ? <VoteList /> : <BallotList/>}
       </div>
     </div>
   );

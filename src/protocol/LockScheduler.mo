@@ -98,12 +98,13 @@ module {
 
             // Iterate over the locks in order of release date
             for ((lock, ballot) in BTree.entries(locks)){
-                // Accumulate the yield from the last dispense until the lock release date
-                let dispense_duration_year = Float.fromInt(lock.release_date - copy_time_last_dispense) / Float.fromInt(Duration.NS_IN_YEAR);
-                copy_total_yield += Float.fromInt(copy_total_amount) * dispense_duration_year * yield_rate;
+                let { release_date } = lock;
+                // Accumulate the yield from the last dispense until that lock release date
+                let dispense_interval = Float.fromInt(release_date - copy_time_last_dispense) / Float.fromInt(Duration.NS_IN_YEAR);
+                copy_total_yield += Float.fromInt(copy_total_amount) * dispense_interval * yield_rate;
                 // Compute the reward for the lock
-                let reward = Float.toInt(compute_foresight(ballot, copy_locks, time) * copy_total_yield);
-                let lock_duration_year = Float.fromInt(lock.release_date - ballot.timestamp) / Float.fromInt(Duration.NS_IN_YEAR);
+                let reward = Float.toInt(compute_foresight({ lock_id = lock.id; locks = copy_locks } ) * copy_total_yield);
+                let lock_duration_year = Float.fromInt(release_date - ballot.timestamp) / Float.fromInt(Duration.NS_IN_YEAR);
                 let apr = (100 * Float.fromInt(reward) / Float.fromInt(ballot.amount)) / lock_duration_year;
                 let foresight = {
                     reward = Int.abs(reward);
@@ -123,29 +124,31 @@ module {
 
                 // Need to unlock if the release date has passed
                 if (lock.release_date <= time) {
-                    // First dispense contribution
+                    // First dispense contribution of all locks over that period
                     dispense_contribution({
                         total_locked = Timeline.current(total_amount);
                         start = lock_register.time_last_dispense;
                         end = lock.release_date;
                     });
 
-                    // Dispense the ckBTC
-                    btc_debt.add_debt({ id = ballot.ballot_id; amount = Float.fromInt(reward); time = lock.release_date; });
-
-                    // Delete the lock, update the parameters
+                    // Trigger the transfer of the original amount and reward and delete that lock
+                    // TODO: check of floating point makes sense here
+                    btc_debt.add_debt({ id = ballot.ballot_id; amount = Float.fromInt(ballot.amount + reward); time = lock.release_date; });
                     to_delete.add(lock);
+
+                    // Update the total locked, cumulated yield and last dispense time
                     Timeline.add(total_amount, time, copy_total_amount);
                     total_yield := copy_total_yield;
                     lock_register.time_last_dispense := copy_time_last_dispense;
                 };
             };
 
-            // Remove after iteration
+            // Remove locks that have been unlocked
             for (lock in to_delete.vals()) {
                 ignore BTree.delete(locks, compare_locks, lock);
             };
 
+            // Dispense the remaining contribution until now
             dispense_contribution({
                 total_locked = Timeline.current(total_amount);
                 start = lock_register.time_last_dispense;
@@ -158,7 +161,7 @@ module {
             lock_register.total_amount;
         };
 
-        public func dispense_contribution({total_locked: Nat; start: Nat; end: Nat;}) {
+        func dispense_contribution({total_locked: Nat; start: Nat; end: Nat;}) {
 
             let period = end - start;
 
@@ -194,13 +197,21 @@ module {
             lock_register.time_last_dispense;
         };
 
-        func compute_foresight(ballot: YesNoBallot, locks: BTree<Lock, YesNoBallot>, time: Nat) : Float {
+        func compute_foresight({lock_id: Text; locks: BTree<Lock, YesNoBallot>}) : Float {
             var total = 0.0;
-            for ((_, b) in BTree.entries(locks)){
+            var current : ?Float = null;
+            for ((l, b) in BTree.entries(locks)){
                 // TODO: save the discernment in the ballot?
-                total += compute_discernment(b) * Float.fromInt(b.amount) * Float.fromInt(time - b.timestamp);
+                let foresight = compute_discernment(b) * Float.fromInt(b.amount) * Float.fromInt(l.release_date - b.timestamp);
+                total += foresight;
+                if (l.id == lock_id){
+                    current := ?foresight;
+                };
             };
-            (compute_discernment(ballot) * Float.fromInt(ballot.amount) * Float.fromInt(time - ballot.timestamp)) / total;
+            switch(current){
+                case(null) { Debug.trap("Lock not found in the locks"); };
+                case(?c) { c / total; };
+            };
         };
 
         func compute_discernment(ballot: YesNoBallot) : Float {
