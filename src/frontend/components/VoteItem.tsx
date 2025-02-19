@@ -3,9 +3,13 @@ import { useMemo } from "react";
 import { compute_vote_details } from "../utils/conversions/votedetails";
 import { useProtocolContext } from "./ProtocolContext";
 import { useCurrencyContext } from "./CurrencyContext";
+import { useNavigate } from "react-router-dom";
+import VoteView from "./VoteView";
 
 interface VoteItemProps {
   vote: SYesNoVote;
+  selected: boolean;
+  setSelected: () => void;
   index: number;
   setRef: (el: HTMLTableRowElement | null) => void;
 }
@@ -26,7 +30,7 @@ const blendColors = (color1: string, color2: string, ratio: number) => {
   return rgbToHex(blended);
 };
 
-const VoteItem: React.FC<VoteItemProps> = ({ vote, index, setRef }) => {
+const VoteItem: React.FC<VoteItemProps> = ({ vote, index, setRef, selected, setSelected }) => {
 
   const { formatSatoshis } = useCurrencyContext();
 
@@ -43,26 +47,42 @@ const VoteItem: React.FC<VoteItemProps> = ({ vote, index, setRef }) => {
     return blendColors("#07E344", "#03B5FD", voteDetails?.cursor ?? 0); // Blend yes and no colors
   }, [voteDetails]);
 
-  return (
-    voteDetails === undefined ? <></> : 
-    <tr key={index} ref={(el) => {setRef(el)}} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px] bg-slate-50 dark:bg-slate-850 border-t-2 border-slate-100 dark:border-slate-900">
-      <td className="text-start pl-6 py-3">
-        {vote.info.category.split(" ")[0]}
-      </td>
-      <td scope="row" className="text-base text-start grow px-3 py-3">
-        {vote.info.text}
-      </td>
-      <td className="px-3 py-3 text-end">
-        {formatSatoshis(BigInt(Math.trunc(voteDetails.total)))}
-      </td>
-      <td
-        className={`text-lg leading-none pl-3 pr-6 py-3 text-end`}
-        style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
+  return voteDetails === undefined ? (
+    <></>
+  ) : (
+    <>
+      <tr
+        key={index}
+        ref={(el) => { setRef(el); }}
+        className="w-full scroll-mt-[104px] sm:scroll-mt-[88px] bg-slate-50 dark:bg-slate-850 border-t-2 border-slate-100 dark:border-slate-900 hover:cursor-pointer"
+        onClick={() => { setSelected(); }}
       >
-        { voteDetails.cursor.toFixed(2) }
-      </td>
-    </tr>
+        <td className="text-center pl-3 py-3">
+          {vote.info.category.split(" ")[0]}
+        </td>
+        <td scope="row" className="text-base text-start grow px-3 py-3">
+          {vote.info.text}
+        </td>
+        <td className="px-3 py-3 text-end">
+          {formatSatoshis(BigInt(Math.trunc(voteDetails.total)))}
+        </td>
+        <td
+          className="text-lg leading-none pl-3 pr-6 py-3 text-end"
+          style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
+        >
+          {voteDetails.cursor.toFixed(2)}
+        </td>
+      </tr>
+  
+      {selected && (
+        <tr key={`${index}-details`}>
+          <td colSpan={4}>
+            <VoteView vote={vote} selected={selected} setSelected={setSelected} /> 
+          </td>
+        </tr>
+      )}
+    </>
   );
-};
+}
 
 export default VoteItem;

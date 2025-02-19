@@ -7,8 +7,6 @@ import DurationChart, { CHART_COLORS } from "../charts/DurationChart";
 import { unwrapLock } from "../../utils/conversions/ballot";
 import { formatBalanceE8s } from "../../utils/conversions/token";
 
-import 'katex/dist/katex.min.css';
-import { InlineMath } from "react-katex";
 import { SBallotType } from "@/declarations/protocol/protocol.did";
 import { useState } from "react";
 import ChevronUpIcon from "../icons/ChevronUpIcon";
@@ -92,7 +90,6 @@ export const DesktopBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, no
               fillArea={true}
               color={CHART_COLORS.GREEN}
             />
-            <InlineMath math="P(t) = lock\_amount \cdot \int_{t_0}^t contribution\_rate(t) \, dt" />
           </div>
 
           <div className="flex flex-col items-center justify-center space-x-1 w-full border border-gray-200 dark:border-gray-800 py-1">
@@ -107,7 +104,6 @@ export const DesktopBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, no
               fillArea={true}
               color={CHART_COLORS.GREEN}
             />
-            <InlineMath math="D(t) = discernment\_factor * P(t) * dissent_{t_0} * consent(t)" />
           </div>
         </div>
     );
@@ -206,20 +202,13 @@ export const MobileBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now
                 </span>
             </div>
             { (chartToggle === CHART_TOGGLE.CONTRIBUTION) && 
-                <div className="flex flex-col w-full">
-                    <DurationChart 
-                        duration_timeline={map_timeline(ballot.YES_NO.contribution, (contribution) => contribution.earned ) } 
-                        format_value={ (value: number) => (formatBalanceE8s(BigInt(value), DSONANCE_COIN_SYMBOL, 2)) } 
-                        fillArea={true}
-                        color={CHART_COLORS.GREEN}
-                        last_timestamp={releaseTimestamp <= now ? releaseTimestamp : now }
-                    />
-                    <div className="flex flex-col space-x-1 items-center text-sm">
-                        <InlineMath math="P(t) = lock\_amount \cdot \int_{t_0}^t r(t) \, dt" />
-                        <span>where:</span>
-                        <InlineMath math="r(t) = contribution\_rate(t)"/>
-                    </div>
-                </div>
+              <DurationChart 
+                  duration_timeline={map_timeline(ballot.YES_NO.contribution, (contribution) => contribution.earned ) } 
+                  format_value={ (value: number) => (formatBalanceE8s(BigInt(value), DSONANCE_COIN_SYMBOL, 2)) } 
+                  fillArea={true}
+                  color={CHART_COLORS.GREEN}
+                  last_timestamp={releaseTimestamp <= now ? releaseTimestamp : now }
+              />
             }
           </div>
           
@@ -238,20 +227,13 @@ export const MobileBallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now
                 </span>
             </div>
             { (chartToggle === CHART_TOGGLE.DISCERNMENT) && 
-                <div className="flex flex-col w-full">
-                    <DurationChart 
-                        duration_timeline={map_timeline(ballot.YES_NO.foresight, (foresight) => Number(foresight.reward) ) } 
-                        format_value={ (value: number) => (formatSatoshis(BigInt(value)) ?? "") }
-                        fillArea={true}
-                        color={CHART_COLORS.GREEN}
-                        last_timestamp={releaseTimestamp <= now ? releaseTimestamp : now }
-                    />
-                    <div className="flex flex-col space-x-1 items-center text-sm">
-                        <InlineMath math="D(t) = K * P(t) * dissent_{t_0} * consent(t)"/>
-                        <span>where:</span>
-                        <InlineMath math="K = discernment\_factor"/>
-                    </div>
-                </div>
+              <DurationChart 
+                  duration_timeline={map_timeline(ballot.YES_NO.foresight, (foresight) => Number(foresight.reward) ) } 
+                  format_value={ (value: number) => (formatSatoshis(BigInt(value)) ?? "") }
+                  fillArea={true}
+                  color={CHART_COLORS.GREEN}
+                  last_timestamp={releaseTimestamp <= now ? releaseTimestamp : now }
+              />
             }
           </div>
         </div>

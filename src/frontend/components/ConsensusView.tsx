@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { BallotInfo } from "./types";
 import { add_ballot, VoteDetails } from "../utils/conversions/votedetails";
 import DateSpan from "./DateSpan";
-import BitcoinIcon from "./icons/BitcoinIcon";
 import { useCurrencyContext } from "./CurrencyContext";
 
 // Utility to blend two colors based on a ratio (0 to 1)
@@ -22,13 +21,15 @@ const blendColors = (color1: string, color2: string, ratio: number) => {
 };
 
 interface ConsensusViewProps {
+  selected: boolean;
+  category: string;
   voteDetails: VoteDetails;
   text: string;
   timestamp: bigint;
   ballot?: BallotInfo;
 }
 
-const ConsensusView: React.FC<ConsensusViewProps> = ({ voteDetails, text, timestamp, ballot }) => {
+const ConsensusView: React.FC<ConsensusViewProps> = ({ selected, category, voteDetails, text, timestamp, ballot }) => {
 
   const { formatSatoshis } = useCurrencyContext();
 
@@ -44,21 +45,25 @@ const ConsensusView: React.FC<ConsensusViewProps> = ({ voteDetails, text, timest
   }, [liveDetails]);
 
   return (
-    <div className="grid grid-cols-[minmax(200px,_1fr)_60px_60px] sm:grid-cols-[minmax(400px,_1fr)_100px_100px] gap-x-2 sm:gap-x-4 justify-items-center items-center grow">
-      <span className="justify-self-start grow">
-        {text}
-        <span className="text-gray-400 text-sm">{" · "}</span>
-        <DateSpan timestamp={timestamp}/>
-      </span>
+    <div className="grid grid-cols-[60px_auto_60px_60px] sm:grid-cols-[100px_auto_100px_100px] gap-x-2 sm:gap-x-4 justify-items-center items-center grow pr-5">
+      <span>{category.split(" ")[0]}</span>
+      {
+        selected ?
+        <span className="justify-self-start grow">
+          {text}
+          { selected && <span className="text-gray-400 text-sm">{" · "}</span> }
+          { selected && <DateSpan timestamp={timestamp}/> }
+        </span> :
+        <span className="justify-self-start truncate max-w-full">
+          {text}
+        </span>
+      }
+      <span className={`justify-self-end ${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(BigInt(Math.trunc(liveDetails.total)))}</span>
       <div
-        className={`text-lg leading-none ${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
+        className={`justify-self-end text-lg leading-none ${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
         style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
       >
         { liveDetails.cursor.toFixed(2) }
-      </div>
-      <div className="flex flex-row items-center justify-self-center space-x-1">
-        <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(BigInt(Math.trunc(liveDetails.total)))}</span>
-        <BitcoinIcon />
       </div>
     </div>
   );

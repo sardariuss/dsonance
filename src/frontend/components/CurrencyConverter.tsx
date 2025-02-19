@@ -13,12 +13,12 @@ const CurrencyConverter = () => {
         <span className="pr-2">in</span>
         <Select
             options={Object.values(SupportedCurrency).map((currency) => ({
-            value: currency,
-            label: currency,
+                value: currency,
+                label: currency,
             }))}
             value={{ value: currency, label: currency }}
             onChange={(option) => {
-            if (option !== null) setCurrency(option.value as SupportedCurrency);
+                if (option !== null) setCurrency(option.value as SupportedCurrency);
             }}
             styles={{
             control: (provided, state) => ({

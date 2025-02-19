@@ -8,7 +8,6 @@ import VoteSlider from "./VoteSlider";
 import { BallotInfo } from "./types";
 import { compute_vote_details } from "../utils/conversions/votedetails";
 import ConsensusView from "./ConsensusView";
-import LinkIcon from "./icons/LinkIcon";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import { useProtocolContext } from "./ProtocolContext";
@@ -42,66 +41,37 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, selected, setSelected }) => {
     resetVote();
   }, [selected, vote]);
 
-  return ( 
-    isMobile ? 
-  (
-    (voteDetails !== undefined) && <div className="flex flex-col content-center px-2 py-1 w-full bg-slate-50 dark:bg-slate-850">
-      <div className="w-full flex flex-row space-x-1 items-baseline" onClick={() => setSelected() }>
-        <ConsensusView voteDetails={voteDetails} text={vote.info.text} timestamp={vote.date} ballot={ballot}/>
-      </div>
-      {
-        selected && vote.vote_id !== undefined && (
-          <div className="flex flex-col items-center space-y-2">
-            {
-              voteDetails.total > 0 && <div className="flex flex-col space-y-2 items-center w-5/6">
-                <VoteChart vote={vote} ballot={ballot}/>
-                <VoteSlider id={vote.vote_id} disabled={false} voteDetails={voteDetails} ballot={ballot} setBallot={setBallot} onMouseUp={() => {}} onMouseDown={() => {}}/>
-              </div>
-            }
-            <PutBallotPreview vote_id={vote.vote_id} ballot={ballot} />
-            <PutBallot 
-              vote_id={vote.vote_id} 
-              ballot={ballot}
-              setBallot={setBallot}
-              resetVote={resetVote}
-            />
-            <span className="hidden"> { vote.vote_id } </span>
-          </div>
-        )
-      }
-    </div>
-  ) : (
-    (voteDetails !== undefined) && <div className="flex flex-col content-center px-5 py-3 w-full bg-slate-50 dark:bg-slate-850">
-      <div className="w-full grid grid-cols-[minmax(300px,_1fr)_50px] items-center gap-x-8" onClick={() => setSelected() }>
-        <ConsensusView voteDetails={voteDetails} text={vote.info.text} timestamp={vote.date} ballot={ballot}/>
-        <div className="flex flex-row dark:stroke-gray-200 dark:hover:stroke-white hover:stroke-black stroke-gray-800 hover:cursor-pointer"
-          onClick={(e) => { e.stopPropagation(); window.open(`/vote/${vote.vote_id}`, "_blank") }}
-        >
-          <LinkIcon/>
+  return (
+    voteDetails !== undefined && (
+      <div className={`flex flex-col content-center w-full bg-slate-50 dark:bg-slate-850 hover:cursor-pointer ${isMobile ? "py-1" : "py-3"}`}>
+        <div className="w-full flex flex-row space-x-1 items-baseline" onClick={() => setSelected()}>
+          <ConsensusView selected={selected} category={vote.info.category} voteDetails={voteDetails} text={vote.info.text} timestamp={vote.date} ballot={ballot} />
         </div>
-      </div>
-      {
-        selected && vote.vote_id !== undefined && (
+        {selected && vote.vote_id !== undefined && (
           <div className="flex flex-col space-y-2 items-center">
-            {
-              voteDetails.total > 0 && <div className="flex flex-col space-y-2 items-center w-2/3">
-                <VoteChart vote={vote} ballot={ballot}/>
-                <VoteSlider id={vote.vote_id} disabled={false} voteDetails={voteDetails} ballot={ballot} setBallot={setBallot} onMouseUp={() => {}} onMouseDown={() => {}}/>
+            {voteDetails.total > 0 && (
+              <div className={`flex flex-col space-y-2 items-center ${isMobile ? "w-5/6" : "w-2/3"}`}>
+                <VoteChart vote={vote} ballot={ballot} />
+                <VoteSlider
+                  id={vote.vote_id}
+                  disabled={false}
+                  voteDetails={voteDetails}
+                  ballot={ballot}
+                  setBallot={setBallot}
+                  onMouseUp={() => {}}
+                  onMouseDown={() => {}}
+                />
               </div>
-            }
+            )}
             <PutBallotPreview vote_id={vote.vote_id} ballot={ballot} />
-            <PutBallot 
-              vote_id={vote.vote_id}
-              ballot={ballot}
-              setBallot={setBallot}
-              resetVote={resetVote}
-            />
-            <span className="hidden"> { vote.vote_id } </span>
+            <PutBallot vote_id={vote.vote_id} ballot={ballot} setBallot={setBallot} resetVote={resetVote} />
+            <span className="hidden">{vote.vote_id}</span>
           </div>
-        )
-      }
-    </div>
-  ));
+        )}
+      </div>
+    )
+  );
+  
 };
 
 export default VoteView;

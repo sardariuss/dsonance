@@ -4,22 +4,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import VoteItem from "./VoteItem";
 import BitcoinIcon from "./icons/BitcoinIcon";
+import VoteView from "./VoteView";
 
 const VoteList = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const voteRefs = useRef<Map<string, (HTMLTableRowElement | null)>>(new Map());
+  const voteRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
   const selectedVoteId = useMemo(() => searchParams.get("voteId"), [searchParams]);
-  
-  // Store selected categories as an array
-  const selectedCategories = useMemo(() => {
-    const categories = searchParams.get("categories");
-    return categories ? categories.split(",") : [];
-  }, [searchParams]);
 
   const [votes, setVotes] = useState<SYesNoVote[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [checkedCategories, setCheckedCategories] = useState<string[]>(selectedCategories);
+  const [checkedCategories, setCheckedCategories] = useState<string[]>([]);
 
   const { call: fetchVotes } = backendActor.useQueryCall({
     functionName: "get_votes",
@@ -55,60 +50,62 @@ const VoteList = () => {
     );
   };
 
+  const selectVote = (voteId: string) => {
+    setSearchParams((prevParams) => {
+      const newParams = new URLSearchParams(prevParams);
+      if (selectedVoteId === voteId) {
+        newParams.delete("voteId"); // Remove voteId if it's already selected
+      } else {
+        newParams.set("voteId", voteId); // Set voteId if it's not selected
+      }
+      return newParams;
+    });
+  };
+
   return (
     <div className="flex flex-col gap-y-1 w-full bg-slate-50 dark:bg-slate-850 rounded-md">
-      {/* Dropdown Button */}
-      <div className="relative p-2">
-        <button
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded-md"
-        >
-          Filter Categories
-        </button>
-
-        {dropdownOpen && (
-          <div className="absolute mt-2 bg-white dark:bg-gray-800 shadow-md rounded-md p-3 w-48">
-            <ul>
-              {categories &&
-                categories.map((cat, index) => (
-                  <li key={index} className="flex items-center gap-2 p-1">
-                    <input
-                      type="checkbox"
-                      checked={checkedCategories.includes(cat)}
-                      onChange={() => toggleCategory(cat)}
-                    />
-                    <span>{cat}</span>
-                  </li>
-                ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
       {/* Vote List */}
-      <table className="w-full px-10">
-        <thead className="w-full">
-          <tr className="w-full px-6">
-            <th scope="col" className="text-left text-gray-600 dark:text-slate-850 font-light pl-6 py-5">#</th>
-            <th scope="col" className="text-left text-gray-600 dark:text-gray-400 font-light px-3 py-5">Statement</th>
-            <th scope="col" className="text-right text-gray-600 dark:text-gray-400 font-light px-3 py-5 flex flex-row items-center justify-self-center space-x-1">
-              <BitcoinIcon />
-              <span>TVL</span>
-            </th>
-            <th scope="col" className="text-right text-gray-600 dark:text-gray-400 font-light pl-3 pr-6 py-5">Consensus</th>
-          </tr>
-        </thead>
-        <tbody>
-          {votes.map((vote: SYesNoVote, index) => (
-            vote.info.visible && 
-              <VoteItem
-                vote={vote}
-                index={index}
-                setRef={(el) => voteRefs.current.set(vote.vote_id, el)}
-              />
-          ))}
-        </tbody>
-      </table>
+      <div className="grid grid-cols-[60px_1fr_60px_60px] sm:grid-cols-[100px_1fr_100px_100px] gap-x-2 sm:gap-x-4 grow py-5 pr-5">
+        <div className="text-center text-gray-600 dark:text-gray-400 font-light relative" onClick={() => setDropdownOpen(!dropdownOpen)}>
+          Category
+          {dropdownOpen && (
+            <div className="absolute mt-2 bg-white dark:bg-gray-800 shadow-md rounded-md p-3 w-48">
+              <ul>
+                {categories &&
+                  categories.map((cat, index) => (
+                    <li key={index} className="flex items-center gap-2 p-1">
+                      <input
+                        type="checkbox"
+                        checked={checkedCategories.includes(cat)}
+                        onChange={() => toggleCategory(cat)}
+                      />
+                      <span>{cat}</span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
+        </div>
+        <div className="justify-self-start text-gray-600 dark:text-gray-400 font-light">Statement</div>
+        <div className="justify-self-end text-gray-600 dark:text-gray-400 font-light flex flex-row items-center space-x-1">
+          <BitcoinIcon />
+          <span>TVL</span>
+        </div>
+        <div className="justify-self-end text-gray-600 dark:text-gray-400 font-light">Consensus</div>
+      </div>
+      <ul className="w-full">
+      {votes.map((vote: SYesNoVote, index) => (
+        vote.info.visible && 
+          <li key={index} ref={(el) => (voteRefs.current.set(vote.vote_id, el))} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px] border-t border-slate-100 dark:border-slate-900">
+            <VoteView
+              vote={vote}
+              
+              selected={selectedVoteId === vote.vote_id}
+              setSelected={() => { selectVote(vote.vote_id); }}
+            />
+          </li>
+      ))}
+      </ul>
     </div>
   );
 };

@@ -1,9 +1,16 @@
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { TabButton } from "./TabButton";
 import VoteList from "./VoteList";
+import BallotList from "./user/BallotList";
+import { useAuth } from "@ic-reactor/react";
+import { Principal } from "@dfinity/principal";
 
 const Home = () => {
+
+  const { identity } = useAuth();
+  const navigate = useNavigate();
+
   const [searchParams, setSearchParams] = useSearchParams();
   const tabs = [
     { key: "votes", label: "Browse statements" },
@@ -33,15 +40,15 @@ const Home = () => {
             />
           </li>
         ))}
-        {/* New Button pushed to the right */}
-        <li className="ml-auto">
+        {/* New Button to the right */}
+        <li className="ml-auto" onClick={() => navigate("/new")}>
           <button className="button-simple text-lg">Open new statement</button>
         </li>
       </ul>
 
       {/* Content */}
       <div className="w-full">
-        {selectedTab === "votes" ? <VoteList /> : <></>}
+        {selectedTab === "votes" ? <VoteList /> : <BallotList principal={identity?.getPrincipal() ?? Principal.anonymous() }/>}
       </div>
     </div>
   );
