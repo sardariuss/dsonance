@@ -216,15 +216,15 @@ module {
     // RESULT/ERROR TYPES
 
     public type VoteNotFoundError        = { #VoteNotFound: { vote_id: UUID; }; };
-    public type InssuficientAmountError  = { #InsufficientAmount: { amount: Nat; minimum: Nat; }; };
+    public type InsuficientAmountError   = { #InsufficientAmount: { amount: Nat; minimum: Nat; }; };
     public type NewVoteError             = { #VoteAlreadyExists: { vote_id: UUID; }; } or TransferFromError;
     public type BallotAlreadyExistsError = { #BallotAlreadyExists: { ballot_id: UUID; }; };
-    public type PreviewBallotError       = VoteNotFoundError;
-    public type PutBallotError           = VoteNotFoundError or InssuficientAmountError or BallotAlreadyExistsError or TransferFromError;
+    public type PreviewBallotError       = VoteNotFoundError or InsuficientAmountError;
+    public type PutBallotError           = VoteNotFoundError or InsuficientAmountError or BallotAlreadyExistsError or TransferFromError;
     public type PutBallotResult          = Result<SBallotType, PutBallotError>;
-    public type PreviewBallotResult      = Result<BallotType, PreviewBallotError>;
     public type NewVoteResult            = Result<VoteType, NewVoteError>;
     public type SNewVoteResult           = Result<SVoteType, NewVoteError>;
+    public type PreviewBallotResult      = Result<BallotType, PreviewBallotError>;
     public type SPreviewBallotResult     = Result<SBallotType, PreviewBallotError>;
 
 };

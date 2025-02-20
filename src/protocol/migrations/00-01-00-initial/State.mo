@@ -51,6 +51,14 @@ module {
                 var time_last_dispense = now;
                 total_amount = Timeline.initialize(now, 0);
                 locks = BTree.init<Lock, Ballot<YesNoChoice>>(?BTREE_ORDER);
+                yield = {
+                    rate = 0.1; // TODO: This parameter shall be variable and come from the lending/borrowing utilization rate
+                    var cumulated = 0;
+                    contributions = {
+                        var sum_current = 0;
+                        var sum_cumulated = 0;
+                    };
+                };
             };
             btc = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(btc.ledger));

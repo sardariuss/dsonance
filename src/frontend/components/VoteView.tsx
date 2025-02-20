@@ -48,7 +48,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, selected, setSelected }) => {
           <ConsensusView selected={selected} category={vote.info.category} voteDetails={voteDetails} text={vote.info.text} timestamp={vote.date} ballot={ballot} />
         </div>
         {selected && vote.vote_id !== undefined && (
-          <div className="flex flex-col space-y-2 items-center">
+          <div className="flex flex-col space-y-2 items-center w-full">
             {voteDetails.total > 0 && (
               <div className={`flex flex-col space-y-2 items-center ${isMobile ? "w-5/6" : "w-2/3"}`}>
                 <VoteChart vote={vote} ballot={ballot} />

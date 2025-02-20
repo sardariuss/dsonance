@@ -118,11 +118,15 @@ module {
 
         public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
 
-            let { vote_id; choice_type; caller; from_subaccount; } = args;
+            let { vote_id; choice_type; caller; from_subaccount; amount; } = args;
 
             let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
                 case(null) { return #err(#VoteNotFound({vote_id})); };
                 case(?v) { v };
+            };
+
+            if (amount < parameters.minimum_ballot_amount){
+                return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount; }));
             };
 
             let timestamp = clock.get_time();
@@ -130,7 +134,12 @@ module {
 
             let ballot = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with tx_id = 0; timestamp; from; }});
 
-            lock_scheduler.refresh_lock_duration(BallotUtils.unwrap_yes_no(ballot), timestamp);
+            let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot);
+
+            lock_scheduler.refresh_lock_duration(yes_no_ballot, timestamp);
+
+            Timeline.add(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
+            Timeline.add(yes_no_ballot.contribution, timestamp, lock_scheduler.preview_contribution(yes_no_ballot));
 
             #ok(ballot);
         };
@@ -168,13 +177,19 @@ module {
 
             let ballot_type = vote_type_controller.put_ballot({vote_type; choice_type; args = { args with tx_id; timestamp; from; }});
 
+            let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot_type);
+
             // Update the locks
             // TODO: fix the following limitation
             // Watchout, the new ballot shall be added first, otherwise the update will trap
-            lock_scheduler.add(BallotUtils.unwrap_yes_no(ballot_type), timestamp);
+            lock_scheduler.add(yes_no_ballot, timestamp);
             for (ballot in vote_type_controller.vote_ballots(vote_type)){
                 lock_scheduler.update(BallotUtils.unwrap_yes_no(ballot), timestamp);
             };
+
+            // TODO: this is kind of a hack to have an up-to-date foresight and contribution, should be removed
+            Timeline.add(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
+            Timeline.add(yes_no_ballot.contribution, timestamp, lock_scheduler.preview_contribution(yes_no_ballot));
 
             // Add the ballot to that account
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);

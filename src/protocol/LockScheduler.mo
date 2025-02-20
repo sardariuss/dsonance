@@ -21,7 +21,20 @@ module {
     type LockRegister = Types.LockRegister;
     type Timeline<T> = Types.Timeline<T>;
     type ProtocolParameters = Types.ProtocolParameters;
+    type Contribution = Types.Contribution;
     type Foresight = Types.Foresight;
+
+    type LockerState = {
+        total_amount: Nat;
+        yield: {
+            rate: Float;
+            cumulated: Float;
+            contributions: {
+                sum_current: Float;
+                sum_cumulated: Float;
+            };
+        };
+    };
 
     public func compare_locks(a: Lock, b: Lock) : Order {
         switch(Int.compare(a.release_date, b.release_date)){
@@ -38,16 +51,6 @@ module {
         dsn_debt: DebtProcessor.DebtProcessor;
         btc_debt: DebtProcessor.DebtProcessor;
     }) {
-
-        let yield = {
-            var cumulated = 0.0;
-            rate = 0.1; // TODO: should change depending on usage
-        };
-
-        type YieldContributions = {
-            var sum_cumulated: Float;
-            var sum_current: Float;
-        };
 
         // TODO: should not be public but it is required for ballot preview
         public func refresh_lock_duration(ballot: YesNoBallot, time: Nat) {
@@ -71,8 +74,6 @@ module {
 
         // update
         public func update(ballot: YesNoBallot, time: Nat) {
-            
-            try_unlock(time);
 
             let { locks; } = lock_register;
 
@@ -97,7 +98,7 @@ module {
                 return;
             };
 
-            let { locks; total_amount; } = lock_register;
+            let { locks; total_amount; yield; } = lock_register;
 
             label unlock while (true) {
                 switch(BTree.min(locks)) {
@@ -105,7 +106,7 @@ module {
                     case(?(lock, ballot)) {
                         if (lock.release_date > time) { break unlock; };
 
-                        dispense_and_update_foresights({
+                        dispense_rewards({
                             total_locked = Timeline.current(total_amount);
                             time = lock.release_date;
                         });
@@ -126,7 +127,7 @@ module {
             };
 
             // Dispense the remaining contribution until now
-            dispense_and_update_foresights({
+            dispense_rewards({
                 total_locked = Timeline.current(total_amount);
                 time;
             });
@@ -136,12 +137,12 @@ module {
             lock_register.total_amount;
         };
 
-        func dispense_and_update_foresights({total_locked: Nat; time: Nat;}) {
+        func dispense_rewards({total_locked: Nat; time: Nat;}) {
 
             let period = time - lock_register.time_last_dispense;
 
             if (period < 0) {
-                Debug.trap("Cannot dispense contribution in the past");
+                Debug.trap("Cannot dispense rewards in the past");
             };
 
             // Skip if the period is null
@@ -149,32 +150,29 @@ module {
                 return;
             };
 
-            Debug.print("Dispensing contribution over period: " # debug_show(period));
+            Debug.print("Dispensing rewards over period: " # debug_show(period));
 
             let { contribution_per_ns } = parameters;
+            let { locks; yield; } = lock_register;
+            // Refresh yield contribution
+            yield.contributions.sum_current := 0.0;
+            yield.contributions.sum_cumulated := 0.0;
 
-            let yield_contributions = {
-                var sum_current = 0.0;
-                var sum_cumulated = 0.0;
-            };
-
-            // Dispense contribution over the period
-            for ((lock, ballot) in BTree.entries(lock_register.locks)) {
+            // Dispense rewards over the period
+            for ((lock, ballot) in BTree.entries(locks)) {
 
                 // Compute yield contribution
                 let discernment = compute_discernment(ballot);
-                yield_contributions.sum_current += Float.fromInt(ballot.amount) * discernment;
-                yield_contributions.sum_cumulated += Float.fromInt(ballot.amount) * Float.fromInt(time - ballot.timestamp) * discernment;
+                yield.contributions.sum_current += Float.fromInt(ballot.amount) * discernment;
+                yield.contributions.sum_cumulated += Float.fromInt(ballot.amount) * Float.fromInt(time - ballot.timestamp) * discernment;
 
                 // DSN Contribution
                 let earned = Timeline.current(ballot.contribution).earned;
                 let to_add = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(period) * contribution_per_ns;
                 let pending = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(lock.release_date - time) * contribution_per_ns;
 
-                // Save in the contribution timeline
+                // Update ballots DSN contribution and transfer it right away
                 Timeline.add(ballot.contribution, time, { earned = earned + to_add; pending; });
-                
-                // Transfer the contribution right away
                 dsn_debt.add_debt({ id = lock.id; amount = to_add; time; });
             };
 
@@ -182,12 +180,16 @@ module {
             Debug.print("lock_register.time_last_dispense: " # debug_show(lock_register.time_last_dispense));
             Debug.print("period: " # debug_show(period));
             Debug.print("total_locked: " # debug_show(total_locked));
-            Debug.print("yield_contributions.sum_current: " # debug_show(yield_contributions.sum_current));
-            Debug.print("yield_contributions.sum_cumulated: " # debug_show(yield_contributions.sum_cumulated));
+            Debug.print("yield_contributions.sum_current: " # debug_show(yield.contributions.sum_current));
+            Debug.print("yield_contributions.sum_cumulated: " # debug_show(yield.contributions.sum_cumulated));
 
-            // Update ballots foresight
-            for ((lock, ballot) in BTree.entries(lock_register.locks)){
-                Timeline.add(ballot.foresight, time, compute_ballot_foresight(lock, ballot, yield_contributions, time));
+            for ((lock, ballot) in BTree.entries(locks)){
+                // Update ballots BTC reward (foresight); will be transfered when the lock is unlocked
+                Timeline.add(ballot.foresight, time, compute_ballot_foresight(
+                    lock,
+                    ballot,
+                    get_locker_state(),
+                    time));
             };
 
             // Update the last dispense time
@@ -198,26 +200,34 @@ module {
             lock_register.time_last_dispense;
         };
 
-        func compute_ballot_foresight(lock: Lock, ballot: YesNoBallot, yield_contributions: YieldContributions, time: Nat) : Foresight {
+        public func preview_contribution(ballot: YesNoBallot) : Contribution {
 
-            let discernment = compute_discernment(ballot);
-            let ballot_cumulated_yield_contribution = Float.fromInt(ballot.amount) * Float.fromInt(time - ballot.timestamp) * discernment;
-            let ballot_current_yield_contribution = Float.fromInt(ballot.amount) * discernment;
-            let remaining_duration = Float.fromInt(lock.release_date - time) / Float.fromInt(Duration.NS_IN_YEAR);
-            // Actual reward accumulated until now
-            let actual_reward = (ballot_cumulated_yield_contribution / yield_contributions.sum_cumulated) * yield.cumulated;
-            // Projected reward until the end of the lock
-            let projected_reward = (ballot_current_yield_contribution / yield_contributions.sum_current) 
-                * yield.rate * remaining_duration * Float.fromInt(Timeline.current(lock_register.total_amount));
-            let reward = Int.abs(Float.toInt(actual_reward + projected_reward));
-            let apr = (100 * Float.fromInt(reward) / Float.fromInt(ballot.amount)) / remaining_duration;
+            let lock = get_lock(ballot);
+            
+            let { contribution_per_ns } = parameters;
+            let total_locked = Timeline.current(lock_register.total_amount);
+
             {
-                reward;
-                apr = {
-                    current = apr;
-                    potential = apr / Timeline.current(ballot.consent);
+                earned = 0.0;
+                pending = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked + ballot.amount)) * Float.fromInt(lock.release_date - ballot.timestamp) * contribution_per_ns;
+            };
+        };
+
+        public func preview_foresight(ballot: YesNoBallot) : Foresight {
+
+            let locker_state = {
+                total_amount = Timeline.current(lock_register.total_amount) + ballot.amount;
+                yield = {
+                    rate = lock_register.yield.rate;
+                    cumulated = lock_register.yield.cumulated;
+                    contributions = {
+                        sum_current = lock_register.yield.contributions.sum_current + Float.fromInt(ballot.amount) * compute_discernment(ballot);
+                        sum_cumulated = lock_register.yield.contributions.sum_cumulated; // sum_cumulated is null because the ballot has not been added to the lock yet
+                    };
                 };
             };
+
+            compute_ballot_foresight(get_lock(ballot), ballot, locker_state, ballot.timestamp);
         };
 
         func compute_discernment(ballot: YesNoBallot) : Float {
@@ -241,6 +251,46 @@ module {
             };
         };
 
+        func get_locker_state() : LockerState {
+            {
+                total_amount = Timeline.current(lock_register.total_amount);
+                yield = {
+                    rate = lock_register.yield.rate;
+                    cumulated = lock_register.yield.cumulated;
+                    contributions = {
+                        sum_current = lock_register.yield.contributions.sum_current;
+                        sum_cumulated = lock_register.yield.contributions.sum_cumulated;
+                    };
+                };
+            };
+        };
+
+        // TODO: one should split that function between the actual and project reward.
+        // TODO: should be put outside the class
+        func compute_ballot_foresight(lock: Lock, ballot: YesNoBallot, locker_state: LockerState, time: Nat) : Foresight {
+
+            let { yield; total_amount; } = locker_state;
+            let yield_contrib = yield.contributions;
+
+            let discernment = compute_discernment(ballot);
+            let ballot_cumulated_yield_contribution = Float.fromInt(ballot.amount) * Float.fromInt(time - ballot.timestamp) * discernment;
+            let ballot_current_yield_contribution = Float.fromInt(ballot.amount) * discernment;
+            let remaining_duration = Float.fromInt(lock.release_date - time) / Float.fromInt(Duration.NS_IN_YEAR);
+            // Actual reward accumulated until now
+            let actual_reward = (ballot_cumulated_yield_contribution / yield_contrib.sum_cumulated) * yield.cumulated;
+            // Projected reward until the end of the lock
+            let projected_reward = (ballot_current_yield_contribution / yield_contrib.sum_current) 
+                * yield.rate * remaining_duration * Float.fromInt(total_amount);
+            let reward = Int.abs(Float.toInt(actual_reward + projected_reward));
+            let apr = (100 * Float.fromInt(reward) / Float.fromInt(ballot.amount)) / remaining_duration;
+            {
+                reward;
+                apr = {
+                    current = apr;
+                    potential = apr / Timeline.current(ballot.consent);
+                };
+            };
+        };
     };
 
 };

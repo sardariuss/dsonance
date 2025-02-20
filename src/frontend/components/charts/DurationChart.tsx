@@ -4,7 +4,6 @@ import { nsToMs } from "../../utils/conversions/date";
 
 import { ResponsiveLine, Serie } from '@nivo/line';
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { protocolActor } from "../../actors/ProtocolActor";
 import { format } from "date-fns";
 import { ThemeContext } from "../App";
 import { useMediaQuery } from "react-responsive";
@@ -28,7 +27,7 @@ const COLOR_NAMES = {
 };
 
 interface DurationChartProps {
-  duration_timeline: STimeline;
+  duration_timelines: Map<string, STimeline>;
   format_value: (value: number) => string;
   fillArea: boolean;
   y_min?: number;
@@ -36,8 +35,28 @@ interface DurationChartProps {
   color: CHART_COLORS;
   last_timestamp?: bigint;
 };
+
+const create_serie = (id: string, duration_timeline: STimeline, last_timestamp: bigint | undefined): Serie => {
+  let data = duration_timeline.history.map((duration_ns) => {
+    return {
+      x: new Date(nsToMs(duration_ns.timestamp)),
+      y: duration_ns.data
+    };
+  });
+  data.push({
+    x: new Date(nsToMs(duration_timeline.current.timestamp)),
+    y: duration_timeline.current.data
+  });
+  if (last_timestamp) {
+    data.push({
+      x: new Date(nsToMs(last_timestamp)),
+      y: duration_timeline.current.data
+    });
+  }
+  return { id, data };
+};
   
-const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max, color, last_timestamp }: DurationChartProps) => {
+const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max, color, last_timestamp }: DurationChartProps) => {
 
   const { theme } = useContext(ThemeContext);
 
@@ -73,30 +92,14 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
 
   const data = useMemo(() => {
-    const data : Serie[] = [];
-    let points = duration_timeline.history.map((duration_ns) => {
-      return {
-        x: new Date(nsToMs(duration_ns.timestamp)),
-        y: duration_ns.data
-      };
-    });
-    points.push({
-      x: new Date(nsToMs(duration_timeline.current.timestamp)),
-      y: duration_timeline.current.data
-    });
+    const series : Serie[] = [];
     let timestamp = last_timestamp ?? info?.current_time;
-    if (timestamp) {
-      points.push({
-        x: new Date(nsToMs(timestamp)),
-        y: duration_timeline.current.data
-      });
-    }
-    data.push({
-      id: "Duration",
-      data: points
+    duration_timelines.forEach((duration_timeline, id) => {
+      let serie = create_serie(id, duration_timeline, timestamp);
+      series.push(serie);
     });
-    return data;
-  }, [duration_timeline, info]);
+    return series;
+  }, [duration_timelines, info]);
 
   return (
     <div className="flex flex-col items-center space-y-1 w-full" ref={containerRef}>

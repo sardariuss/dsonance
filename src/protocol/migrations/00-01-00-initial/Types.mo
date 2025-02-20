@@ -304,6 +304,14 @@ module {
         var time_last_dispense: Nat;
         total_amount: Timeline<Nat>;
         locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the BallotType or even a generic lock type instead
+        yield: {
+            rate: Float;
+            var cumulated: Float;
+            contributions: {
+                var sum_current: Float;
+                var sum_cumulated: Float;
+            };
+        };
     };
 
     public type ProtocolParameters = {

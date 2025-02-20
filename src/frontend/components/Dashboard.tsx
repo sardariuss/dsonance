@@ -155,13 +155,13 @@ const Dashboard = () => {
                 <div className="flex flex-col items-center pt-2 w-full bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
                     <div className="flex flex-row items-center space-x-1">
                         <span>{CONTRIBUTION_EMOJI}</span>
-                        <span className="text-gray-700 dark:text-gray-300">Contribution rate:</span>
+                        <span className="text-gray-700 dark:text-gray-300">Mining rate:</span>
                         <span className="text-lg">
                             {`${fromE8s(BigInt(memo.contributionRate.current.data))} ${DSONANCE_COIN_SYMBOL}/${currencySymbol}/day`}
                         </span>
                     </div>
                     <DurationChart
-                        duration_timeline={memo.contributionRate}
+                        duration_timelines={ new Map([["Mining rate", memo.contributionRate]]) }
                         format_value={ (value: number) => `${fromE8s(BigInt(value)).toString()} ${DSONANCE_COIN_SYMBOL}/${currencySymbol}/day` }
                         fillArea={true}
                         color={CHART_COLORS.PURPLE}
@@ -178,7 +178,7 @@ const Dashboard = () => {
                         </span>
                     </div>
                     <DurationChart
-                        duration_timeline={to_number_timeline(info.btc_locked)} 
+                        duration_timelines={ new Map([["Total locked", to_number_timeline(info.btc_locked)]]) }
                         format_value={ (value: number) => (formatSatoshis(BigInt(value)) ?? "") } 
                         fillArea={true}
                         color={CHART_COLORS.YELLOW}
@@ -195,7 +195,7 @@ const Dashboard = () => {
                         </span>
                     </div>
                     <DurationChart
-                        duration_timeline={to_number_timeline(info.dsn_minted)}
+                        duration_timelines={ new Map([["Dsonance minted", to_number_timeline(info.dsn_minted)]]) }
                         format_value={ (value: number) => `${formatBalanceE8s(BigInt(value), DSONANCE_COIN_SYMBOL, 0)}` }
                         fillArea={true}
                         color={CHART_COLORS.GREEN}

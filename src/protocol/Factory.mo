@@ -15,7 +15,6 @@ import BallotUtils            "votes/BallotUtils";
 
 import Map                    "mo:map/Map";
 
-import Float                  "mo:base/Float";
 import Debug                  "mo:base/Debug";
 
 module {

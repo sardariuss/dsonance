@@ -7,7 +7,6 @@ import { unwrapLock } from "../../utils/conversions/ballot";
 import { useCurrencyContext } from "../CurrencyContext";
 import { formatBalanceE8s } from "../../utils/conversions/token";
 import ChoiceView from "../ChoiceView";
-import ConsensusView from "../ConsensusView";
 
 import { SBallotType } from "@/declarations/protocol/protocol.did";
 import { compute_vote_details } from "../../utils/conversions/votedetails";
@@ -18,6 +17,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import ChevronDownIcon from "../icons/ChevronDownIcon";
 import ChevronUpIcon from "../icons/ChevronUpIcon";
+import { toEnum } from "../../utils/conversions/yesnochoice";
 
 interface VoteTextProps {
   vote_id: string;
@@ -84,7 +84,7 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
 
         <div className="grid grid-rows-2 w-full justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">Vote</span>
-          <ChoiceView ballot={ballot}/>
+          <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
         </div>
 
         <div className="grid grid-rows-2 w-full justify-items-end">
@@ -93,7 +93,7 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
         </div>
 
         <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Contribution</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">Mining reward</span>
           <span>
             {formatBalanceE8s(contribution, DSONANCE_COIN_SYMBOL, 2)}
           </span>
