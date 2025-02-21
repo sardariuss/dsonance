@@ -63,9 +63,10 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  const { releaseTimestamp, contribution, foresightAPR } = useMemo(() => {
+  const { releaseTimestamp, contribution, reward, foresightAPR } = useMemo(() => {
       return {
         contribution: BigInt(Math.floor(ballot.YES_NO.contribution.current.data.earned)),
+        reward: ballot.YES_NO.foresight.current.data.reward,
         foresightAPR: ballot.YES_NO.foresight.current.data.apr.current,
         releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data 
       }
@@ -75,8 +76,8 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
 
   return (
     now === undefined ? <></> :
-    <div className="bg-slate-100 dark:bg-slate-900 w-full rounded-md">
-      <div className="grid grid-cols-[minmax(100px,1fr)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)] gap-10 w-full items-center pl-5">
+    <div className="bg-slate-100 dark:bg-slate-900 w-full rounded-md shadow-md">
+      <div className="grid grid-cols-[minmax(100px,1fr)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)] gap-10 w-full items-center pl-5">
 
         <div className="flex flex-row space-x-1 hover:cursor-pointer" onClick={(e) => navigate(`/vote/${ballot.YES_NO.vote_id}`) }>
           <VoteText vote_id={ballot.YES_NO.vote_id}/>
@@ -88,20 +89,25 @@ const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
         </div>
 
         <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Lock</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">Ballot</span>
           <span>{formatSatoshis(ballot.YES_NO.amount)}</span>
         </div>
 
         <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Mining reward</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">Mining earned</span>
           <span>
             {formatBalanceE8s(contribution, DSONANCE_COIN_SYMBOL, 2)}
           </span>
         </div>
 
         <div className="grid grid-rows-2 w-full justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Lock reward</span>
+          <span>{ formatSatoshis(reward) }</span>
+        </div>
+
+        <div className="grid grid-rows-2 w-full justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">APR</span>
-          <span className="text-brand-true">
+          <span className="text-brand-true mr-1">
             {`${foresightAPR.toFixed(2)}%`}
           </span>
         </div>

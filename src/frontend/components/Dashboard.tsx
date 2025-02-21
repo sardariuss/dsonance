@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import DurationChart, { CHART_COLORS } from "./charts/DurationChart";
 import { map_filter_timeline, to_number_timeline } from "../utils/timeline";
 import { formatBalanceE8s, fromE8s } from "../utils/conversions/token";
-import { MINTING_EMOJI, CONTRIBUTION_EMOJI, DSONANCE_COIN_SYMBOL, SIMULATION_EMOJI } from "../constants";
+import { MINING_EMOJI, DSONANCE_COIN_SYMBOL, SIMULATION_EMOJI } from "../constants";
 import { useCurrencyContext } from "./CurrencyContext";
 import DsonanceCoinIcon from "./icons/DsonanceCoinIcon";
 import BitcoinIcon from "./icons/BitcoinIcon";
@@ -107,8 +107,8 @@ const Dashboard = () => {
             { memo && info && currentTime && 
                 <div className="flex flex-col items-center py-2 w-full space-x-1 justify-center bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
                     <div className="flex flex-row items-center space-x-1 justify-center w-full">
-                        <span>{MINTING_EMOJI}</span>
-                        <span className="text-gray-700 dark:text-gray-300">Minting</span>
+                        <span>{MINING_EMOJI}</span>
+                        <span className="text-gray-700 dark:text-gray-300">Mining</span>
                     </div>
                     <div className="flex flex-col sm:grid sm:grid-cols-3 gap-2 w-full">
                         <div className="flex flex-row items-center sm:py-1 w-full space-x-1 justify-center">
@@ -154,17 +154,16 @@ const Dashboard = () => {
             { memo && memo.contributionRate && 
                 <div className="flex flex-col items-center pt-2 w-full bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
                     <div className="flex flex-row items-center space-x-1">
-                        <span>{CONTRIBUTION_EMOJI}</span>
+                        <span>{MINING_EMOJI}</span>
                         <span className="text-gray-700 dark:text-gray-300">Mining rate:</span>
                         <span className="text-lg">
                             {`${fromE8s(BigInt(memo.contributionRate.current.data))} ${DSONANCE_COIN_SYMBOL}/${currencySymbol}/day`}
                         </span>
                     </div>
                     <DurationChart
-                        duration_timelines={ new Map([["Mining rate", memo.contributionRate]]) }
+                        duration_timelines={ new Map([["mining_rate", { timeline: memo.contributionRate, color: CHART_COLORS.PURPLE }]]) }
                         format_value={ (value: number) => `${fromE8s(BigInt(value)).toString()} ${DSONANCE_COIN_SYMBOL}/${currencySymbol}/day` }
                         fillArea={true}
-                        color={CHART_COLORS.PURPLE}
                     />
                 </div>
             }
@@ -178,10 +177,9 @@ const Dashboard = () => {
                         </span>
                     </div>
                     <DurationChart
-                        duration_timelines={ new Map([["Total locked", to_number_timeline(info.btc_locked)]]) }
+                        duration_timelines={ new Map([["total_locked", { timeline: to_number_timeline(info.btc_locked), color: CHART_COLORS.YELLOW }]]) }
                         format_value={ (value: number) => (formatSatoshis(BigInt(value)) ?? "") } 
                         fillArea={true}
-                        color={CHART_COLORS.YELLOW}
                     />
                 </div>
             }
@@ -195,10 +193,9 @@ const Dashboard = () => {
                         </span>
                     </div>
                     <DurationChart
-                        duration_timelines={ new Map([["Dsonance minted", to_number_timeline(info.dsn_minted)]]) }
+                        duration_timelines={ new Map([["dsonance_minted", {timeline: to_number_timeline(info.dsn_minted), color: CHART_COLORS.GREEN }]]) }
                         format_value={ (value: number) => `${formatBalanceE8s(BigInt(value), DSONANCE_COIN_SYMBOL, 0)}` }
                         fillArea={true}
-                        color={CHART_COLORS.GREEN}
                     />
                 </div>
             }

@@ -35,6 +35,17 @@ export const map_timeline = <T1, T2>(timeline: TimeLine<T1>, f: (data: T1) => T2
   };
 };
 
+// TODO: remove temp hack made to avoid the first element of the history
+export const map_timeline_hack = <T1, T2>(timeline: TimeLine<T1>, f: (data: T1) => T2): TimeLine<T2> => {
+  return {
+    current: { timestamp: timeline.current.timestamp, data: f(timeline.current.data) },
+    history: timeline.history.map((timed_data) => ({
+      timestamp: timed_data.timestamp,
+      data: f(timed_data.data)
+    })).slice(1)
+  };
+};
+
 export const map_filter_timeline = <T1, T2>(timeline: TimeLine<T1>, f: (data: T1) => T2 | undefined): TimeLine<T2> | undefined => {
   // If the current is undefined, consider the whole timeline undefined
   let current = f(timeline.current.data);

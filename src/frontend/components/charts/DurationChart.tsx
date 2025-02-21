@@ -27,13 +27,17 @@ const COLOR_NAMES = {
 };
 
 interface DurationChartProps {
-  duration_timelines: Map<string, STimeline>;
+  duration_timelines: Map<string, SerieInput>;
   format_value: (value: number) => string;
   fillArea: boolean;
   y_min?: number;
   y_max?: number;
-  color: CHART_COLORS;
   last_timestamp?: bigint;
+};
+
+type SerieInput = {
+  timeline: STimeline;
+  color: CHART_COLORS;
 };
 
 const create_serie = (id: string, duration_timeline: STimeline, last_timestamp: bigint | undefined): Serie => {
@@ -56,7 +60,7 @@ const create_serie = (id: string, duration_timeline: STimeline, last_timestamp: 
   return { id, data };
 };
   
-const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max, color, last_timestamp }: DurationChartProps) => {
+const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max, last_timestamp }: DurationChartProps) => {
 
   const { theme } = useContext(ThemeContext);
 
@@ -94,8 +98,8 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
   const data = useMemo(() => {
     const series : Serie[] = [];
     let timestamp = last_timestamp ?? info?.current_time;
-    duration_timelines.forEach((duration_timeline, id) => {
-      let serie = create_serie(id, duration_timeline, timestamp);
+    duration_timelines.forEach((input, id) => {
+      let serie = create_serie(id, input.timeline, timestamp);
       series.push(serie);
     });
     return series;
@@ -127,17 +131,44 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
           animate={false}
           enablePoints={false}
           margin={ isMobile ? { top: 20, bottom: 50, right: 20, left: 20 } : { top: 20, bottom: 50, right: 50, left: 90 }}
-          colors={color}
+          colors={Array.from(duration_timelines.values()).map((serie) => serie.color)}
           areaOpacity={0.7} // Adjust transparency of the area
-          fill={fillArea ? [{ match: '*', id: `gradientA_${COLOR_NAMES[color]}` }] : undefined}
-          defs={fillArea ? [{
-            id: `gradientA_${COLOR_NAMES[color]}`,
-            type: 'linearGradient',
-            colors: [
-              { offset: 0, color: color, opacity: 0.8 }, // Top gradient color
-              { offset: 100, color: color, opacity: 0.2 }, // Bottom gradient color
-            ],
-          }] : undefined}
+          fill={
+            fillArea
+              ? Array.from(duration_timelines.keys()).map((seriesId) => ({
+                  match: { id: seriesId }, // This must match the actual series ID in your `data`
+                  id: `gradient_${seriesId}`,
+                }))
+              : undefined
+          }
+          defs={
+            fillArea
+              ? Array.from(duration_timelines.entries()).map(([seriesId, serie]) => ({
+                  id: `gradient_${seriesId}`, // Ensure IDs match
+                  type: "linearGradient",
+                  colors: [
+                    { offset: 0, color: serie.color, opacity: 0.8 }, // Top gradient
+                    { offset: 100, color: serie.color, opacity: 0.2 }, // Bottom gradient
+                  ],
+                }))
+              : undefined
+          }
+          legends={duration_timelines.size < 2 ? [] : [
+            {
+              anchor: "bottom", // Position at the bottom
+              direction: "row", // Display legends in a row
+              justify: false,
+              translateX: 0,
+              translateY: 50, // Move below the chart
+              itemsSpacing: 10, // Space between legend items
+              itemDirection: "left-to-right",
+              itemWidth: 80,
+              itemHeight: 20,
+              itemOpacity: 1.0,
+              symbolSize: 12, // Size of color circle
+              symbolShape: "circle", // Can be "circle", "square", etc.
+            },
+          ]}
           areaBlendMode="normal"
           axisBottom={{
             renderTick: ({ tickIndex, x, y, value }) => {
@@ -187,6 +218,11 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
               line: {
                 stroke: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800,
                 strokeOpacity: 0.3,
+              }
+            },
+            legends: {
+              text: {
+                fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
               }
             }
           }}

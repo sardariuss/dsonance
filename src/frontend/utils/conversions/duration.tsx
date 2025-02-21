@@ -1,10 +1,10 @@
 import { Duration } from "@/declarations/protocol/protocol.did";
 
-const NS_IN_YEAR = 31_557_600_000_000_000n; // 365.25 * 24 * 60 * 60 * 1_000_000_000
-const NS_IN_DAY = 86_400_000_000_000n; // 24 * 60 * 60 * 1_000_000_000
-const NS_IN_HOUR = 3_600_000_000_000n; // 60 * 60 * 1_000_000_000
-const NS_IN_MINUTE = 60_000_000_000n; // 60 * 1_000_000_000
-const NS_IN_SECOND = 1_000_000_000n;
+export const NS_IN_YEAR = 31_557_600_000_000_000n; // 365.25 * 24 * 60 * 60 * 1_000_000_000
+export const NS_IN_DAY = 86_400_000_000_000n; // 24 * 60 * 60 * 1_000_000_000
+export const NS_IN_HOUR = 3_600_000_000_000n; // 60 * 60 * 1_000_000_000
+export const NS_IN_MINUTE = 60_000_000_000n; // 60 * 1_000_000_000
+export const NS_IN_SECOND = 1_000_000_000n;
 
 export const durationToNs = (duration: Duration): bigint => {
     if('NS' in duration) {

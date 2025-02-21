@@ -1,13 +1,14 @@
 import { protocolActor } from "../actors/ProtocolActor";
 import { toCandid } from "../utils/conversions/yesnochoice";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatDuration } from "../utils/conversions/durationUnit";
-import { DISSENT_EMOJI, DSONANCE_COIN_SYMBOL, LOCK_EMOJI } from "../constants";
+import { DSONANCE_COIN_SYMBOL } from "../constants";
 import { BallotInfo } from "./types";
 import { get_current } from "../utils/timeline";
 import { v4 as uuidv4 } from 'uuid';
 import { unwrapLock } from "../utils/conversions/ballot";
-import { formatBalanceE8s } from "../utils/conversions/token";
+import { formatCurrency, fromE8s } from "../utils/conversions/token";
+import { NS_IN_YEAR } from "../utils/conversions/duration";
 
 interface PutBallotPreviewProps {
   vote_id: string;
@@ -43,6 +44,15 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
     ]);
   }, [debouncedBallot]);
 
+  const annualMining = useMemo(() => {
+    if (preview && "ok" in preview) {
+      return preview.ok.YES_NO.contribution.current.data.pending 
+        / (Number(unwrapLock(preview.ok).duration_ns.current.data) / Number(NS_IN_YEAR))
+    }
+    return null;
+  },
+  [preview]);
+
   // Check if preview is valid, otherwise default to "N/A"
   const isPreviewValid = preview && "ok" in preview;
   const defaultValue = "N/A";
@@ -52,15 +62,6 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
   return (
     <div className="flex flex-row items-center space-x-6 justify-center">
       {[
-        {
-          label: "Mining reward",
-          value: previewData
-            ? formatBalanceE8s(
-                BigInt(Math.trunc(previewData.contribution.current.data.pending)),
-                DSONANCE_COIN_SYMBOL
-              )
-            : defaultValue,
-        },
         {
           label: "Dissent",
           value: previewData
@@ -77,6 +78,15 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
           label: "APR (potential)",
           value: previewData
             ? previewData.foresight.current.data.apr.potential.toFixed(2) + "%"
+            : defaultValue,
+        },
+        {
+          label: "Annual mining",
+          value: annualMining
+            ? formatCurrency(
+                fromE8s(BigInt(Math.trunc(annualMining))),
+                DSONANCE_COIN_SYMBOL
+              )
             : defaultValue,
         },
         {

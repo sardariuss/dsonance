@@ -63,9 +63,11 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, selected, setSelected }) => {
                 />
               </div>
             )}
-            <PutBallotPreview vote_id={vote.vote_id} ballot={ballot} />
-            <PutBallot vote_id={vote.vote_id} ballot={ballot} setBallot={setBallot} resetVote={resetVote} />
-            <span className="hidden">{vote.vote_id}</span>
+            <div className="flex flex-col w-1/2 items-center rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
+              <PutBallotPreview vote_id={vote.vote_id} ballot={ballot} />
+              <PutBallot vote_id={vote.vote_id} ballot={ballot} setBallot={setBallot} resetVote={resetVote} />
+              <span className="hidden">{vote.vote_id}</span>
+            </div>
           </div>
         )}
       </div>
