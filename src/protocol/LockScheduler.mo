@@ -153,7 +153,12 @@ module {
             Debug.print("Dispensing rewards over period: " # debug_show(period));
 
             let { contribution_per_ns } = parameters;
-            let { locks; yield; } = lock_register;
+            let { total_amount; locks; yield; } = lock_register;
+
+            // Refresh yield cumulated
+            yield.cumulated += (Float.fromInt(period) / Float.fromInt(Duration.NS_IN_YEAR)) 
+                * Float.fromInt(Timeline.current(total_amount)) * yield.rate;
+
             // Refresh yield contribution
             yield.contributions.sum_current := 0.0;
             yield.contributions.sum_cumulated := 0.0;
@@ -269,6 +274,21 @@ module {
         // TODO: should be put outside the class
         func compute_ballot_foresight(lock: Lock, ballot: YesNoBallot, locker_state: LockerState, time: Nat) : Foresight {
 
+            let lock_duration = Float.fromInt(lock.release_date - ballot.timestamp) / Float.fromInt(Duration.NS_IN_YEAR);
+
+            if (ballot.amount == 0 
+                or Float.equalWithin(Timeline.current(ballot.consent), 0.0, 1e-9)
+                or lock_duration <= 0){
+                Debug.print("Ballot amount is 0 or consent is 0 or lock duration is 0, hence return 0 reward");
+                return {
+                    reward = 0;
+                    apr = {
+                        current = 0;
+                        potential = 0;
+                    };
+                };
+            };
+
             let { yield; total_amount; } = locker_state;
             let yield_contrib = yield.contributions;
 
@@ -276,13 +296,31 @@ module {
             let ballot_cumulated_yield_contribution = Float.fromInt(ballot.amount) * Float.fromInt(time - ballot.timestamp) * discernment;
             let ballot_current_yield_contribution = Float.fromInt(ballot.amount) * discernment;
             let remaining_duration = Float.fromInt(lock.release_date - time) / Float.fromInt(Duration.NS_IN_YEAR);
+
+            if (yield.cumulated < 0) {
+                Debug.trap("Cumulated yield cannot be negative");
+            };
+
             // Actual reward accumulated until now
-            let actual_reward = (ballot_cumulated_yield_contribution / yield_contrib.sum_cumulated) * yield.cumulated;
+            let actual_reward = do {
+                if(yield_contrib.sum_cumulated <= 0) {
+                    0.0; 
+                } else {
+                    (ballot_cumulated_yield_contribution / yield_contrib.sum_cumulated) * yield.cumulated;
+                };
+            };
             // Projected reward until the end of the lock
-            let projected_reward = (ballot_current_yield_contribution / yield_contrib.sum_current) 
-                * yield.rate * remaining_duration * Float.fromInt(total_amount);
+            let projected_reward = do {
+                if(yield_contrib.sum_current <= 0) {
+                    0.0; 
+                } else {
+                    (ballot_current_yield_contribution / yield_contrib.sum_current) 
+                    * yield.rate * remaining_duration * Float.fromInt(total_amount);
+                };
+            };
             let reward = Int.abs(Float.toInt(actual_reward + projected_reward));
-            let apr = (100 * Float.fromInt(reward) / Float.fromInt(ballot.amount)) / remaining_duration;
+            
+            let apr = (100 * Float.fromInt(reward) / Float.fromInt(ballot.amount)) / lock_duration;
             {
                 reward;
                 apr = {

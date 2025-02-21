@@ -62,6 +62,12 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
             : defaultValue,
         },
         {
+          label: "Dissent",
+          value: previewData
+            ? previewData.dissent.toFixed(3)
+            : defaultValue,
+        },
+        {
           label: "APR (current)",
           value: previewData
             ? previewData.foresight.current.data.apr.current.toFixed(2) + "%"
