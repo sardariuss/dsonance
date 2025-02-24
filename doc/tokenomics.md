@@ -1,3 +1,8 @@
+---
+cover: .gitbook/assets/logo.png
+coverY: 0
+---
+
 # Tokenomics
 
 Dsonance operates with two tokens:
