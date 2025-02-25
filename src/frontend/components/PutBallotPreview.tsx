@@ -60,7 +60,10 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
   const previewData = isPreviewValid ? preview.ok.YES_NO : null;
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-x-6 gap-y-2 justify-center w-full">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-x-6 gap-y-2 justify-center w-full">
+      <span className="flex min-w-[100px] items-center justify-center text-base font-semibold">
+        Preview:
+      </span>
     {[
       {
         label: "Dissent",
@@ -79,7 +82,7 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
           : defaultValue,
       },
       {
-        label: "Annual mining",
+        label: "AMR",
         value: annualMining
           ? formatCurrency(
               fromE8s(BigInt(Math.trunc(annualMining))),
@@ -94,7 +97,7 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
           : defaultValue,
       },
     ].map(({ label, value }) => (
-      <div key={label} className="grid grid-rows-2 justify-items-center min-w-[120px]">
+      <div key={label} className="grid grid-rows-2 justify-items-center min-w-[100px]">
         <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
           {label}
         </span>

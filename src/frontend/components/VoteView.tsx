@@ -2,9 +2,7 @@ import { SYesNoVote } from "@/declarations/backend/backend.did";
 import PutBallot from "./PutBallot";
 import { useEffect, useMemo, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
-import PutBallotPreview from "./PutBallotPreview";
 import VoteChart from "./charts/VoteChart";
-import VoteSlider from "./VoteSlider";
 import { BallotInfo } from "./types";
 import { compute_vote_details } from "../utils/conversions/votedetails";
 import ConsensusView from "./ConsensusView";
@@ -50,9 +48,9 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, selected, setSelected }) => {
         {selected && vote.vote_id !== undefined && (
           <div className="flex flex-col space-y-2 items-center w-full">
             {voteDetails.total > 0 && (
-              <div className={`flex flex-col space-y-2 items-center ${isMobile ? "w-5/6" : "w-2/3"}`}>
+              <div className={`flex flex-col space-y-2 items-center ${isMobile ? "w-full px-3" : "w-2/3"}`}>
                 <VoteChart vote={vote} ballot={ballot} />
-                <VoteSlider
+                <PutBallot
                   id={vote.vote_id}
                   disabled={false}
                   voteDetails={voteDetails}
