@@ -87,7 +87,7 @@ const Wallet = () => {
       from_subaccount: [],
       created_at_time: [],
       amount: btcToApprove,
-      expected_allowance: btcAllowance ? [btcAllowance] : [],
+      expected_allowance: [],
       expires_at: [],
       spender: {
         owner: Principal.fromText(protocolCanisterId),
@@ -110,7 +110,7 @@ const Wallet = () => {
       from_subaccount: [],
       created_at_time: [],
       amount: dsnToApprove,
-      expected_allowance: dsnAllowance ? [dsnAllowance] : [],
+      expected_allowance: [],
       expires_at: [],
       spender: {
         owner: Principal.fromText(protocolCanisterId),

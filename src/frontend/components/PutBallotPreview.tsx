@@ -60,50 +60,48 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
   const previewData = isPreviewValid ? preview.ok.YES_NO : null;
 
   return (
-    <div className="flex flex-row items-center space-x-6 justify-center">
-      {[
-        {
-          label: "Dissent",
-          value: previewData
-            ? previewData.dissent.toFixed(3)
-            : defaultValue,
-        },
-        {
-          label: "APR (current)",
-          value: previewData
-            ? previewData.foresight.current.data.apr.current.toFixed(2) + "%"
-            : defaultValue,
-        },
-        {
-          label: "APR (potential)",
-          value: previewData
-            ? previewData.foresight.current.data.apr.potential.toFixed(2) + "%"
-            : defaultValue,
-        },
-        {
-          label: "Annual mining",
-          value: annualMining
-            ? formatCurrency(
-                fromE8s(BigInt(Math.trunc(annualMining))),
-                DSONANCE_COIN_SYMBOL
-              )
-            : defaultValue,
-        },
-        {
-          label: "Time left",
-          value: isPreviewValid
-            ? " ≥ " + formatDuration(get_current(unwrapLock(preview.ok).duration_ns).data)
-            : defaultValue,
-        },
-      ].map(({ label, value }) => (
-        <div key={label} className="grid grid-rows-2 justify-items-center min-w-max">
-          <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-            {label}
-          </span>
-          <span className="whitespace-nowrap">{value}</span>
-        </div>
-      ))}
-    </div>
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-x-6 gap-y-2 justify-center w-full">
+    {[
+      {
+        label: "Dissent",
+        value: previewData ? previewData.dissent.toFixed(3) : defaultValue,
+      },
+      {
+        label: "APR (current)",
+        value: previewData
+          ? previewData.foresight.current.data.apr.current.toFixed(2) + "%"
+          : defaultValue,
+      },
+      {
+        label: "APR (potential)",
+        value: previewData
+          ? previewData.foresight.current.data.apr.potential.toFixed(2) + "%"
+          : defaultValue,
+      },
+      {
+        label: "Annual mining",
+        value: annualMining
+          ? formatCurrency(
+              fromE8s(BigInt(Math.trunc(annualMining))),
+              DSONANCE_COIN_SYMBOL
+            )
+          : defaultValue,
+      },
+      {
+        label: "Time left",
+        value: isPreviewValid
+          ? " ≥ " + formatDuration(get_current(unwrapLock(preview.ok).duration_ns).data)
+          : defaultValue,
+      },
+    ].map(({ label, value }) => (
+      <div key={label} className="grid grid-rows-2 justify-items-center min-w-[120px]">
+        <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+          {label}
+        </span>
+        <span className="whitespace-nowrap">{value}</span>
+      </div>
+    ))}
+  </div>
   );
 };
 
