@@ -69,7 +69,7 @@ const VoteSlider = ({id, disabled, ballot, setBallot, onMouseUp, onMouseDown}: P
           step="1"
           type="range"
           defaultValue={0}
-          onChange={(e) =>  setBallot({ amount: BigInt(Math.floor(Math.abs(Number(e.target)))), choice: Number(e.target) < 0 ? EYesNoChoice.No : EYesNoChoice.Yes })}
+          onChange={(e) =>  setBallot({ amount: BigInt(Math.floor(Math.abs(Number(e.target.value)))), choice: Number(e.target.value) < 0 ? EYesNoChoice.No : EYesNoChoice.Yes })}
           onTouchEnd={(e) => onMouseUp()}
           onMouseUp={(e) => onMouseUp()}
           onTouchStart={(e) => onMouseDown()}
