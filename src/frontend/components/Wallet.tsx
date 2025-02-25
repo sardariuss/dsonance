@@ -5,7 +5,7 @@ import { ckBtcActor } from '../actors/CkBtcActor';
 import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
 import { dsonanceLedgerActor } from '../actors/DsonanceLedgerActor';
-import { formatBalanceE8s } from '../utils/conversions/token';
+import { formatBalanceE8s, toE8s } from '../utils/conversions/token';
 import { DSONANCE_COIN_SYMBOL } from '../constants';
 import { minterActor } from '../actors/MinterActor';
 import BitcoinIcon from './icons/BitcoinIcon';
@@ -17,8 +17,9 @@ const Wallet = () => {
 
   const { authenticated, identity } = useAuth({});
   const { formatSatoshis, currencySymbol, currencyToSatoshis } = useCurrencyContext();
-  const { btcAllowance, refreshBtcAllowance } = useAllowanceContext();
-  const [toApprove, setToApprove] = useState<bigint>(0n);
+  const { btcAllowance, dsnAllowance, refreshBtcAllowance, refreshDsnAllowance } = useAllowanceContext();
+  const [btcToApprove, setBtcToApprove] = useState<bigint>(0n);
+  const [dsnToApprove, setDsnToApprove] = useState<bigint>(0n);
   const inputRef = useRef<HTMLInputElement>(null);
 
   if (!authenticated || identity === null) {
@@ -32,7 +33,7 @@ const Wallet = () => {
     subaccount: []
   }), [identity]);
 
-  const { data: dsonanceBalance } = dsonanceLedgerActor.useQueryCall({
+  const { data: dsnBalance, call: refreshDsnBalance } = dsonanceLedgerActor.useQueryCall({
     functionName: 'icrc1_balance_of',
     args: [account]
   });
@@ -42,32 +43,50 @@ const Wallet = () => {
     args: [account]
   });
 
-  const { call: getAirdrop, loading: airdroping } = minterActor.useUpdateCall({
-    functionName: 'airdrop_user',
+  const { call: getBtcAirdrop, loading: btcAirdroping } = minterActor.useUpdateCall({
+    functionName: 'btc_airdrop_user',
   });
 
-  const { call: refreshAirdropAvailable, data: airdropAvailable } = minterActor.useQueryCall({
-    functionName: 'is_airdrop_available',
+  const { call: refreshBtcAirdropAvailable, data: btcAirdropAvailable } = minterActor.useQueryCall({
+    functionName: 'is_btc_airdrop_available',
   });
 
-  const triggerAirdrop = () => {
-    getAirdrop().catch((error) => {
+  const triggerBtcAirdrop = () => {
+    getBtcAirdrop().catch((error) => {
       console.error(error);
     }).finally(() => {
         refreshBtcBalance();
-        refreshAirdropAvailable();
+        refreshBtcAirdropAvailable();
       }
     );
   }
 
-  const { call: approve, loading: approving } = ckBtcActor.useUpdateCall({
+  const { call: getDsnAirdrop, loading: dsnAirdroping } = minterActor.useUpdateCall({
+    functionName: 'dsn_airdrop_user',
+  });
+
+  const { call: refreshDsnAirdropAvailable, data: dsnAirdropAvailable } = minterActor.useQueryCall({
+    functionName: 'is_dsn_airdrop_available',
+  });
+
+  const triggerDsnAirdrop = () => {
+    getDsnAirdrop().catch((error) => {
+      console.error(error);
+    }).finally(() => {
+        refreshDsnBalance();
+        refreshDsnAirdropAvailable();
+      }
+    );
+  }
+
+  const { call: btcApprove, loading: btcApproving } = ckBtcActor.useUpdateCall({
     functionName: 'icrc2_approve',
     args: [{
       fee: [],
       memo: [],
       from_subaccount: [],
       created_at_time: [],
-      amount: toApprove,
+      amount: btcToApprove,
       expected_allowance: btcAllowance ? [btcAllowance] : [],
       expires_at: [],
       spender: {
@@ -83,11 +102,43 @@ const Wallet = () => {
     }
   });
 
-  const triggerApprove = () => {
-    approve().catch((error) => {
+  const { call: dsnApprove, loading: dsnApproving } = dsonanceLedgerActor.useUpdateCall({
+    functionName: 'icrc2_approve',
+    args: [{
+      fee: [],
+      memo: [],
+      from_subaccount: [],
+      created_at_time: [],
+      amount: dsnToApprove,
+      expected_allowance: dsnAllowance ? [dsnAllowance] : [],
+      expires_at: [],
+      spender: {
+        owner: Principal.fromText(protocolCanisterId),
+        subaccount: []
+      },
+    }],
+    onSuccess: (data) => {
+      console.log(data)
+    },
+    onError: (error) => {
+      console.error(error);
+    }
+  });
+
+  const triggerBtcApprove = () => {
+    btcApprove().catch((error) => {
       console.error(error);
     }).finally(() => {
         refreshBtcAllowance()
+      }
+    );
+  }
+
+  const triggerDsnApprove = () => {
+    dsnApprove().catch((error) => {
+      console.error(error);
+    }).finally(() => {
+        refreshDsnAllowance()
       }
     );
   }
@@ -96,6 +147,8 @@ const Wallet = () => {
   useEffect(() => {
     refreshBtcBalance();
     refreshBtcAllowance();
+    refreshDsnBalance();
+    refreshDsnAllowance();
   }, [authenticated, identity]);
 
   return (
@@ -134,15 +187,15 @@ const Wallet = () => {
           <span>{currencySymbol}</span>
           <input
             ref={inputRef}
-            onChange={(e) => setToApprove(currencyToSatoshis(Number(e.target.value)) ?? 0n)}
+            onChange={(e) => setBtcToApprove(currencyToSatoshis(Number(e.target.value)) ?? 0n)}
             type="number"
             className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900"
           />
         </div>
         <button
           className="button-simple text-base"
-          onClick={() => triggerApprove()}
-          disabled={approving}
+          onClick={() => triggerBtcApprove()}
+          disabled={btcApproving}
         >
           Update allowance
         </button>
@@ -160,19 +213,60 @@ const Wallet = () => {
       <div className="flex justify-between w-full">
         <span className="font-medium">Balance:</span>
         <span className="text-md font-semibold">
-          {formatBalanceE8s(dsonanceBalance ?? 0n, DSONANCE_COIN_SYMBOL)}
+          {formatBalanceE8s(dsnBalance ?? 0n, DSONANCE_COIN_SYMBOL)}
         </span>
+      </div>
+
+      {/* DSN Allowance */}
+      <div className="flex justify-between w-full mt-1">
+        <span className="font-medium">Allowance:</span>
+        {dsnAllowance !== undefined && (
+          <span className="text-md font-semibold">
+            {formatBalanceE8s(dsnAllowance, DSONANCE_COIN_SYMBOL)}
+          </span>
+        )}
+      </div>
+
+      {/* Allowance Input & Approve Button */}
+      <div className="flex justify-end w-full space-x-2 mt-3">
+        <div className="flex items-center space-x-1">
+          <span>{DSONANCE_COIN_SYMBOL}</span>
+          <input
+            ref={inputRef}
+            onChange={(e) => setDsnToApprove(toE8s(Number(e.target.value)) ?? 0n)}
+            type="number"
+            className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900"
+          />
+        </div>
+        <button
+          className="button-simple text-base"
+          onClick={() => triggerDsnApprove()}
+          disabled={dsnApproving}
+        >
+          Update allowance
+        </button>
       </div>
     </div>
 
-    {/* Airdrop Button */}
-    {airdropAvailable && (
+    {/* BTC Airdrop Button */}
+    {btcAirdropAvailable && (
       <button
         className="px-10 button-simple h-10 justify-center items-center text-lg"
-        onClick={triggerAirdrop}
-        disabled={!airdropAvailable || airdroping}
+        onClick={triggerBtcAirdrop}
+        disabled={!btcAirdropAvailable || btcAirdroping}
       >
         Mint fake Bitcoins
+      </button>
+    )}
+
+    {/* DSN Airdrop Button */}
+    {dsnAirdropAvailable && (
+      <button
+        className="px-10 button-simple h-10 justify-center items-center text-lg"
+        onClick={triggerDsnAirdrop}
+        disabled={!dsnAirdropAvailable || dsnAirdroping}
+      >
+        Airdrop DSN tokens
       </button>
     )}
 

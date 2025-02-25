@@ -4,10 +4,13 @@ import { useAuth } from "@ic-reactor/react";
 import { Account__1 } from "@/declarations/ck_btc/ck_btc.did";
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
+import { dsonanceLedgerActor } from "../actors/DsonanceLedgerActor";
 
 interface AllowanceContextType {
   btcAllowance: bigint | undefined;
+  dsnAllowance: bigint | undefined;
   refreshBtcAllowance: () => void;
+  refreshDsnAllowance: () => void;
 }
 
 const AllowanceContext = createContext<AllowanceContextType | undefined>(undefined);
@@ -25,7 +28,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     subaccount: []
   }), [identity]);
 
-  const { call: refresh, data: allowance } = ckBtcActor.useQueryCall({
+  const { call: btcRefresh, data: btcAllowance } = ckBtcActor.useQueryCall({
     functionName: 'icrc2_allowance',
     args: [{
       account,
@@ -37,11 +40,26 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const refreshBtcAllowance = () => {
-    refresh();
+    btcRefresh();
   };
 
+  const { call: dsnRefresh, data: dsnAllowance } = dsonanceLedgerActor.useQueryCall({
+    functionName: 'icrc2_allowance',
+    args: [{
+      account,
+      spender: {
+        owner: Principal.fromText(protocolCanisterId),
+        subaccount: []
+      }
+    }]
+  });
+
+  const refreshDsnAllowance = () => {
+    dsnRefresh();
+  }
+
   return (
-    <AllowanceContext.Provider value={{ btcAllowance: allowance?.allowance, refreshBtcAllowance: refreshBtcAllowance }}>
+    <AllowanceContext.Provider value={{ btcAllowance: btcAllowance?.allowance, dsnAllowance: dsnAllowance?.allowance, refreshBtcAllowance, refreshDsnAllowance }}>
       {children}
     </AllowanceContext.Provider>
   );

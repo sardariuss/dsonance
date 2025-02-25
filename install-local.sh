@@ -33,12 +33,17 @@ dfx deploy dsn_ledger --argument '(opt record {
     name              = opt "Dsonance Coin";
     symbol            = opt "DSN";
     decimals          = 8;
-    fee               = opt variant { Fixed = 10 };
-    max_supply        = opt 2_100_000_000_000_000;
+    fee               = opt variant { Fixed = 1_000 };
+    max_supply        = opt 100_000_000_000_000_000;
     min_burn_amount   = opt 1_000;
-    initial_balances  = vec {};
+    initial_balances  = vec {
+      record { 
+        account = principal "'${PROTOCOL_PRINCIPAL}'";
+        amount = 50_000_000_000_000_000;
+      };
+    };
     minting_account   = opt record { 
-      owner = principal "'${PROTOCOL_PRINCIPAL}'";
+      owner = principal "'${MINTER_PRINCIPAL}'";
       subaccount = null; 
     };
     advanced_settings = null;
@@ -76,7 +81,7 @@ dfx deploy protocol --argument '( variant {
       minimum_ballot_amount = 100;
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
-      opening_vote_fee = 30;
+      opening_vote_fee = 100_000_000;
       timer_interval_s = 216;
       clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
     };

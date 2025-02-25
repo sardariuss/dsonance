@@ -7,11 +7,11 @@ import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { useProtocolContext } from "./ProtocolContext";
 import { useCurrencyContext } from "./CurrencyContext";
-import BitcoinIcon from "./icons/BitcoinIcon";
 import { useAllowanceContext } from "./AllowanceContext";
 import { Link, useNavigate } from "react-router-dom";
-import { DOCS_URL, NEW_VOTE_PLACEHOLDER, VOTE_MAX_CHARACTERS } from "../constants";
+import { DOCS_URL, DSONANCE_COIN_SYMBOL, NEW_VOTE_PLACEHOLDER, VOTE_MAX_CHARACTERS } from "../constants";
 import CategorySelector from "./CategorySelector";
+import { formatBalanceE8s } from "../utils/conversions/token";
 
 function NewVote() {
 
@@ -115,6 +115,10 @@ function NewVote() {
                 disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS || selectedCategory === null}>
           Open Statement
         </button>
+        { /* Fee */}
+        <span>
+          {formatBalanceE8s(parameters?.opening_vote_fee ?? 0n, DSONANCE_COIN_SYMBOL, 0)}
+        </span>
       </div>
     </div>
   );

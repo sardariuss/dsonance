@@ -86,8 +86,8 @@ module {
                 return #err(#VoteAlreadyExists({vote_id}));
             };
 
-            // TODO: should be a dsonance fee instead!
-            let transfer = await* btc_debt.get_ledger().transfer_from({
+            // TODO: the fee should be burnt
+            let transfer = await* dsn_debt.get_ledger().transfer_from({
                 from = account;
                 amount = parameters.opening_vote_fee;
             });

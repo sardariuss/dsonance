@@ -8,7 +8,7 @@ import Principal "mo:base/Principal";
 import Option "mo:base/Option";
 import Time "mo:base/Time";
 
-import ckBTC "canister:ck_btc";
+import ICRC1 "mo:icrc1-mo/ICRC1/service";
 
 module {
 
@@ -26,7 +26,10 @@ module {
         map_distributed: [(Principal, Nat)];
     };
 
-    public class Airdrop(infos: AirdropInfo) {
+    public class Airdrop({
+        info: AirdropInfo;
+        ledger: ICRC1.service;
+    }) {
     
         public func airdropUser(principal: Principal) : async Result<Nat, Text> {
 
@@ -34,9 +37,9 @@ module {
                 return #err("Cannot airdrop to an anonymous principal");
             };
 
-            let distributed : Int = Option.get(Map.get(infos.map_distributed, Map.phash, principal), 0);
+            let distributed : Int = Option.get(Map.get(info.map_distributed, Map.phash, principal), 0);
             
-            let difference = infos.allowed_per_user - distributed;
+            let difference = info.allowed_per_user - distributed;
             
             if (difference <= 0) {
                 return #err("Already airdropped user to the maximum allowed!");
@@ -44,7 +47,7 @@ module {
 
             let amount = Int.abs(difference);
 
-            let transfer = await ckBTC.icrc1_transfer({
+            let transfer = await ledger.icrc1_transfer({
                 from_subaccount = null;
                 to = {
                     owner = principal;
@@ -61,8 +64,8 @@ module {
                     #err("Airdrop transfer failed: " # debug_show(err)); 
                 };
                 case(#Ok(_)){
-                    Map.set(infos.map_distributed, Map.phash, principal, infos.allowed_per_user);
-                    infos.total_distributed += amount;
+                    Map.set(info.map_distributed, Map.phash, principal, info.allowed_per_user);
+                    info.total_distributed += amount;
                     #ok(amount); 
                 };
             };
@@ -75,23 +78,23 @@ module {
                 return false;
             };
             
-            let distributed : Int = Option.get(Map.get(infos.map_distributed, Map.phash, principal), 0);
+            let distributed : Int = Option.get(Map.get(info.map_distributed, Map.phash, principal), 0);
             
-            let difference = infos.allowed_per_user - distributed;
+            let difference = info.allowed_per_user - distributed;
             
             difference > 0;
         };
 
         public func getAirdropInfo(): SAirdropInfo {
             return {
-                allowed_per_user = infos.allowed_per_user;
-                total_distributed = infos.total_distributed;
-                map_distributed = Map.toArray(infos.map_distributed) 
+                allowed_per_user = info.allowed_per_user;
+                total_distributed = info.total_distributed;
+                map_distributed = Map.toArray(info.map_distributed) 
             };
         };
 
         public func setAirdropPerUser({ amount : Nat; }) {
-            infos.allowed_per_user := amount;
+            info.allowed_per_user := amount;
         };
 
     };
