@@ -10,8 +10,8 @@ const Home = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tabs = [
-    { key: "votes", label: "Browse statements" },
-    { key: "ballots", label: "Your participations" },
+    { key: "votes", label: "Statements" },
+    { key: "ballots", label: "Your ballots" },
   ];
 
   // Get the current tab or default to "votes"
@@ -25,11 +25,11 @@ const Home = () => {
   }, [selectedTab, setSearchParams]);
 
   return (
-    <div className="flex flex-col w-full sm:w-4/5 md:w-3/4 lg:w-2/3 my-4">
+    <div className="flex flex-col w-full sm:w-4/5 md:w-3/4 lg:w-2/3 my-4 px-3">
       {/* Tabs */}
-      <ul className="flex flex-row w-full gap-x-6 my-6 items-center">
+      <ul className="flex flex-wrap gap-x-6 gap-y-2 my-6 items-center">
         {tabs.map((tab) => (
-          <li key={tab.key} className="text-center">
+          <li key={tab.key} className="min-w-max text-center">
             <TabButton
               label={tab.label}
               setIsCurrent={() => setSearchParams({ tab: tab.key })}
@@ -38,8 +38,8 @@ const Home = () => {
           </li>
         ))}
         {/* New Button to the right */}
-        <li className="ml-auto" onClick={() => navigate("/new")}>
-          <button className="button-simple text-lg">Open new statement</button>
+        <li className="sm:ml-auto" onClick={() => navigate("/new")}>
+          <button className="button-simple text-base font-semibold">Open new statement</button>
         </li>
       </ul>
 

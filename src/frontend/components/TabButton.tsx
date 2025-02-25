@@ -7,19 +7,19 @@ interface TabButtonProps {
 };
 
 export const TabButton: React.FC<TabButtonProps> = ({ label, isCurrent, setIsCurrent }) => {
-
+  
   return (
     <button 
       className={
-        "w-full inline-block text-lg border-b-2 font-semibold " 
+        "w-full inline-block text-lg border-b-2 font-semibold whitespace-nowrap " 
         + (isCurrent ? "border-purple-700 text-black dark:text-white" : 
           "border-transparent hover:border-gray-300 text-gray-400 dark:text-gray-600")
       } 
       type="button"
       role="tab"
-      onClick={(e) => setIsCurrent() }>
-        {label}
+      onClick={setIsCurrent}
+    >
+      {label}
     </button>
   );
-
 };

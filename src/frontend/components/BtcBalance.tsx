@@ -1,21 +1,21 @@
 import { useEffect } from "react";
 import BitcoinIcon from "./icons/BitcoinIcon";
 import { useCurrencyContext } from "./CurrencyContext";
-import { useWalletContext } from "./WalletContext";
+import { useAllowanceContext } from "./AllowanceContext";
 
 const BtcBalance = () => {
 
   const { formatSatoshis } = useCurrencyContext();
-  const { btcBalance, refreshBtcBalance } = useWalletContext();
+  const { btcAllowance, refreshBtcAllowance } = useAllowanceContext();
 
   useEffect(() => {
-    refreshBtcBalance();
+    refreshBtcAllowance();
   }, []);
 
   return (
     <div className="flex flex-row items-center space-x-1">
       <span className="text-lg">
-        {btcBalance !== undefined ? formatSatoshis(btcBalance) : ""}
+        {btcAllowance !== undefined ? formatSatoshis(btcAllowance) : ""}
       </span>
       <BitcoinIcon />
     </div>

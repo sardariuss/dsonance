@@ -6,7 +6,7 @@ import ResetIcon from "./icons/ResetIcon";
 import { v4 as uuidv4 } from 'uuid';
 import { useCurrencyContext } from "./CurrencyContext";
 import BitcoinIcon from "./icons/BitcoinIcon";
-import { useWalletContext } from "./WalletContext";
+import { useAllowanceContext } from "./AllowanceContext";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import { useNavigate } from "react-router-dom";
@@ -28,7 +28,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, ballot, setBallot, reset
 
   const { formatSatoshis, currencySymbol, currencyToSatoshis, satoshisToCurrency } = useCurrencyContext();
 
-  const { refreshBtcBalance } = useWalletContext();
+  const { refreshBtcAllowance } = useAllowanceContext();
 
   const { call: putBallot, loading } = protocolActor.useUpdateCall({
     functionName: "put_ballot",
@@ -41,7 +41,7 @@ const PutBallot: React.FC<PutBallotProps> = ({ vote_id, ballot, setBallot, reset
         return;
       }
       if (identity !== null) {
-        refreshBtcBalance();
+        refreshBtcAllowance();
         navigate(`/?tab=ballots\&ballotId=${result.ok.YES_NO.ballot_id}`);
       }
     },

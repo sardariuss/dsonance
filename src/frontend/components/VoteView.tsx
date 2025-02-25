@@ -55,7 +55,6 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, selected, setSelected }) => {
                 <VoteSlider
                   id={vote.vote_id}
                   disabled={false}
-                  voteDetails={voteDetails}
                   ballot={ballot}
                   setBallot={setBallot}
                   onMouseUp={() => {}}

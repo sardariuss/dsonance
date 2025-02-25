@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useProtocolContext } from "./ProtocolContext";
 import { useCurrencyContext } from "./CurrencyContext";
 import BitcoinIcon from "./icons/BitcoinIcon";
-import { useWalletContext } from "./WalletContext";
+import { useAllowanceContext } from "./AllowanceContext";
 import { Link, useNavigate } from "react-router-dom";
 import { DOCS_URL, NEW_VOTE_PLACEHOLDER, VOTE_MAX_CHARACTERS } from "../constants";
 import CategorySelector from "./CategorySelector";
@@ -24,7 +24,7 @@ function NewVote() {
 
   const { parameters, refreshParameters } = useProtocolContext();
   const { formatSatoshis } = useCurrencyContext();
-  const { refreshBtcBalance } = useWalletContext();
+  const { refreshBtcAllowance } = useAllowanceContext();
   const navigate = useNavigate();
 
   const { call: newVote, loading } = backendActor.useUpdateCall({
@@ -37,7 +37,7 @@ function NewVote() {
         console.error(result.err);
         return;
       }
-      refreshBtcBalance();
+      refreshBtcAllowance();
       navigate(`/vote/${result.ok.vote_id}`);
       
     },

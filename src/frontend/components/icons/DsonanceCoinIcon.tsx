@@ -1,3 +1,7 @@
+interface DsonanceCoinIconProps {
+    className?: string;
+}
+
 const DsonanceCoinIcon = () => (
     <div className="h-5 w-5">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" className="flex w-full" version="1.1">
