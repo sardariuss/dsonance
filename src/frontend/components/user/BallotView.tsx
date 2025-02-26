@@ -1,141 +1,204 @@
-import { niceFormatDate, timeDifference, timeToDate } from "../../utils/conversions/date";
-import { backendActor } from "../../actors/BackendActor";
+import { formatDuration } from "../../utils/conversions/durationUnit";
+import { niceFormatDate, timeToDate } from "../../utils/conversions/date";
 
-import { MOBILE_MAX_WIDTH_QUERY, DSONANCE_COIN_SYMBOL } from "../../constants";
-import { fromNullable } from "@dfinity/utils";
+import { DSONANCE_COIN_SYMBOL, MOBILE_MAX_WIDTH_QUERY } from "../../constants";
+import { get_current, map_timeline_hack, to_number_timeline } from "../../utils/timeline";
+import DurationChart, { CHART_COLORS } from "../charts/DurationChart";
 import { unwrapLock } from "../../utils/conversions/ballot";
-import { useCurrencyContext } from "../CurrencyContext";
 import { formatBalanceE8s } from "../../utils/conversions/token";
-import ChoiceView from "../ChoiceView";
 
 import { SBallotType } from "@/declarations/protocol/protocol.did";
-import { compute_vote_details } from "../../utils/conversions/votedetails";
-import { DesktopBallotDetails, MobileBallotDetails } from "./BallotDetails";
-import { useMediaQuery } from "react-responsive";
-import { useProtocolContext } from "../ProtocolContext";
-import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import ChevronDownIcon from "../icons/ChevronDownIcon";
+import { useMemo, useState } from "react";
 import ChevronUpIcon from "../icons/ChevronUpIcon";
+import ChevronDownIcon from "../icons/ChevronDownIcon";
+import { useMediaQuery } from "react-responsive";
+import BackArrowIcon from "../icons/BackArrowIcon";
+import { useNavigate } from "react-router-dom";
+import { backendActor } from "../../actors/BackendActor";
+import { fromNullable } from "@dfinity/utils";
 import { toEnum } from "../../utils/conversions/yesnochoice";
+import { useCurrencyContext } from "../CurrencyContext";
+import ChoiceView from "../ChoiceView";
 
-interface VoteTextProps {
-  vote_id: string;
+interface Props {
+  ballot: SBallotType;
+  now: bigint;
 }
 
-const VoteText = ({ vote_id }: VoteTextProps) => {
-  
-  const { data: opt_vote } = backendActor.useQueryCall({
-    functionName: "get_vote",
-    args: [{ vote_id }],
+enum CHART_TOGGLE {
+    DURATION,
+    CONSENT,
+    CONTRIBUTION,
+    DISCERNMENT
+}
+
+const BallotDetails : React.FC<Props> = ({ ballot, now }) => {
+
+    const releaseTimestamp = ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data;
+
+    const [chartToggle, setChartToggle] = useState<CHART_TOGGLE | undefined>(undefined);
+
+    const { duration_diff, consent_diff, apr_diff } = useMemo(() => {
+        let duration_diff : bigint | undefined = undefined;
+        const duration_ns = unwrapLock(ballot).duration_ns;
+        if (duration_ns.history.length > 0) {
+          duration_diff = get_current(duration_ns).data - duration_ns.history[0].data;
+        }
+
+        let consent_diff : number | undefined = undefined;
+        const consent = ballot.YES_NO.consent;
+        if (consent.history.length > 0) {
+          consent_diff = get_current(consent).data - consent.history[0].data;
+        }
+
+        let apr_diff : number | undefined = undefined;
+        const foresight = ballot.YES_NO.foresight;
+        if (foresight.history.length > 1) { // TODO: hack to avoid first value
+          apr_diff = foresight.current.data.apr.current - foresight.history[1].data.apr.current;
+        }
+
+        return { duration_diff, consent_diff, apr_diff };
+    }, [ballot]);
+    
+    return (
+        <div className="flex flex-col justify-items-center w-full mt-2 space-y-1">
+
+          <div 
+            className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
+            onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.DISCERNMENT ? undefined : CHART_TOGGLE.DISCERNMENT )} 
+          >
+            <div className="flex flex-row w-full gap-x-2 px-2">
+                <span className="text-base grow">APR:</span> 
+                <span className="font-semibold [text-shadow:0px_0px_10px_rgb(59,130,246)]">{ ballot.YES_NO.foresight.current.data.apr.current.toFixed(2) + "%" }</span>
+                { apr_diff !== undefined && <span className="italic text-gray-700 dark:text-gray-300">{`(${apr_diff.toFixed(2)}%)`}</span> }
+                { chartToggle === CHART_TOGGLE.DISCERNMENT ? <ChevronUpIcon/> : <ChevronDownIcon/> }
+            </div>
+            { (chartToggle === CHART_TOGGLE.DISCERNMENT) && 
+              <DurationChart 
+                duration_timelines={ new Map([
+                  ["current", { timeline: map_timeline_hack(ballot.YES_NO.foresight, (foresight) => Number(foresight.apr.current) ), color: CHART_COLORS.GREEN }],
+                ]) }
+                format_value={ (value: number) => (value.toFixed(2)) }
+                fillArea={true}
+              />
+            }
+          </div>
+
+          <div 
+            className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
+            onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.CONTRIBUTION ? undefined : CHART_TOGGLE.CONTRIBUTION )} 
+          >
+            <div className="flex flex-row w-full gap-x-2 px-2">
+                <span className="text-base grow">Mining earned:</span> 
+                { formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.contribution.current.data.earned)), DSONANCE_COIN_SYMBOL, 2) }
+                { chartToggle === CHART_TOGGLE.CONTRIBUTION ? <ChevronUpIcon/> : <ChevronDownIcon/> }
+            </div>
+            { (chartToggle === CHART_TOGGLE.CONTRIBUTION) && 
+              <DurationChart 
+                duration_timelines={ new Map([
+                  ["earned", { timeline: map_timeline_hack(ballot.YES_NO.contribution, (contribution) => contribution.earned ) , color: CHART_COLORS.BLUE }],
+                  ["pending", { timeline: map_timeline_hack(ballot.YES_NO.contribution, (contribution) => contribution.pending ), color: CHART_COLORS.PURPLE }],
+                ]) }
+                format_value={ (value: number) => (formatBalanceE8s(BigInt(value), DSONANCE_COIN_SYMBOL, 2)) } 
+                fillArea={true}
+              />
+            }
+          </div>
+
+          <div
+            className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
+            onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.CONSENT ? undefined : CHART_TOGGLE.CONSENT )} 
+          >
+            <div className="flex flex-row w-full gap-x-2 px-2">
+                <span className="text-base grow">Consent:</span> 
+                { ballot.YES_NO.consent.current.data.toFixed(3) }
+                { consent_diff !== undefined && <span className="italic text-gray-700 dark:text-gray-300">{`(${consent_diff.toFixed(3)})`}</span> }
+                { chartToggle === CHART_TOGGLE.CONSENT ? <ChevronUpIcon/> : <ChevronDownIcon/> }
+            </div>
+            { (chartToggle === CHART_TOGGLE.CONSENT) && 
+                <DurationChart 
+                    duration_timelines={ new Map([["Consent", { timeline: ballot.YES_NO.consent, color: CHART_COLORS.BLUE } ]]) }
+                    format_value={ (value: number) => value.toString() }
+                    fillArea={true}
+                    y_min={0}
+                    y_max={1.0}
+                    last_timestamp={releaseTimestamp <= now ? releaseTimestamp : now }
+                />
+            }
+          </div>
+
+          <div 
+            className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
+            onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.DURATION ? undefined : CHART_TOGGLE.DURATION )} 
+          >
+            <div className="flex flex-row w-full gap-x-2 px-2">
+                <span className="text-base grow">Duration:</span> 
+                <span>{formatDuration(get_current(unwrapLock(ballot).duration_ns).data) }</span>
+                { duration_diff !== undefined && <span className="italic text-gray-700 dark:text-gray-300">{`(+ ${formatDuration(duration_diff)})`}</span> }
+                { chartToggle === CHART_TOGGLE.DURATION ? <ChevronUpIcon/> : <ChevronDownIcon/> }
+            </div>
+            { (chartToggle === CHART_TOGGLE.DURATION) && 
+                <DurationChart 
+                    duration_timelines={ new Map([["duration", { timeline: to_number_timeline(unwrapLock(ballot).duration_ns), color: CHART_COLORS.PURPLE} ]]) }
+                    format_value={ (value: number) => formatDuration(BigInt(value)) } 
+                    fillArea={true}
+                    last_timestamp={releaseTimestamp <= now ? releaseTimestamp : now }
+                />
+            }
+          </div>
+        </div>
+    );
+}
+
+const BallotView : React.FC<Props> = ({ ballot, now }) => {
+
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
+  const navigate = useNavigate();
+  const { formatSatoshis } = useCurrencyContext();
+
+  const { data: vote } = backendActor.useQueryCall({
+      functionName: 'get_vote',
+      args: [{ vote_id: ballot.YES_NO.vote_id }],
   });
 
-  const { computeDecay } = useProtocolContext();
-  
-  const vote = useMemo(() => {
-    return opt_vote ? fromNullable(opt_vote) : undefined;
-  }, [opt_vote]);
-
-  const voteDetails = useMemo(() => {
-    if (vote === undefined || computeDecay === undefined) {
-      return undefined;
-    }
-    return compute_vote_details(vote, computeDecay);
-  }, [vote, computeDecay]);
-
-  return ( 
-    <span className="truncate">
-      { vote === undefined || voteDetails === undefined ? "Loading..." : vote.info.text}
-    </span>
-  )
-}
-
-interface BallotProps {
-  ballot: SBallotType;
-  isSelected: boolean;
-  selectBallot: () => void;
-  now: bigint | undefined;
-}
-
-const BallotView = ({ ballot, isSelected, selectBallot, now }: BallotProps) => {
-
-  const { formatSatoshis } = useCurrencyContext();
-  const navigate = useNavigate();
-  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
-
-  const { releaseTimestamp, contribution, reward, foresightAPR } = useMemo(() => {
-      return {
-        contribution: BigInt(Math.floor(ballot.YES_NO.contribution.current.data.earned)),
-        reward: ballot.YES_NO.foresight.current.data.reward,
-        foresightAPR: ballot.YES_NO.foresight.current.data.apr.current,
-        releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data 
-      }
-    },
-    [ballot]
-  );
+  const actualVote = vote ? fromNullable(vote) : undefined;
 
   return (
-    now === undefined ? <></> :
-    <div className="bg-slate-100 dark:bg-slate-900 w-full rounded-md shadow-md">
-      <div className="grid grid-cols-[minmax(100px,1fr)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)_minmax(60px,auto)] gap-10 w-full items-center pl-5">
-
-        <div className="flex flex-row space-x-1 hover:cursor-pointer" onClick={(e) => navigate(`/vote/${ballot.YES_NO.vote_id}`) }>
-          <VoteText vote_id={ballot.YES_NO.vote_id}/>
+    <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>
+      <div className={`grid grid-cols-3 space-x-1 mb-3 items-center w-full`}>
+        <div className="hover:cursor-pointer justify-self-start" onClick={() => navigate(-1)}>
+          <BackArrowIcon/>
         </div>
-
-        <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Vote</span>
-          <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
+        <span className="text-xl font-semibold items-baseline justify-self-center">Ballot</span>
+        <span className="grow">{/* spacer */}</span>
+      </div>
+      <div 
+        className={`text-justify mb-3 mx-auto hover:cursor-pointer`}
+        onClick={(e) => navigate(`/vote/${ballot.YES_NO.vote_id}`)}
+      >
+        { actualVote ? actualVote.info.text : "Loading..." }
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
+        <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Placed</span>
+          <span>{ niceFormatDate(timeToDate(ballot.YES_NO.timestamp), timeToDate(now)) }</span>
         </div>
-
-        <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Ballot</span>
+        <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Dissent</span>
+          <span>{ ballot.YES_NO.dissent.toFixed(3) }</span>
+        </div>
+        <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Amount</span>
           <span>{formatSatoshis(ballot.YES_NO.amount)}</span>
         </div>
-
-        <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Mining earned</span>
-          <span>
-            {formatBalanceE8s(contribution, DSONANCE_COIN_SYMBOL, 2)}
-          </span>
+        <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Choice</span>
+          <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
         </div>
-
-        <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Lock reward</span>
-          <span>{ formatSatoshis(reward) }</span>
-        </div>
-
-        <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">APR</span>
-          <span className="text-brand-true mr-1">
-            {`${foresightAPR.toFixed(2)}%`}
-          </span>
-        </div>
-
-        <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Time left</span>
-          <span>
-            {releaseTimestamp <= now ? 
-              `expired` : 
-              `${timeDifference(timeToDate(releaseTimestamp), timeToDate(now))}`
-            }
-          </span>
-        </div>
-        
-        <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full p-1 w-8 h-8 hover:cursor-pointer" onClick={(e) => { e.stopPropagation(); selectBallot(); }}>
-          { isSelected ? <ChevronUpIcon /> : <ChevronDownIcon /> }
-        </div>
-
       </div>
-
-      { isSelected && (
-          isMobile ? 
-          <MobileBallotDetails ballot={ballot} now={now} releaseTimestamp={releaseTimestamp}/> :
-          <DesktopBallotDetails ballot={ballot} now={now} releaseTimestamp={releaseTimestamp}/>
-        )
-      }
+      < BallotDetails ballot={ballot} now={now}/>
     </div>
-  );
+    );
 }
 
 export default BallotView;

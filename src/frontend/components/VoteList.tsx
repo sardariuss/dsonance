@@ -92,7 +92,7 @@ const VoteList = () => {
           computeDecay && vote.info.visible && 
             <li key={index} ref={(el) => (voteRefs.current.set(vote.vote_id, el))} className="flex w-full scroll-mt-[104px] sm:scroll-mt-[88px] border-t border-slate-100 dark:border-slate-900">
               <div 
-                className={`flex flex-row items-baseline w-full bg-slate-50 dark:bg-slate-850 hover:cursor-pointer ${isMobile ? "py-1" : "py-3"}`}
+                className={`flex flex-row items-baseline w-full bg-slate-50 dark:bg-slate-850 hover:cursor-pointer py-1`}
                 onClick={() => { setSearchParams({voteId: vote.vote_id}); navigate(`/vote/${vote.vote_id}`)} }
               >
                 <VoteRow category={vote.info.category} voteDetails={compute_vote_details(vote, computeDecay)} text={vote.info.text}/>

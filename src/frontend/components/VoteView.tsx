@@ -42,7 +42,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
 
   return (
     voteDetails !== undefined && (
-      <div className={`flex flex-col items-center align-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>
+      <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>
         <div className="w-full grid grid-cols-3 space-x-1 mb-3 items-center">
           <div className="hover:cursor-pointer justify-self-start" onClick={() => navigate(-1)}>
             <BackArrowIcon/>
@@ -50,7 +50,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
           <span className="text-xl font-semibold items-baseline justify-self-center">Vote</span>
           <span className="text-sm text-purple-700 dark:text-purple-500 items-baseline justify-self-end hover:cursor-pointer" onClick={() => resetVote() }>Clear all</span>
         </div>
-        <div className="w-full flex flex-row space-x-1 mb-3 items-center gap-x-2">
+        <div className="w-full text-justify mb-3 mx-auto">
           { vote.info.text }
         </div>
         <VoteFigures category={vote.info.category} timestamp={vote.date} voteDetails={voteDetails} ballot={ballot} />

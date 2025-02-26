@@ -1,4 +1,3 @@
-import { Principal } from "@dfinity/principal";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import LockChart from "../charts/LockChart";
@@ -6,7 +5,7 @@ import { protocolActor } from "../../actors/ProtocolActor";
 import { useCurrencyContext } from "../CurrencyContext";
 import BitcoinIcon from "../icons/BitcoinIcon";
 
-import BallotView from "./BallotView";
+import BallotRow from "./BallotRow";
 import { unwrapLock } from "../../utils/conversions/ballot";
 import { useProtocolContext } from "../ProtocolContext";
 import { useAuth } from "@ic-reactor/react";
@@ -20,7 +19,7 @@ const BallotList = () => {
 
   if (identity === null || identity?.getPrincipal().isAnonymous()) {
     return <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full text-lg hover:cursor-pointer" onClick={() => login()}>
-      Connect to see your participations!
+      Log in to see your ballots
     </div>;
   }
 
@@ -74,9 +73,9 @@ const BallotList = () => {
   }, [triggerScroll, ballots]);
   
   return (
-    <div className="flex flex-col gap-y-2 items-center bg-slate-50 dark:bg-slate-850 p-2 rounded-md w-full">
+    <div className="flex flex-col gap-y-2 items-center bg-slate-50 dark:bg-slate-850 p-2 rounded w-full">
       { ballots && ballots?.length > 0 && 
-        <div className="flex flex-col items-center w-full bg-slate-100 dark:bg-slate-900 rounded-md py-2">
+        <div className="flex flex-col items-center w-full pt-5 pb-2">
           <div className="flex flex-row w-full space-x-1 justify-center items-baseline">
             <span>Total locked:</span>
             <span className="text-lg">{ totalLocked !== undefined ? formatSatoshis(totalLocked) : "N/A" }</span>
@@ -93,10 +92,8 @@ const BallotList = () => {
             /* Size of the header is 26 on mobile and 22 on desktop */
             ballots?.map((ballot, index) => (
               <li key={index} ref={(el) => (ballotRefs.current.set(ballot.YES_NO.ballot_id, el))} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]"> 
-                <BallotView 
+                <BallotRow 
                   ballot={ballot}
-                  isSelected={selectedBallotId === ballot.YES_NO.ballot_id}
-                  selectBallot={() => selectBallot(ballot.YES_NO.ballot_id)}
                   now={info?.current_time}
                 />
               </li>

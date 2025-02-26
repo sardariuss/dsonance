@@ -38,9 +38,11 @@ const VoteRow: React.FC<VoteRowProps> = ({ category, voteDetails, text }) => {
   return (
     <div className="grid grid-cols-[auto_60px] sm:grid-cols-[100px_auto_100px_100px] gap-x-2 sm:gap-x-4 justify-items-center items-center grow pr-3 sm:pr-5">
       { !isMobile && <span>{category.split(" ")[0]}</span> }
-      <span className={`justify-self-start max-w-full ${isMobile ? "pl-3" : ""}`}>
-        {text}
-      </span>
+      <div className={`flex items-center h-[4.5em] sm:h-[3em] justify-self-start max-w-full ${isMobile ? "pl-3" : ""}`}>
+        <span className="line-clamp-3 sm:line-clamp-2 overflow-hidden">
+          {text}
+        </span>
+      </div>
       { !isMobile && 
         <span className={`justify-self-end`}>{formatSatoshis(BigInt(Math.trunc(voteDetails.total)))}</span>
       }
