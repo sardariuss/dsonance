@@ -109,11 +109,11 @@ function NewVote() {
         {/* Category Selector */}
         <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
 
-        {/* Open Statement Button */}
+        {/* Open Vote Button */}
         <button className={`button-simple text-lg`} 
                 onClick={openVote}
                 disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS || selectedCategory === null}>
-          Open Statement
+          Open new vote
         </button>
         { /* Fee */}
         <span>

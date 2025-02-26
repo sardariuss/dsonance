@@ -5,20 +5,21 @@ import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import VoteChart from "./charts/VoteChart";
 import { BallotInfo } from "./types";
 import { compute_vote_details } from "../utils/conversions/votedetails";
-import ConsensusView from "./ConsensusView";
+import { useNavigate } from "react-router-dom";
+import { useProtocolContext } from "./ProtocolContext";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
-import { useProtocolContext } from "./ProtocolContext";
+import VoteFigures from "./VoteFigures";
+import BackArrowIcon from "./icons/BackArrowIcon";
 
 interface VoteViewProps {
   vote: SYesNoVote;
-  selected: boolean;
-  setSelected: () => void;
 }
 
-const VoteView: React.FC<VoteViewProps> = ({ vote, selected, setSelected }) => {
+const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
+  const navigate = useNavigate();
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
 
@@ -37,18 +38,26 @@ const VoteView: React.FC<VoteViewProps> = ({ vote, selected, setSelected }) => {
 
   useEffect(() => {
     resetVote();
-  }, [selected, vote]);
+  }, [vote]);
 
   return (
     voteDetails !== undefined && (
-      <div className={`flex flex-col content-center w-full bg-slate-50 dark:bg-slate-850 hover:cursor-pointer ${isMobile ? "py-1" : "py-3"}`}>
-        <div className="w-full flex flex-row space-x-1 items-baseline" onClick={() => setSelected()}>
-          <ConsensusView selected={selected} category={vote.info.category} voteDetails={voteDetails} text={vote.info.text} timestamp={vote.date} ballot={ballot} />
+      <div className={`flex flex-col items-center align-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>
+        <div className="w-full grid grid-cols-3 space-x-1 mb-3 items-center">
+          <div className="hover:cursor-pointer justify-self-start" onClick={() => navigate(-1)}>
+            <BackArrowIcon/>
+          </div>
+          <span className="text-xl font-semibold items-baseline justify-self-center">Vote</span>
+          <span className="text-sm text-purple-700 dark:text-purple-500 items-baseline justify-self-end hover:cursor-pointer" onClick={() => resetVote() }>Clear all</span>
         </div>
-        {selected && vote.vote_id !== undefined && (
+        <div className="w-full flex flex-row space-x-1 mb-3 items-center gap-x-2">
+          { vote.info.text }
+        </div>
+        <VoteFigures category={vote.info.category} timestamp={vote.date} voteDetails={voteDetails} ballot={ballot} />
+        {vote.vote_id !== undefined && (
           <div className="flex flex-col space-y-2 items-center w-full">
             {voteDetails.total > 0 && (
-              <div className={`flex flex-col space-y-2 items-center ${isMobile ? "w-full px-3" : "w-2/3"}`}>
+              <div className={`flex flex-col space-y-2 items-center w-full`}>
                 <VoteChart vote={vote} ballot={ballot} />
                 <PutBallot
                   id={vote.vote_id}

@@ -1,12 +1,13 @@
 import { SYesNoVote } from "../../declarations/backend/backend.did";
 import { backendActor } from "../actors/BackendActor";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import VoteItem from "./VoteItem";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import BitcoinIcon from "./icons/BitcoinIcon";
-import VoteView from "./VoteView";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
+import VoteRow from "./VoteRow";
+import { useProtocolContext } from "./ProtocolContext";
+import { compute_vote_details } from "../utils/conversions/votedetails";
 
 const VoteList = () => {
 
@@ -18,6 +19,8 @@ const VoteList = () => {
   const [votes, setVotes] = useState<SYesNoVote[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [checkedCategories, setCheckedCategories] = useState<string[]>([]);
+  const { computeDecay } = useProtocolContext();
+  const navigate = useNavigate();
 
   const { call: fetchVotes } = backendActor.useQueryCall({
     functionName: "get_votes",
@@ -53,18 +56,6 @@ const VoteList = () => {
     );
   };
 
-  const selectVote = (voteId: string) => {
-    setSearchParams((prevParams) => {
-      const newParams = new URLSearchParams(prevParams);
-      if (selectedVoteId === voteId) {
-        newParams.delete("voteId"); // Remove voteId if it's already selected
-      } else {
-        newParams.set("voteId", voteId); // Set voteId if it's not selected
-      }
-      return newParams;
-    });
-  };
-
   return (
     <div className="flex flex-col gap-y-1 w-full bg-slate-50 dark:bg-slate-850 rounded-md">
       {/* Vote List */}
@@ -97,16 +88,17 @@ const VoteList = () => {
         <div className="justify-self-end text-gray-600 dark:text-gray-400 font-light">Consensus</div>
       </div>
       <ul className="w-full">
-      {votes.map((vote: SYesNoVote, index) => (
-        vote.info.visible && 
-          <li key={index} ref={(el) => (voteRefs.current.set(vote.vote_id, el))} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px] border-t border-slate-100 dark:border-slate-900">
-            <VoteView
-              vote={vote}
-              selected={selectedVoteId === vote.vote_id}
-              setSelected={() => { selectVote(vote.vote_id); }}
-            />
-          </li>
-      ))}
+        {votes.map((vote: SYesNoVote, index) => (
+          computeDecay && vote.info.visible && 
+            <li key={index} ref={(el) => (voteRefs.current.set(vote.vote_id, el))} className="flex w-full scroll-mt-[104px] sm:scroll-mt-[88px] border-t border-slate-100 dark:border-slate-900">
+              <div 
+                className={`flex flex-row items-baseline w-full bg-slate-50 dark:bg-slate-850 hover:cursor-pointer ${isMobile ? "py-1" : "py-3"}`}
+                onClick={() => { setSearchParams({voteId: vote.vote_id}); navigate(`/vote/${vote.vote_id}`)} }
+              >
+                <VoteRow category={vote.info.category} voteDetails={compute_vote_details(vote, computeDecay)} text={vote.info.text}/>
+              </div>
+            </li>
+        ))}
       </ul>
     </div>
   );

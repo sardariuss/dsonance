@@ -114,7 +114,7 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
 
 	return (
     <div className="flex flex-col items-center w-full space-y-2">
-      <div id={"cursor_" + id} className="w-full flex flex-col items-center" style={{ position: 'relative' }}>
+      <div id={"cursor_" + id} className="w-full flex flex-col items-center my-2 sm:my-1" style={{ position: 'relative' }}>
         <div className="flex w-full rounded-sm z-0" style={{ height: CURSOR_HEIGHT, position: 'relative' }}>  
           { cursor > MIN_CURSOR && <div className={`bg-brand-true h-full rounded-l ${ballot.choice === EYesNoChoice.Yes ? "" : "opacity-70"}`}  style={{ width: `${cursor * 100 + "%"       }`}}/> }
           { cursor < MAX_CURSOR && <div className={`bg-brand-false h-full rounded-r ${ballot.choice === EYesNoChoice.No ? "" : "opacity-70"}`} style={{ width: `${( 1 - cursor) * 100 + "%"}`}}/> }
@@ -139,7 +139,7 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
           disabled={disabled}
         />
       </div>
-      <div className="w-full items-center rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
+      <div className="w-full items-center rounded-lg p-2 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
         <PutBallotPreview vote_id={id} ballot={ballot} />
       </div>
       <div className={`flex flex-col items-center w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 space-y-2`}>

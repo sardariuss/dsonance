@@ -61,9 +61,9 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
 
   return (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-x-6 gap-y-2 justify-center w-full">
-      <span className="flex min-w-[100px] items-center justify-center text-base font-semibold">
+      <div className="flex min-w-[100px] items-center justify-center text-base font-semibold">
         Preview:
-      </span>
+      </div>
     {[
       {
         label: "Dissent",

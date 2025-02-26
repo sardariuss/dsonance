@@ -116,7 +116,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
       if (containerRef.current) {
         setContainerSize({ 
           width: containerRef.current.offsetWidth - 20, // 20 px to make room for the slider bar if any
-          height: containerRef.current.offsetWidth * 0.4
+          height: containerRef.current.offsetWidth * (isMobile ? 0.5 : 0.35)
         });
       }
     };

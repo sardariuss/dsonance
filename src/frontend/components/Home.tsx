@@ -10,7 +10,7 @@ const Home = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tabs = [
-    { key: "votes", label: "Statements" },
+    { key: "votes", label: "Votes" },
     { key: "ballots", label: "Your ballots" },
   ];
 
@@ -38,8 +38,8 @@ const Home = () => {
           </li>
         ))}
         {/* New Button to the right */}
-        <li className="sm:ml-auto" onClick={() => navigate("/new")}>
-          <button className="button-simple text-base font-semibold">Open new statement</button>
+        <li className="ml-auto" onClick={() => navigate("/new")}>
+          <button className="button-simple text-base font-semibold">Open new vote</button>
         </li>
       </ul>
 
