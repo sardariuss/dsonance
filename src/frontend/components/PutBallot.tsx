@@ -11,10 +11,10 @@ import { useProtocolContext } from './ProtocolContext';
 import PutBallotPreview from './PutBallotPreview';
 import { protocolActor } from '../actors/ProtocolActor';
 import { useNavigate } from 'react-router-dom';
+import ResetIcon from './icons/ResetIcon';
 
 const CURSOR_HEIGHT = "0.3rem";
 const PREDEFINED_PERCENTAGES = [0.1, 0.25, 0.5, 1.0];
-const DEFAULT_CURSOR = 0.5;
 // Avoid 0 division, arbitrary use 0.001 and 0.999 values instead of 0 and 1
 const MIN_CURSOR = 0.001;
 const MAX_CURSOR = 0.999;
@@ -85,7 +85,9 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
     if (sliderRef.current && !isSliderActive) {
       const liveDetails = add_ballot(voteDetails, ballot);
       setCursor(liveDetails.cursor);
-      sliderRef.current.value = liveDetails.cursor.toString();
+      if (liveDetails.cursor !== undefined) {
+        sliderRef.current.value = liveDetails.cursor.toString();
+      }
     }
   },
   [ballot]);
@@ -95,7 +97,7 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
   const [isCustomActive, setIsCustomActive] = useState(false);
   const [isSliderActive, setIsSliderActive] = useState(false);
 
-  const initCursor = voteDetails.cursor ?? DEFAULT_CURSOR
+  const initCursor = voteDetails.cursor;
 
   const [cursor, setCursor] = useState(initCursor);
 
@@ -113,32 +115,34 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
   , [ballot, parameters]);
 
 	return (
-    <div className="flex flex-col items-center w-full space-y-2">
-      <div id={"cursor_" + id} className="w-full flex flex-col items-center my-2 sm:my-1" style={{ position: 'relative' }}>
-        <div className="flex w-full rounded-sm z-0" style={{ height: CURSOR_HEIGHT, position: 'relative' }}>  
-          { cursor > MIN_CURSOR && <div className={`bg-brand-true h-full rounded-l ${ballot.choice === EYesNoChoice.Yes ? "" : "opacity-70"}`}  style={{ width: `${cursor * 100 + "%"       }`}}/> }
-          { cursor < MAX_CURSOR && <div className={`bg-brand-false h-full rounded-r ${ballot.choice === EYesNoChoice.No ? "" : "opacity-70"}`} style={{ width: `${( 1 - cursor) * 100 + "%"}`}}/> }
+    <div className="flex flex-col items-center w-full gap-y-2">
+      { cursor === undefined ? <div className="pt-2"></div> : 
+        <div id={"cursor_" + id} className="w-full flex flex-col items-center my-2 sm:my-1" style={{ position: 'relative' }}>
+          <div className="flex w-full rounded-sm z-0" style={{ height: CURSOR_HEIGHT, position: 'relative' }}>  
+            { cursor > MIN_CURSOR && <div className={`bg-brand-true h-full rounded-l ${ballot.choice === EYesNoChoice.Yes ? "" : "opacity-70"}`}  style={{ width: `${cursor * 100 + "%"       }`}}/> }
+            { cursor < MAX_CURSOR && <div className={`bg-brand-false h-full rounded-r ${ballot.choice === EYesNoChoice.No ? "" : "opacity-70"}`} style={{ width: `${( 1 - cursor) * 100 + "%"}`}}/> }
+          </div>
+          <input 
+            ref={sliderRef}
+            id={"cursor_input_" + id}
+            min={0}
+            max={1}
+            step={0.01}
+            type="range"
+            defaultValue={initCursor}
+            onFocus={() => setIsSliderActive(true)}
+            onBlur={() => setIsSliderActive(false)}
+            onChange={(e) =>  updateBallot(Number(e.target.value))}
+            onTouchEnd={(e) => onMouseUp()}
+            onMouseUp={(e) => onMouseUp()}
+            onTouchStart={(e) => onMouseDown()}
+            onMouseDown={(e) => onMouseDown()}
+            className={`w-full z-10 appearance-none focus:outline-none`}
+            style={{position: 'absolute', background: 'transparent', height: CURSOR_HEIGHT, cursor: 'pointer'}}
+            disabled={disabled}
+          />
         </div>
-        <input 
-          ref={sliderRef}
-          id={"cursor_input_" + id}
-          min={0}
-          max={1}
-          step={0.01}
-          type="range"
-          defaultValue={initCursor}
-          onFocus={() => setIsSliderActive(true)}
-          onBlur={() => setIsSliderActive(false)}
-          onChange={(e) =>  updateBallot(Number(e.target.value))}
-          onTouchEnd={(e) => onMouseUp()}
-          onMouseUp={(e) => onMouseUp()}
-          onTouchStart={(e) => onMouseDown()}
-          onMouseDown={(e) => onMouseDown()}
-          className={`w-full z-10 appearance-none focus:outline-none`}
-          style={{position: 'absolute', background: 'transparent', height: CURSOR_HEIGHT, cursor: 'pointer'}}
-          disabled={disabled}
-        />
-      </div>
+      }
       <div className="w-full items-center rounded-lg p-2 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
         <PutBallotPreview vote_id={id} ballot={ballot} />
       </div>
@@ -183,6 +187,11 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
             </div>
             <div className="w-5 h-5">
               <BitcoinIcon />
+            </div>
+            <div className="pl-2" onClick={() => setBallot({ amount: 0n, choice: ballot.choice })}>
+              <div className="w-5 h-5 hover:cursor-pointer fill-black dark:fill-white">
+                <ResetIcon />
+              </div>
             </div>
           </div>
         </div>

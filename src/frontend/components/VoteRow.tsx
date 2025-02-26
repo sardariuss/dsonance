@@ -32,6 +32,9 @@ const VoteRow: React.FC<VoteRowProps> = ({ category, voteDetails, text }) => {
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const blendedColor = useMemo(() => {
+    if (voteDetails.cursor === undefined) {
+      return undefined;
+    }
     return blendColors("#07E344", "#03B5FD", voteDetails.cursor); // Blend yes and no colors
   }, [voteDetails]);
 
@@ -48,9 +51,9 @@ const VoteRow: React.FC<VoteRowProps> = ({ category, voteDetails, text }) => {
       }
       <div
         className={`justify-self-end text-lg leading-none`}
-        style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
+        style={{ color: blendedColor ?? "white", textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
       >
-        { voteDetails.cursor.toFixed(2) }
+        { voteDetails.cursor ? voteDetails.cursor.toFixed(2) : "" }
       </div>
     </div>
   );

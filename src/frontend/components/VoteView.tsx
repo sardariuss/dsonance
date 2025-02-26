@@ -48,7 +48,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
             <BackArrowIcon/>
           </div>
           <span className="text-xl font-semibold items-baseline justify-self-center">Vote</span>
-          <span className="text-sm text-purple-700 dark:text-purple-500 items-baseline justify-self-end hover:cursor-pointer" onClick={() => resetVote() }>Clear all</span>
+          <span className="grow">{/* spacer */}</span>
         </div>
         <div className="w-full text-justify mb-3 mx-auto">
           { vote.info.text }
@@ -57,19 +57,17 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
         {vote.vote_id !== undefined && (
           <div className="flex flex-col space-y-2 items-center w-full">
             {voteDetails.total > 0 && (
-              <div className={`flex flex-col space-y-2 items-center w-full`}>
-                <VoteChart vote={vote} ballot={ballot} />
-                <PutBallot
-                  id={vote.vote_id}
-                  disabled={false}
-                  voteDetails={voteDetails}
-                  ballot={ballot}
-                  setBallot={setBallot}
-                  onMouseUp={() => {}}
-                  onMouseDown={() => {}}
-                />
-              </div>
+              <VoteChart vote={vote} ballot={ballot} />
             )}
+            <PutBallot
+              id={vote.vote_id}
+              disabled={false}
+              voteDetails={voteDetails}
+              ballot={ballot}
+              setBallot={setBallot}
+              onMouseUp={() => {}}
+              onMouseDown={() => {}}
+            />
           </div>
         )}
       </div>

@@ -41,6 +41,9 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ category, timestamp, voteDeta
   }, [voteDetails, ballot]);
 
   const blendedColor = useMemo(() => {
+    if (liveDetails.cursor === undefined) {
+      return undefined;
+    }
     return blendColors("#07E344", "#03B5FD", liveDetails.cursor); // Blend yes and no colors
   }, [liveDetails]);
 
@@ -69,7 +72,7 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ category, timestamp, voteDeta
           className={`${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
           style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
         >
-          { liveDetails.cursor.toFixed(2) }
+          { liveDetails.cursor ? liveDetails.cursor.toFixed(2) : ""}
         </div>
       </div>
     </div>

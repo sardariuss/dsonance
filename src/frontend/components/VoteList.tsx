@@ -87,7 +87,7 @@ const VoteList = () => {
         </div>}
         <div className="justify-self-end text-gray-600 dark:text-gray-400 font-light">Consensus</div>
       </div>
-      <ul className="w-full">
+      <ul className="w-full flex flex-col">
         {votes.map((vote: SYesNoVote, index) => (
           computeDecay && vote.info.visible && 
             <li key={index} ref={(el) => (voteRefs.current.set(vote.vote_id, el))} className="flex w-full scroll-mt-[104px] sm:scroll-mt-[88px] border-t border-slate-100 dark:border-slate-900">
