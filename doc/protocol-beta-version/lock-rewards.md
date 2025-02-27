@@ -64,7 +64,7 @@ Where $$p$$ (dissent steepness) is a protocol parameter between 0 and 1:
 * The closer $$p$$ is to 1, the steeper the curve (meaning the majority is rewarded less).
 * The closer $$p$$ is to 0, the more the majority is rewarded.
 
-<div align="center" data-full-width="true"><figure><img src="../.gitbook/assets/image (1).png" alt=""><figcaption><p>In X, the ratio total_opposit/ total, in Y the dissent. The red curve is the original dissent, the purple curve is the adjusted dissent.</p></figcaption></figure></div>
+<div align="center" data-full-width="true"><figure><img src="../.gitbook/assets/image (1) (1).png" alt=""><figcaption><p>In X, the ratio total_opposit/ total, in Y the dissent. The red curve is the original dissent, the purple curve is the adjusted dissent.</p></figcaption></figure></div>
 
 Since the **ballot itself influences the consensus**, we must account for its weight. The **ballot dissent** is calculated as:
 

@@ -51,18 +51,18 @@ To reinforce this deflationary shift, **10% of all BTC yield generated** by the 
 
 #### **DSN Token Allocation**
 
-<figure><img src=".gitbook/assets/token_allocation.PNG" alt=""><figcaption></figcaption></figure>
+<figure><img src=".gitbook/assets/image.png" alt=""><figcaption></figcaption></figure>
 
 The total supply of DSN will be **1 billion tokens**, distributed as follows to ensure long-term sustainability and alignment with ecosystem growth:
 
-* **160 million DSN (16%) – Dev team**\
+* **120 million DSN (12%) – Dev team**\
   Reserved as a **reward and incentive for the development team** for their contributions to the project.
-* **230 million DSN (23%) – SNS Decentralization Swap**\
+* **180 million DSN (18%) – SNS Decentralization Swap**\
   Allocated for the SNS swap, ensuring broad community ownership and decentralized governance.
-* **105 million DSN (10.5%) – Treasury**\
+* **95 million DSN (9.5%) – Treasury**\
   Held in reserve for future initiatives, partnerships, ecosystem grants, and unforeseen needs.
 * **5 million DSN (0.5%) – Airdrop**\
   A small portion dedicated to initial distribution, rewarding early adopters and fostering community engagement while minimizing the risk of excessive sell pressure.
-* **500 million DSN (50%) – Protocol Rewards**\
-  Gradually distributed to users over time as incentives for participating in the network, following an **exponential halving model every four years**, ensuring long-term engagement and sustainable growth.
+* **600 million DSN (60%) – Mining**\
+  Gradually distributed to users over time as incentives for opening votes and voting, following an **exponential halving model every four years**, ensuring long-term engagement and sustainable growth.
 
