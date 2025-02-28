@@ -1,4 +1,4 @@
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import LockChart from "../charts/LockChart";
 import { protocolActor } from "../../actors/ProtocolActor";
@@ -21,6 +21,7 @@ const BallotList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const ballotRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
   const [triggerScroll, setTriggerScroll] = useState(false);
+  const navigate = useNavigate();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const [ballots, setBallots] = useState<SBallotType[]>([]);
@@ -134,7 +135,9 @@ const BallotList = () => {
               {
                 /* Size of the header is 26 on mobile and 22 on desktop */
                 ballots?.map((ballot, index) => (
-                  <li key={index} ref={(el) => (ballotRefs.current.set(ballot.YES_NO.ballot_id, el))} className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]"> 
+                  <li key={index} ref={(el) => (ballotRefs.current.set(ballot.YES_NO.ballot_id, el))} 
+                    className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]" 
+                    onClick={(e) => { selectBallot(ballot.YES_NO.ballot_id); navigate(`/ballot/${ballot.YES_NO.ballot_id}`); }}>
                     <BallotRow 
                       ballot={ballot}
                       now={info?.current_time}

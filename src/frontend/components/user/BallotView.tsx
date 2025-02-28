@@ -172,12 +172,19 @@ const BallotView : React.FC<Props> = ({ ballot, now }) => {
         <span className="text-xl font-semibold items-baseline justify-self-center">Ballot</span>
         <span className="grow">{/* spacer */}</span>
       </div>
-      <div 
-        className={`text-justify mb-3 mx-auto hover:cursor-pointer`}
-        onClick={(e) => navigate(`/vote/${ballot.YES_NO.vote_id}`)}
-      >
-        { actualVote ? actualVote.info.text : "Loading..." }
-      </div>
+      { actualVote ? 
+        <div 
+          className={`text-justify mb-3 mx-auto hover:cursor-pointer`}
+          onClick={(e) => navigate(`/vote/${ballot.YES_NO.vote_id}`)}
+        >
+          { actualVote.info.text } 
+        </div> :
+        <div className="flex flex-col w-full space-y-2 mb-3">
+          <div className="w-full h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
+          <div className="w-full h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
+          <div className="w-1/2 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
+        </div>
+      }
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
         <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">Placed</span>
@@ -202,3 +209,54 @@ const BallotView : React.FC<Props> = ({ ballot, now }) => {
 }
 
 export default BallotView;
+
+export const BallotViewSkeleton: React.FC = () => {
+
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY  });
+  const navigate = useNavigate();
+
+  return (
+    <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>
+    {/* Header */}
+    <div className="grid grid-cols-3 space-x-1 mb-3 items-center w-full">
+      <div className="hover:cursor-pointer justify-self-start" onClick={() => navigate(-1)}>
+        <BackArrowIcon/>
+      </div>
+      <span className="text-xl font-semibold items-baseline justify-self-center">Ballot</span>
+      <span className="grow">{/* spacer */}</span>
+    </div>
+
+    {/* Vote Text Placeholder */}
+    <div className="flex flex-col w-full space-y-2 mb-3">
+      <div className="w-full h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
+      <div className="w-full h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
+      <div className="w-1/2 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
+    </div>
+
+    {/* Grid Section */}
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
+      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+        <span className="text-sm text-gray-600 dark:text-gray-400">Placed</span>
+        <div className="w-20 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+      </div>
+      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+        <span className="text-sm text-gray-600 dark:text-gray-400">Dissent</span>
+        <div className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+      </div>
+      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+        <span className="text-sm text-gray-600 dark:text-gray-400">Amount</span>
+        <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+      </div>
+      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+        <span className="text-sm text-gray-600 dark:text-gray-400">Choice</span>
+        <div className="w-10 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+      </div>
+    </div>
+
+    {/* Ballot Details Placeholder */}
+    <div className="w-full mt-3">
+      <div className="w-full h-12 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+    </div>
+  </div>
+  );
+}

@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import BallotView from "./BallotView";
+import BallotView, { BallotViewSkeleton } from "./BallotView";
 import { fromNullable } from "@dfinity/utils";
 import { protocolActor } from "../../actors/ProtocolActor";
 import { useProtocolContext } from "../ProtocolContext";
@@ -28,12 +28,16 @@ const Ballot = () => {
     , [id]);
 
     return (
-        loading ? <span>Loading...</span> :
-        actualBallot && info ?
-            <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-6 sm:p-6 sm:my-6 sm:rounded-lg shadow-md w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
+        <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-6 sm:p-6 sm:my-6 sm:rounded-lg shadow-md w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
+        { 
+            loading ? 
+                <BallotViewSkeleton/> :
+            actualBallot && info ?
                 <BallotView ballot={actualBallot} now={info?.current_time}/>
-            </div> 
-        :  <span>Ballot not found</span> 
+            :
+            <span>Ballot not found</span> 
+        }
+        </div>
     );
 }
 

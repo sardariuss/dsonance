@@ -80,3 +80,33 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ category, timestamp, voteDeta
 };
 
 export default VoteFigures;
+
+export const VoteFiguresSkeleton: React.FC = () => {
+  return (
+  <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
+    {/* Opened Date */}
+    <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+      <span className="text-sm text-gray-600 dark:text-gray-400">Opened</span>
+      <div className="w-20 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+    </div>
+
+    {/* Category */}
+    <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+      <span className="text-sm text-gray-600 dark:text-gray-400">Category</span>
+      <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+    </div>
+
+    {/* TVL */}
+    <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+      <span className="text-sm text-gray-600 dark:text-gray-400">TVL</span>
+      <div className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+    </div>
+
+    {/* Consensus */}
+    <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+      <span className="text-sm text-gray-600 dark:text-gray-400">Consensus</span>
+      <div className="w-10 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+    </div>
+  </div>
+  );
+}

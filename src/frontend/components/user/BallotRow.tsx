@@ -12,7 +12,6 @@ import { SBallotType } from "@/declarations/protocol/protocol.did";
 import { compute_vote_details } from "../../utils/conversions/votedetails";
 import { useProtocolContext } from "../ProtocolContext";
 import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { toEnum } from "../../utils/conversions/yesnochoice";
 import { useMediaQuery } from "react-responsive";
 
@@ -57,7 +56,6 @@ interface BallotProps {
 const BallotRow = ({ ballot, now }: BallotProps) => {
 
   const { formatSatoshis } = useCurrencyContext();
-  const navigate = useNavigate();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const { releaseTimestamp, contribution, foresightAPR } = useMemo(() => {
@@ -72,10 +70,7 @@ const BallotRow = ({ ballot, now }: BallotProps) => {
 
   return (
     now === undefined ? <></> :
-    <div 
-      className="rounded-lg p-2 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer w-full"
-      onClick={(e) => navigate(`/ballot/${ballot.YES_NO.ballot_id}`)}
-    >
+    <div className="rounded-lg p-2 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer w-full">
       <div className={`grid ${isMobile ? "grid-cols-[minmax(100px,1fr)_repeat(1,minmax(60px,auto))]" : "grid-cols-[minmax(100px,1fr)_repeat(5,minmax(60px,auto))]"} gap-2 sm:gap-x-8 w-full items-center px-2 sm:px-3`}>
 
         <VoteText vote_id={ballot.YES_NO.vote_id}/>
