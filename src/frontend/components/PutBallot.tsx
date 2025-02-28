@@ -52,7 +52,7 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
       }
       if (authenticated) {
         refreshBtcAllowance();
-        navigate(`/?tab=ballots\&ballotId=${result.ok.YES_NO.ballot_id}`);
+        navigate(`/ballot/${result.ok.YES_NO.ballot_id}`);
       }
     },
     onError: (error) => {

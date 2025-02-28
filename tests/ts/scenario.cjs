@@ -84,8 +84,20 @@ async function callCanisterMethod() {
     const ckBtcCanisterId = process.env.CANISTER_ID_CK_BTC;
     const dsnLedgerCanisterId = process.env.CANISTER_ID_DSN_LEDGER;
 
-    if (!protocolCanisterId || !backendCanisterId || !minterCanisterId || !ckBtcCanisterId || !dsnLedgerCanisterId) {
-        throw new Error("One of environment variable CANISTER_ID_* is not defined");
+    if (!protocolCanisterId){
+        throw new Error("Protocol canister ID is missing");
+    }
+    if (!minterCanisterId){
+        throw new Error("Minter canister ID is missing");
+    }
+    if (!backendCanisterId){
+        throw new Error("Backend canister ID is missing");
+    }
+    if (!ckBtcCanisterId){
+        throw new Error("ckBTC canister ID is missing");
+    }
+    if (!dsnLedgerCanisterId){
+        throw new Error("DSN Ledger canister ID is missing");
     }
 
     // Simulation actors
@@ -191,7 +203,7 @@ async function callCanisterMethod() {
         console.log("Scenario tick: ", tick);
 
         // Retrieve all votes
-        let votes = await backendSimActor.get_votes( { categories: [] } );
+        let votes = await backendSimActor.get_votes( { categories: [], previous: [], limit: 100 } );
         console.log(votes);
 
         let putBallotPromises = [];

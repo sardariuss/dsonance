@@ -18,6 +18,7 @@ module {
     type SPreviewBallotResult = Types.SPreviewBallotResult;
     type NewVoteArgs = Types.NewVoteArgs;
     type PutBallotArgs = Types.PutBallotArgs;
+    type GetBallotArgs = Types.GetBallotArgs;
     type Account = Types.Account;
     type SBallotType = Types.SBallotType;
     type PreviewBallotError = Types.PreviewBallotError;
@@ -62,8 +63,8 @@ module {
             Option.map(controller.find_vote(vote_id), SharedConversions.shareVoteType);
         };
 
-        public func get_ballots(account: Account) : [SBallotType] {
-            Array.map(controller.get_ballots(account), SharedConversions.shareBallotType);
+        public func get_ballots(args: GetBallotArgs) : [SBallotType] {
+            Array.map(controller.get_ballots(args), SharedConversions.shareBallotType);
         };
 
         public func find_ballot(ballot_id: UUID) : ?SBallotType {

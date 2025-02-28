@@ -70,8 +70,8 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     // Get the ballots of the given account
-    public query func get_ballots(account: Types.Account) : async [Types.SBallotType] {
-        getFacade().get_ballots(account);
+    public query func get_ballots(args: Types.GetBallotArgs) : async [Types.SBallotType] {
+        getFacade().get_ballots(args);
     };
 
     // Get the ballots of the given vote

@@ -50,7 +50,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
           <span className="text-xl font-semibold items-baseline justify-self-center">Vote</span>
           <span className="grow">{/* spacer */}</span>
         </div>
-        <div className="w-full text-justify mb-3 mx-auto">
+        <div className="w-full text-center mb-4 mx-auto">
           { vote.info.text }
         </div>
         <VoteFigures category={vote.info.category} timestamp={vote.date} voteDetails={voteDetails} ballot={ballot} />

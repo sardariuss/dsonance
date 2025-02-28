@@ -25,9 +25,9 @@ const Home = () => {
   }, [selectedTab, setSearchParams]);
 
   return (
-    <div className="flex flex-col w-full sm:w-4/5 md:w-3/4 lg:w-2/3 my-4 px-3">
+    <div className="flex flex-col w-full sm:w-4/5 md:w-3/4 lg:w-2/3 pt-4 px-3">
       {/* Tabs */}
-      <ul className="flex flex-wrap gap-x-6 gap-y-2 my-6 items-center">
+      <ul className="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-2 my-6 items-center">
         {tabs.map((tab) => (
           <li key={tab.key} className="min-w-max text-center">
             <TabButton

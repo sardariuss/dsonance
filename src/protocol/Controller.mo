@@ -198,13 +198,17 @@ module {
             #ok(SharedConversions.shareBallotType(ballot_type));
         };
 
-        public func get_ballots(account: Account) : [BallotType] {
-            let buffer = Buffer.Buffer<BallotType>(0);
+        public func get_ballots({ account: Account; previous: ?UUID; limit: Nat; }) : [BallotType] {
+            let buffer = Buffer.Buffer<BallotType>(limit);
             Option.iterate(Map.get(ballot_register.by_account, MapUtils.acchash, account), func(ids: Set.Set<UUID>) {
-                for (id in Set.keys(ids)) {
-                    Option.iterate(Map.get(ballot_register.ballots, Map.thash, id), func(ballot_type: BallotType) {
-                        buffer.add(ballot_type);
-                    });
+                let iter = Set.keysFrom(ids, Set.thash, previous);
+                label limit_loop while (buffer.size() < limit) {
+                    switch (iter.next()) {
+                        case (null) { break limit_loop; };
+                        case (?id) { Option.iterate(Map.get(ballot_register.ballots, Map.thash, id), func(ballot_type: BallotType) {
+                            buffer.add(ballot_type);
+                        }); };
+                    };
                 };
             }); 
             Buffer.toArray(buffer);

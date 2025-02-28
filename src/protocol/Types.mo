@@ -65,6 +65,12 @@ module {
         filter_ids: ?[UUID];
     };
 
+    public type GetBallotArgs = {
+        account: Account;
+        previous: ?UUID;
+        limit: Nat;
+    };
+
     public type FindVoteArgs = {
         vote_id: UUID;
     };

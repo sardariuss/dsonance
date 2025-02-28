@@ -31,7 +31,7 @@ shared({ caller = admin }) actor class Backend() = this {
     type SNewVoteError = ProtocolTypes.NewVoteError or { #AnonymousCaller; #CategoryNotFound; };
 
     stable let _infos = Map.new<UUID, VoteInfo>();
-    stable let _categories = Map.new<Text, [UUID]>();
+    stable let _categories = Map.new<Text, Set.Set<UUID>>();
 
     public shared({ caller }) func new_vote({
         text: Text;
@@ -53,7 +53,7 @@ shared({ caller = admin }) actor class Backend() = this {
                     Map.set(_infos, Map.thash, vote.vote_id, info);
                     switch(Map.get(_categories, Map.thash, category)) {
                         case(null){ /* Shall not happen */ };
-                        case(?ids) { Map.set(_categories, Map.thash, category, Array.append(ids, [vote.vote_id])); };
+                        case(?ids) { ignore Set.put(ids, Set.thash, vote.vote_id); };
                     };
                     { vote with info; };
                 };
@@ -68,24 +68,41 @@ shared({ caller = admin }) actor class Backend() = this {
         });
     };
 
-    public composite query func get_votes({ categories: ?[Text] }) : async [SYesNoVote] {
-        let filter_ids = switch (categories) {
-            case (null) { null };  // No categories = no filter
+    public composite query func get_votes({ categories: ?[Text]; previous: ?UUID; limit: Nat; }) : async [SYesNoVote] {
+        let buffer = Buffer.Buffer<[UUID]>(limit);
+
+        // Collect all vote IDs from the given categories (or all if `categories` is null)
+        switch (categories) {
+            case (null) { buffer.add(Iter.toArray(Map.keys(_infos))); };
             case (?c) { 
-                let buffer = Buffer.Buffer<[UUID]>(0); // Use UUID type
-                for (category in Array.vals(c)) { // Directly iterate over `categories`
+                for (category in Array.vals(c)) {
                     switch (Map.get(_categories, Map.thash, category)) {
-                        case (null) { }; // Ignore missing categories
-                        case (?ids) { buffer.add(ids) }; // Add valid category IDs
+                        case (null) { };
+                        case (?ids) { buffer.add(Set.toArray(ids)); };
                     };
                 };
-
-                ?Array.flatten(Buffer.toArray(buffer)); // Ensure correct type
             };
         };
 
-        let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); filter_ids });
+        // Flatten collected vote IDs into a Set (ordering by UUID)
+        let ids = Set.fromIter(Array.vals(Array.flatten(Buffer.toArray(buffer))), Set.thash);
 
+        // Retrieve vote IDs starting from `previous`, if provided
+        let iter = Set.keysFrom(ids, Set.thash, previous);
+        let filter_ids = Buffer.Buffer<UUID>(limit);
+
+        // Collect up to `limit` vote IDs
+        label limit_loop while (filter_ids.size() < limit) {
+            switch (iter.next()) {
+                case (?id) { filter_ids.add(id); };
+                case (null) { break limit_loop; };
+            };
+        };
+
+        // Fetch votes using the collected `filter_ids`
+        let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); filter_ids = ?Buffer.toArray(filter_ids); });
+
+        // Process and return votes
         Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {
             with_info(vote_type);
         });
@@ -93,7 +110,7 @@ shared({ caller = admin }) actor class Backend() = this {
 
     public shared func add_categories(categories: [Text]) : async () {
         for (category in Array.vals(categories)) {
-            Map.set(_categories, Map.thash, category, []);
+            Map.set(_categories, Map.thash, category, Set.new<UUID>());
         };
     };
 
@@ -106,7 +123,14 @@ shared({ caller = admin }) actor class Backend() = this {
     };
 
     public query func get_vote_by_category() : async [(Text, [UUID])] {
-        Iter.toArray(Map.entries(_categories));
+        var result = Buffer.Buffer<(Text, [UUID])>(Map.size(_categories));
+
+        for ((category, votesSet) in Map.entries(_categories)) {
+            let votesArray = Iter.toArray(Set.keys(votesSet));
+            result.add((category, votesArray));
+        };
+
+        return Buffer.toArray(result);
     };
 
     public shared({caller}) func set_vote_visible({vote_id: UUID; visible: Bool; }) : async Result.Result<(), Text> {
