@@ -51,7 +51,7 @@ const User = () => {
   }
 
   return (
-    <div className="flex flex-col gap-y-2 items-center bg-slate-50 dark:bg-slate-850 p-2 my-4 rounded-md w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
+    <div className="flex flex-col gap-y-4 items-center bg-slate-50 dark:bg-slate-850 h-full sm:h-auto p-4 sm:my-4 sm:rounded-md w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
       <div className="relative group">
         <div className="flex flex-row items-center space-x-2">
           <span
@@ -80,14 +80,11 @@ const User = () => {
         )}
       </div>
       {
-        !identity.getPrincipal().isAnonymous() && identity.getPrincipal().toString() === principal &&
-          <div className="flex flex-col items-center w-full bg-slate-100 dark:bg-slate-900 rounded-md shadow-md">
-            <Wallet/>
-          </div>
+        !identity.getPrincipal().isAnonymous() && identity.getPrincipal().toString() === principal && <Wallet/>
       }
       {
         isMobile && 
-          <div className="flex flex-row justify-center w-full bg-slate-100 dark:bg-slate-900 rounded-md shadow-md">
+          <div className="flex flex-row justify-center w-full p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
             <CurrencyConverter/>
             <ThemeToggle/>
           </div>

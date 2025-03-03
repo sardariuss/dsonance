@@ -198,20 +198,59 @@ module {
             #ok(SharedConversions.shareBallotType(ballot_type));
         };
 
-        public func get_ballots({ account: Account; previous: ?UUID; limit: Nat; }) : [BallotType] {
+        public func get_ballots({ account: Account; previous: ?UUID; limit: Nat; filter_active: Bool; }) : [BallotType] {
             let buffer = Buffer.Buffer<BallotType>(limit);
             Option.iterate(Map.get(ballot_register.by_account, MapUtils.acchash, account), func(ids: Set.Set<UUID>) {
                 let iter = Set.keysFrom(ids, Set.thash, previous);
                 label limit_loop while (buffer.size() < limit) {
                     switch (iter.next()) {
                         case (null) { break limit_loop; };
-                        case (?id) { Option.iterate(Map.get(ballot_register.ballots, Map.thash, id), func(ballot_type: BallotType) {
-                            buffer.add(ballot_type);
-                        }); };
+                        case (?id) { 
+                            Option.iterate(Map.get(ballot_register.ballots, Map.thash, id), func(ballot_type: BallotType) {
+                                if (filter_active) {
+                                    switch(ballot_type){
+                                        case(#YES_NO(ballot)) {
+                                            let lock = BallotUtils.unwrap_lock(ballot);
+                                            if (lock.release_date > clock.get_time()){
+                                                buffer.add(ballot_type);
+                                            };
+                                        };
+                                    };
+                                } else {
+                                    buffer.add(ballot_type);
+                                };
+                            });
+                        };
                     };
                 };
             }); 
             Buffer.toArray(buffer);
+        };
+
+        public func get_locked_amount({ account: Account; }) : Nat {
+            let timestamp = clock.get_time();
+            switch(Map.get(ballot_register.by_account, MapUtils.acchash, account)){
+                case(null) { 0; };
+                case(?ids) { 
+                    var total = 0;
+                    for (ballot_id in Set.keys(ids)){
+                        switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)){
+                            case(null) {};
+                            case(?ballot) {
+                                switch(ballot){
+                                    case(#YES_NO(b)) {
+                                        let lock = BallotUtils.unwrap_lock(b);
+                                        if (lock.release_date > timestamp){
+                                            total += b.amount;
+                                        };
+                                    };
+                                };
+                            };
+                        };
+                    };
+                    total;
+                };
+            };
         };
 
         public func get_vote_ballots(vote_id: UUID) : [BallotType] {

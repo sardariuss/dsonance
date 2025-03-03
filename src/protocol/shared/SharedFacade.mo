@@ -67,6 +67,10 @@ module {
             Array.map(controller.get_ballots(args), SharedConversions.shareBallotType);
         };
 
+        public func get_locked_amount({ account: Account; }) : Nat {
+            controller.get_locked_amount({account});
+        };
+
         public func find_ballot(ballot_id: UUID) : ?SBallotType {
             Option.map<BallotType, SBallotType>(controller.find_ballot(ballot_id), SharedConversions.shareBallotType);
         };

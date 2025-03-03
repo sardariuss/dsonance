@@ -69,6 +69,7 @@ module {
         account: Account;
         previous: ?UUID;
         limit: Nat;
+        filter_active: Bool;
     };
 
     public type FindVoteArgs = {

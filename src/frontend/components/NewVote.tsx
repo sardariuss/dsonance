@@ -90,8 +90,6 @@ function NewVote() {
         <span className="grow">{/* spacer */}</span>
       </div>
 
-      <span className="grow">{/* spacer */}</span>
-
       <div className="flex flex-col gap-y-2">
         <div className="bg-slate-200 dark:bg-gray-800 p-4 rounded-md">
           <ul className="mt-2 text-md leading-relaxed">

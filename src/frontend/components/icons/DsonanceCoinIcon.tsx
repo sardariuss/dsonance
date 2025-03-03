@@ -1,8 +1,8 @@
-interface DsonanceCoinIconProps {
+interface DsnCoinIconProps {
     className?: string;
 }
 
-const DsonanceCoinIcon = () => (
+const DsnCoinIcon = () => (
     <div className="h-5 w-5">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" className="flex w-full" version="1.1">
             <g transform="translate(0.00630876,-0.00301984)">
@@ -13,4 +13,4 @@ const DsonanceCoinIcon = () => (
     </div>
 );
   
-export default DsonanceCoinIcon;
+export default DsnCoinIcon;

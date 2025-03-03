@@ -1,8 +1,8 @@
 import { formatDuration } from "../../utils/conversions/durationUnit";
-import { niceFormatDate, timeToDate } from "../../utils/conversions/date";
+import { niceFormatDate, timeDifference, timeToDate } from "../../utils/conversions/date";
 
 import { DSONANCE_COIN_SYMBOL, MOBILE_MAX_WIDTH_QUERY } from "../../constants";
-import { get_current, map_timeline_hack, to_number_timeline } from "../../utils/timeline";
+import { get_current, map_timeline_hack, to_number_timeline, to_time_left } from "../../utils/timeline";
 import DurationChart, { CHART_COLORS } from "../charts/DurationChart";
 import { unwrapLock } from "../../utils/conversions/ballot";
 import { formatBalanceE8s } from "../../utils/conversions/token";
@@ -70,7 +70,7 @@ const BallotDetails : React.FC<Props> = ({ ballot, now }) => {
             <div className="flex flex-row w-full gap-x-2 px-2">
                 <span className="text-base grow">APR:</span> 
                 <span className="font-semibold [text-shadow:0px_0px_10px_rgb(59,130,246)]">{ ballot.YES_NO.foresight.current.data.apr.current.toFixed(2) + "%" }</span>
-                { apr_diff !== undefined && <span className="italic text-gray-700 dark:text-gray-300">{`(${apr_diff.toFixed(2)}%)`}</span> }
+                { apr_diff !== undefined && <span className="italic text-gray-700 dark:text-gray-300">{`(${apr_diff > 0 ? "+" : ""}${apr_diff.toFixed(2)}%)`}</span> }
                 { chartToggle === CHART_TOGGLE.DISCERNMENT ? <ChevronUpIcon/> : <ChevronDownIcon/> }
             </div>
             { (chartToggle === CHART_TOGGLE.DISCERNMENT) && 
@@ -112,7 +112,7 @@ const BallotDetails : React.FC<Props> = ({ ballot, now }) => {
             <div className="flex flex-row w-full gap-x-2 px-2">
                 <span className="text-base grow">Consent:</span> 
                 { ballot.YES_NO.consent.current.data.toFixed(3) }
-                { consent_diff !== undefined && <span className="italic text-gray-700 dark:text-gray-300">{`(${consent_diff.toFixed(3)})`}</span> }
+                { consent_diff !== undefined && <span className="italic text-gray-700 dark:text-gray-300">{`(${consent_diff > 0 ? "+" : ""}${consent_diff.toFixed(3)})`}</span> }
                 { chartToggle === CHART_TOGGLE.CONSENT ? <ChevronUpIcon/> : <ChevronDownIcon/> }
             </div>
             { (chartToggle === CHART_TOGGLE.CONSENT) && 
@@ -122,7 +122,6 @@ const BallotDetails : React.FC<Props> = ({ ballot, now }) => {
                     fillArea={true}
                     y_min={0}
                     y_max={1.0}
-                    last_timestamp={releaseTimestamp <= now ? releaseTimestamp : now }
                 />
             }
           </div>
@@ -132,17 +131,25 @@ const BallotDetails : React.FC<Props> = ({ ballot, now }) => {
             onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.DURATION ? undefined : CHART_TOGGLE.DURATION )} 
           >
             <div className="flex flex-row w-full gap-x-2 px-2">
-                <span className="text-base grow">Duration:</span> 
-                <span>{formatDuration(get_current(unwrapLock(ballot).duration_ns).data) }</span>
-                { duration_diff !== undefined && <span className="italic text-gray-700 dark:text-gray-300">{`(+ ${formatDuration(duration_diff)})`}</span> }
+                <span className="text-base grow">{ releaseTimestamp > now ? "Time left:" : "Duration:"}</span> 
+                <span>
+                  { releaseTimestamp > now ? formatDuration(releaseTimestamp - now) : formatDuration(get_current(unwrapLock(ballot).duration_ns).data) }
+                </span>
+                { duration_diff !== undefined && 
+                  <span className="italic text-gray-700 dark:text-gray-300">
+                    {`(+ ${formatDuration(duration_diff)})`}
+                  </span>
+                }
                 { chartToggle === CHART_TOGGLE.DURATION ? <ChevronUpIcon/> : <ChevronDownIcon/> }
             </div>
             { (chartToggle === CHART_TOGGLE.DURATION) && 
                 <DurationChart 
-                    duration_timelines={ new Map([["duration", { timeline: to_number_timeline(unwrapLock(ballot).duration_ns), color: CHART_COLORS.PURPLE} ]]) }
+                    duration_timelines={ releaseTimestamp > now ? 
+                      new Map([["time_left", { timeline: to_number_timeline(to_time_left(unwrapLock(ballot).duration_ns, now)), color: CHART_COLORS.PURPLE} ]]) :
+                      new Map([["duration", { timeline: to_number_timeline(unwrapLock(ballot).duration_ns), color: CHART_COLORS.PURPLE} ]])
+                     }
                     format_value={ (value: number) => formatDuration(BigInt(value)) } 
                     fillArea={true}
-                    last_timestamp={releaseTimestamp <= now ? releaseTimestamp : now }
                 />
             }
           </div>

@@ -9,7 +9,7 @@ import { formatBalanceE8s, toE8s } from '../utils/conversions/token';
 import { DSONANCE_COIN_SYMBOL } from '../constants';
 import { minterActor } from '../actors/MinterActor';
 import BitcoinIcon from './icons/BitcoinIcon';
-import DsonanceCoinIcon from './icons/DsonanceCoinIcon';
+import DsnCoinIcon from './icons/DsnCoinIcon';
 import { useCurrencyContext } from './CurrencyContext';
 import { useAllowanceContext } from './AllowanceContext';
 
@@ -152,7 +152,7 @@ const Wallet = () => {
   }, [authenticated, identity]);
 
   return (
-    <div className="flex flex-col space-y-4 p-4 w-full items-center">
+    <div className="flex flex-col space-y-4 w-full items-center">
 
     {/* Bitcoin Section */}
     <div className="w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
@@ -205,7 +205,7 @@ const Wallet = () => {
     {/* Dsonance Section */}
     <div className="w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
       <div className="flex items-center space-x-2 mb-2">
-        <DsonanceCoinIcon/>
+        <DsnCoinIcon/>
         <span className="text-gray-700 dark:text-white text-lg">Dsonance</span>
       </div>
 

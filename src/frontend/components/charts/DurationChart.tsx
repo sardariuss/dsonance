@@ -8,7 +8,6 @@ import { format } from "date-fns";
 import { ThemeContext } from "../App";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
-import { useProtocolContext } from "../ProtocolContext";
 
 export enum CHART_COLORS {
   BLUE = "rgb(59 130 246)",
@@ -18,21 +17,12 @@ export enum CHART_COLORS {
   GREEN = "rgb(7 227 68)",
 }
 
-const COLOR_NAMES = {
-  [CHART_COLORS.BLUE]: 'BLUE',
-  [CHART_COLORS.PURPLE]: 'PURPLE',
-  [CHART_COLORS.WHITE]: 'WHITE',
-  [CHART_COLORS.YELLOW]: 'YELLOW',
-  [CHART_COLORS.GREEN]: 'GREEN',
-};
-
 interface DurationChartProps {
   duration_timelines: Map<string, SerieInput>;
   format_value: (value: number) => string;
   fillArea: boolean;
   y_min?: number;
   y_max?: number;
-  last_timestamp?: bigint;
 };
 
 type SerieInput = {
@@ -40,7 +30,7 @@ type SerieInput = {
   color: CHART_COLORS;
 };
 
-const create_serie = (id: string, duration_timeline: STimeline, last_timestamp: bigint | undefined): Serie => {
+const create_serie = (id: string, duration_timeline: STimeline): Serie => {
   let data = duration_timeline.history.map((duration_ns) => {
     return {
       x: new Date(nsToMs(duration_ns.timestamp)),
@@ -51,16 +41,10 @@ const create_serie = (id: string, duration_timeline: STimeline, last_timestamp: 
     x: new Date(nsToMs(duration_timeline.current.timestamp)),
     y: duration_timeline.current.data
   });
-  if (last_timestamp) {
-    data.push({
-      x: new Date(nsToMs(last_timestamp)),
-      y: duration_timeline.current.data
-    });
-  }
   return { id, data };
 };
   
-const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max, last_timestamp }: DurationChartProps) => {
+const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max }: DurationChartProps) => {
 
   const { theme } = useContext(ThemeContext);
 
@@ -90,20 +74,17 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
     };
   }, []);
 
-  const { info } = useProtocolContext();
-
   // Set up the chart container ref
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
 
   const data = useMemo(() => {
     const series : Serie[] = [];
-    let timestamp = last_timestamp ?? info?.current_time;
     duration_timelines.forEach((input, id) => {
-      let serie = create_serie(id, input.timeline, timestamp);
+      let serie = create_serie(id, input.timeline);
       series.push(serie);
     });
     return series;
-  }, [duration_timelines, info]);
+  }, [duration_timelines]);
 
   return (
     <div className="flex flex-col items-center space-y-1 w-full" ref={containerRef}>
@@ -126,7 +107,7 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
             min: y_min,
             max: y_max,
           }}
-          curve='linear'
+          curve='stepAfter'
           enableArea={fillArea}
           animate={false}
           enablePoints={false}
