@@ -14,13 +14,13 @@ coverY: 0
 
 * **NFID Wallet Integration.**
 * **Official Platform Launch**: Transition from simulated beta to full release.
-* **SNS Decentralization Sale.**
-* **Meta Voting**: enable the community to moderate votes through _meta votes_ which impact the visibility and rewards of _normal votes_.
+* **Meta Voting**: enable the community to moderate votes through _meta votes_ which impact the visibility and rewards of _consensus votes_.
 
 **Q3 2025**
 
 * **Limit Order Voting**: Allow users to set conditions where a ballot automatically locks if dissent surpasses a defined threshold.
 * **DSN buyback and Burn.**
+* **SNS Decentralization Sale.**
 * **Dynamic tagging system** to get a more flexible and modern vote categorization and research.
 
 **Q4 2025**
@@ -30,8 +30,8 @@ coverY: 0
 
 **Later**
 
-* **New vote bot scrapping**: automatic scrapping of web for statements to vote on.
-* **AI integration**: to improving statements wording, verifying doublons, get an idea of current trend.
+* **Vote opening bot**: automatic scrapping of web that open statements to vote on.
+* **AI integration**: to improving statements wording, avoiding duplicates, getting trends, etc.
 
 
 
