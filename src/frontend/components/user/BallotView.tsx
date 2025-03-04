@@ -37,12 +37,11 @@ interface ChartCardProps {
   valueClassName?: string;
   yMin?: number;
   yMax?: number;
-  curve?: "linear" | "stepAfter";
   setChartToggle: (toggleKey: CHART_TOGGLE | undefined) => void;
   chartToggle: CHART_TOGGLE | undefined;
 }
 
-const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, chartTimelines, formatValue, valueClassName, yMin, yMax, curve, setChartToggle, chartToggle }) => (
+const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, chartTimelines, formatValue, valueClassName, yMin, yMax, setChartToggle, chartToggle }) => (
   <div
     className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
     onClick={() => setChartToggle(chartToggle === toggleKey ? undefined : toggleKey)}
@@ -60,7 +59,6 @@ const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, c
         fillArea={true}
         y_min={yMin}
         y_max={yMax}
-        curve={curve}
       />
     )}
   </div>
@@ -174,7 +172,6 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
                   ],
                 ]),
           formatValue: (value: number) => formatDuration(BigInt(value)),
-          curve: "linear" as "linear",
         },
       ];
 

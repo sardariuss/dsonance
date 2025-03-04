@@ -23,7 +23,6 @@ interface DurationChartProps {
   fillArea: boolean;
   y_min?: number;
   y_max?: number;
-  curve?: "linear" | "stepAfter";
 };
 
 export type SerieInput = {
@@ -45,7 +44,7 @@ const create_serie = (id: string, duration_timeline: STimeline): Serie => {
   return { id, data };
 };
   
-const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max, curve }: DurationChartProps) => {
+const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max }: DurationChartProps) => {
 
   const { theme } = useContext(ThemeContext);
 
@@ -107,7 +106,7 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
             min: y_min,
             max: y_max,
           }}
-          curve= { curve ?? 'stepAfter' }
+          curve= { 'linear' }
           enableArea={fillArea}
           animate={false}
           enablePoints={false}

@@ -4,6 +4,9 @@ import { add_ballot, VoteDetails } from "../utils/conversions/votedetails";
 import { useCurrencyContext } from "./CurrencyContext";
 import { useProtocolContext } from "./ProtocolContext";
 import { niceFormatDate, timeToDate } from "../utils/conversions/date";
+import InfoIcon from "./icons/InfoIcon";
+import { Link } from "react-router-dom";
+import { DOCS_EVP_URL } from "../constants";
 
 // Utility to blend two colors based on a ratio (0 to 1)
 const blendColors = (color1: string, color2: string, ratio: number) => {
@@ -63,7 +66,12 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ category, timestamp, voteDeta
         <span>{category}</span>
       </div>
       <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
-        <span className="text-sm text-gray-600 dark:text-gray-400">TVL</span>
+        <span className="flex flex-row gap-x-1 items-center">
+          <span className="text-sm text-gray-600 dark:text-gray-400">EVP</span>
+          <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noreferrer">
+            <InfoIcon/>
+          </Link>
+        </span>
         <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(BigInt(Math.trunc(liveDetails.total)))}</span>
       </div>
       <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
@@ -96,9 +104,14 @@ export const VoteFiguresSkeleton: React.FC = () => {
       <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
     </div>
 
-    {/* TVL */}
+    {/* EVP */}
     <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
-      <span className="text-sm text-gray-600 dark:text-gray-400">TVL</span>
+      <span className="flex flex-row gap-x-1 items-center">
+        <span className="text-sm text-gray-600 dark:text-gray-400">EVP</span>
+        <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noreferrer">
+          <InfoIcon/>
+        </Link>
+      </span>
       <div className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
     </div>
 

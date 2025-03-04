@@ -77,9 +77,9 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
   useEffect(() => {
   // Only update if input is not focused, meaning that it comes from an external stimulus
     if (customRef.current && !isCustomActive) {
-      let amount = satoshisToCurrency(ballot.amount);
+      let amount = formatSatoshis(ballot.amount);
       if (amount !== undefined) {
-        customRef.current.value = amount.toString();
+        customRef.current.value = amount;
       }
     }
     if (sliderRef.current && !isSliderActive) {

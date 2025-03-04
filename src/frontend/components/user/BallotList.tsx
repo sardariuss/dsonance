@@ -41,7 +41,7 @@ const BallotList = () => {
 
   const selectedBallotId = useMemo(() => searchParams.get("ballotId"), [searchParams]);
 
-  const selectBallot = (ballotId: string) => {
+  const toggleBallot = (ballotId: string) => {
     setSearchParams((prevParams) => {
       const newParams = new URLSearchParams(prevParams);
       if (selectedBallotId === ballotId) {
@@ -51,6 +51,14 @@ const BallotList = () => {
         // Set voteId if it's not selected
         newParams.set("ballotId", ballotId);
       }
+      return newParams;
+    });
+  }
+
+  const selecteBallot = (ballotId: string) => {
+    setSearchParams((prevParams) => {
+      const newParams = new URLSearchParams(prevParams);
+      newParams.set("ballotId", ballotId);
       return newParams;
     });
   }
@@ -143,7 +151,7 @@ const BallotList = () => {
       </div>
       { ballotEntries.ballots.length > 0 && 
         <div className="flex w-full py-8 sm:py-6">
-          <LockChart ballots={ballotEntries.ballots} select_ballot={(id) => { setTriggerScroll(!triggerScroll); selectBallot(id); }} selected={selectedBallotId}/>
+          <LockChart ballots={ballotEntries.ballots} select_ballot={(id) => { setTriggerScroll(!triggerScroll); toggleBallot(id); }} selected={selectedBallotId}/>
         </div>
       }
       { ballotEntries.ballots.length > 0 && 
@@ -167,10 +175,11 @@ const BallotList = () => {
             ballotEntries.ballots.map((ballot, index) => (
               <li key={index} ref={(el) => (ballotRefs.current.set(ballot.YES_NO.ballot_id, el))} 
                 className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]" 
-                onClick={(e) => { selectBallot(ballot.YES_NO.ballot_id); navigate(`/ballot/${ballot.YES_NO.ballot_id}`); }}>
+                onClick={(e) => { selecteBallot(ballot.YES_NO.ballot_id); navigate(`/ballot/${ballot.YES_NO.ballot_id}`); }}>
                 <BallotRow 
                   ballot={ballot}
                   now={info?.current_time}
+                  selected={selectedBallotId === ballot.YES_NO.ballot_id}
                 />
               </li>
             ))

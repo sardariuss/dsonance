@@ -26,24 +26,25 @@ const VoteText = ({ vote_id }: VoteTextProps) => {
     args: [{ vote_id }],
   });
 
-  const { computeDecay } = useProtocolContext();
+  const { computeDecay, info } = useProtocolContext();
   
   const vote = useMemo(() => {
     return opt_vote ? fromNullable(opt_vote) : undefined;
   }, [opt_vote]);
 
   const voteDetails = useMemo(() => {
-    if (vote === undefined || computeDecay === undefined) {
+    if (vote === undefined || computeDecay === undefined || info === undefined) {
       return undefined;
     }
-    return compute_vote_details(vote, computeDecay);
+    return compute_vote_details(vote, computeDecay(info.current_time));
   }, [vote, computeDecay]);
 
   return (
     <div className="flex items-center h-[4.5em] sm:h-[3em]">
-      <span className="line-clamp-3 sm:line-clamp-2 overflow-hidden">
-        { vote === undefined || voteDetails === undefined ? "Loading..." : vote.info.text}
-      </span>
+      { vote === undefined || voteDetails === undefined ? 
+        <span className="w-full h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/> :
+        <span className="line-clamp-3 sm:line-clamp-2 overflow-hidden"> {vote.info.text} </span>
+      }
     </div>
   )
 }
@@ -51,9 +52,10 @@ const VoteText = ({ vote_id }: VoteTextProps) => {
 interface BallotProps {
   ballot: SBallotType;
   now: bigint | undefined;
+  selected: boolean;
 }
 
-const BallotRow = ({ ballot, now }: BallotProps) => {
+const BallotRow = ({ ballot, now, selected }: BallotProps) => {
 
   const { formatSatoshis } = useCurrencyContext();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
@@ -70,7 +72,7 @@ const BallotRow = ({ ballot, now }: BallotProps) => {
 
   return (
     now === undefined ? <></> :
-    <div className="rounded-lg p-2 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer w-full">
+    <div className={`rounded-lg p-2 shadow-sm bg-slate-200 dark:bg-gray-800 hover:cursor-pointer w-full ${ selected ? "border-2 dark:border-gray-500 border-gray-500" : "border dark:border-gray-700 border-gray-300"}`}>
       <div className={`grid ${isMobile ? "grid-cols-[minmax(100px,1fr)_repeat(1,minmax(60px,auto))]" : "grid-cols-[minmax(100px,1fr)_repeat(5,minmax(60px,auto))]"} gap-2 sm:gap-x-8 w-full items-center px-2 sm:px-3`}>
 
         <VoteText vote_id={ballot.YES_NO.vote_id}/>

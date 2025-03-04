@@ -73,6 +73,10 @@ const computeChartProps = ({ currentTime, computeDecay, duration, aggregate } : 
     chartData[1].data.push({ x: date, y: noAggregate });
   });
 
+  console.log("Chart first decay: " + dates.at(0)?.decay);
+  console.log("Chart last decay: " + dates.at(dates.length - 1)?.decay);
+  console.log("Chart max: " + max);
+
   return {
     chartData,
     total: { maximum: max, current: total },

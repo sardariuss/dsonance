@@ -23,14 +23,14 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
 
-  const { computeDecay } = useProtocolContext();
+  const { computeDecay, info } = useProtocolContext();
 
   const voteDetails = useMemo(() => {
-    if (computeDecay === undefined) {
+    if (computeDecay === undefined || info === undefined) {
       return undefined;
     }
-    return compute_vote_details(vote, computeDecay);
-  }, [vote, computeDecay]);
+    return compute_vote_details(vote, computeDecay(info.current_time));
+  }, [vote, computeDecay, info]);
 
   const resetVote = () => {
     setBallot({ choice: EYesNoChoice.Yes, amount: 0n });

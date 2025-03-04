@@ -6,7 +6,7 @@ shared({caller = admin}) actor class IcpCoins() {
 
     type LatestTokenRow = ( (TokenId, TokenId), Text, Float );
 
-    stable var btc_price = 100000.0;
+    stable var btc_price = 82980.01;
 
     public shared query func get_latest(): async [LatestTokenRow] {
         [

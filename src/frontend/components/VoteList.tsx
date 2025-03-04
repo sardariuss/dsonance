@@ -1,15 +1,16 @@
 import { SYesNoVote } from "../../declarations/backend/backend.did";
 import { backendActor } from "../actors/BackendActor";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import BitcoinIcon from "./icons/BitcoinIcon";
 import { useMediaQuery } from "react-responsive";
-import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
+import { DOCS_EVP_URL, MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import VoteRow, { VoteRowSkeleton } from "./VoteRow";
 import { useProtocolContext } from "./ProtocolContext";
 import { compute_vote_details } from "../utils/conversions/votedetails";
 import { toNullable } from "@dfinity/utils";
 import InfiniteScroll from "react-infinite-scroll-component";
+import InfoIcon from "./icons/InfoIcon";
 
 const SkeletonLoader = ({ count }: { count: number }) => (
   <ul>
@@ -36,7 +37,7 @@ const VoteList = () => {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [checkedCategories, setCheckedCategories] = useState<string[]>([]);
-  const { computeDecay } = useProtocolContext();
+  const { computeDecay, info } = useProtocolContext();
   const navigate = useNavigate();
 
   const { call: fetchVotes } = backendActor.useQueryCall({
@@ -117,8 +118,10 @@ const VoteList = () => {
         </div>}
         <div className={`justify-self-start text-gray-600 dark:text-gray-400 font-light ${isMobile ? "pl-3" : ""}`}>Statement</div>
         { !isMobile && <div className="justify-self-end text-gray-600 dark:text-gray-400 font-light flex flex-row items-center space-x-1">
-          <BitcoinIcon />
-          <span>TVL</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">EVP</span>
+          <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noreferrer">
+            <InfoIcon/>
+          </Link>
         </div>}
         <div className="justify-self-end text-gray-600 dark:text-gray-400 font-light">Consensus</div>
       </div>
@@ -132,13 +135,13 @@ const VoteList = () => {
       >
         <ul>
           {votes.map((vote: SYesNoVote, index) => (
-            computeDecay && vote.info.visible && 
+            computeDecay && vote.info.visible && info &&
               <li key={index} ref={(el) => (voteRefs.current.set(vote.vote_id, el))} className="flex w-full scroll-mt-[104px] sm:scroll-mt-[88px] border-t border-slate-100 dark:border-slate-900">
                 <div 
                   className="flex flex-row items-baseline w-full bg-slate-50 dark:bg-slate-850 hover:cursor-pointer py-1"
                   onClick={() => { setSearchParams({ voteId: vote.vote_id }); navigate(`/vote/${vote.vote_id}`); }}
                 >
-                  <VoteRow category={vote.info.category} voteDetails={compute_vote_details(vote, computeDecay)} text={vote.info.text} />
+                  <VoteRow category={vote.info.category} voteDetails={compute_vote_details(vote, computeDecay(info.current_time))} text={vote.info.text} />
                 </div>
               </li>
           ))}

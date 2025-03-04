@@ -7,7 +7,7 @@ import { BallotInfo } from "./types";
 import { get_current } from "../utils/timeline";
 import { v4 as uuidv4 } from 'uuid';
 import { unwrapLock } from "../utils/conversions/ballot";
-import { formatCurrency, fromE8s } from "../utils/conversions/token";
+import { formatBalanceE8s, formatCurrency, fromE8s } from "../utils/conversions/token";
 import { NS_IN_YEAR } from "../utils/conversions/duration";
 
 interface PutBallotPreviewProps {
@@ -81,12 +81,9 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
           : defaultValue,
       },
       {
-        label: "AMR",
-        value: annualMining
-          ? formatCurrency(
-              fromE8s(BigInt(Math.trunc(annualMining))),
-              DSONANCE_COIN_SYMBOL
-            )
+        label: "Mining reward",
+        value: previewData
+          ? formatBalanceE8s(BigInt(Math.trunc(previewData.contribution.current.data.pending)), DSONANCE_COIN_SYMBOL, 2)
           : defaultValue,
       },
       {
