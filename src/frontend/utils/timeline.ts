@@ -26,21 +26,43 @@ export const to_number_timeline = (timeline: TimeLine<bigint>): TimeLine<number>
   }))
 });
 
-export const to_time_left = (timeline: TimeLine<bigint>, release_date: bigint): TimeLine<bigint> => {
+export const interpolate_now = <T>(timeline: TimeLine<T>, now: bigint): TimeLine<T> => {
+  let history = timeline.history;
+  history.push(timeline.current);
+  let current = {
+    timestamp: now,
+    data: timeline.current.data
+  };
+  return {
+    current,
+    history
+  };
+};
+
+export const to_time_left = (timeline: TimeLine<bigint>, now: bigint): TimeLine<bigint> => {
   
   // Need to get the initial duration
   let initial_timestamp = timeline.current.timestamp;
   if (timeline.history.length > 0) {
     initial_timestamp = timeline.history[0].timestamp;
   };
+
+  let history = timeline.history.map((timed_data) => ({
+    timestamp: timed_data.timestamp,
+    data: timed_data.data - (timed_data.timestamp - initial_timestamp)
+  }));
+  history.push({
+    timestamp: timeline.current.timestamp,
+    data: timeline.current.data - (timeline.current.timestamp - initial_timestamp)
+  });
+  let current = {
+    timestamp: now,
+    data: timeline.current.data - (now - initial_timestamp)
+  };
   
   return {
-  
-    current: { timestamp: timeline.current.timestamp, data: timeline.current.data - (timeline.current.timestamp - initial_timestamp) },
-    history: timeline.history.map((timed_data) => ({
-      timestamp: timed_data.timestamp,
-      data: timed_data.data - (timed_data.timestamp - initial_timestamp)
-    }))
+    current,
+    history
   };
 };
 

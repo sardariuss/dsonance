@@ -2,13 +2,13 @@ import { formatDuration } from "../../utils/conversions/durationUnit";
 import { niceFormatDate, timeDifference, timeToDate } from "../../utils/conversions/date";
 
 import { DSONANCE_COIN_SYMBOL, MOBILE_MAX_WIDTH_QUERY } from "../../constants";
-import { get_current, map_timeline_hack, to_number_timeline, to_time_left } from "../../utils/timeline";
+import { get_current, interpolate_now, map_timeline_hack, to_number_timeline, to_time_left } from "../../utils/timeline";
 import DurationChart, { CHART_COLORS } from "../charts/DurationChart";
 import { unwrapLock } from "../../utils/conversions/ballot";
 import { formatBalanceE8s } from "../../utils/conversions/token";
 
 import { SBallotType } from "@/declarations/protocol/protocol.did";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ChevronUpIcon from "../icons/ChevronUpIcon";
 import ChevronDownIcon from "../icons/ChevronDownIcon";
 import { useMediaQuery } from "react-responsive";
@@ -39,25 +39,26 @@ const BallotDetails : React.FC<Props> = ({ ballot, now }) => {
     const [chartToggle, setChartToggle] = useState<CHART_TOGGLE | undefined>(undefined);
 
     const { duration_diff, consent_diff, apr_diff } = useMemo(() => {
-        let duration_diff : bigint | undefined = undefined;
-        const duration_ns = unwrapLock(ballot).duration_ns;
-        if (duration_ns.history.length > 0) {
-          duration_diff = get_current(duration_ns).data - duration_ns.history[0].data;
-        }
 
-        let consent_diff : number | undefined = undefined;
-        const consent = ballot.YES_NO.consent;
-        if (consent.history.length > 0) {
-          consent_diff = get_current(consent).data - consent.history[0].data;
-        }
+      let duration_diff : bigint | undefined = undefined;
+      const duration_ns = unwrapLock(ballot).duration_ns;
+      if (duration_ns.history.length > 0) {
+        duration_diff = get_current(duration_ns).data - duration_ns.history[0].data;
+      }
 
-        let apr_diff : number | undefined = undefined;
-        const foresight = ballot.YES_NO.foresight;
-        if (foresight.history.length > 1) { // TODO: hack to avoid first value
-          apr_diff = foresight.current.data.apr.current - foresight.history[1].data.apr.current;
-        }
+      let consent_diff : number | undefined = undefined;
+      const consent = ballot.YES_NO.consent;
+      if (consent.history.length > 0) {
+        consent_diff = get_current(consent).data - consent.history[0].data;
+      }
 
-        return { duration_diff, consent_diff, apr_diff };
+      let apr_diff : number | undefined = undefined;
+      const foresight = ballot.YES_NO.foresight;
+      if (foresight.history.length > 1) { // TODO: hack to avoid first value
+        apr_diff = foresight.current.data.apr.current - foresight.history[1].data.apr.current;
+      }
+
+      return { duration_diff, consent_diff, apr_diff };
     }, [ballot]);
     
     return (
@@ -76,7 +77,7 @@ const BallotDetails : React.FC<Props> = ({ ballot, now }) => {
             { (chartToggle === CHART_TOGGLE.DISCERNMENT) && 
               <DurationChart 
                 duration_timelines={ new Map([
-                  ["current", { timeline: map_timeline_hack(ballot.YES_NO.foresight, (foresight) => Number(foresight.apr.current) ), color: CHART_COLORS.GREEN }],
+                  ["current", { timeline: interpolate_now(map_timeline_hack(ballot.YES_NO.foresight, (foresight) => Number(foresight.apr.current) ), now), color: CHART_COLORS.GREEN }],
                 ]) }
                 format_value={ (value: number) => (value.toFixed(2)) }
                 fillArea={true}
@@ -117,7 +118,7 @@ const BallotDetails : React.FC<Props> = ({ ballot, now }) => {
             </div>
             { (chartToggle === CHART_TOGGLE.CONSENT) && 
                 <DurationChart 
-                    duration_timelines={ new Map([["Consent", { timeline: ballot.YES_NO.consent, color: CHART_COLORS.BLUE } ]]) }
+                    duration_timelines={ new Map([["Consent", { timeline: interpolate_now(ballot.YES_NO.consent, now), color: CHART_COLORS.BLUE } ]]) }
                     format_value={ (value: number) => value.toString() }
                     fillArea={true}
                     y_min={0}
@@ -150,6 +151,7 @@ const BallotDetails : React.FC<Props> = ({ ballot, now }) => {
                      }
                     format_value={ (value: number) => formatDuration(BigInt(value)) } 
                     fillArea={true}
+                    curve="linear"
                 />
             }
           </div>
@@ -163,12 +165,20 @@ const BallotView : React.FC<Props> = ({ ballot, now }) => {
   const navigate = useNavigate();
   const { formatSatoshis } = useCurrencyContext();
 
-  const { data: vote } = backendActor.useQueryCall({
+  const { data: vote, call: refreshVote } = backendActor.useQueryCall({
       functionName: 'get_vote',
       args: [{ vote_id: ballot.YES_NO.vote_id }],
   });
 
-  const actualVote = vote ? fromNullable(vote) : undefined;
+  useEffect(() => {
+    refreshVote();
+  }
+  , [ballot]);
+
+  const actualVote = useMemo(() => {
+    return vote ? fromNullable(vote) : undefined;
+  }
+  , [vote]);
 
   return (
     <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>
@@ -210,7 +220,7 @@ const BallotView : React.FC<Props> = ({ ballot, now }) => {
           <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
         </div>
       </div>
-      < BallotDetails ballot={ballot} now={now}/>
+      <BallotDetails ballot={ballot} now={now}/>
     </div>
     );
 }

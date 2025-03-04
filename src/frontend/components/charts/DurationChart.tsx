@@ -23,6 +23,7 @@ interface DurationChartProps {
   fillArea: boolean;
   y_min?: number;
   y_max?: number;
+  curve?: "linear" | "stepAfter";
 };
 
 type SerieInput = {
@@ -44,7 +45,7 @@ const create_serie = (id: string, duration_timeline: STimeline): Serie => {
   return { id, data };
 };
   
-const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max }: DurationChartProps) => {
+const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max, curve }: DurationChartProps) => {
 
   const { theme } = useContext(ThemeContext);
 
@@ -58,7 +59,6 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
     // Function to update the width
     const updateWidth = () => {
       if (containerRef.current) {
-        console.log("Container width: ", containerRef.current.offsetWidth);
         setContainerWidth(containerRef.current.offsetWidth - 20); // 20 px to make room for the slider bar if any
       }
     };
@@ -107,7 +107,7 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
             min: y_min,
             max: y_max,
           }}
-          curve='stepAfter'
+          curve= { curve ?? 'stepAfter' }
           enableArea={fillArea}
           animate={false}
           enablePoints={false}

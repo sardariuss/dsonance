@@ -33,7 +33,6 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
     // Function to update the width
     const updateWidth = () => {
       if (containerRef.current) {
-        console.log("Container width: ", containerRef.current.offsetWidth);
         setContainerWidth(containerRef.current.offsetWidth - 20); // 20 px to make room for the slider bar if any
       }
     };
