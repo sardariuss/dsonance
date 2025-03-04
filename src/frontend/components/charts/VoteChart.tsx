@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { STimeline_3, YesNoAggregate }                      from "@/declarations/protocol/protocol.did";
+import { STimeline_4, YesNoAggregate }                      from "@/declarations/protocol/protocol.did";
 import { SYesNoVote }                                       from "@/declarations/backend/backend.did";
 import { EYesNoChoice }                                     from "../../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump }                from "@nivo/bump";
@@ -25,7 +25,7 @@ interface ComputeChartPropsArgs {
   currentTime: bigint;
   computeDecay: (time: bigint) => number;
   duration: DurationUnit;
-  aggregate: STimeline_3;
+  aggregate: STimeline_4;
 }
 
 type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[], color: string}>[];
@@ -73,6 +73,10 @@ const computeChartProps = ({ currentTime, computeDecay, duration, aggregate } : 
     chartData[1].data.push({ x: date, y: noAggregate });
   });
 
+  console.log("Chart first decay: " + dates.at(0)?.decay);
+  console.log("Chart last decay: " + dates.at(dates.length - 1)?.decay);
+  console.log("Chart max: " + max);
+
   return {
     chartData,
     total: { maximum: max, current: total },
@@ -116,7 +120,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
       if (containerRef.current) {
         setContainerSize({ 
           width: containerRef.current.offsetWidth - 20, // 20 px to make room for the slider bar if any
-          height: containerRef.current.offsetWidth * 0.4
+          height: containerRef.current.offsetWidth * (isMobile ? 0.5 : 0.35)
         });
       }
     };

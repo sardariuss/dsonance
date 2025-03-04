@@ -57,9 +57,10 @@ module {
             amount = ballot.amount;
             dissent = ballot.dissent;
             consent = shareTimeline(ballot.consent);
-            rewards = shareTimeline(ballot.rewards);
-            ck_btc = shareDebtInfo(ballot.ck_btc);
-            presence = shareDebtInfo(ballot.presence);
+            foresight = shareTimeline(ballot.foresight);
+            contribution = shareTimeline(ballot.contribution);
+            btc_debt = shareDebtInfo(ballot.btc_debt);
+            dsn_debt = shareDebtInfo(ballot.dsn_debt);
             tx_id = ballot.tx_id;
             from = ballot.from;
             hotness = ballot.hotness;
@@ -92,8 +93,8 @@ module {
         {
             current_time = protocol_info.current_time;
             last_run = protocol_info.last_run;
-            ck_btc_locked = shareTimeline(protocol_info.ck_btc_locked);
-            presence_minted = shareTimeline(protocol_info.presence_minted);
+            btc_locked = shareTimeline(protocol_info.btc_locked);
+            dsn_minted = shareTimeline(protocol_info.dsn_minted);
         };
     };
 

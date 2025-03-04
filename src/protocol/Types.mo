@@ -5,7 +5,6 @@ import Types "migrations/Types";
 
 module {
 
-    type Time = Int;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     // MIGRATION TYPES
@@ -48,9 +47,10 @@ module {
     public type MintingInfo        = Types.Current.MintingInfo;
     public type BallotType         = Types.Current.BallotType;
     public type BallotRegister     = Types.Current.BallotRegister;
-    public type Rewards            = Types.Current.Rewards;
     public type ProtocolParameters = Types.Current.ProtocolParameters;
     public type TimerParameters    = Types.Current.TimerParameters;
+    public type Foresight          = Types.Current.Foresight;
+    public type Contribution       = Types.Current.Contribution;
 
     // CANISTER ARGS
 
@@ -63,6 +63,13 @@ module {
     public type GetVotesArgs = {
         origin: Principal;
         filter_ids: ?[UUID];
+    };
+
+    public type GetBallotArgs = {
+        account: Account;
+        previous: ?UUID;
+        limit: Nat;
+        filter_active: Bool;
     };
 
     public type FindVoteArgs = {
@@ -111,14 +118,15 @@ module {
     public type SBallot<B> = {
         ballot_id: UUID;
         vote_id: UUID;
-        timestamp: Time;
+        timestamp: Nat;
         choice: B;
         amount: Nat;
         dissent: Float;
         consent: STimeline<Float>;
-        rewards: STimeline<Rewards>;
-        ck_btc: SDebtInfo;
-        presence: SDebtInfo;
+        foresight: STimeline<Foresight>;
+        contribution: STimeline<Contribution>;
+        btc_debt: SDebtInfo;
+        dsn_debt: SDebtInfo;
         tx_id: Nat;
         from: Account;
         decay: Float;
@@ -128,27 +136,27 @@ module {
 
     public type SLockInfo = {
         duration_ns: STimeline<Nat>;
-        release_date: Time;
+        release_date: Nat;
     };
 
     public type SVote<A, B> = {
         vote_id: UUID;
-        date: Time;
+        date: Nat;
         origin: Principal;
         aggregate: STimeline<A>;
     };
 
     public type SProtocolInfo = {
-        current_time: Time;
-        last_run: Time;
-        ck_btc_locked: STimeline<Nat>;
-        presence_minted: STimeline<Nat>;
+        current_time: Nat;
+        last_run: Nat;
+        btc_locked: STimeline<Nat>;
+        dsn_minted: STimeline<Nat>;
     };
 
     public type SClockParameters = {
         #REAL;
         #SIMULATED: {
-            time_ref: Time;
+            time_ref: Nat;
             offset: Duration;
             dilation_factor: Float;
         };
@@ -159,8 +167,9 @@ module {
     };
 
     public type SProtocolParameters = {
-        participation_per_ns: Float;
-        discernment_factor: Float;
+        contribution_per_ns: Float;
+        age_coefficient: Float;
+        max_age: Nat;
         nominal_lock_duration: Duration;
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
@@ -169,7 +178,7 @@ module {
         timer: STimerParameters;
         decay: {
             half_life: Duration;
-            time_init: Time;
+            time_init: Nat;
         };
         clock: SClockParameters;
     };
@@ -177,15 +186,15 @@ module {
     // CUSTOM TYPES
 
     public type ProtocolInfo = {
-        current_time: Time;
-        last_run: Time;
-        ck_btc_locked: Timeline<Nat>;
-        presence_minted: Timeline<Nat>;
+        current_time: Nat;
+        last_run: Nat;
+        btc_locked: Timeline<Nat>;
+        dsn_minted: Timeline<Nat>;
     };
 
-    public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time;}) -> A;
-    public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Time}) -> Float;
-    public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Time}) -> Float;
+    public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Nat;}) -> A;
+    public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Nat;}) -> Float;
+    public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Nat;}) -> Float;
 
     public type BallotAggregatorOutcome<A> = {
         aggregate: {
@@ -214,15 +223,15 @@ module {
     // RESULT/ERROR TYPES
 
     public type VoteNotFoundError        = { #VoteNotFound: { vote_id: UUID; }; };
-    public type InssuficientAmountError  = { #InsufficientAmount: { amount: Nat; minimum: Nat; }; };
+    public type InsuficientAmountError   = { #InsufficientAmount: { amount: Nat; minimum: Nat; }; };
     public type NewVoteError             = { #VoteAlreadyExists: { vote_id: UUID; }; } or TransferFromError;
     public type BallotAlreadyExistsError = { #BallotAlreadyExists: { ballot_id: UUID; }; };
-    public type PreviewBallotError       = VoteNotFoundError;
-    public type PutBallotError           = VoteNotFoundError or InssuficientAmountError or BallotAlreadyExistsError or TransferFromError;
+    public type PreviewBallotError       = VoteNotFoundError or InsuficientAmountError;
+    public type PutBallotError           = VoteNotFoundError or InsuficientAmountError or BallotAlreadyExistsError or TransferFromError;
     public type PutBallotResult          = Result<SBallotType, PutBallotError>;
-    public type PreviewBallotResult      = Result<BallotType, PreviewBallotError>;
     public type NewVoteResult            = Result<VoteType, NewVoteError>;
     public type SNewVoteResult           = Result<SVoteType, NewVoteError>;
+    public type PreviewBallotResult      = Result<BallotType, PreviewBallotError>;
     public type SPreviewBallotResult     = Result<SBallotType, PreviewBallotError>;
 
 };

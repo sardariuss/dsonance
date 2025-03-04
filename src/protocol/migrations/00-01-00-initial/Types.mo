@@ -152,8 +152,6 @@ module {
 
     // FROM PROTOCOL ITSELF
 
-    type Time = Int;
-
     public type UUID = Text;
 
     public type Timeline<T> = {
@@ -162,7 +160,7 @@ module {
     };
 
     public type TimedData<T> = {
-        timestamp: Time;
+        timestamp: Nat;
         data: T;
     };
 
@@ -203,7 +201,7 @@ module {
     public type Vote<A, B> = {
         vote_id: UUID;
         tx_id: Nat;
-        date: Time;
+        date: Nat;
         origin: Principal;
         aggregate: Timeline<A>;
         ballots: Set<UUID>;
@@ -217,22 +215,31 @@ module {
         var transfers: [Transfer];
     };
 
-    public type Rewards = {
-        participation: Float;
-        discernment: Float;
+    public type Foresight = {
+        reward: Nat;
+        apr: {
+            current: Float;
+            potential: Float;
+        };
+    };
+
+    public type Contribution = {
+        earned: Float;
+        pending: Float;
     };
 
     public type Ballot<B> = {
         ballot_id: UUID;
         vote_id: UUID;
-        timestamp: Time;
+        timestamp: Nat;
         choice: B;
         amount: Nat;
         dissent: Float;
         consent: Timeline<Float>;
-        rewards: Timeline<Rewards>;
-        ck_btc: DebtInfo;
-        presence: DebtInfo;
+        foresight: Timeline<Foresight>;
+        contribution: Timeline<Contribution>;
+        btc_debt: DebtInfo;
+        dsn_debt: DebtInfo;
         tx_id: Nat;
         from: Account;
         decay: Float;
@@ -242,7 +249,7 @@ module {
 
     public type LockInfo = {
         duration_ns: Timeline<Nat>;
-        var release_date: Time;
+        var release_date: Nat;
     };
 
     public type Transfer = {
@@ -282,35 +289,44 @@ module {
     public type ClockParameters = {
         #REAL;
         #SIMULATED: {
-            var time_ref: Time;
-            var offset_ns: Time;
+            var time_ref: Nat;
+            var offset_ns: Nat;
             var dilation_factor: Float;
         };
     };
 
     public type Lock = {
-        release_date: Time;
+        release_date: Nat;
         id: UUID;
     };
 
     public type LockRegister = {
-        var time_last_dispense: Time;
+        var time_last_dispense: Nat;
         total_amount: Timeline<Nat>;
         locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the BallotType or even a generic lock type instead
+        yield: {
+            rate: Float;
+            var cumulated: Float;
+            contributions: {
+                var sum_current: Float;
+                var sum_cumulated: Float;
+            };
+        };
     };
 
     public type ProtocolParameters = {
-        participation_per_ns: Float;
-        discernment_factor: Float;
+        contribution_per_ns: Float;
         nominal_lock_duration: Duration;
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
+        age_coefficient: Float;
+        max_age: Nat;
         opening_vote_fee: Nat;
         timer: TimerParameters;
         decay: {
             half_life: Duration;
-            time_init: Time;
+            time_init: Nat;
         };
         clock: ClockParameters;
     };
@@ -323,17 +339,18 @@ module {
     };
 
     public type InitArgs = {
-        deposit: {
+        btc: {
             ledger: Principal;
             fee: Nat;
         };
-        presence: {
+        dsn: {
             ledger: Principal;
             fee: Nat;
         };
         parameters: {
-            participation_per_day: Nat;
-            discernment_factor: Float;
+            contribution_per_day: Nat;
+            age_coefficient: Float;
+            max_age: Duration;
             ballot_half_life: Duration;
             nominal_lock_duration: Duration;
             minimum_ballot_amount: Nat;
@@ -353,12 +370,12 @@ module {
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
         lock_register: LockRegister;
-        deposit: {
+        btc: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
             owed: Set<UUID>;
         };
-        presence: {
+        dsn: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
             owed: Set<UUID>;

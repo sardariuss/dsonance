@@ -4,12 +4,11 @@ import Debug "mo:base/Debug";
 
 module {
 
-    type Time    = Int;
     type Iter<T> = Iter.Iter<T>;
 
     type HotItem = {
         amount: Nat;
-        timestamp: Time;
+        timestamp: Nat;
         decay: Float;
         var hotness: Float;
     };

@@ -17,7 +17,7 @@ import { useProtocolContext } from '../ProtocolContext';
 interface LockChartProps {
   ballots: SBallotType[];
   selected: string | null;
-  select_ballot: (index: string | null) => void;
+  select_ballot: (id: string) => void;
 };
 
 const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
@@ -33,7 +33,6 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
     // Function to update the width
     const updateWidth = () => {
       if (containerRef.current) {
-        console.log("Container width: ", containerRef.current.offsetWidth);
         setContainerWidth(containerRef.current.offsetWidth - 20); // 20 px to make room for the slider bar if any
       }
     };
@@ -245,7 +244,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                   y2={y2}
                   stroke={`url(#lineGradient-${index})`}
                   strokeWidth={20}
-                  onClick={() => select_ballot(selected === ballot_id ? null : ballot_id)}
+                  onClick={() => select_ballot(ballot_id)}
                   cursor="pointer"
                   style={{
                     zIndex: 1
@@ -273,7 +272,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
               alignmentBaseline="middle"
               fontSize={12}
               fill="white"
-              onClick={() => select_ballot(selected === ballot_id ? null : ballot_id)}
+              onClick={() => select_ballot(ballot_id)}
               cursor="pointer"
             >
               {segment.label}

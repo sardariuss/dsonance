@@ -2,24 +2,23 @@ import Types    "../Types";
 import Math     "../utils/Math";
 
 import Float  "mo:base/Float";
-import Int    "mo:base/Int";
+import Nat    "mo:base/Nat";
 
 module {
 
-    type Time = Int;
     type YesNoChoice = Types.YesNoChoice;
-    type BallotType = Types.BallotType;
-    type YesNoAggregate = Types.YesNoAggregate;
-    type AggregateHistoryType = Types.AggregateHistoryType;
-    type Segment = { start: Time; end: Time; aggregate: YesNoAggregate; };
+    type AgeBonusParameters = {
+        max_age: Nat;
+        age_coefficient: Float;
+    };
 
     public func compute_discernment({
-        participation: Float;
         dissent: Float;
         consent: Float;
-        coefficient: Float;
+        lock_duration: Nat;
+        parameters: AgeBonusParameters;
     }) : Float {
-        coefficient * participation * dissent * consent;
+        dissent * consent * age_bonus(lock_duration, parameters);
     };
     
     public func compute_consent({
@@ -67,5 +66,10 @@ module {
         };
 
         dissent / amount;
+    };
+
+    func age_bonus(age: Nat, parameters: AgeBonusParameters) : Float {
+        let { max_age; age_coefficient; } = parameters;
+        1.0 + age_coefficient * Float.fromInt(Nat.min(age, max_age)) / Float.fromInt(max_age);
     };
 }

@@ -4,7 +4,7 @@ set -ex
 dfx canister create --all
 
 # Fetch canister IDs dynamically
-for canister in ck_btc presence_ledger protocol minter; do
+for canister in ck_btc dsn_ledger protocol minter; do
   export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
 done
 
@@ -28,17 +28,22 @@ dfx deploy ck_btc --argument '(opt record {
   icrc3 = null;
   icrc4 = null;
 })' &
-dfx deploy presence_ledger --argument '(opt record {
+dfx deploy dsn_ledger --argument '(opt record {
   icrc1 = opt record {
-    name              = opt "Presence Coin";
-    symbol            = opt "PRSC";
+    name              = opt "Dsonance Coin";
+    symbol            = opt "DSN";
     decimals          = 8;
-    fee               = opt variant { Fixed = 10 };
-    max_supply        = opt 2_100_000_000_000_000;
+    fee               = opt variant { Fixed = 1_000 };
+    max_supply        = opt 100_000_000_000_000_000;
     min_burn_amount   = opt 1_000;
-    initial_balances  = vec {};
+    initial_balances  = vec {
+      record { 
+        account = principal "'${PROTOCOL_PRINCIPAL}'";
+        amount = 50_000_000_000_000_000;
+      };
+    };
     minting_account   = opt record { 
-      owner = principal "'${PROTOCOL_PRINCIPAL}'";
+      owner = principal "'${MINTER_PRINCIPAL}'";
       subaccount = null; 
     };
     advanced_settings = null;
@@ -50,7 +55,7 @@ dfx deploy presence_ledger --argument '(opt record {
 wait
 
 # Deploy protocol with dependencies
-# Hundred million e8s participation per day
+# Hundred million e8s contribution per day
 # With a discernment factor of 9, it leads to max one trillion e8s per day (probably more 400 billions per day)
 # minimum_ballot_amount shall be greater than 0
 # https://www.desmos.com/calculator/8iww2wlp2t
@@ -59,23 +64,24 @@ wait
 # 216 seconds timer interval, with a 100x dilation factor, means 6 hours in simulated time
 dfx deploy protocol --argument '( variant { 
   init = record {
-    deposit = record {
+    btc = record {
       ledger = principal "'${CK_BTC_PRINCIPAL}'";
       fee = 10;
     };
-    presence = record {
-      ledger  = principal "'${PRESENCE_LEDGER_PRINCIPAL}'";
+    dsn = record {
+      ledger  = principal "'${DSN_LEDGER_PRINCIPAL}'";
       fee = 10;
     };
     parameters = record {
-      participation_per_day = 100_000_000_000;
-      discernment_factor = 9.0;
+      contribution_per_day = 100_000_000_000;
+      age_coefficient = 0.25;
+      max_age = variant { YEARS = 4 };
       ballot_half_life = variant { YEARS = 1 };
       nominal_lock_duration = variant { DAYS = 3 };
       minimum_ballot_amount = 100;
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
-      opening_vote_fee = 30;
+      opening_vote_fee = 5_000_000_000;
       timer_interval_s = 216;
       clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
     };
@@ -106,7 +112,7 @@ dfx canister call backend add_categories '(
 )'
 
 dfx generate ck_btc
-dfx generate presence_ledger
+dfx generate dsn_ledger
 dfx generate backend # Will generate protocol as well
 dfx generate internet_identity
 dfx generate minter

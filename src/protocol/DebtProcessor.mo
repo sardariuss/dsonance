@@ -17,7 +17,6 @@ module {
     type UUID = Types.UUID;
     type Timeline<T> = Types.Timeline<T>;
     type Account = Types.Account;
-    type Time = Int;
     type DebtInfo = Types.DebtInfo;
     type TransferResult = Types.TransferResult;
     type TxIndex = Types.TxIndex;
@@ -27,7 +26,7 @@ module {
 
     type TransferCallback = ({amount: Nat;}) -> ();
 
-    public func init_debt_info(time: Time, account: Account) : DebtInfo {
+    public func init_debt_info(time: Nat, account: Account) : DebtInfo {
         {
             amount = Timeline.initialize<Float>(time, 0.0);
             account;
@@ -44,7 +43,7 @@ module {
         on_successful_transfer: ?(TransferCallback);
     }){
 
-        public func add_debt({ id: UUID; amount: Float; time: Time; }) {
+        public func add_debt({ id: UUID; amount: Float; time: Nat; }) {
             let info = get_debt_info(id);
             Timeline.add(info.amount, time, Timeline.current(info.amount) + amount);
             info.owed += amount;

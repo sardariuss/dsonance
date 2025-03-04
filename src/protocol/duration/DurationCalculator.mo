@@ -7,14 +7,12 @@ import Int       "mo:base/Int";
 
 module {
 
-    type Time = Int;
-
     public type IDurationCalculator = {
         compute_duration_ns: Float -> Nat;
     };
 
     type LockElem = {
-        timestamp: Time;
+        timestamp: Nat;
         var lock: ?Types.LockInfo;
     };
 
@@ -46,7 +44,7 @@ module {
             Int.abs(Float.toInt(Float.fromInt(nominal_duration_ns) * Float.pow(hotness, scale_factor)));
         };
 
-        public func update_lock_duration(elem: LockElem, hotness: Float, time: Time) {
+        public func update_lock_duration(elem: LockElem, hotness: Float, time: Nat) {
             let duration = compute_duration_ns(hotness);
             let release_date = elem.timestamp + duration;
             switch(elem.lock) {

@@ -1,10 +1,8 @@
 import Types                   "Types";
 import DebtProcessor           "DebtProcessor";
 import ProtocolTimer           "ProtocolTimer";
-import ParticipationDispenser  "ParticipationDispenser";
 import LockScheduler           "LockScheduler";
 import MapUtils                "utils/Map";
-import Decay                   "duration/Decay";
 import Timeline                "utils/Timeline";
 import Clock                   "utils/Clock";
 import SharedConversions       "shared/SharedConversions";
@@ -73,9 +71,8 @@ module {
         ballot_register: BallotRegister;
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
-        deposit_debt: DebtProcessor.DebtProcessor;
-        presence_debt: DebtProcessor.DebtProcessor;
-        participation_dispenser: ParticipationDispenser.ParticipationDispenser;
+        btc_debt: DebtProcessor.DebtProcessor;
+        dsn_debt: DebtProcessor.DebtProcessor;
         protocol_timer: ProtocolTimer.ProtocolTimer;
         minting_info: MintingInfo;
         parameters: ProtocolParameters;
@@ -89,8 +86,8 @@ module {
                 return #err(#VoteAlreadyExists({vote_id}));
             };
 
-            // TODO: should be a presence fee instead!
-            let transfer = await* deposit_debt.get_ledger().transfer_from({
+            // TODO: the fee should be burnt
+            let transfer = await* dsn_debt.get_ledger().transfer_from({
                 from = account;
                 amount = parameters.opening_vote_fee;
             });
@@ -121,11 +118,15 @@ module {
 
         public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
 
-            let { vote_id; choice_type; caller; from_subaccount; } = args;
+            let { vote_id; choice_type; caller; from_subaccount; amount; } = args;
 
             let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
                 case(null) { return #err(#VoteNotFound({vote_id})); };
                 case(?v) { v };
+            };
+
+            if (amount < parameters.minimum_ballot_amount){
+                return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount; }));
             };
 
             let timestamp = clock.get_time();
@@ -133,7 +134,12 @@ module {
 
             let ballot = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with tx_id = 0; timestamp; from; }});
 
-            lock_scheduler.refresh_lock_duration(BallotUtils.unwrap_yes_no(ballot), timestamp);
+            let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot);
+
+            lock_scheduler.refresh_lock_duration(yes_no_ballot, timestamp);
+
+            Timeline.add(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
+            Timeline.add(yes_no_ballot.contribution, timestamp, lock_scheduler.preview_contribution(yes_no_ballot));
 
             #ok(ballot);
         };
@@ -156,7 +162,7 @@ module {
                 return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount; }));
             };
 
-            let transfer = await* deposit_debt.get_ledger().transfer_from({
+            let transfer = await* btc_debt.get_ledger().transfer_from({
                 from = { owner = caller; subaccount = from_subaccount; };
                 amount;
             });
@@ -171,13 +177,19 @@ module {
 
             let ballot_type = vote_type_controller.put_ballot({vote_type; choice_type; args = { args with tx_id; timestamp; from; }});
 
+            let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot_type);
+
             // Update the locks
             // TODO: fix the following limitation
             // Watchout, the new ballot shall be added first, otherwise the update will trap
-            lock_scheduler.add(BallotUtils.unwrap_yes_no(ballot_type), timestamp);
+            lock_scheduler.add(yes_no_ballot, timestamp);
             for (ballot in vote_type_controller.vote_ballots(vote_type)){
                 lock_scheduler.update(BallotUtils.unwrap_yes_no(ballot), timestamp);
             };
+
+            // TODO: this is kind of a hack to have an up-to-date foresight and contribution, should be removed
+            Timeline.add(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
+            Timeline.add(yes_no_ballot.contribution, timestamp, lock_scheduler.preview_contribution(yes_no_ballot));
 
             // Add the ballot to that account
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
@@ -186,16 +198,59 @@ module {
             #ok(SharedConversions.shareBallotType(ballot_type));
         };
 
-        public func get_ballots(account: Account) : [BallotType] {
-            let buffer = Buffer.Buffer<BallotType>(0);
+        public func get_ballots({ account: Account; previous: ?UUID; limit: Nat; filter_active: Bool; }) : [BallotType] {
+            let buffer = Buffer.Buffer<BallotType>(limit);
             Option.iterate(Map.get(ballot_register.by_account, MapUtils.acchash, account), func(ids: Set.Set<UUID>) {
-                for (id in Set.keys(ids)) {
-                    Option.iterate(Map.get(ballot_register.ballots, Map.thash, id), func(ballot_type: BallotType) {
-                        buffer.add(ballot_type);
-                    });
+                let iter = Set.keysFrom(ids, Set.thash, previous);
+                label limit_loop while (buffer.size() < limit) {
+                    switch (iter.next()) {
+                        case (null) { break limit_loop; };
+                        case (?id) { 
+                            Option.iterate(Map.get(ballot_register.ballots, Map.thash, id), func(ballot_type: BallotType) {
+                                if (filter_active) {
+                                    switch(ballot_type){
+                                        case(#YES_NO(ballot)) {
+                                            let lock = BallotUtils.unwrap_lock(ballot);
+                                            if (lock.release_date > clock.get_time()){
+                                                buffer.add(ballot_type);
+                                            };
+                                        };
+                                    };
+                                } else {
+                                    buffer.add(ballot_type);
+                                };
+                            });
+                        };
+                    };
                 };
             }); 
             Buffer.toArray(buffer);
+        };
+
+        public func get_locked_amount({ account: Account; }) : Nat {
+            let timestamp = clock.get_time();
+            switch(Map.get(ballot_register.by_account, MapUtils.acchash, account)){
+                case(null) { 0; };
+                case(?ids) { 
+                    var total = 0;
+                    for (ballot_id in Set.keys(ids)){
+                        switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)){
+                            case(null) {};
+                            case(?ballot) {
+                                switch(ballot){
+                                    case(#YES_NO(b)) {
+                                        let lock = BallotUtils.unwrap_lock(b);
+                                        if (lock.release_date > timestamp){
+                                            total += b.amount;
+                                        };
+                                    };
+                                };
+                            };
+                        };
+                    };
+                    total;
+                };
+            };
         };
 
         public func get_vote_ballots(vote_id: UUID) : [BallotType] {
@@ -214,12 +269,11 @@ module {
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
             lock_scheduler.try_unlock(time);
-            participation_dispenser.dispense(time);
 
             let transfers = Buffer.Buffer<async* ()>(3);
 
-            transfers.add(deposit_debt.transfer_owed());
-            transfers.add(presence_debt.transfer_owed());
+            transfers.add(btc_debt.transfer_owed());
+            transfers.add(dsn_debt.transfer_owed());
 
             for (call in transfers.vals()){
                 await* call;
@@ -275,9 +329,9 @@ module {
         public func get_info() : ProtocolInfo {
             {
                 current_time = clock.get_time();
-                last_run = participation_dispenser.get_last_dispense();
-                ck_btc_locked = lock_scheduler.get_total_locked();
-                presence_minted = minting_info.amount_minted;
+                last_run = lock_scheduler.get_last_dispense();
+                btc_locked = lock_scheduler.get_total_locked();
+                dsn_minted = minting_info.amount_minted;
             };
         };
 

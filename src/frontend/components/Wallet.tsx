@@ -1,38 +1,26 @@
 import { Account } from '@/declarations/protocol/protocol.did';
-import { useEffect, useState } from "react";
-import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from '@ic-reactor/react';
 import { ckBtcActor } from '../actors/CkBtcActor';
 import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
-import { presenceLedgerActor } from '../actors/PresenceLedgerActor';
-import { formatBalanceE8s } from '../utils/conversions/token';
-import { PRESENCE_COIN_SYMBOL } from '../constants';
+import { dsonanceLedgerActor } from '../actors/DsonanceLedgerActor';
+import { formatBalanceE8s, toE8s } from '../utils/conversions/token';
+import { DSONANCE_COIN_SYMBOL } from '../constants';
 import { minterActor } from '../actors/MinterActor';
 import BitcoinIcon from './icons/BitcoinIcon';
-import PresenceCoinIcon from './icons/PresenceCoinIcon';
-import LogoutIcon from './icons/LogoutIcon';
-import { Link } from 'react-router-dom';
+import DsnCoinIcon from './icons/DsnCoinIcon';
 import { useCurrencyContext } from './CurrencyContext';
-import { useWalletContext } from './WalletContext';
-
-const accountToString = (account: Account | undefined) : string =>  {
-  let str = "";
-  if (account !== undefined) {
-    str = account.owner.toString();
-    let subaccount = fromNullable(account.subaccount);
-    if (subaccount !== undefined) {
-      str += " " + uint8ArrayToHexString(subaccount); 
-    }
-  }
-  return str;
-}
+import { useAllowanceContext } from './AllowanceContext';
 
 const Wallet = () => {
 
-  const { authenticated, identity, logout } = useAuth({});
-  const { formatSatoshis } = useCurrencyContext();
-  const { btcBalance, refreshBtcBalance } = useWalletContext();
+  const { authenticated, identity } = useAuth({});
+  const { formatSatoshis, currencySymbol, currencyToSatoshis } = useCurrencyContext();
+  const { btcAllowance, dsnAllowance, refreshBtcAllowance, refreshDsnAllowance } = useAllowanceContext();
+  const [btcToApprove, setBtcToApprove] = useState<bigint>(0n);
+  const [dsnToApprove, setDsnToApprove] = useState<bigint>(0n);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   if (!authenticated || identity === null) {
     return (
@@ -40,161 +28,238 @@ const Wallet = () => {
     );
   }
 
-  const account : Account = {
+  const account : Account = useMemo(() => ({
     owner: identity?.getPrincipal(),
     subaccount: []
-  };
+  }), [identity]);
 
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(accountToString(account));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000); // Hide tooltip after 2 seconds
-  };
-
-  const { data: presenceBalance } = presenceLedgerActor.useQueryCall({
+  const { data: dsnBalance, call: refreshDsnBalance } = dsonanceLedgerActor.useQueryCall({
     functionName: 'icrc1_balance_of',
     args: [account]
   });
 
-  const { call: refreshAllowance, data: btcAllowance } = ckBtcActor.useQueryCall({
-    functionName: 'icrc2_allowance',
-    args: [{
-      account,
-      spender: {
-        owner: Principal.fromText(protocolCanisterId),
-        subaccount: []
-      }
-    }]
+  const { data: btcBalance, call: refreshBtcBalance } = ckBtcActor.useQueryCall({
+    functionName: 'icrc1_balance_of',
+    args: [account]
   });
 
-  const { call: getAirdrop, loading: airdroping } = minterActor.useUpdateCall({
-    functionName: 'airdrop_user',
+  const { call: getBtcAirdrop, loading: btcAirdroping } = minterActor.useUpdateCall({
+    functionName: 'btc_airdrop_user',
   });
 
-  const { call: refreshAirdropAvailable, data: airdropAvailable } = minterActor.useQueryCall({
-    functionName: 'is_airdrop_available',
+  const { call: refreshBtcAirdropAvailable, data: btcAirdropAvailable } = minterActor.useQueryCall({
+    functionName: 'is_btc_airdrop_available',
   });
 
-  const { data: airdropInfo } = minterActor.useQueryCall({
-    functionName: 'get_airdrop_info',
-  });
-
-  const triggerAirdrop = () => {
-    getAirdrop().then(() => {
-      approve([{
-        fee: [],
-        memo: [],
-        from_subaccount: [],
-        created_at_time: [],
-        amount: airdropInfo?.allowed_per_user ?? BigInt(1_000_000),
-        expected_allowance: [],
-        expires_at: [],
-        spender: {
-          owner: Principal.fromText(protocolCanisterId),
-          subaccount: []
-        },
-      }]).catch((error) => {
-        console.error(error);
-      }).finally(
-        () => {
-          refreshAllowance().then(() => refreshBtcBalance);
-        }
-      );
-    }).catch((error) => {
+  const triggerBtcAirdrop = () => {
+    getBtcAirdrop().catch((error) => {
       console.error(error);
-    }).finally(
-      () => {
+    }).finally(() => {
         refreshBtcBalance();
-        refreshAirdropAvailable();
+        refreshBtcAirdropAvailable();
       }
     );
   }
 
-  const { call: approve, loading: approving } = ckBtcActor.useUpdateCall({
-    functionName: 'icrc2_approve',
-    onSuccess: (data) => {
-      console.log(data)
-    },
-    onError: (error) => {
-      console.error(error);
-    }
+  const { call: getDsnAirdrop, loading: dsnAirdroping } = minterActor.useUpdateCall({
+    functionName: 'dsn_airdrop_user',
   });
+
+  const { call: refreshDsnAirdropAvailable, data: dsnAirdropAvailable } = minterActor.useQueryCall({
+    functionName: 'is_dsn_airdrop_available',
+  });
+
+  const triggerDsnAirdrop = () => {
+    getDsnAirdrop().catch((error) => {
+      console.error(error);
+    }).finally(() => {
+        refreshDsnBalance();
+        refreshDsnAirdropAvailable();
+      }
+    );
+  }
+
+  const { call: btcApprove, loading: btcApproving } = ckBtcActor.useUpdateCall({
+    functionName: 'icrc2_approve',
+    args: [{
+      fee: [],
+      memo: [],
+      from_subaccount: [],
+      created_at_time: [],
+      amount: btcToApprove,
+      expected_allowance: [],
+      expires_at: [],
+      spender: {
+        owner: Principal.fromText(protocolCanisterId),
+        subaccount: []
+      },
+    }]
+  });
+
+  const { call: dsnApprove, loading: dsnApproving } = dsonanceLedgerActor.useUpdateCall({
+    functionName: 'icrc2_approve',
+    args: [{
+      fee: [],
+      memo: [],
+      from_subaccount: [],
+      created_at_time: [],
+      amount: dsnToApprove,
+      expected_allowance: [],
+      expires_at: [],
+      spender: {
+        owner: Principal.fromText(protocolCanisterId),
+        subaccount: []
+      },
+    }]
+  });
+
+  const triggerBtcApprove = () => {
+    btcApprove().catch((error) => {
+      console.error(error);
+    }).finally(() => {
+        refreshBtcAllowance()
+      }
+    );
+  }
+
+  const triggerDsnApprove = () => {
+    dsnApprove().catch((error) => {
+      console.error(error);
+    }).finally(() => {
+        refreshDsnAllowance()
+      }
+    );
+  }
 
   // Hook to refresh balance and allowance when account changes
   useEffect(() => {
     refreshBtcBalance();
-    refreshAllowance();
+    refreshBtcAllowance();
+    refreshDsnBalance();
+    refreshDsnAllowance();
   }, [authenticated, identity]);
 
   return (
-    <div className="flex flex-col space-y-4 p-4 w-full items-center">
+    <div className="flex flex-col space-y-4 w-full items-center">
 
-      <div className="relative group">
-        <div className="flex flex-row items-center space-x-2">
-          <span
-            className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white font-medium self-center hover:cursor-pointer"
-            onClick={handleCopy}
-          >
-            {accountToString(account)}
-          </span>
-          <Link 
-            className="self-end fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white p-2.5 rounded-lg hover:cursor-pointer"
-            onClick={()=>{logout()}}
-            to="/">
-            <LogoutIcon />
-          </Link>
-        </div>
-        { copied && (
-          <div
-            className={`absolute -top-6 left-1/2 z-50 transform -translate-x-1/2 bg-white text-black text-xs rounded px-2 py-1 transition-opacity duration-500 ${
-              copied ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            Copied!
-          </div>
-        )}
+    {/* Bitcoin Section */}
+    <div className="w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
+      <div className="flex items-center space-x-2 mb-2">
+        <BitcoinIcon/>
+        <span className="text-gray-700 dark:text-white text-lg">Bitcoin</span>
       </div>
 
       {/* Bitcoin Balance */}
-      <div className="flex w-full items-center justify-between rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-100 dark:bg-gray-800">
-        <div className="flex items-center space-x-2">
-          <div className="h-5 w-5">
-            <BitcoinIcon />
-          </div>
-          <span className="text-gray-700 dark:text-white font-medium">Bitcoin:</span>
-        </div>
-        { btcBalance !== undefined && 
+      <div className="flex justify-between w-full">
+        <span className="font-medium">Balance:</span>
+        {btcBalance !== undefined && (
           <span className="text-md font-semibold">
-            {formatSatoshis(btcBalance)}
-          </span> }
+            {formatSatoshis(btcBalance ?? 0n)}
+          </span>
+        )}
       </div>
 
-      {/* Presence Balance */}
-      <div className="flex w-full items-center justify-between rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-100 dark:bg-gray-800">
-        <div className="flex items-center space-x-2">
-          <div className="h-5 w-5">
-            <PresenceCoinIcon />
-          </div>
-          <span className="text-gray-700 dark:text-white font-medium">Presence:</span>
+      {/* Bitcoin Allowance */}
+      <div className="flex justify-between w-full mt-1">
+        <span className="font-medium">Allowance:</span>
+        {btcAllowance !== undefined && (
+          <span className="text-md font-semibold">
+            {formatSatoshis(btcAllowance)}
+          </span>
+        )}
+      </div>
+
+      {/* Allowance Input & Approve Button */}
+      <div className="flex justify-end w-full space-x-2 mt-3">
+        <div className="flex items-center space-x-1">
+          <span>{currencySymbol}</span>
+          <input
+            ref={inputRef}
+            onChange={(e) => setBtcToApprove(currencyToSatoshis(Number(e.target.value)) ?? 0n)}
+            type="number"
+            className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900"
+          />
         </div>
+        <button
+          className="button-simple text-base"
+          onClick={() => triggerBtcApprove()}
+          disabled={btcApproving}
+        >
+          Update allowance
+        </button>
+      </div>
+    </div>
+
+    {/* Dsonance Section */}
+    <div className="w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
+      <div className="flex items-center space-x-2 mb-2">
+        <DsnCoinIcon/>
+        <span className="text-gray-700 dark:text-white text-lg">Dsonance</span>
+      </div>
+
+      {/* Dsonance Balance */}
+      <div className="flex justify-between w-full">
+        <span className="font-medium">Balance:</span>
         <span className="text-md font-semibold">
-          {formatBalanceE8s(presenceBalance ?? 0n, PRESENCE_COIN_SYMBOL)}
+          {formatBalanceE8s(dsnBalance ?? 0n, DSONANCE_COIN_SYMBOL)}
         </span>
       </div>
 
-      {/* Airdrop Button */}
-      {airdropAvailable && (
-        <button
-          className="px-10 button-simple h-10 justify-center items-center text-lg"
-          onClick={triggerAirdrop}
-          disabled={!airdropAvailable || airdroping || approving}
-        >
-          Mint fake Bitcoins
-        </button>
-      )}
+      {/* DSN Allowance */}
+      <div className="flex justify-between w-full mt-1">
+        <span className="font-medium">Allowance:</span>
+        {dsnAllowance !== undefined && (
+          <span className="text-md font-semibold">
+            {formatBalanceE8s(dsnAllowance, DSONANCE_COIN_SYMBOL)}
+          </span>
+        )}
+      </div>
 
+      {/* Allowance Input & Approve Button */}
+      <div className="flex justify-end w-full space-x-2 mt-3">
+        <div className="flex items-center space-x-1">
+          <span>{DSONANCE_COIN_SYMBOL}</span>
+          <input
+            ref={inputRef}
+            onChange={(e) => setDsnToApprove(toE8s(Number(e.target.value)) ?? 0n)}
+            type="number"
+            className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900"
+          />
+        </div>
+        <button
+          className="button-simple text-base"
+          onClick={() => triggerDsnApprove()}
+          disabled={dsnApproving}
+        >
+          Update allowance
+        </button>
+      </div>
     </div>
+
+    {/* BTC Airdrop Button */}
+    {btcAirdropAvailable && (
+      <button
+        className="px-10 button-simple h-10 justify-center items-center text-lg"
+        onClick={triggerBtcAirdrop}
+        disabled={!btcAirdropAvailable || btcAirdroping}
+      >
+        Mint fake Bitcoins
+      </button>
+    )}
+
+    {/* DSN Airdrop Button */}
+    {dsnAirdropAvailable && (
+      <button
+        className="px-10 button-simple h-10 justify-center items-center text-lg"
+        onClick={triggerDsnAirdrop}
+        disabled={!dsnAirdropAvailable || dsnAirdroping}
+      >
+        Airdrop DSN tokens
+      </button>
+    )}
+
+  </div>
+
   );
 }
 

@@ -21,10 +21,10 @@ dfx deploy ck_btc --argument '(opt record {
   icrc4 = null;
 })' --ic
 
-dfx deploy presence_ledger --argument '(opt record {
+dfx deploy dsn_ledger --argument '(opt record {
   icrc1 = opt record {
-    name              = opt "Presence Coin";
-    symbol            = opt "PRSC";
+    name              = opt "Dsonance Coin";
+    symbol            = opt "DSN";
     decimals          = 8;
     fee               = opt variant { Fixed = 10 };
     max_supply        = opt 2_100_000_000_000_000;
@@ -42,7 +42,7 @@ dfx deploy presence_ledger --argument '(opt record {
 })' --ic
 
 # Deploy protocol with dependencies
-# Hundred million e8s participation per day
+# Hundred million e8s contribution per day
 # With a discernment factor of 9, it leads to max one trillion e8s per day (probably more 400 billions per day)
 # minimum_ballot_amount shall be greater than 0
 # https://www.desmos.com/calculator/8iww2wlp2t
@@ -51,17 +51,18 @@ dfx deploy presence_ledger --argument '(opt record {
 # 1 hour timer interval, with a 24x dilation factor, means 1 day in simulated time
 dfx deploy protocol --argument '( variant { 
   init = record {
-    deposit = record {
+    btc = record {
       ledger = principal "hewp7-sqaaa-aaaap-anxeq-cai";
       fee = 10;
     };
-    presence = record {
+    dsn = record {
       ledger  = principal "hnved-eyaaa-aaaap-anxfa-cai";
       fee = 10;
     };
     parameters = record {
-      participation_per_day = 100_000_000_000;
-      discernment_factor = 9.0;
+      contribution_per_day = 100_000_000_000;
+      age_coefficient = 0.25;
+      max_age = variant { YEARS = 4 };
       ballot_half_life = variant { YEARS = 1 };
       nominal_lock_duration = variant { DAYS = 3 };
       minimum_ballot_amount = 100;

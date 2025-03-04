@@ -10,9 +10,9 @@ export const fromE8s = (amountE8s: bigint) => Number(amountE8s) / 100_000_000;
 
 export const formatBalanceE8s = (amountE8s: bigint, currencySymbol: string, decimals?: number) => {
     if (decimals !== undefined) {
-        return `${currencySymbol}${fromE8s(amountE8s).toFixed(decimals)}`
+        return `${fromE8s(amountE8s).toFixed(decimals)} ${currencySymbol}`
     }
-    return `${currencySymbol}${fromE8s(amountE8s).toString()}`
+    return `${fromE8s(amountE8s).toString()} ${currencySymbol}`
 };
 
 export const currencyToE8s = (amount: number, priceUnit: number) => {

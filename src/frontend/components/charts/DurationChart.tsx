@@ -4,12 +4,10 @@ import { nsToMs } from "../../utils/conversions/date";
 
 import { ResponsiveLine, Serie } from '@nivo/line';
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { protocolActor } from "../../actors/ProtocolActor";
 import { format } from "date-fns";
 import { ThemeContext } from "../App";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
-import { useProtocolContext } from "../ProtocolContext";
 
 export enum CHART_COLORS {
   BLUE = "rgb(59 130 246)",
@@ -19,25 +17,34 @@ export enum CHART_COLORS {
   GREEN = "rgb(7 227 68)",
 }
 
-const COLOR_NAMES = {
-  [CHART_COLORS.BLUE]: 'BLUE',
-  [CHART_COLORS.PURPLE]: 'PURPLE',
-  [CHART_COLORS.WHITE]: 'WHITE',
-  [CHART_COLORS.YELLOW]: 'YELLOW',
-  [CHART_COLORS.GREEN]: 'GREEN',
-};
-
 interface DurationChartProps {
-  duration_timeline: STimeline;
+  duration_timelines: Map<string, SerieInput>;
   format_value: (value: number) => string;
   fillArea: boolean;
   y_min?: number;
   y_max?: number;
+};
+
+export type SerieInput = {
+  timeline: STimeline;
   color: CHART_COLORS;
-  last_timestamp?: bigint;
+};
+
+const create_serie = (id: string, duration_timeline: STimeline): Serie => {
+  let data = duration_timeline.history.map((duration_ns) => {
+    return {
+      x: new Date(nsToMs(duration_ns.timestamp)),
+      y: duration_ns.data
+    };
+  });
+  data.push({
+    x: new Date(nsToMs(duration_timeline.current.timestamp)),
+    y: duration_timeline.current.data
+  });
+  return { id, data };
 };
   
-const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max, color, last_timestamp }: DurationChartProps) => {
+const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max }: DurationChartProps) => {
 
   const { theme } = useContext(ThemeContext);
 
@@ -51,7 +58,6 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
     // Function to update the width
     const updateWidth = () => {
       if (containerRef.current) {
-        console.log("Container width: ", containerRef.current.offsetWidth);
         setContainerWidth(containerRef.current.offsetWidth - 20); // 20 px to make room for the slider bar if any
       }
     };
@@ -67,36 +73,17 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
     };
   }, []);
 
-  const { info } = useProtocolContext();
-
   // Set up the chart container ref
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
 
   const data = useMemo(() => {
-    const data : Serie[] = [];
-    let points = duration_timeline.history.map((duration_ns) => {
-      return {
-        x: new Date(nsToMs(duration_ns.timestamp)),
-        y: duration_ns.data
-      };
+    const series : Serie[] = [];
+    duration_timelines.forEach((input, id) => {
+      let serie = create_serie(id, input.timeline);
+      series.push(serie);
     });
-    points.push({
-      x: new Date(nsToMs(duration_timeline.current.timestamp)),
-      y: duration_timeline.current.data
-    });
-    let timestamp = last_timestamp ?? info?.current_time;
-    if (timestamp) {
-      points.push({
-        x: new Date(nsToMs(timestamp)),
-        y: duration_timeline.current.data
-      });
-    }
-    data.push({
-      id: "Duration",
-      data: points
-    });
-    return data;
-  }, [duration_timeline, info]);
+    return series;
+  }, [duration_timelines]);
 
   return (
     <div className="flex flex-col items-center space-y-1 w-full" ref={containerRef}>
@@ -119,22 +106,49 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
             min: y_min,
             max: y_max,
           }}
-          curve='linear'
+          curve= { 'linear' }
           enableArea={fillArea}
           animate={false}
           enablePoints={false}
           margin={ isMobile ? { top: 20, bottom: 50, right: 20, left: 20 } : { top: 20, bottom: 50, right: 50, left: 90 }}
-          colors={color}
+          colors={Array.from(duration_timelines.values()).map((serie) => serie.color)}
           areaOpacity={0.7} // Adjust transparency of the area
-          fill={fillArea ? [{ match: '*', id: `gradientA_${COLOR_NAMES[color]}` }] : undefined}
-          defs={fillArea ? [{
-            id: `gradientA_${COLOR_NAMES[color]}`,
-            type: 'linearGradient',
-            colors: [
-              { offset: 0, color: color, opacity: 0.8 }, // Top gradient color
-              { offset: 100, color: color, opacity: 0.2 }, // Bottom gradient color
-            ],
-          }] : undefined}
+          fill={
+            fillArea
+              ? Array.from(duration_timelines.keys()).map((seriesId) => ({
+                  match: { id: seriesId }, // This must match the actual series ID in your `data`
+                  id: `gradient_${seriesId}`,
+                }))
+              : undefined
+          }
+          defs={
+            fillArea
+              ? Array.from(duration_timelines.entries()).map(([seriesId, serie]) => ({
+                  id: `gradient_${seriesId}`, // Ensure IDs match
+                  type: "linearGradient",
+                  colors: [
+                    { offset: 0, color: serie.color, opacity: 0.8 }, // Top gradient
+                    { offset: 100, color: serie.color, opacity: 0.2 }, // Bottom gradient
+                  ],
+                }))
+              : undefined
+          }
+          legends={duration_timelines.size < 2 ? [] : [
+            {
+              anchor: "bottom", // Position at the bottom
+              direction: "row", // Display legends in a row
+              justify: false,
+              translateX: 0,
+              translateY: 50, // Move below the chart
+              itemsSpacing: 10, // Space between legend items
+              itemDirection: "left-to-right",
+              itemWidth: 80,
+              itemHeight: 20,
+              itemOpacity: 1.0,
+              symbolSize: 12, // Size of color circle
+              symbolShape: "circle", // Can be "circle", "square", etc.
+            },
+          ]}
           areaBlendMode="normal"
           axisBottom={{
             renderTick: ({ tickIndex, x, y, value }) => {
@@ -184,6 +198,11 @@ const DurationChart = ({ duration_timeline, format_value, fillArea, y_min, y_max
               line: {
                 stroke: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800,
                 strokeOpacity: 0.3,
+              }
+            },
+            legends: {
+              text: {
+                fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
               }
             }
           }}

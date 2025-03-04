@@ -4,7 +4,7 @@ import { BITCOIN_TOKEN_SYMBOL, SAT_TOKEN_SYMBOL, USD_TOKEN_SYMBOL } from "../con
 import { icpCoinsActor } from "../actors/IcpCoinsActor";
 
 export enum SupportedCurrency {
-  BTC = "BTC",
+  ckBTC = "ckBTC",
   SAT = "SAT",
   USD = "USD",
 }
@@ -61,7 +61,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const currencySymbol = (() => {
     switch (currency) {
-      case SupportedCurrency.BTC:
+      case SupportedCurrency.ckBTC:
         return BITCOIN_TOKEN_SYMBOL;
       case SupportedCurrency.SAT:
         return SAT_TOKEN_SYMBOL;
@@ -76,7 +76,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [currency]);
 
   const currencyToSatoshis = (amount: number) : bigint | undefined => {
-    if (currency === "BTC") {
+    if (currency === "ckBTC") {
       return currencyToE8s(amount, 1);
     } else if (currency === "SAT") {
       return BigInt(amount);
@@ -89,7 +89,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }
 
   const satoshisToCurrency = (amountE8s: bigint) : number | undefined => {
-    if (currency === "BTC") {
+    if (currency === "ckBTC") {
       return e8sToCurrency(amountE8s, 1);
     } else if (currency === "SAT") {
       return Number(amountE8s);
@@ -102,7 +102,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }
 
   const formatSatoshis = (amountE8s: bigint) : string | undefined => {
-    if (currency === "BTC") {
+    if (currency === "ckBTC") {
       return formatBalanceE8s(amountE8s, BITCOIN_TOKEN_SYMBOL);
     } else if (currency === "SAT") {
       return formatCurrency(Number(amountE8s), SAT_TOKEN_SYMBOL);

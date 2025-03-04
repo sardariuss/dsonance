@@ -14,13 +14,13 @@ Rewards are divided into two parts:
 
 #### **DSN Rewards**
 
-Participation rewards are distributed continuously throughout the active period of a lock. The amount each voter receives is proportional to the amount of Bitcoin in their lock relative to the total Bitcoin locked in the protocol.
+Contribution rewards are distributed continuously throughout the active period of a lock. The amount each voter receives is proportional to the amount of Bitcoin in their lock relative to the total Bitcoin locked in the protocol.
 
-* **Ballot choice does not impact participation rewards**—only the total locked amount matters.
+* **Ballot choice does not impact contribution rewards**—only the total locked amount matters.
 * Since total locked Bitcoin changes over time, contribution is computed using a **time-weighted integral**, ensuring fairness.
 
 $$
-\text{participation} = \int_{t_{\text{lock}}}^{t_{\text{unlock}}} \left( \frac{\text{ballot\_amount}}{\text{total\_locked}(t)} \right) \times \text{minting\_rate} \, dt
+\text{contribution} = \int_{t_{\text{lock}}}^{t_{\text{unlock}}} \left( \frac{\text{ballot\_amount}}{\text{total\_locked}(t)} \right) \times \text{minting\_rate} \, dt
 $$
 
 ***

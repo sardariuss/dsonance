@@ -11,6 +11,7 @@ import Principal      "mo:base/Principal";
 import Time           "mo:base/Time";
 import Debug          "mo:base/Debug";
 import Float          "mo:base/Float";
+import Int            "mo:base/Int";
 
 module {
 
@@ -34,8 +35,8 @@ module {
 
     public func init(args: InitArgs) : State {
 
-        let { deposit; presence; parameters; } = args;
-        let now = Time.now();
+        let { btc; dsn; parameters; } = args;
+        let now = Int.abs(Time.now());
 
         #v0_1_0({
             vote_register = { 
@@ -50,19 +51,28 @@ module {
                 var time_last_dispense = now;
                 total_amount = Timeline.initialize(now, 0);
                 locks = BTree.init<Lock, Ballot<YesNoChoice>>(?BTREE_ORDER);
+                yield = {
+                    rate = 0.1; // TODO: This parameter shall be variable and come from the lending/borrowing utilization rate
+                    var cumulated = 0;
+                    contributions = {
+                        var sum_current = 0;
+                        var sum_cumulated = 0;
+                    };
+                };
             };
-            deposit = {
-                ledger : ICRC1 and ICRC2 = actor(Principal.toText(deposit.ledger));
-                fee = deposit.fee;
+            btc = {
+                ledger : ICRC1 and ICRC2 = actor(Principal.toText(btc.ledger));
+                fee = btc.fee;
                 owed = Set.new<UUID>();
             };
-            presence = {
-                ledger : ICRC1 and ICRC2 = actor(Principal.toText(presence.ledger));
-                fee = presence.fee;
+            dsn = {
+                ledger : ICRC1 and ICRC2 = actor(Principal.toText(dsn.ledger));
+                fee = dsn.fee;
                 owed = Set.new<UUID>();
             };
             parameters = { parameters with
-                participation_per_ns = Float.fromInt(parameters.participation_per_day) / Float.fromInt(Duration.NS_IN_DAY);
+                contribution_per_ns = Float.fromInt(parameters.contribution_per_day) / Float.fromInt(Duration.NS_IN_DAY);
+                max_age = Duration.toTime(parameters.max_age);
                 timer = {
                     var interval_s = parameters.timer_interval_s;
                 };

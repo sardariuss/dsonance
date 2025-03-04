@@ -39,10 +39,13 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
         {/* Right-aligned Profile and Theme Toggle */}
         <div className="flex flex-row items-center justify-end md:space-x-6 space-x-2">
           <CurrencyConverter />
+          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/"}>
+            Vote
+          </Link>
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/dashboard"}>
             Dashboard
           </Link>
-          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={DOCS_URL}>
+          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={DOCS_URL} target="_blank" rel="noreferrer">
             Docs
           </Link>
           { authenticated && identity && <BtcBalance/> }
@@ -91,11 +94,6 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
     };
   }, []);
 
-  useEffect(() => {
-    console.log("showMenu:", showMenu);
-  }
-  , [showMenu]);
-
   // WATCHOUT: the size of the header is set to 26 (20 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
@@ -138,7 +136,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 to="/"
                 onClick={() => setShowMenu(false)}
               >
-                Home
+                Vote
               </Link>
             </div>
             <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/dashboard' ? 'bg-purple-700 text-white' : ''}`}>
@@ -157,6 +155,8 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 className="cols-span-11 overflow-visible whitespace-nowrap"
                 to={DOCS_URL}
                 onClick={() => setShowMenu(false)}
+                target="_blank"
+                rel="noreferrer"
               >
                 Docs
               </Link>

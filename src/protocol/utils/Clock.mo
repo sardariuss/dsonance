@@ -34,7 +34,10 @@ module {
                 case(#REAL) { return #err("Cannot set dilation factor to real clock"); };
                 case(#SIMULATED(p)) { p; };
             };
-            let now = Time.now();
+            if (dilation_factor < 0.0) {
+                return #err("Dilation factor must be positive");
+            };
+            let now = Int.abs(Time.now());
             // First add the current dilation to the offset
             p.offset_ns += compute_dilatation(now, p.time_ref, p.dilation_factor);
             // Then update the time reference with the current time
@@ -44,17 +47,17 @@ module {
             #ok;
         };
 
-        public func get_time() : Time {
-            let now = Time.now();
+        public func get_time() : Nat {
+            let now = Int.abs(Time.now());
             switch(params){
                 case(#REAL) { now; };
                 case(#SIMULATED(p)) { p.time_ref + compute_dilatation(now, p.time_ref, p.dilation_factor) + p.offset_ns; };
             };
         };
 
-        func compute_dilatation(now: Time, time_ref: Time, dilation_factor: Float) : Time {
+        func compute_dilatation(now: Nat, time_ref: Nat, dilation_factor: Float) : Nat {
             let time_diff = now - time_ref;
-            Float.toInt(Float.fromInt(time_diff) * dilation_factor);
+            Int.abs(Float.toInt(Float.fromInt(time_diff) * dilation_factor));
         };
 
     };

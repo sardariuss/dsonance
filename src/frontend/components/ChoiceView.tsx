@@ -1,13 +1,12 @@
-import { SBallotType } from "@/declarations/protocol/protocol.did";
+import { YesNoChoice } from "@/declarations/protocol/protocol.did";
 import { EYesNoChoice, toEnum } from "../utils/conversions/yesnochoice";
+import { useMemo } from "react";
 
-interface ChoiceProps {
-  ballot: SBallotType;
+interface ChoiceViewProps {
+  choice: EYesNoChoice;
 }
 
-const ChoiceView = ({ ballot }: ChoiceProps) => {
-
-    const choice = toEnum(ballot.YES_NO.choice);
+const ChoiceView = ({ choice }: ChoiceViewProps) => {
 
     return <span className={`${choice === EYesNoChoice.Yes ? " text-brand-true" : " text-brand-false"}`}>{choice}</span>
 }

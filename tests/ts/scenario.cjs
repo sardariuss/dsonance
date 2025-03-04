@@ -33,13 +33,15 @@ const VOTES_TO_OPEN = [
 ];
 
 const NUM_USERS = 10;
-const USER_BALANCE = 100_000_000n;
+const BTC_USER_BALANCE = 100_000_000n;
+const DSN_USER_BALANCE = 100_000_000_000n;
 const MEAN_BALLOT_AMOUNT = 20_000;
 const NUM_VOTES = 5;
 const SCENARIO_DURATION = { 'DAYS': 18n };
 const SCENARIO_TICK_DURATION = { 'DAYS': 3n };
 
 const CKBTC_FEE = 10n;
+const DSN_FEE = 1_000n;
 
 const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -73,15 +75,29 @@ async function callCanisterMethod() {
     const { idlFactory: minterFactory } = await import("../../.dfx/local/canisters/minter/service.did.js");
     const { idlFactory: backendFactory } = await import("../../.dfx/local/canisters/backend/service.did.js");
     const { idlFactory: ckBtcFactory } = await import("../../.dfx/local/canisters/ck_btc/service.did.js");
+    const { idlFactory: dsnLedgerFactory } = await import("../../.dfx/local/canisters/dsn_ledger/service.did.js");
 
     // Retrieve canister ID from environment variables
     const protocolCanisterId = process.env.CANISTER_ID_PROTOCOL;
     const minterCanisterId = process.env.CANISTER_ID_MINTER;
     const backendCanisterId = process.env.CANISTER_ID_BACKEND;
     const ckBtcCanisterId = process.env.CANISTER_ID_CK_BTC;
+    const dsnLedgerCanisterId = process.env.CANISTER_ID_DSN_LEDGER;
 
-    if (!protocolCanisterId || !backendCanisterId || !minterCanisterId || !ckBtcCanisterId) {
-        throw new Error("One of environment variable CANISTER_ID_* is not defined");
+    if (!protocolCanisterId){
+        throw new Error("Protocol canister ID is missing");
+    }
+    if (!minterCanisterId){
+        throw new Error("Minter canister ID is missing");
+    }
+    if (!backendCanisterId){
+        throw new Error("Backend canister ID is missing");
+    }
+    if (!ckBtcCanisterId){
+        throw new Error("ckBTC canister ID is missing");
+    }
+    if (!dsnLedgerCanisterId){
+        throw new Error("DSN Ledger canister ID is missing");
     }
 
     // Simulation actors
@@ -121,17 +137,22 @@ async function callCanisterMethod() {
         if (ckbtcActor === null) {
             throw new Error("ckBTC actor is null");
         }
-        userActors.set(identity.getPrincipal(), { "protocol": protocolActor, "backend": backendActor, "ckbtc": ckbtcActor });
+        let dsnLedgerActor = await getActor(dsnLedgerCanisterId, dsnLedgerFactory, identity);
+        if (dsnLedgerActor === null) {
+            throw new Error("DSN Ledger actor is null");
+        }
+        userActors.set(identity.getPrincipal(), { "protocol": protocolActor, "backend": backendActor, "ckbtc": ckbtcActor, "dsn_ledger": dsnLedgerActor });
     }
 
-    // Mint ckBTC to each user
+    // Mint ckBTC and DSN to each user
     let mintPromises = [];
     for (let [principal, _] of userActors) {
-        mintPromises.push(minterActor.mint({to: { owner: principal, subaccount: [] }, amount: USER_BALANCE}));
+        mintPromises.push(minterActor.mint_btc({to: { owner: principal, subaccount: [] }, amount: BTC_USER_BALANCE}));
+        mintPromises.push(minterActor.mint_dsn({to: { owner: principal, subaccount: [] }, amount: DSN_USER_BALANCE}));
     }
     await Promise.all(mintPromises);
 
-    // Approve ckBTC for each user
+    // Approve ckBTC and DSN for each user
     let approvePromises = [];
     for (let [_, actors] of userActors) {
         approvePromises.push(actors.ckbtc.icrc2_approve({
@@ -139,7 +160,20 @@ async function callCanisterMethod() {
             memo: [],
             from_subaccount: [],
             created_at_time: [],
-            amount: USER_BALANCE - CKBTC_FEE,
+            amount: BTC_USER_BALANCE - CKBTC_FEE,
+            expected_allowance: [],
+            expires_at: [],
+            spender: {
+              owner: Principal.fromText(protocolCanisterId),
+              subaccount: []
+            },
+        }));
+        approvePromises.push(actors.dsn_ledger.icrc2_approve({
+            fee: [],
+            memo: [],
+            from_subaccount: [],
+            created_at_time: [],
+            amount: DSN_USER_BALANCE - DSN_FEE,
             expected_allowance: [],
             expires_at: [],
             spender: {
@@ -169,7 +203,7 @@ async function callCanisterMethod() {
         console.log("Scenario tick: ", tick);
 
         // Retrieve all votes
-        let votes = await backendSimActor.get_votes( { category: [] } );
+        let votes = await backendSimActor.get_votes( { categories: [], previous: [], limit: 100 } );
         console.log(votes);
 
         let putBallotPromises = [];
