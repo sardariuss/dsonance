@@ -94,11 +94,6 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
     };
   }, []);
 
-  useEffect(() => {
-    console.log("showMenu:", showMenu);
-  }
-  , [showMenu]);
-
   // WATCHOUT: the size of the header is set to 26 (20 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">

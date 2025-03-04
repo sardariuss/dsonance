@@ -32,7 +32,6 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
   }, [ballot]);
   
   useEffect(() => {
-    console.log("Refresh preview");
     refreshPreview([
       {
         ballot_id: uuidv4(),

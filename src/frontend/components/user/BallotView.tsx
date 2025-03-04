@@ -1,9 +1,9 @@
 import { formatDuration } from "../../utils/conversions/durationUnit";
-import { niceFormatDate, timeDifference, timeToDate } from "../../utils/conversions/date";
+import { niceFormatDate, timeToDate } from "../../utils/conversions/date";
 
 import { DSONANCE_COIN_SYMBOL, MOBILE_MAX_WIDTH_QUERY } from "../../constants";
-import { get_current, interpolate_now, map_timeline_hack, to_number_timeline, to_time_left } from "../../utils/timeline";
-import DurationChart, { CHART_COLORS } from "../charts/DurationChart";
+import { get_current, get_timeline_diff, interpolate_now, map_timeline_hack, to_number_timeline, to_time_left } from "../../utils/timeline";
+import DurationChart, { CHART_COLORS, SerieInput } from "../charts/DurationChart";
 import { unwrapLock } from "../../utils/conversions/ballot";
 import { formatBalanceE8s } from "../../utils/conversions/token";
 
@@ -20,11 +20,6 @@ import { toEnum } from "../../utils/conversions/yesnochoice";
 import { useCurrencyContext } from "../CurrencyContext";
 import ChoiceView from "../ChoiceView";
 
-interface Props {
-  ballot: SBallotType;
-  now: bigint;
-}
-
 enum CHART_TOGGLE {
     DURATION,
     CONSENT,
@@ -32,134 +27,169 @@ enum CHART_TOGGLE {
     DISCERNMENT
 }
 
-const BallotDetails : React.FC<Props> = ({ ballot, now }) => {
+interface ChartCardProps {
+  title: string;
+  value: string;
+  diff?: string;
+  toggleKey: CHART_TOGGLE;
+  chartTimelines: Map<string, SerieInput>;
+  formatValue: (value: number) => string;
+  valueClassName?: string;
+  yMin?: number;
+  yMax?: number;
+  curve?: "linear" | "stepAfter";
+  setChartToggle: (toggleKey: CHART_TOGGLE | undefined) => void;
+  chartToggle: CHART_TOGGLE | undefined;
+}
+
+const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, chartTimelines, formatValue, valueClassName, yMin, yMax, curve, setChartToggle, chartToggle }) => (
+  <div
+    className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
+    onClick={() => setChartToggle(chartToggle === toggleKey ? undefined : toggleKey)}
+  >
+    <div className="flex flex-row w-full gap-x-2 px-2">
+      <span className="text-base grow">{title}</span>
+      <span className={`font-semibold ${valueClassName}`}>{value}</span>
+      {diff && <span className="italic text-gray-700 dark:text-gray-300">{diff}</span>}
+      {chartToggle === toggleKey ? <ChevronUpIcon /> : <ChevronDownIcon />}
+    </div>
+    {chartToggle === toggleKey && (
+      <DurationChart
+        duration_timelines={chartTimelines}
+        format_value={formatValue}
+        fillArea={true}
+        y_min={yMin}
+        y_max={yMax}
+        curve={curve}
+      />
+    )}
+  </div>
+);
+
+interface BallotDetailsProps {
+  ballot: SBallotType;
+  now: bigint;
+}
+
+const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
 
     const releaseTimestamp = ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data;
 
     const [chartToggle, setChartToggle] = useState<CHART_TOGGLE | undefined>(undefined);
 
-    const { duration_diff, consent_diff, apr_diff } = useMemo(() => {
+    const chartData = useMemo(() => {
 
-      let duration_diff : bigint | undefined = undefined;
-      const duration_ns = unwrapLock(ballot).duration_ns;
-      if (duration_ns.history.length > 0) {
-        duration_diff = get_current(duration_ns).data - duration_ns.history[0].data;
-      }
+      let duration_diff = get_timeline_diff(unwrapLock(ballot).duration_ns);
+      let consent_diff = get_timeline_diff(ballot.YES_NO.consent);
 
-      let consent_diff : number | undefined = undefined;
-      const consent = ballot.YES_NO.consent;
-      if (consent.history.length > 0) {
-        consent_diff = get_current(consent).data - consent.history[0].data;
-      }
-
-      let apr_diff : number | undefined = undefined;
+      // TODO: hack to avoid first value
+      let apr_diff = undefined;
       const foresight = ballot.YES_NO.foresight;
-      if (foresight.history.length > 1) { // TODO: hack to avoid first value
-        apr_diff = foresight.current.data.apr.current - foresight.history[1].data.apr.current;
+      if (foresight.history.length > 1) {
+        const diff = foresight.current.data.apr.current - foresight.history[1].data.apr.current;
+        if (diff !== 0) {
+          apr_diff = diff;
+        }
       }
 
-      return { duration_diff, consent_diff, apr_diff };
+      return [
+        {
+          title: "APR:",
+          value: ballot.YES_NO.foresight.current.data.apr.current.toFixed(2) + "%",
+          diff: apr_diff !== undefined ? `(${apr_diff > 0 ? "+" : ""}${apr_diff.toFixed(2)}%)` : undefined,
+          toggleKey: CHART_TOGGLE.DISCERNMENT,
+          chartTimelines: new Map([
+            [
+              "current",
+              {
+                timeline: interpolate_now(
+                  map_timeline_hack(ballot.YES_NO.foresight, (foresight) => Number(foresight.apr.current)),
+                  now
+                ),
+                color: CHART_COLORS.GREEN,
+              },
+            ],
+          ]),
+          formatValue: (value: number) => value.toFixed(2),
+          valueClassName: "[text-shadow:0px_0px_10px_rgb(59,130,246)]"
+        },
+        {
+          title: "Mining earned:",
+          value: formatBalanceE8s(
+            BigInt(Math.floor(ballot.YES_NO.contribution.current.data.earned)),
+            DSONANCE_COIN_SYMBOL,
+            2
+          ),
+          toggleKey: CHART_TOGGLE.CONTRIBUTION,
+          chartTimelines: new Map([
+            [
+              "earned",
+              { timeline: map_timeline_hack(ballot.YES_NO.contribution, (contribution) => contribution.earned), color: CHART_COLORS.BLUE },
+            ],
+            [
+              "pending",
+              { timeline: map_timeline_hack(ballot.YES_NO.contribution, (contribution) => contribution.pending), color: CHART_COLORS.PURPLE },
+            ],
+          ]),
+          formatValue: (value: number) => formatBalanceE8s(BigInt(value), DSONANCE_COIN_SYMBOL, 2),
+        },
+        {
+          title: "Consent:",
+          value: ballot.YES_NO.consent.current.data.toFixed(3),
+          diff: consent_diff !== undefined && Math.abs(consent_diff) > 0 ? `(${consent_diff > 0 ? "+" : ""}${consent_diff.toFixed(3)})` : undefined,
+          toggleKey: CHART_TOGGLE.CONSENT,
+          chartTimelines: new Map([
+            ["Consent", { timeline: interpolate_now(ballot.YES_NO.consent, now), color: CHART_COLORS.BLUE }],
+          ]),
+          formatValue: (value: number) => value.toString(),
+          yMin: 0,
+          yMax: 1.0,
+        },
+        {
+          title: releaseTimestamp > now ? "Time left:" : "Duration:",
+          value:
+            releaseTimestamp > now
+              ? formatDuration(releaseTimestamp - now)
+              : formatDuration(get_current(unwrapLock(ballot).duration_ns).data),
+          diff: duration_diff !== undefined ? `(+ ${formatDuration(duration_diff)})` : undefined,
+          toggleKey: CHART_TOGGLE.DURATION,
+          chartTimelines:
+            releaseTimestamp > now
+              ? new Map([
+                  [
+                    "time_left",
+                    {
+                      timeline: to_number_timeline(to_time_left(unwrapLock(ballot).duration_ns, now)),
+                      color: CHART_COLORS.PURPLE,
+                    },
+                  ],
+                ])
+              : new Map([
+                  [
+                    "duration",
+                    {
+                      timeline: to_number_timeline(unwrapLock(ballot).duration_ns),
+                      color: CHART_COLORS.PURPLE,
+                    },
+                  ],
+                ]),
+          formatValue: (value: number) => formatDuration(BigInt(value)),
+          curve: "linear" as "linear",
+        },
+      ];
+
     }, [ballot]);
-    
+
     return (
-        <div className="flex flex-col justify-items-center w-full mt-2 space-y-1">
-
-          <div 
-            className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
-            onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.DISCERNMENT ? undefined : CHART_TOGGLE.DISCERNMENT )} 
-          >
-            <div className="flex flex-row w-full gap-x-2 px-2">
-                <span className="text-base grow">APR:</span> 
-                <span className="font-semibold [text-shadow:0px_0px_10px_rgb(59,130,246)]">{ ballot.YES_NO.foresight.current.data.apr.current.toFixed(2) + "%" }</span>
-                { apr_diff !== undefined && <span className="italic text-gray-700 dark:text-gray-300">{`(${apr_diff > 0 ? "+" : ""}${apr_diff.toFixed(2)}%)`}</span> }
-                { chartToggle === CHART_TOGGLE.DISCERNMENT ? <ChevronUpIcon/> : <ChevronDownIcon/> }
-            </div>
-            { (chartToggle === CHART_TOGGLE.DISCERNMENT) && 
-              <DurationChart 
-                duration_timelines={ new Map([
-                  ["current", { timeline: interpolate_now(map_timeline_hack(ballot.YES_NO.foresight, (foresight) => Number(foresight.apr.current) ), now), color: CHART_COLORS.GREEN }],
-                ]) }
-                format_value={ (value: number) => (value.toFixed(2)) }
-                fillArea={true}
-              />
-            }
-          </div>
-
-          <div 
-            className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
-            onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.CONTRIBUTION ? undefined : CHART_TOGGLE.CONTRIBUTION )} 
-          >
-            <div className="flex flex-row w-full gap-x-2 px-2">
-                <span className="text-base grow">Mining earned:</span> 
-                { formatBalanceE8s(BigInt(Math.floor(ballot.YES_NO.contribution.current.data.earned)), DSONANCE_COIN_SYMBOL, 2) }
-                { chartToggle === CHART_TOGGLE.CONTRIBUTION ? <ChevronUpIcon/> : <ChevronDownIcon/> }
-            </div>
-            { (chartToggle === CHART_TOGGLE.CONTRIBUTION) && 
-              <DurationChart 
-                duration_timelines={ new Map([
-                  ["earned", { timeline: map_timeline_hack(ballot.YES_NO.contribution, (contribution) => contribution.earned ) , color: CHART_COLORS.BLUE }],
-                  ["pending", { timeline: map_timeline_hack(ballot.YES_NO.contribution, (contribution) => contribution.pending ), color: CHART_COLORS.PURPLE }],
-                ]) }
-                format_value={ (value: number) => (formatBalanceE8s(BigInt(value), DSONANCE_COIN_SYMBOL, 2)) } 
-                fillArea={true}
-              />
-            }
-          </div>
-
-          <div
-            className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
-            onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.CONSENT ? undefined : CHART_TOGGLE.CONSENT )} 
-          >
-            <div className="flex flex-row w-full gap-x-2 px-2">
-                <span className="text-base grow">Consent:</span> 
-                { ballot.YES_NO.consent.current.data.toFixed(3) }
-                { consent_diff !== undefined && <span className="italic text-gray-700 dark:text-gray-300">{`(${consent_diff > 0 ? "+" : ""}${consent_diff.toFixed(3)})`}</span> }
-                { chartToggle === CHART_TOGGLE.CONSENT ? <ChevronUpIcon/> : <ChevronDownIcon/> }
-            </div>
-            { (chartToggle === CHART_TOGGLE.CONSENT) && 
-                <DurationChart 
-                    duration_timelines={ new Map([["Consent", { timeline: interpolate_now(ballot.YES_NO.consent, now), color: CHART_COLORS.BLUE } ]]) }
-                    format_value={ (value: number) => value.toString() }
-                    fillArea={true}
-                    y_min={0}
-                    y_max={1.0}
-                />
-            }
-          </div>
-
-          <div 
-            className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
-            onClick={() => setChartToggle(chartToggle === CHART_TOGGLE.DURATION ? undefined : CHART_TOGGLE.DURATION )} 
-          >
-            <div className="flex flex-row w-full gap-x-2 px-2">
-                <span className="text-base grow">{ releaseTimestamp > now ? "Time left:" : "Duration:"}</span> 
-                <span>
-                  { releaseTimestamp > now ? formatDuration(releaseTimestamp - now) : formatDuration(get_current(unwrapLock(ballot).duration_ns).data) }
-                </span>
-                { duration_diff !== undefined && 
-                  <span className="italic text-gray-700 dark:text-gray-300">
-                    {`(+ ${formatDuration(duration_diff)})`}
-                  </span>
-                }
-                { chartToggle === CHART_TOGGLE.DURATION ? <ChevronUpIcon/> : <ChevronDownIcon/> }
-            </div>
-            { (chartToggle === CHART_TOGGLE.DURATION) && 
-                <DurationChart 
-                    duration_timelines={ releaseTimestamp > now ? 
-                      new Map([["time_left", { timeline: to_number_timeline(to_time_left(unwrapLock(ballot).duration_ns, now)), color: CHART_COLORS.PURPLE} ]]) :
-                      new Map([["duration", { timeline: to_number_timeline(unwrapLock(ballot).duration_ns), color: CHART_COLORS.PURPLE} ]])
-                     }
-                    format_value={ (value: number) => formatDuration(BigInt(value)) } 
-                    fillArea={true}
-                    curve="linear"
-                />
-            }
-          </div>
-        </div>
+      <div className="flex flex-col justify-items-center w-full mt-2 space-y-1">
+        {chartData.map((item, index) => (
+          <ChartCard key={index} {...item} chartToggle={chartToggle} setChartToggle={setChartToggle} />
+        ))}
+      </div>
     );
 }
 
-const BallotView : React.FC<Props> = ({ ballot, now }) => {
+const BallotView : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const navigate = useNavigate();

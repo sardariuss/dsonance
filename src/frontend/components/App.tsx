@@ -44,7 +44,6 @@ function App() {
       // Use saved theme if any
       const initialTheme = window.localStorage.getItem("color-theme");
       if (initialTheme) {
-        console.log("Load theme from local storage:", initialTheme);
         rawSetTheme(initialTheme);
         return;
       }

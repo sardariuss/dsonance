@@ -93,13 +93,7 @@ const Wallet = () => {
         owner: Principal.fromText(protocolCanisterId),
         subaccount: []
       },
-    }],
-    onSuccess: (data) => {
-      console.log(data)
-    },
-    onError: (error) => {
-      console.error(error);
-    }
+    }]
   });
 
   const { call: dsnApprove, loading: dsnApproving } = dsonanceLedgerActor.useUpdateCall({
@@ -116,13 +110,7 @@ const Wallet = () => {
         owner: Principal.fromText(protocolCanisterId),
         subaccount: []
       },
-    }],
-    onSuccess: (data) => {
-      console.log(data)
-    },
-    onError: (error) => {
-      console.error(error);
-    }
+    }]
   });
 
   const triggerBtcApprove = () => {

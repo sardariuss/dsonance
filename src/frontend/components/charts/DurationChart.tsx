@@ -26,7 +26,7 @@ interface DurationChartProps {
   curve?: "linear" | "stepAfter";
 };
 
-type SerieInput = {
+export type SerieInput = {
   timeline: STimeline;
   color: CHART_COLORS;
 };

@@ -103,6 +103,22 @@ export const map_filter_timeline = <T1, T2>(timeline: TimeLine<T1>, f: (data: T1
   };
 };
 
+export const get_timeline_diff = <T extends number | bigint>(timeline: TimeLine<T>): T | undefined => {
+  if (timeline.history.length !== 0) {
+    let diff = (timeline.current.data - timeline.history[timeline.history.length - 1].data) as T;
+
+    if (typeof diff === "bigint") {
+      return diff !== BigInt(0) ? diff : undefined;
+    }
+
+    if (Math.abs(diff as number) > 0) {
+      return diff;
+    }
+  }
+  return undefined;
+};
+
+
 function mapFilter<T1, T2>(array: T1[], callback: (item: T1) => T2 | undefined): T2[] {
   const result = [];
   for (const item of array) {
