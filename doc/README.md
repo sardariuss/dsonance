@@ -5,10 +5,7 @@ coverY: 0
 
 # Introduction
 
-<img src="../.gitbook/assets/consensus.png" alt="">
-![Dsonance](./gitbook/assets/logo.png)
-
-**Dsonance** is a platform that enables users to lock Bitcoin and participate in a decentralized consensus system. By fostering continuous, stake-weighted voting, the platform ensures that collective decisions are nuanced, evolving, and resistant to manipulation. Participants are rewarded for their contributions and their ability to anticipate the future consensus, fostering a fair and transparent system that values foresight, genuine opinions, and strategic thinking.
+**Dsonance** is a platform that enables users to **earn yield on their Bitcoin** and **win additional rewards** by voting on a list of **empirical statements**. By harnessing the power of **Proof-of-Foresight**, the platform ensures that consensus remains **genuine**, adapts in **real-time** to shifts in public opinion, and **resists manipulation**.
 
 #### 🎯 **Goals**
 
@@ -17,12 +14,11 @@ coverY: 0
 * **Combat bribery**: Ensure decisions remain immune to external financial influence, a timeless issue in human decision-making.
 * **Value user attention**: Incentivize participants to vote on topics they are most knowledgeable about, so not everyone is required to vote on every issue, improving focus and engagement.
 
-#### ⚙️ **How It Works**
+#### ⚙️ **Proof-of-Foresight**
 
-* **Stake-weighted voting**: Users lock Bitcoin to vote on specific statements, with voting power proportional to their stake.
-* **Dynamic lock duration**: Lock durations are tailored to each ballot and can extend over time as the topic gains popularity.
-* **Continuous voting**: Results decay over time, allowing past consensus to be re-evaluated as opinions evolve.
-* **Sensible rewards**: Voters are rewarded not just for participating but for their discernment, with greater rewards given to opinions that stand the test of time.
+* **Stake-weighted voting:** Users lock Bitcoin to vote on specific statements, with voting power proportional to their stake.
+* **Dynamic lock duration:** Lock durations adjust to each ballot and extend over time as topics gain popularity.
+* **Earn twice:** Get DSN tokens for your participation—and maximize your BTC yield with your foresight!
 
 #### 🎲 **Game Theory**
 

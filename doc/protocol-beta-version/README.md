@@ -3,9 +3,9 @@ cover: ../.gitbook/assets/logo.png
 coverY: 0
 ---
 
-# Protocol (beta version)
+# Proof-of-Foresight
 
-A description of the protocol in its beta version.
+The Proof-of-Foresight defines the voting rules and reward mechanisms, incentivizing voters to act sincerely and prioritize the establishment of lasting truth.
 
 
 

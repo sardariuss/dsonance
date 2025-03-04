@@ -5,16 +5,14 @@ coverY: 0
 
 # Voting rewards
 
-#### **Rewards Structure**
+Rewards are divided into two parts:
 
-In its initial phase, the protocol rewards voters with **Dsonance tokens**, a fixed amount of which is minted daily. These rewards are divided into two parts:
-
-1. **Contribution Rewards** – Rewarding engagement in the protocol.
-2. **Discernment Rewards** – Rewarding thoughtful voting behavior.
+1. **DSN Rewards** – Rewarding participation in the protocol.
+2. **BTC Rewards** – Rewarding ballot foresight.
 
 ***
 
-#### **Contribution Rewards**
+#### **DSN Rewards**
 
 Contribution rewards are distributed continuously throughout the active period of a lock. The amount each voter receives is proportional to the amount of Bitcoin in their lock relative to the total Bitcoin locked in the protocol.
 
@@ -33,7 +31,7 @@ $$
 Totals expressed in the following paragraphs represent the sum of ballots amounts weighted by their decay as expressed in the [stake-weighted-voting.md](stake-weighted-voting.md "mention") chapter.
 {% endhint %}
 
-Before defining _discernment rewards_, it is important to introduce two key metrics:
+Before defining _BTC rewards_, it is important to introduce two key metrics:
 
 **Dissent**
 
@@ -66,7 +64,7 @@ Where $$p$$ (dissent steepness) is a protocol parameter between 0 and 1:
 * The closer $$p$$ is to 1, the steeper the curve (meaning the majority is rewarded less).
 * The closer $$p$$ is to 0, the more the majority is rewarded.
 
-<div align="center" data-full-width="true"><figure><img src="../.gitbook/assets/image (1).png" alt=""><figcaption><p>In X, the ratio total_opposit/ total, in Y the dissent. The red curve is the original dissent, the purple curve is the adjusted dissent.</p></figcaption></figure></div>
+<div align="center" data-full-width="true"><figure><img src="../.gitbook/assets/image (1) (1).png" alt=""><figcaption><p>In X, the ratio total_opposit/ total, in Y the dissent. The red curve is the original dissent, the purple curve is the adjusted dissent.</p></figcaption></figure></div>
 
 Since the **ballot itself influences the consensus**, we must account for its weight. The **ballot dissent** is calculated as:
 
@@ -119,16 +117,24 @@ Where:
 
 ***
 
-#### Discernment rewards
+#### BTC rewards
 
-Discernment rewards are distributed **at the end of a lock** and depend on:
-
-1. How bold the choice was at the time of casting: $$\text{ballot\_dissent}_{t_0}$$
-2. How well the ballot aligns with the final consensus: $$\text{ballot\_consent}_{t_{\text{end}}}$$
-
-The discernment reward is calculated as:
+BTC rewards are distributed **at the end of a lock** and depend on the foresight of each lock:
 
 $$
-\text{discernment} = \text{contribution} \times \text{ballot\_dissent}_{t_0} \times \text{ballot\_consent}_{t_{\text{end}}}
+\text{foresight} = \text{lock_amount} \times \text{age_bonus} \times \text{ballot_dissent}_{t_0} \times \text{ballot_consent}_{t_{\text{end}}}
+$$
+
+Where:
+
+* $$\text{lock_amount}$$ is the amount of satoshis in the ballot
+* $$\text{age_bonus}$$ is the age bonus of the lock, between 1 and 1.25
+* $$\text{ballot\_dissent}_{t_0}$$represents how bold the choice was at the time of casting
+* $$\text{ballot\_consent}_{t_{\text{end}}}$$represents how well the ballot aligns with the final consensus:
+
+The reward for a lock is its weighted proportion of foresight, relative to the total foresight of all active locks, multiplied by the total BTC yield accumulated by all locks:
+
+$$
+\text{btc_reward}_i = \frac{\text{foresight}_i}{\sum_{j} \text{foresight}_j} \times {\text{total_accumulated_btc}}
 $$
 
