@@ -68,7 +68,7 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ category, timestamp, voteDeta
       <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
         <span className="flex flex-row gap-x-1 items-center">
           <span className="text-sm text-gray-600 dark:text-gray-400">EVP</span>
-          <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noreferrer">
+          <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noopener">
             <InfoIcon/>
           </Link>
         </span>
@@ -80,7 +80,7 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ category, timestamp, voteDeta
           className={`${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
           style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
         >
-          { liveDetails.cursor ? liveDetails.cursor.toFixed(2) : ""}
+          { liveDetails.cursor !== undefined ? liveDetails.cursor.toFixed(2) : ""}
         </div>
       </div>
     </div>
@@ -108,7 +108,7 @@ export const VoteFiguresSkeleton: React.FC = () => {
     <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
       <span className="flex flex-row gap-x-1 items-center">
         <span className="text-sm text-gray-600 dark:text-gray-400">EVP</span>
-        <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noreferrer">
+        <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noopener">
           <InfoIcon/>
         </Link>
       </span>

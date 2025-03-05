@@ -53,7 +53,7 @@ const VoteRow: React.FC<VoteRowProps> = ({ category, voteDetails, text }) => {
         className={`justify-self-end text-lg leading-none`}
         style={{ color: blendedColor ?? "white", textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
       >
-        { voteDetails.cursor ? voteDetails.cursor.toFixed(2) : "" }
+        { voteDetails.cursor !== undefined? voteDetails.cursor.toFixed(2) : "" }
       </div>
     </div>
   );

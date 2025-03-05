@@ -24,7 +24,7 @@ interface ThemeContextProps {
 }
 
 export const ThemeContext = createContext<ThemeContextProps>({
-  theme: "light",
+  theme: "dark",
   setTheme: (theme) => console.warn("no theme provider"),
 });
 

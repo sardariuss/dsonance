@@ -34,7 +34,7 @@ type Props = {
 
 const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onMouseDown}: Props) => {
 
-  const { currencySymbol, currencyToSatoshis, satoshisToCurrency, formatSatoshis } = useCurrencyContext();
+  const { currencySymbol, currencyToSatoshis, formatSatoshis } = useCurrencyContext();
   const { btcAllowance, refreshBtcAllowance } = useAllowanceContext();
   const { authenticated, login } = useAuth();
   const { parameters } = useProtocolContext();
@@ -77,7 +77,7 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
   useEffect(() => {
   // Only update if input is not focused, meaning that it comes from an external stimulus
     if (customRef.current && !isCustomActive) {
-      let amount = formatSatoshis(ballot.amount);
+      let amount = formatSatoshis(ballot.amount, true);
       if (amount !== undefined) {
         customRef.current.value = amount;
       }
@@ -91,6 +91,11 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
     }
   },
   [ballot]);
+
+  useEffect(() => {
+    // Reset when currency changes
+    setBallot({ amount: 0n, choice: ballot.choice });
+  }, [currencySymbol]);
 
   const customRef = useRef<HTMLInputElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);

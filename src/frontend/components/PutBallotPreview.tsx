@@ -83,7 +83,7 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
       {
         label: "Mining reward",
         value: previewData
-          ? formatBalanceE8s(BigInt(Math.trunc(previewData.contribution.current.data.pending)), DSONANCE_COIN_SYMBOL, 2)
+          ? formatBalanceE8s(BigInt(Math.trunc(previewData.contribution.current.data.pending)), DSONANCE_COIN_SYMBOL, 0)
           : defaultValue,
       },
       {

@@ -20,7 +20,7 @@ interface CurrencyContextType {
   setCurrency: (currency: SupportedCurrency) => void;
   currencyToSatoshis: (amount: number) => bigint | undefined;
   satoshisToCurrency: (amountE8s: bigint) => number | undefined;
-  formatSatoshis: (amountE8s: bigint) => string | undefined;
+  formatSatoshis: (amountE8s: bigint,  omit_unit?: boolean) => string | undefined;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
@@ -101,14 +101,14 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }
 
-  const formatSatoshis = (amountE8s: bigint) : string | undefined => {
+  const formatSatoshis = (amountE8s: bigint, omit_unit?: boolean) : string | undefined => {
     if (currency === "ckBTC") {
-      return formatBalanceE8s(amountE8s, BITCOIN_TOKEN_SYMBOL);
+      return formatBalanceE8s(amountE8s, omit_unit ? "" : BITCOIN_TOKEN_SYMBOL);
     } else if (currency === "SAT") {
-      return formatCurrency(Number(amountE8s), SAT_TOKEN_SYMBOL);
+      return formatCurrency(Number(amountE8s), omit_unit ? "" : SAT_TOKEN_SYMBOL);
     } else { // Default to USD
       if (priceBtcInUsd !== undefined) {
-        return formatCurrency(e8sToCurrency(amountE8s, priceBtcInUsd), USD_TOKEN_SYMBOL);
+        return formatCurrency(e8sToCurrency(amountE8s, priceBtcInUsd), omit_unit ? "" : USD_TOKEN_SYMBOL);
       }
       return undefined;
     }

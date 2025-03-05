@@ -119,7 +119,7 @@ const VoteList = () => {
         <div className={`justify-self-start text-gray-600 dark:text-gray-400 font-light ${isMobile ? "pl-3" : ""}`}>Statement</div>
         { !isMobile && <div className="justify-self-end text-gray-600 dark:text-gray-400 font-light flex flex-row items-center space-x-1">
           <span className="text-sm text-gray-600 dark:text-gray-400">EVP</span>
-          <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noreferrer">
+          <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noopener">
             <InfoIcon/>
           </Link>
         </div>}

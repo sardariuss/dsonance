@@ -19,19 +19,24 @@ dfx deploy ck_btc --argument '(opt record {
   icrc2 = null;
   icrc3 = null;
   icrc4 = null;
-})' --ic
+})' --ic --mode=reinstall --yes
 
 dfx deploy dsn_ledger --argument '(opt record {
   icrc1 = opt record {
     name              = opt "Dsonance Coin";
     symbol            = opt "DSN";
     decimals          = 8;
-    fee               = opt variant { Fixed = 10 };
-    max_supply        = opt 2_100_000_000_000_000;
+    fee               = opt variant { Fixed = 1_000 };
+    max_supply        = opt 100_000_000_000_000_000;
     min_burn_amount   = opt 1_000;
-    initial_balances  = vec {};
+    initial_balances  = vec {
+      record { 
+        account = principal "hkucx-jaaaa-aaaap-anxfq-cai";
+        amount = 50_000_000_000_000_000;
+      };
+    };
     minting_account   = opt record { 
-      owner = principal "hkucx-jaaaa-aaaap-anxfq-cai";
+      owner = principal "h7tt2-iiaaa-aaaap-anxga-cai";
       subaccount = null; 
     };
     advanced_settings = null;
@@ -39,7 +44,7 @@ dfx deploy dsn_ledger --argument '(opt record {
   icrc2 = null;
   icrc3 = null;
   icrc4 = null;
-})' --ic
+})' --ic --mode=reinstall --yes
 
 # Deploy protocol with dependencies
 # Hundred million e8s contribution per day
@@ -68,16 +73,16 @@ dfx deploy protocol --argument '( variant {
       minimum_ballot_amount = 100;
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
-      opening_vote_fee = 30;
+      opening_vote_fee = 5_000_000_000;
       timer_interval_s = 3600;
       clock = variant { SIMULATED = record { dilation_factor = 24.0; } };
     };
   }
-})' --ic
+})' --ic --mode=reinstall --yes
 
 # Deploy other canisters
-dfx deploy backend --ic
-dfx deploy minter --ic
+dfx deploy backend --ic --mode=reinstall --yes
+dfx deploy minter --ic --mode=reinstall --yes
 
 # Protocol initialization and frontend generation
 dfx canister call protocol init_facade --ic

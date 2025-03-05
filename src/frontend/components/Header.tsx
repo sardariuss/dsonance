@@ -45,7 +45,7 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/dashboard"}>
             Dashboard
           </Link>
-          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={DOCS_URL} target="_blank" rel="noreferrer">
+          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={DOCS_URL} target="_blank" rel="noopener">
             Docs
           </Link>
           { authenticated && identity && <BtcBalance/> }
@@ -156,7 +156,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 to={DOCS_URL}
                 onClick={() => setShowMenu(false)}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener"
               >
                 Docs
               </Link>

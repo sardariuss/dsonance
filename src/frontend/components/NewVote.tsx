@@ -98,7 +98,7 @@ function NewVote() {
             <li>❌ Avoid absolute moral or ideological claims.</li>
             <li>❌ No personal or defamatory statements.</li>
           </ul>
-          <Link to={DOCS_URL} className="text-blue-500 mt-2 inline-block text-md hover:underline" target="_blank" rel="noreferrer">
+          <Link to={DOCS_URL} className="text-blue-500 mt-2 inline-block text-md hover:underline" target="_blank" rel="noopener">
             Read the full guidelines →
           </Link>
         </div>
