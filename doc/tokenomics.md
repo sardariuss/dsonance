@@ -26,7 +26,7 @@ The DSN token is the native utility and governance token of Dsonance, enabling g
 
 **Functions:**
 
-* **Rewards** – 50% of the token is distributed to active participants.
+* **Rewards** – 60% of the token is distributed to active participants.
 * **Burn Mechanism** – Required for certain platform actions.
 * **Collateral** – Used to borrow BTC.
 
