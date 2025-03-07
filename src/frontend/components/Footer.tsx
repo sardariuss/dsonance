@@ -25,7 +25,9 @@ const DesktopFooter: React.FC = () => {
         <Link to={DOCS_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
           <GitbookIcon/>
         </Link>
-        <GithubIcon/>
+        <Link to={GITHUB_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
+          <GithubIcon/>
+        </Link>
         <Link to={X_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
           <XIcon/>
         </Link>
@@ -51,7 +53,9 @@ const MobileFooter: React.FC = () => {
         <Link to={DOCS_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
           <GitbookIcon/>
         </Link>
-        <GithubIcon/>
+        <Link to={GITHUB_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
+          <GithubIcon/>
+        </Link>
         <Link to={X_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
           <XIcon/>
         </Link>
