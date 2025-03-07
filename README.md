@@ -18,17 +18,3 @@ _My views are changing as much as the world itself is changing. Your views shoul
 ## Credits
 
 * Acelon font: https://www.fontspace.com/acelon-blur-font-f115699
-
-## 🚧 TODOs
-
-### Backend
-
-* Verify how decay is used, especially in computing the dissent and consent
-* Do not allow an anonymous principal to open a vote
-* Verify that the total_amount takes into account the fees
-
-### Frontend
-
-#### Postponed
-
-* Fix approve tokens, right now it only works once -> Will be fixed when bringing real wallet
