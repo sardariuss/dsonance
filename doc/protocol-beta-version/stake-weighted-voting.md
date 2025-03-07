@@ -7,7 +7,7 @@ coverY: 0
 
 The Proof-of-Foresight uses a **stake-weighted voting system** based on binary votes. Participants cast votes on statements to determine whether they are **true** **or false**. To vote, users select an outcome (_True_ or _False_), specify **the amount of Bitcoin** they wish to lock, and commit their stake. The more Bitcoin a user locks, the more their vote influences the outcome in the chosen direction.
 
-<figure><img src="../.gitbook/assets/consensus.png" alt=""><figcaption><p>Example of consensus expressed between 0 and 1</p></figcaption></figure>
+<figure><img src="../.gitbook/assets/image (3).png" alt=""><figcaption><p>Example of consensus expressed between 0 and 1</p></figcaption></figure>
 
 The consensus value is determined by the ratio of the **weighted sum** of Bitcoins from _True_ ballots to the **weighted sum** of Bitcoins from all ballots (_True_ and _False_). The weight of each ballot is influenced by a **decay function** over time, ensuring that more recent ballots carry greater influence. This dynamic approach allows the consensus to **evolve naturally** and be contested over **extended periods**.
 
