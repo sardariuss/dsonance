@@ -2,8 +2,7 @@ import BallotAggregator   "BallotAggregator";
 import Types              "../Types";
 import Timeline           "../utils/Timeline";
 import HotMap             "../locks/HotMap";
-import Decay              "../duration/Decay";  
-import DebtProcessor      "../DebtProcessor";
+import Decay              "../duration/Decay";
 
 import Set                "mo:map/Set";
 
@@ -44,6 +43,7 @@ module {
             tx_id: Nat;
             date: Nat;
             origin: Principal;
+            author: Account;
         }) : Vote<A, B> {
             {
                 vote_id;
@@ -53,6 +53,7 @@ module {
                 origin;
                 aggregate = Timeline.initialize(date, empty_aggregate);
                 ballots = Set.new<UUID>();
+                author;
             };
         };
 
@@ -86,11 +87,11 @@ module {
             let { dissent; consent } = outcome.ballot;
 
             // Update the vote aggregate
-            Timeline.add(vote.aggregate, timestamp, aggregate);
+            Timeline.insert(vote.aggregate, timestamp, aggregate);
 
             // Update the ballot consents because of the new aggregate
             for (ballot in vote_ballots(vote)) {
-                Timeline.add(ballot.consent, timestamp, ballot_aggregator.get_consent({ aggregate; choice = ballot.choice; time; }));
+                Timeline.insert(ballot.consent, timestamp, ballot_aggregator.get_consent({ aggregate; choice = ballot.choice; time; }));
             };
 
             // Update the hotness
@@ -129,7 +130,7 @@ module {
             dissent: Float;
             consent: Float;
         }) : Ballot<B> {
-            let { timestamp; from; } = args;
+            let { timestamp; } = args;
 
             let ballot : Ballot<B> = {
                 args with
@@ -139,8 +140,6 @@ module {
                 consent = Timeline.initialize<Float>(timestamp, consent);
                 foresight = Timeline.initialize<Foresight>(timestamp, { reward = 0; apr = { current = 0.0; potential = 0.0; }; });
                 contribution = Timeline.initialize<Contribution>(timestamp, { earned = 0.0; pending = 0.0; });
-                btc_debt = DebtProcessor.init_debt_info(timestamp, from);
-                dsn_debt = DebtProcessor.init_debt_info(timestamp, from);
                 decay = decay_model.compute_decay(timestamp);
                 var hotness = 0.0;
                 var lock : ?LockInfo = null;

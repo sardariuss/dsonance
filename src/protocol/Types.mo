@@ -51,6 +51,7 @@ module {
     public type TimerParameters    = Types.Current.TimerParameters;
     public type Foresight          = Types.Current.Foresight;
     public type Contribution       = Types.Current.Contribution;
+    public type Register<T>        = Types.Current.Register<T>;
 
     // CANISTER ARGS
 
@@ -125,8 +126,6 @@ module {
         consent: STimeline<Float>;
         foresight: STimeline<Foresight>;
         contribution: STimeline<Contribution>;
-        btc_debt: SDebtInfo;
-        dsn_debt: SDebtInfo;
         tx_id: Nat;
         from: Account;
         decay: Float;

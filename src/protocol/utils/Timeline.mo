@@ -33,13 +33,33 @@ module {
     }
   };
 
-  // Add a new entry to the history
-  public func add<T>(timeline: Timeline<T>, timestamp: Nat, data: T) {
-    if (timestamp < timeline.current.timestamp) {
-      Debug.trap("Date must be greater than the last date");
+  // Insert a new entry
+  public func insert<T>(timeline: Timeline<T>, timestamp: Nat, data: T) {
+    if (timestamp <= timeline.current.timestamp) {
+      Debug.trap("The timestamp must be strictly greater than the current timestamp");
     };
     timeline.history := Array.append(timeline.history, [timeline.current]);
     timeline.current := { timestamp; data };
+  };
+
+  // Update the current entry or insert a new one
+  public func upsert<T>(
+    timeline: Timeline<T>, 
+    timestamp: Nat,
+    data: T, 
+    combine: (T, T) -> T
+  ) {
+    if (timestamp < timeline.current.timestamp) {
+      Debug.trap("The timestamp must be greater than or equal to the current timestamp");
+    };
+    if (timestamp > timeline.current.timestamp) {
+      insert(timeline, timestamp, data);
+    } else {
+      timeline.current := {
+        timestamp = timeline.current.timestamp;
+        data = combine(timeline.current.data, data);
+      };
+    };
   };
 
   // Retrieve the latest entry

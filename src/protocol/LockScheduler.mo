@@ -2,7 +2,7 @@ import Types "Types";
 import Timeline "utils/Timeline";
 import Incentives "votes/Incentives";
 import Duration "duration/Duration";
-import DebtProcessor "DebtProcessor";
+import BallotDebts "BallotDebts";
 
 import BTree "mo:stableheapbtreemap/BTree";
 import Order "mo:base/Order";
@@ -48,8 +48,7 @@ module {
         parameters: ProtocolParameters;
         lock_register: LockRegister;
         update_lock_duration: (YesNoBallot, Nat) -> ();
-        dsn_debt: DebtProcessor.DebtProcessor;
-        btc_debt: DebtProcessor.DebtProcessor;
+        ballot_debts: BallotDebts.BallotDebts;
     }) {
 
         // TODO: should not be public but it is required for ballot preview
@@ -68,7 +67,7 @@ module {
             if (not BTree.has(locks, compare_locks, lock)){
                 try_unlock(time);
                 ignore BTree.insert(locks, compare_locks, lock, ballot);
-                Timeline.add(total_amount, time, Timeline.current(total_amount) + ballot.amount);
+                Timeline.insert(total_amount, time, Timeline.current(total_amount) + ballot.amount);
             };
         };
 
@@ -115,12 +114,17 @@ module {
 
                         // Trigger the transfer of the original amount and reward and delete that lock
                         // TODO: check of floating point makes sense here
-                        btc_debt.add_debt({ id = ballot.ballot_id; amount = Float.fromInt(ballot.amount + reward); time = lock.release_date; });
+                        ballot_debts.add_debt({ 
+                            ballot_id = ballot.ballot_id;
+                            amount = Float.fromInt(ballot.amount + reward);
+                            timestamp = lock.release_date;
+                            debt_type = #BTC;
+                        });
                         ignore BTree.delete(locks, compare_locks, lock);
 
                         // Update the total locked, cumulated yield and last dispense time
                         // TODO: update yield_contribution
-                        Timeline.add(total_amount, lock.release_date, Timeline.current(total_amount) - ballot.amount);
+                        Timeline.insert(total_amount, lock.release_date, Timeline.current(total_amount) - ballot.amount);
                         yield.cumulated -= Float.fromInt(reward);
                     };
                 };
@@ -173,12 +177,18 @@ module {
 
                 // DSN Contribution
                 let earned = Timeline.current(ballot.contribution).earned;
+                // TODO: function to compute contribution over period
                 let to_add = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(period) * contribution_per_ns;
                 let pending = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(lock.release_date - time) * contribution_per_ns;
 
-                // Update ballots DSN contribution and transfer it right away
-                Timeline.add(ballot.contribution, time, { earned = earned + to_add; pending; });
-                dsn_debt.add_debt({ id = lock.id; amount = to_add; time; });
+                // Update ballots DSN contribution to the debt (will be transfered on next Controller.run)
+                Timeline.insert(ballot.contribution, time, { earned = earned + to_add; pending; });
+                ballot_debts.add_debt({
+                    ballot_id = ballot.ballot_id;
+                    amount = to_add;
+                    timestamp = time;
+                    debt_type = #DSN;
+                });
             };
 
             Debug.print("time: " # debug_show(time));
@@ -190,7 +200,7 @@ module {
 
             for ((lock, ballot) in BTree.entries(locks)){
                 // Update ballots BTC reward (foresight); will be transfered when the lock is unlocked
-                Timeline.add(ballot.foresight, time, compute_ballot_foresight(
+                Timeline.insert(ballot.foresight, time, compute_ballot_foresight(
                     lock,
                     ballot,
                     get_locker_state(),

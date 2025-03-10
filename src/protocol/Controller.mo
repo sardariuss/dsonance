@@ -104,6 +104,7 @@ module {
                 vote_type_enum = type_enum;
                 date = clock.get_time();
                 origin;
+                author = account;
             });
             Map.set(vote_register.votes, Map.thash, vote_id, vote);
 
@@ -138,8 +139,8 @@ module {
 
             lock_scheduler.refresh_lock_duration(yes_no_ballot, timestamp);
 
-            Timeline.add(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
-            Timeline.add(yes_no_ballot.contribution, timestamp, lock_scheduler.preview_contribution(yes_no_ballot));
+            Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
+            Timeline.insert(yes_no_ballot.contribution, timestamp, lock_scheduler.preview_contribution(yes_no_ballot));
 
             #ok(ballot);
         };
@@ -188,8 +189,8 @@ module {
             };
 
             // TODO: this is kind of a hack to have an up-to-date foresight and contribution, should be removed
-            Timeline.add(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
-            Timeline.add(yes_no_ballot.contribution, timestamp, lock_scheduler.preview_contribution(yes_no_ballot));
+            Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
+            Timeline.insert(yes_no_ballot.contribution, timestamp, lock_scheduler.preview_contribution(yes_no_ballot));
 
             // Add the ballot to that account
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);

@@ -1,9 +1,9 @@
 import Types "Types";
 import Timeline "utils/Timeline";
+import Register "utils/Register";
 import LedgerFacade "payement/LedgerFacade";
 
 import Set "mo:map/Set";
-import Map "mo:map/Map";
 import Array "mo:base/Array";
 import Result "mo:base/Result";
 import Buffer "mo:base/Buffer";
@@ -14,47 +14,42 @@ import Option "mo:base/Option";
 
 module {
 
-    type UUID = Types.UUID;
     type Timeline<T> = Types.Timeline<T>;
     type Account = Types.Account;
     type DebtInfo = Types.DebtInfo;
-    type TransferResult = Types.TransferResult;
     type TxIndex = Types.TxIndex;
+    type Register<T> = Types.Register<T>;
 
     type Set<K> = Set.Set<K>;
-    type Map<K, V> = Map.Map<K, V>;
-
     type TransferCallback = ({amount: Nat;}) -> ();
 
-    public func init_debt_info(time: Nat, account: Account) : DebtInfo {
-        {
-            amount = Timeline.initialize<Float>(time, 0.0);
-            account;
-            var owed = 0.0;
-            var pending = 0;
-            var transfers = [];
-        };
-    };
-
+    // TODO: Add a pruned flag to be able to remove debts once they are fully paid
     public class DebtProcessor({
         ledger: LedgerFacade.LedgerFacade;
-        get_debt_info: (UUID) -> DebtInfo;
-        owed: Set<UUID>;
+        register: Register<DebtInfo> and { owed: Set<Nat> };
         on_successful_transfer: ?(TransferCallback);
     }){
 
-        public func add_debt({ id: UUID; amount: Float; time: Nat; }) {
+        public func new_debt({ time: Nat; account: Account; }) : Nat {
+            Register.add(register, init_debt_info(time, account));
+        };
+
+        public func get_debt({ id: Nat; }) : DebtInfo {
+            get_debt_info(id);
+        };
+
+        public func increase_debt({ id: Nat; amount: Float; time: Nat; }) {
             let info = get_debt_info(id);
-            Timeline.add(info.amount, time, Timeline.current(info.amount) + amount);
+            Timeline.upsert(info.amount, time, amount, Float.add);
             info.owed += amount;
             tag_to_transfer(id, info);
         };
 
         // TODO: ideally use icrc3 to perform multiple transfers at once
         public func transfer_owed() : async* () {
-            let calls = Buffer.Buffer<async* ()>(Set.size(owed));
+            let calls = Buffer.Buffer<async* ()>(Set.size(register.owed));
             label infinite while(true){
-                switch(Set.pop(owed, Map.thash)){
+                switch(Set.pop(register.owed, Set.nhash)){
                     case(null) { 
                         Debug.print("No more debts to transfer");
                         break infinite; 
@@ -70,20 +65,20 @@ module {
             };
         };
 
-        public func get_owed() : [UUID] {
-            Set.toArray(owed);
+        public func get_owed() : [Nat] {
+            Set.toArray(register.owed);
         };
 
         public func get_ledger() : LedgerFacade.LedgerFacade {
             ledger;
         };
 
-        func transfer(id: UUID) : async* () {
+        func transfer(id: Nat) : async* () {
             let info = get_debt_info(id);
             let difference : Nat = Int.abs(Float.toInt(info.owed)) - info.pending;
             info.pending += difference;
             // Remove the debt from the set, it will be added back if the transfer fails
-            Set.delete(owed, Map.thash, id);
+            Set.delete(register.owed, Set.nhash, id);
             // Run the transfer
             let transfer = await* ledger.transfer({ to = info.account; amount = difference; });
             info.transfers := Array.append(info.transfers, [transfer]);
@@ -100,11 +95,28 @@ module {
             tag_to_transfer(id, info);
         };
 
-        func tag_to_transfer(id: UUID, info: DebtInfo) {
+        func get_debt_info(id: Nat) : DebtInfo {
+            switch(Register.find(register, id)){
+                case(null) { Debug.trap("Debt not found"); };
+                case(?info) { info; };
+            };
+        };
+
+        func tag_to_transfer(id: Nat, info: DebtInfo) {
             if (info.owed > 1.0) {
-                Set.add(owed, Map.thash, id);
+                Set.add(register.owed, Set.nhash, id);
             } else {
-                Set.delete(owed, Map.thash, id);
+                Set.delete(register.owed, Set.nhash, id);
+            };
+        };
+
+        func init_debt_info(time: Nat, account: Account) : DebtInfo {
+            {
+                amount = Timeline.initialize<Float>(time, 0.0);
+                account;
+                var owed = 0.0;
+                var pending = 0;
+                var transfers = [];
             };
         };
 

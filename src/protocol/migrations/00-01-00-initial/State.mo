@@ -42,10 +42,17 @@ module {
             vote_register = { 
                 votes = Map.new<UUID, VoteType>();
                 by_origin = Map.new<Principal, Set.Set<UUID>>();
+                debt_junctions = {
+                    dsn = Map.new<UUID, Nat>();
+                };
             };
             ballot_register = {
                 ballots = Map.new<UUID, BallotType>();
                 by_account = Map.new<Account, Set.Set<UUID>>();
+                debt_junctions = {
+                    dsn = Map.new<UUID, Nat>();
+                    btc = Map.new<UUID, Nat>();
+                };
             };
             lock_register = {
                 var time_last_dispense = now;
@@ -63,12 +70,20 @@ module {
             btc = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(btc.ledger));
                 fee = btc.fee;
-                owed = Set.new<UUID>();
+                debt_register = {
+                    var index = 0;
+                    map = Map.new<Nat, DebtInfo>();
+                    owed = Set.new<Nat>();
+                };
             };
             dsn = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(dsn.ledger));
                 fee = dsn.fee;
-                owed = Set.new<UUID>();
+                debt_register = {
+                    var index = 0;
+                    map = Map.new<Nat, DebtInfo>();
+                    owed = Set.new<Nat>();
+                };
             };
             parameters = { parameters with
                 contribution_per_ns = Float.fromInt(parameters.contribution_per_day) / Float.fromInt(Duration.NS_IN_DAY);

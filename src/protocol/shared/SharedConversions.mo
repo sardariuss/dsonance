@@ -59,8 +59,6 @@ module {
             consent = shareTimeline(ballot.consent);
             foresight = shareTimeline(ballot.foresight);
             contribution = shareTimeline(ballot.contribution);
-            btc_debt = shareDebtInfo(ballot.btc_debt);
-            dsn_debt = shareDebtInfo(ballot.dsn_debt);
             tx_id = ballot.tx_id;
             from = ballot.from;
             hotness = ballot.hotness;

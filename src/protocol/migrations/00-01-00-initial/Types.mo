@@ -154,6 +154,11 @@ module {
 
     public type UUID = Text;
 
+    public type Register<T> = {
+        var index: Nat;
+        map: Map.Map<Nat, T>;
+    };
+
     public type Timeline<T> = {
         var current: TimedData<T>;
         var history: [TimedData<T>];
@@ -167,11 +172,18 @@ module {
     public type VoteRegister = {
         votes: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
+        debt_junctions: {
+            dsn: Map<UUID, Nat>;
+        };
     };
 
     public type BallotRegister = {
         ballots: Map<UUID, BallotType>;
         by_account: Map<Account, Set<UUID>>;
+        debt_junctions: {
+            dsn: Map<UUID, Nat>;
+            btc: Map<UUID, Nat>;
+        };
     };
 
     public type VoteType = {
@@ -205,6 +217,7 @@ module {
         origin: Principal;
         aggregate: Timeline<A>;
         ballots: Set<UUID>;
+        author: Account;
     };
 
     public type DebtInfo = {
@@ -214,6 +227,8 @@ module {
         var pending: Nat;
         var transfers: [Transfer];
     };
+
+    public type DebtRegister = Register<DebtInfo> and { owed : Set<Nat> };
 
     public type Foresight = {
         reward: Nat;
@@ -238,8 +253,6 @@ module {
         consent: Timeline<Float>;
         foresight: Timeline<Foresight>;
         contribution: Timeline<Contribution>;
-        btc_debt: DebtInfo;
-        dsn_debt: DebtInfo;
         tx_id: Nat;
         from: Account;
         decay: Float;
@@ -323,6 +336,7 @@ module {
         age_coefficient: Float;
         max_age: Nat;
         opening_vote_fee: Nat;
+        opening_vote_contribution_ratio: Nat;
         timer: TimerParameters;
         decay: {
             half_life: Duration;
@@ -357,6 +371,7 @@ module {
             dissent_steepness: Float;
             consent_steepness: Float;
             opening_vote_fee: Nat;
+            opening_vote_contribution_ratio: Nat;
             timer_interval_s: Nat;
             clock: ClockInitArgs;
         };
@@ -373,12 +388,12 @@ module {
         btc: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            owed: Set<UUID>;
+            debt_register: DebtRegister;
         };
         dsn: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            owed: Set<UUID>;
+            debt_register: DebtRegister;
         };
         parameters: ProtocolParameters;
         minting_info: MintingInfo;
