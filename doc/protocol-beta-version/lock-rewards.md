@@ -64,7 +64,7 @@ Where $$p$$ (dissent steepness) is a protocol parameter between 0 and 1:
 * The closer $$p$$ is to 1, the steeper the curve (meaning the majority is rewarded less).
 * The closer $$p$$ is to 0, the more the majority is rewarded.
 
-<div align="center" data-full-width="true"><figure><img src="../.gitbook/assets/image (4).png" alt=""><figcaption><p>In X, the ratio total_opposit/ total, in Y the dissent. The red curve is the original dissent, the purple curve is the adjusted dissent.</p></figcaption></figure></div>
+<div align="center" data-full-width="true"><figure><img src="../.gitbook/assets/image (4).png" alt="" width="532"><figcaption><p>In X, the ratio total_opposit/ total, in Y the dissent. The red curve is the original dissent, the purple curve is the adjusted dissent.</p></figcaption></figure></div>
 
 Since the **ballot itself influences the consensus**, we must account for its weight. The **ballot dissent** is calculated as:
 
@@ -113,7 +113,7 @@ Where:
 * $$\mu = \text{total} * 0.5$$
 * $$\sigma = \text{total} * \text{consent\_steepness}$$. The closer p
 
-<div data-full-width="false"><figure><img src="../.gitbook/assets/image (5).png" alt=""><figcaption><p>In X the ratio total_same/total, in Y the consent. The red curve is the original consent, the blue curve is the adjusted consent.</p></figcaption></figure></div>
+<div align="center" data-full-width="false"><figure><img src="../.gitbook/assets/image (5).png" alt="" width="543"><figcaption><p>In X the ratio total_same/total, in Y the consent. The red curve is the original consent, the blue curve is the adjusted consent.</p></figcaption></figure></div>
 
 ***
 
