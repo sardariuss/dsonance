@@ -19,7 +19,7 @@ This formula ensures that **earlier ballots contribute to later ones**, while ne
 
 To convert hotness into a lock duration, a **power scaling** function is applied. This function translates hotness into a **meaningful lock duration** while preventing extreme values (e.g., durations of just 10 seconds or over 100 years).&#x20;
 
-<div align="center" data-full-width="false"><figure><img src="../.gitbook/assets/power_scaler.png" alt=""><figcaption><p>Graph of the lock duration as a function of hotness. Here the nominal lock duration for 100 sats is set to 3 days. As hotness increases, the lock duration follows a power function, reaching 768 days (approximately 2 years) for a hotness of 1 BTC.</p></figcaption></figure></div>
+<div align="center" data-full-width="false"><figure><img src="../.gitbook/assets/power_scaler.png" alt="" width="563"><figcaption><p>Graph of the lock duration as a function of hotness. Here the nominal lock duration for 100 sats is set to 3 days. As hotness increases, the lock duration follows a power function, reaching 768 days (approximately 2 years) for a hotness of 1 BTC.</p></figcaption></figure></div>
 
 The function follows a power law, ensuring that the **duration doubles for each order of magnitude increase in hotness**:
 
