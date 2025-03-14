@@ -167,7 +167,7 @@ const Dashboard = () => {
                 
                     <div className="flex flex-col w-full sm:w-2/3 mt-2">
                         {[
-                            { label: "Opening vote fee:", value: formatBalanceE8s(parameters.opening_vote_fee, DSONANCE_COIN_SYMBOL, 0) },
+                            { label: "Opening vote fee:", value: formatBalanceE8s(parameters.author_fee, DSONANCE_COIN_SYMBOL, 0) },
                             { label: "Minimum ballot amount:", value: formatSatoshis(parameters.minimum_ballot_amount) },
                             { label: "Ballot half-life:", value: formatDuration(durationToNs(parameters.decay.half_life)) },
                             { label: "Nominal lock duration:", value: formatDuration(durationToNs(parameters.nominal_lock_duration)) },

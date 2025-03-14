@@ -2,13 +2,13 @@ import Types                   "Types";
 import DebtProcessor           "DebtProcessor";
 import ProtocolTimer           "ProtocolTimer";
 import LockScheduler           "LockScheduler";
+import Queries                 "Queries";
 import MapUtils                "utils/Map";
 import Timeline                "utils/Timeline";
 import Clock                   "utils/Clock";
 import SharedConversions       "shared/SharedConversions";
 import BallotUtils             "votes/BallotUtils";
 import VoteTypeController      "votes/VoteTypeController";
-
 
 import Map                     "mo:map/Map";
 import Set                     "mo:map/Set";
@@ -73,6 +73,7 @@ module {
         vote_type_controller: VoteTypeController.VoteTypeController;
         btc_debt: DebtProcessor.DebtProcessor;
         dsn_debt: DebtProcessor.DebtProcessor;
+        queries: Queries.Queries;
         protocol_timer: ProtocolTimer.ProtocolTimer;
         minting_info: MintingInfo;
         parameters: ProtocolParameters;
@@ -89,7 +90,7 @@ module {
             // TODO: the fee should be burnt
             let transfer = await* dsn_debt.get_ledger().transfer_from({
                 from = account;
-                amount = parameters.opening_vote_fee;
+                amount = parameters.author_fee;
             });
 
             let tx_id = switch(transfer){
@@ -108,11 +109,10 @@ module {
             });
             Map.set(vote_register.votes, Map.thash, vote_id, vote);
 
-            // Update the by_origin map
-            let by_origin = Option.get(Map.get(vote_register.by_origin, Map.phash, origin), Set.new<UUID>());
-            Set.add(by_origin, Set.thash, vote_id);
-            Map.set(vote_register.by_origin, Map.phash, origin, by_origin);
-
+            // Update the by_origin and by_author maps
+            MapUtils.putInnerSet(vote_register.by_origin, Map.phash, origin, Map.thash, vote_id);
+            MapUtils.putInnerSet(vote_register.by_author, MapUtils.acchash, account, Map.thash, vote_id);
+            
             // TODO: ideally it's not the controller's responsibility to share types
             #ok(SharedConversions.shareVoteType(vote));
         };
@@ -199,61 +199,6 @@ module {
             #ok(SharedConversions.shareBallotType(ballot_type));
         };
 
-        public func get_ballots({ account: Account; previous: ?UUID; limit: Nat; filter_active: Bool; }) : [BallotType] {
-            let buffer = Buffer.Buffer<BallotType>(limit);
-            Option.iterate(Map.get(ballot_register.by_account, MapUtils.acchash, account), func(ids: Set.Set<UUID>) {
-                let iter = Set.keysFrom(ids, Set.thash, previous);
-                label limit_loop while (buffer.size() < limit) {
-                    switch (iter.next()) {
-                        case (null) { break limit_loop; };
-                        case (?id) { 
-                            Option.iterate(Map.get(ballot_register.ballots, Map.thash, id), func(ballot_type: BallotType) {
-                                if (filter_active) {
-                                    switch(ballot_type){
-                                        case(#YES_NO(ballot)) {
-                                            let lock = BallotUtils.unwrap_lock(ballot);
-                                            if (lock.release_date > clock.get_time()){
-                                                buffer.add(ballot_type);
-                                            };
-                                        };
-                                    };
-                                } else {
-                                    buffer.add(ballot_type);
-                                };
-                            });
-                        };
-                    };
-                };
-            }); 
-            Buffer.toArray(buffer);
-        };
-
-        public func get_locked_amount({ account: Account; }) : Nat {
-            let timestamp = clock.get_time();
-            switch(Map.get(ballot_register.by_account, MapUtils.acchash, account)){
-                case(null) { 0; };
-                case(?ids) { 
-                    var total = 0;
-                    for (ballot_id in Set.keys(ids)){
-                        switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)){
-                            case(null) {};
-                            case(?ballot) {
-                                switch(ballot){
-                                    case(#YES_NO(b)) {
-                                        let lock = BallotUtils.unwrap_lock(b);
-                                        if (lock.release_date > timestamp){
-                                            total += b.amount;
-                                        };
-                                    };
-                                };
-                            };
-                        };
-                    };
-                    total;
-                };
-            };
-        };
-
         public func get_vote_ballots(vote_id: UUID) : [BallotType] {
             let vote = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
                 case(null) { return []; };
@@ -273,30 +218,28 @@ module {
 
             let transfers = Buffer.Buffer<async* ()>(3);
 
-            transfers.add(btc_debt.transfer_owed());
-            transfers.add(dsn_debt.transfer_owed());
+            transfers.add(btc_debt.transfer_pending());
+            transfers.add(dsn_debt.transfer_pending());
 
             for (call in transfers.vals()){
                 await* call;
             };
         };
 
+        public func get_ballots({ account: Account; previous: ?UUID; limit: Nat; filter_active: Bool; }) : [BallotType] {
+            queries.get_ballots({ account; previous; limit; filter_active; });
+        };
+
+        public func get_locked_amount({ account: Account; }) : Nat {
+            queries.get_locked_amount({ account; });
+        };
+
         public func get_votes({origin: Principal; filter_ids: ?[UUID]}) : [VoteType] {
-            
-            let vote_ids = Option.get(Map.get(vote_register.by_origin, Map.phash, origin), Set.new<UUID>());
-            let filter = Option.map(filter_ids, func(ids: [UUID]) : Set.Set<UUID> { Set.fromIter(Iter.fromArray(ids), Set.thash) });
-            
-            Set.toArrayMap(vote_ids, func(vote_id: UUID) : ?VoteType {
-                switch(filter){
-                    case(null) {};
-                    case(?filter) {
-                        if (not Set.has(filter, Set.thash, vote_id)){
-                            return null;
-                        };
-                    };
-                };
-                Map.get(vote_register.votes, Map.thash, vote_id);
-            });
+            queries.get_votes({ origin; filter_ids; });
+        };
+
+        public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; }) : [VoteType] {
+            queries.get_votes_by_author({ author; previous; limit; });
         };
 
         public func find_vote(vote_id: UUID) : ?VoteType {

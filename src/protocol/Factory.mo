@@ -1,8 +1,11 @@
 import Types                  "Types";
 import Controller             "Controller";
 import ProtocolTimer          "ProtocolTimer";
+import Queries                "Queries";
 import Decay                  "duration/Decay";
 import DurationCalculator     "duration/DurationCalculator";
+import BallotJunctions        "junctions/BallotJunctions";
+import VoteJunctions          "junctions/VoteJunctions";
 import VoteFactory            "votes/VoteFactory";
 import VoteTypeController     "votes/VoteTypeController";
 import LedgerFacade           "payement/LedgerFacade";
@@ -11,7 +14,7 @@ import Clock                  "utils/Clock";
 import HotMap                 "locks/HotMap";
 import Timeline               "utils/Timeline";
 import DebtProcessor          "DebtProcessor";
-import BallotDebts            "BallotDebts";
+import TokenVester            "TokenVester";
 
 module {
 
@@ -49,10 +52,13 @@ module {
             );
         });
 
-        let ballot_debts = BallotDebts.BallotDebts({
-            dsn_debt;
-            btc_debt;
-            ballot_register;
+        let token_vester = TokenVester.TokenVester({
+            debt_processors = {
+                btc = btc_debt;
+                dsn = dsn_debt;
+            };
+            ballot_junctions = BallotJunctions.BallotJunctions({ ballot_register; });
+            vote_junctions = VoteJunctions.VoteJunctions({ vote_register; });
         });
 
         let duration_calculator = DurationCalculator.PowerScaler({
@@ -65,7 +71,8 @@ module {
             update_lock_duration = func(ballot: YesNoBallot, time: Nat) {
                 duration_calculator.update_lock_duration(ballot, ballot.hotness, time);
             };
-            ballot_debts;
+            token_vester;
+            votes = vote_register.votes;
         });
 
         let decay_model = Decay.DecayModel(decay);
@@ -81,6 +88,12 @@ module {
             yes_no_controller;
         });
 
+        let queries = Queries.Queries({
+            vote_register;
+            ballot_register;
+            clock;
+        });
+
         let protocol_timer = ProtocolTimer.ProtocolTimer({
             admin;
             parameters = parameters.timer;
@@ -94,6 +107,7 @@ module {
             vote_type_controller;
             btc_debt;
             dsn_debt;
+            queries;
             protocol_timer;
             minting_info;
             parameters;

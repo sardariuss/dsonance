@@ -172,17 +172,18 @@ module {
     public type VoteRegister = {
         votes: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
-        debt_junctions: {
-            dsn: Map<UUID, Nat>;
+        by_author: Map<Account, Set.Set<UUID>>;
+        junctions: {
+            dsn_debts: Map<UUID, Nat>;
         };
     };
 
     public type BallotRegister = {
         ballots: Map<UUID, BallotType>;
         by_account: Map<Account, Set<UUID>>;
-        debt_junctions: {
-            dsn: Map<UUID, Nat>;
-            btc: Map<UUID, Nat>;
+        junctions: {
+            dsn_debts: Map<UUID, Nat>;
+            btc_debts: Map<UUID, Nat>;
         };
     };
 
@@ -221,14 +222,14 @@ module {
     };
 
     public type DebtInfo = {
-        amount: Timeline<Float>;
         account: Account;
-        var owed: Float;
-        var pending: Nat;
+        amount: Timeline<Float>;
+        var transferred: Nat;
         var transfers: [Transfer];
+        var finalized: Bool;
     };
 
-    public type DebtRegister = Register<DebtInfo> and { owed : Set<Nat> };
+    public type DebtRegister = Register<DebtInfo> and { pending_transfer: Set<Nat> };
 
     public type Foresight = {
         reward: Nat;
@@ -335,8 +336,8 @@ module {
         consent_steepness: Float;
         age_coefficient: Float;
         max_age: Nat;
-        opening_vote_fee: Nat;
-        opening_vote_contribution_ratio: Nat;
+        author_fee: Nat;
+        author_share: Float;
         timer: TimerParameters;
         decay: {
             half_life: Duration;
@@ -370,8 +371,8 @@ module {
             minimum_ballot_amount: Nat;
             dissent_steepness: Float;
             consent_steepness: Float;
-            opening_vote_fee: Nat;
-            opening_vote_contribution_ratio: Nat;
+            author_fee: Nat;
+            author_share: Float;
             timer_interval_s: Nat;
             clock: ClockInitArgs;
         };

@@ -2,7 +2,7 @@ import Types "Types";
 import Timeline "utils/Timeline";
 import Incentives "votes/Incentives";
 import Duration "duration/Duration";
-import BallotDebts "BallotDebts";
+import TokenVester "TokenVester";
 
 import BTree "mo:stableheapbtreemap/BTree";
 import Order "mo:base/Order";
@@ -10,19 +10,25 @@ import Text "mo:base/Text";
 import Int "mo:base/Int";
 import Debug "mo:base/Debug";
 import Float "mo:base/Float";
+import Option "mo:base/Option";
+
+import Map "mo:map/Map";
 
 module {
 
     type UUID = Types.UUID;
     type Lock = Types.Lock;
-    type BTree<K, V> = BTree.BTree<K, V>;
-    type Order = Order.Order;
     type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
     type LockRegister = Types.LockRegister;
     type Timeline<T> = Types.Timeline<T>;
     type ProtocolParameters = Types.ProtocolParameters;
     type Contribution = Types.Contribution;
     type Foresight = Types.Foresight;
+    type VoteType = Types.VoteType;
+    type YesNoVote = Types.YesNoVote;
+
+    type Map<K, V> = Map.Map<K, V>;
+    type Order = Order.Order;
 
     type LockerState = {
         total_amount: Nat;
@@ -48,7 +54,8 @@ module {
         parameters: ProtocolParameters;
         lock_register: LockRegister;
         update_lock_duration: (YesNoBallot, Nat) -> ();
-        ballot_debts: BallotDebts.BallotDebts;
+        token_vester: TokenVester.TokenVester;
+        votes: Map<UUID, VoteType>;
     }) {
 
         // TODO: should not be public but it is required for ballot preview
@@ -108,18 +115,19 @@ module {
                         dispense_rewards({
                             total_locked = Timeline.current(total_amount);
                             time = lock.release_date;
+                            finalize_id = ?ballot.ballot_id;
                         });
 
                         let reward = Timeline.current(ballot.foresight).reward;
 
-                        // Trigger the transfer of the original amount and reward and delete that lock
-                        // TODO: check of floating point makes sense here
-                        ballot_debts.add_debt({ 
-                            ballot_id = ballot.ballot_id;
-                            amount = Float.fromInt(ballot.amount + reward);
-                            timestamp = lock.release_date;
-                            debt_type = #BTC;
+                        // Trigger the transfer of the original amount plus the reward
+                        token_vester.payout_ballot({ 
+                            ballot; 
+                            btc_amount_e8s = Float.fromInt(ballot.amount + reward);
+                            time = lock.release_date;
                         });
+
+                        // Remove the lock
                         ignore BTree.delete(locks, compare_locks, lock);
 
                         // Update the total locked, cumulated yield and last dispense time
@@ -134,6 +142,7 @@ module {
             dispense_rewards({
                 total_locked = Timeline.current(total_amount);
                 time;
+                finalize_id = null;
             });
         };
 
@@ -141,7 +150,7 @@ module {
             lock_register.total_amount;
         };
 
-        func dispense_rewards({total_locked: Nat; time: Nat;}) {
+        func dispense_rewards({total_locked: Nat; time: Nat; finalize_id: ?UUID; }) {
 
             let period = time - lock_register.time_last_dispense;
 
@@ -181,13 +190,20 @@ module {
                 let to_add = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(period) * contribution_per_ns;
                 let pending = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(lock.release_date - time) * contribution_per_ns;
 
-                // Update ballots DSN contribution to the debt (will be transfered on next Controller.run)
+                // Update ballots DSN contribution to the debt (will be transferred on next Controller.run)
                 Timeline.insert(ballot.contribution, time, { earned = earned + to_add; pending; });
-                ballot_debts.add_debt({
-                    ballot_id = ballot.ballot_id;
-                    amount = to_add;
-                    timestamp = time;
-                    debt_type = #DSN;
+                
+                // Split the amount between the ballot and the author of the vote
+                token_vester.disburse_ballot({ 
+                    ballot; 
+                    dsn_amount_e8s = to_add * ( 1.0 - parameters.author_share);
+                    time;
+                    finalized = Option.getMapped(finalize_id, func(id: UUID) : Bool { id == ballot.ballot_id; }, false); 
+                });
+                token_vester.disburse_author({ 
+                    vote = get_vote({ vote_id = ballot.vote_id });
+                    dsn_amount_e8s = to_add * parameters.author_share;
+                    time;
                 });
             };
 
@@ -199,7 +215,7 @@ module {
             Debug.print("yield_contributions.sum_cumulated: " # debug_show(yield.contributions.sum_cumulated));
 
             for ((lock, ballot) in BTree.entries(locks)){
-                // Update ballots BTC reward (foresight); will be transfered when the lock is unlocked
+                // Update ballots BTC reward (foresight); will be transferred when the lock is unlocked
                 Timeline.insert(ballot.foresight, time, compute_ballot_foresight(
                     lock,
                     ballot,
@@ -339,6 +355,18 @@ module {
                 };
             };
         };
+
+        func get_vote({ vote_id: UUID; }) : YesNoVote {
+            switch(Map.get(votes, Map.thash, vote_id)){
+                case(null) { Debug.trap("The vote does not exist"); };
+                case(?v) { 
+                    switch(v){
+                        case(#YES_NO(vote)) { vote; };
+                    };
+                };
+            };
+        };
+
     };
 
 };

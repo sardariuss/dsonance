@@ -104,12 +104,13 @@ module {
         };
     };
 
-    func shareDebtInfo(debt_info: DebtInfo) : SDebtInfo {
+    public func shareDebtInfo(debt_info: DebtInfo) : SDebtInfo {
         {
+            account = debt_info.account;
             amount = shareTimeline(debt_info.amount);
-            owed = debt_info.owed;
-            pending = debt_info.pending;
+            transferred = debt_info.transferred;
             transfers = debt_info.transfers;
+            finalized = debt_info.finalized;
         };
     };
 

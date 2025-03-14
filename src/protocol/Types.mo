@@ -52,6 +52,7 @@ module {
     public type Foresight          = Types.Current.Foresight;
     public type Contribution       = Types.Current.Contribution;
     public type Register<T>        = Types.Current.Register<T>;
+    public type DebtRegister       = Types.Current.DebtRegister;
 
     // CANISTER ARGS
 
@@ -64,6 +65,12 @@ module {
     public type GetVotesArgs = {
         origin: Principal;
         filter_ids: ?[UUID];
+    };
+
+    public type GetVotesByAuthorArgs = {
+        author: Account;
+        previous: ?UUID;
+        limit: Nat;
     };
 
     public type GetBallotArgs = {
@@ -105,10 +112,11 @@ module {
     };
 
     public type SDebtInfo = {
+        account: Account;
         amount: STimeline<Float>;
-        owed: Float;
-        pending: Nat;
+        transferred: Nat;
         transfers: [Transfer];
+        finalized: Bool;
     };
 
     public type STimeline<T> = {
@@ -173,7 +181,7 @@ module {
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
-        opening_vote_fee: Nat;
+        author_fee: Nat;
         timer: STimerParameters;
         decay: {
             half_life: Duration;
@@ -218,6 +226,7 @@ module {
     };
 
     public type YesNoBallot = Ballot<YesNoChoice>;
+    public type YesNoVote = Vote<YesNoAggregate, YesNoChoice>;
 
     // RESULT/ERROR TYPES
 

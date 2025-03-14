@@ -30,6 +30,7 @@ module {
     type YesNoChoice   = Types.YesNoChoice;
     type VoteType      = Types.VoteType;
     type BallotType    = Types.BallotType;
+    type Set<K>        = Set.Set<K>;
 
     let BTREE_ORDER = 8;
 
@@ -41,17 +42,18 @@ module {
         #v0_1_0({
             vote_register = { 
                 votes = Map.new<UUID, VoteType>();
-                by_origin = Map.new<Principal, Set.Set<UUID>>();
-                debt_junctions = {
-                    dsn = Map.new<UUID, Nat>();
+                by_origin = Map.new<Principal, Set<UUID>>();
+                by_author = Map.new<Account, Set<UUID>>();
+                junctions = {
+                    dsn_debts = Map.new<UUID, Nat>();
                 };
             };
             ballot_register = {
                 ballots = Map.new<UUID, BallotType>();
-                by_account = Map.new<Account, Set.Set<UUID>>();
-                debt_junctions = {
-                    dsn = Map.new<UUID, Nat>();
-                    btc = Map.new<UUID, Nat>();
+                by_account = Map.new<Account, Set<UUID>>();
+                junctions = {
+                    dsn_debts = Map.new<UUID, Nat>();
+                    btc_debts = Map.new<UUID, Nat>();
                 };
             };
             lock_register = {
@@ -73,7 +75,7 @@ module {
                 debt_register = {
                     var index = 0;
                     map = Map.new<Nat, DebtInfo>();
-                    owed = Set.new<Nat>();
+                    pending_transfer = Set.new<Nat>();
                 };
             };
             dsn = {
@@ -82,7 +84,7 @@ module {
                 debt_register = {
                     var index = 0;
                     map = Map.new<Nat, DebtInfo>();
-                    owed = Set.new<Nat>();
+                    pending_transfer = Set.new<Nat>();
                 };
             };
             parameters = { parameters with

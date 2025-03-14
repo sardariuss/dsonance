@@ -51,8 +51,11 @@ module {
         };
 
         public func get_votes({origin: Principal; filter_ids: ?[UUID] }) : [SVoteType] {
-            let vote_types = controller.get_votes({origin; filter_ids;});
-            Array.map(vote_types, SharedConversions.shareVoteType);
+            Array.map(controller.get_votes({origin; filter_ids;}), SharedConversions.shareVoteType);
+        };
+
+         public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; }) : [SVoteType] {
+            Array.map(controller.get_votes_by_author({author; previous; limit;}), SharedConversions.shareVoteType);
         };
 
         public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
