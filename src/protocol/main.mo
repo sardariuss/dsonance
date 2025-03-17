@@ -51,8 +51,20 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_votes(args);
     };
 
+    public query func get_votes_by_author(args: Types.GetVotesByAuthorArgs) : async [Types.SVoteType] {
+        getFacade().get_votes_by_author(args);
+    };
+
     public query func find_vote(args: Types.FindVoteArgs) : async ?Types.SVoteType {
         getFacade().find_vote(args);
+    };
+
+    public query func get_debt_info(debt_id: Types.UUID) : async ?Types.SDebtInfo {
+        getFacade().get_debt_info(debt_id);
+    };
+
+    public query func get_debt_infos(ids: [Types.UUID]) : async [Types.SDebtInfo] {
+        getFacade().get_debt_infos(ids);
     };
 
     public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.SPreviewBallotResult {

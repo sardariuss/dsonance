@@ -1,5 +1,5 @@
-import Result "mo:base/Result";
 import Float "mo:base/Float";
+import Result "mo:base/Result";
 
 import Types "migrations/Types";
 
@@ -50,16 +50,16 @@ module {
     public type ProtocolParameters = Types.Current.ProtocolParameters;
     public type TimerParameters    = Types.Current.TimerParameters;
     public type Foresight          = Types.Current.Foresight;
-    public type Contribution       = Types.Current.Contribution;
     public type Register<T>        = Types.Current.Register<T>;
     public type DebtRegister       = Types.Current.DebtRegister;
+    public type DebtRecord         = Types.Current.DebtRecord;
 
     // CANISTER ARGS
 
     public type NewVoteArgs = {
         account: Account;
         type_enum: VoteTypeEnum;
-        vote_id: UUID;
+        id: UUID;
     };
 
     public type GetVotesArgs = {
@@ -85,7 +85,7 @@ module {
     };
 
     public type PutBallotArgs = {
-        ballot_id: UUID;
+        id: UUID;
         vote_id: UUID;
         choice_type: ChoiceType;
         from_subaccount: ?Blob;
@@ -95,10 +95,6 @@ module {
     public type FindBallotArgs = {
         vote_id: UUID;
         ballot_id: UUID;
-    };
-
-    public type FullDebtInfo = DebtInfo and {
-        account: Account;
     };
 
     // SHARED TYPES
@@ -112,11 +108,11 @@ module {
     };
 
     public type SDebtInfo = {
+        id: UUID;
         account: Account;
-        amount: STimeline<Float>;
+        amount: STimeline<DebtRecord>;
         transferred: Nat;
         transfers: [Transfer];
-        finalized: Bool;
     };
 
     public type STimeline<T> = {
@@ -133,7 +129,6 @@ module {
         dissent: Float;
         consent: STimeline<Float>;
         foresight: STimeline<Foresight>;
-        contribution: STimeline<Contribution>;
         tx_id: Nat;
         from: Account;
         decay: Float;

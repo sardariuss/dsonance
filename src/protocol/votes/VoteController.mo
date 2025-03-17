@@ -17,7 +17,6 @@ module {
     type Ballot<B> = Types.Ballot<B>;
     type LockInfo = Types.LockInfo;
     type Foresight = Types.Foresight;
-    type Contribution = Types.Contribution;
 
     type Iter<T> = Iter.Iter<T>;
 
@@ -34,7 +33,7 @@ module {
         ballot_aggregator: BallotAggregator.BallotAggregator<A, B>;
         decay_model: Decay.DecayModel;
         hot_map: HotMap.HotMap;
-        iter_ballots: () -> Iter<(UUID, Ballot<B>)>;
+        get_ballot: UUID -> Ballot<B>;
         add_ballot: (UUID, Ballot<B>) -> ();
     }){
 
@@ -106,15 +105,13 @@ module {
         };
 
         public func vote_ballots(vote: Vote<A, B>) : Iter<Ballot<B>> {
-            let it = iter_ballots();
+            let it = Set.keys(vote.ballots);
             func next() : ?(Ballot<B>) {
                 label get_next while(true) {
                     switch(it.next()){
                         case(null) { break get_next; };
-                        case(?(id, ballot)) { 
-                            if (Set.has(vote.ballots, Set.thash, id)) {
-                                return ?ballot;
-                            };
+                        case(?id) { 
+                            return ?get_ballot(id);
                         };
                     };
                 };
@@ -139,7 +136,6 @@ module {
                 dissent;
                 consent = Timeline.initialize<Float>(timestamp, consent);
                 foresight = Timeline.initialize<Foresight>(timestamp, { reward = 0; apr = { current = 0.0; potential = 0.0; }; });
-                contribution = Timeline.initialize<Contribution>(timestamp, { earned = 0.0; pending = 0.0; });
                 decay = decay_model.compute_decay(timestamp);
                 var hotness = 0.0;
                 var lock : ?LockInfo = null;

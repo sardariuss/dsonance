@@ -52,7 +52,7 @@ function NewVote() {
       if (selectedCategory === null) {
         throw new Error("Category not selected");
       };
-      newVote( [{ text, vote_id: uuidv4(), category: selectedCategory, from_subaccount: [] }]);
+      newVote( [{ text, id: uuidv4(), category: selectedCategory, from_subaccount: [] }]);
     } else {
       login();
     }

@@ -35,7 +35,7 @@ shared({ caller = admin }) actor class Backend() = this {
 
     public shared({ caller }) func new_vote({
         text: Text;
-        vote_id: UUID;
+        id: UUID;
         category: Text;
         from_subaccount: ?Blob;
     }) : async SNewVoteResult {
@@ -45,7 +45,7 @@ shared({ caller = admin }) actor class Backend() = this {
         if (not Map.has(_categories, Map.thash, category)){
             return #err(#CategoryNotFound);
         };
-        let new_result = await Protocol.new_vote({ type_enum = #YES_NO; vote_id; account = { owner = caller; subaccount = from_subaccount; } });
+        let new_result = await Protocol.new_vote({ type_enum = #YES_NO; id; account = { owner = caller; subaccount = from_subaccount; } });
         Result.mapOk(new_result, func(vote_type: SVoteType) : SYesNoVote {
             switch(vote_type) {
                 case(#YES_NO(vote)) {

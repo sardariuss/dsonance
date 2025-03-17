@@ -34,7 +34,7 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
   useEffect(() => {
     refreshPreview([
       {
-        ballot_id: uuidv4(),
+        id: uuidv4(),
         vote_id,
         from_subaccount: [],
         amount: debouncedBallot.amount,
@@ -44,10 +44,11 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
   }, [debouncedBallot]);
 
   const annualMining = useMemo(() => {
-    if (preview && "ok" in preview) {
-      return preview.ok.YES_NO.contribution.current.data.pending 
-        / (Number(unwrapLock(preview.ok).duration_ns.current.data) / Number(NS_IN_YEAR))
-    }
+    // @todo
+    //if (preview && "ok" in preview) {
+      //return preview.ok.YES_NO.contribution.current.data.pending 
+        /// (Number(unwrapLock(preview.ok).duration_ns.current.data) / Number(NS_IN_YEAR))
+    //}
     return null;
   },
   [preview]);
@@ -83,7 +84,7 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
       {
         label: "Mining reward",
         value: previewData
-          ? formatBalanceE8s(BigInt(Math.trunc(previewData.contribution.current.data.pending)), DSONANCE_COIN_SYMBOL, 0)
+          ? formatBalanceE8s(BigInt(Math.trunc(0)), DSONANCE_COIN_SYMBOL, 0)
           : defaultValue,
       },
       {

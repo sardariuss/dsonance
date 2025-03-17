@@ -4,8 +4,6 @@ import ProtocolTimer          "ProtocolTimer";
 import Queries                "Queries";
 import Decay                  "duration/Decay";
 import DurationCalculator     "duration/DurationCalculator";
-import BallotJunctions        "junctions/BallotJunctions";
-import VoteJunctions          "junctions/VoteJunctions";
 import VoteFactory            "votes/VoteFactory";
 import VoteTypeController     "votes/VoteTypeController";
 import LedgerFacade           "payement/LedgerFacade";
@@ -14,7 +12,6 @@ import Clock                  "utils/Clock";
 import HotMap                 "locks/HotMap";
 import Timeline               "utils/Timeline";
 import DebtProcessor          "DebtProcessor";
-import TokenVester            "TokenVester";
 
 module {
 
@@ -52,15 +49,6 @@ module {
             );
         });
 
-        let token_vester = TokenVester.TokenVester({
-            debt_processors = {
-                btc = btc_debt;
-                dsn = dsn_debt;
-            };
-            ballot_junctions = BallotJunctions.BallotJunctions({ ballot_register; });
-            vote_junctions = VoteJunctions.VoteJunctions({ vote_register; });
-        });
-
         let duration_calculator = DurationCalculator.PowerScaler({
             nominal_duration = nominal_lock_duration;
         });
@@ -71,7 +59,8 @@ module {
             update_lock_duration = func(ballot: YesNoBallot, time: Nat) {
                 duration_calculator.update_lock_duration(ballot, ballot.hotness, time);
             };
-            token_vester;
+            btc_debt;
+            dsn_debt;
             votes = vote_register.votes;
         });
 
@@ -91,6 +80,7 @@ module {
         let queries = Queries.Queries({
             vote_register;
             ballot_register;
+            dsn_debt_register = dsn.debt_register;
             clock;
         });
 

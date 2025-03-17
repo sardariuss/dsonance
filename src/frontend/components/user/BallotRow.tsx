@@ -14,6 +14,7 @@ import { useProtocolContext } from "../ProtocolContext";
 import { useMemo } from "react";
 import { toEnum } from "../../utils/conversions/yesnochoice";
 import { useMediaQuery } from "react-responsive";
+import { protocolActor } from "../../actors/ProtocolActor";
 
 interface VoteTextProps {
   vote_id: string;
@@ -60,14 +61,22 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
   const { formatSatoshis } = useCurrencyContext();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
+  const { data: debt_info } = protocolActor.useQueryCall({
+    functionName: "get_debt_info",
+    args: [ballot.YES_NO.ballot_id],
+  });
+
   const { releaseTimestamp, contribution, foresightAPR } = useMemo(() => {
+      
+      const debt = debt_info ? fromNullable(debt_info) : undefined;
+
       return {
-        contribution: BigInt(Math.floor(ballot.YES_NO.contribution.current.data.earned)),
+        contribution: BigInt(Math.floor(debt?.amount.current.data.earned || 0)),
         foresightAPR: ballot.YES_NO.foresight.current.data.apr.current,
         releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data 
       }
     },
-    [ballot]
+    [ballot, debt_info]
   );
 
   return (

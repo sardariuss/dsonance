@@ -173,18 +173,11 @@ module {
         votes: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
         by_author: Map<Account, Set.Set<UUID>>;
-        junctions: {
-            dsn_debts: Map<UUID, Nat>;
-        };
     };
 
     public type BallotRegister = {
         ballots: Map<UUID, BallotType>;
         by_account: Map<Account, Set<UUID>>;
-        junctions: {
-            dsn_debts: Map<UUID, Nat>;
-            btc_debts: Map<UUID, Nat>;
-        };
     };
 
     public type VoteType = {
@@ -221,15 +214,23 @@ module {
         author: Account;
     };
 
-    public type DebtInfo = {
-        account: Account;
-        amount: Timeline<Float>;
-        var transferred: Nat;
-        var transfers: [Transfer];
-        var finalized: Bool;
+    public type DebtRecord = {
+        earned: Float;
+        pending: Float;
     };
 
-    public type DebtRegister = Register<DebtInfo> and { pending_transfer: Set<Nat> };
+    public type DebtInfo = {
+        id: UUID;
+        account: Account;
+        amount: Timeline<DebtRecord>;
+        var transferred: Nat;
+        var transfers: [Transfer];
+    };
+
+    public type DebtRegister = {
+        debts: Map<UUID, DebtInfo>;
+        pending_transfer: Set<UUID>;
+    };
 
     public type Foresight = {
         reward: Nat;
@@ -237,11 +238,6 @@ module {
             current: Float;
             potential: Float;
         };
-    };
-
-    public type Contribution = {
-        earned: Float;
-        pending: Float;
     };
 
     public type Ballot<B> = {
@@ -253,7 +249,6 @@ module {
         dissent: Float;
         consent: Timeline<Float>;
         foresight: Timeline<Foresight>;
-        contribution: Timeline<Contribution>;
         tx_id: Nat;
         from: Account;
         decay: Float;

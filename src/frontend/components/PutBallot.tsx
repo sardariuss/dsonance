@@ -67,7 +67,7 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
     }
     putBallot([{
       vote_id: id,
-      ballot_id: uuidv4(),
+      id: uuidv4(),
       from_subaccount: [],
       amount: ballot.amount,
       choice_type: { YES_NO: toCandid(ballot.choice) },

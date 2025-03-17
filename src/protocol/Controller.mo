@@ -9,12 +9,11 @@ import Clock                   "utils/Clock";
 import SharedConversions       "shared/SharedConversions";
 import BallotUtils             "votes/BallotUtils";
 import VoteTypeController      "votes/VoteTypeController";
+import IdFormatter             "IdFormatter";
 
 import Map                     "mo:map/Map";
-import Set                     "mo:map/Set";
 
 import Int                     "mo:base/Int";
-import Option                  "mo:base/Option";
 import Float                   "mo:base/Float";
 import Debug                   "mo:base/Debug";
 import Buffer                  "mo:base/Buffer";
@@ -50,15 +49,15 @@ module {
     };
 
     public type NewVoteArgs = {
-        vote_id: UUID;
+        id: UUID;
         origin: Principal;
         type_enum: Types.VoteTypeEnum;
         account: Account;
     };
 
     public type PutBallotArgs = {
+        id: UUID;
         vote_id: UUID;
-        ballot_id: UUID;
         choice_type: ChoiceType;
         caller: Principal;
         from_subaccount: ?Blob;
@@ -81,7 +80,9 @@ module {
 
         public func new_vote(args: NewVoteArgs) : async* SNewVoteResult {
 
-            let { type_enum; origin; vote_id; account; } = args;
+            let { type_enum; origin; id; account; } = args;
+
+            let vote_id = IdFormatter.format(#VoteId(id));
 
             if (Map.has(vote_register.votes, Map.thash, vote_id)){
                 return #err(#VoteAlreadyExists({vote_id}));
@@ -119,7 +120,9 @@ module {
 
         public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
 
-            let { vote_id; choice_type; caller; from_subaccount; amount; } = args;
+            let { id; vote_id; choice_type; caller; from_subaccount; amount; } = args;
+
+            let ballot_id = IdFormatter.format(#VoteId(id));
 
             let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
                 case(null) { return #err(#VoteNotFound({vote_id})); };
@@ -133,28 +136,29 @@ module {
             let timestamp = clock.get_time();
             let from = { owner = caller; subaccount = from_subaccount; };
 
-            let ballot = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with tx_id = 0; timestamp; from; }});
+            let ballot = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id = 0; timestamp; from; }});
 
             let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot);
 
             lock_scheduler.refresh_lock_duration(yes_no_ballot, timestamp);
 
             Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
-            Timeline.insert(yes_no_ballot.contribution, timestamp, lock_scheduler.preview_contribution(yes_no_ballot));
 
             #ok(ballot);
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
 
-            let { vote_id; ballot_id; choice_type; caller; from_subaccount; amount; } = args;
+            let { id; vote_id; choice_type; caller; from_subaccount; amount; } = args;
+
+            let ballot_id = IdFormatter.format(#BallotId(id));
 
             let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
                 case(null) { return #err(#VoteNotFound({vote_id}));  };
                 case(?v) { v };
             };
 
-            switch(find_ballot(ballot_id)){
+            switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)){
                 case(?_) { return #err(#BallotAlreadyExists({ballot_id})); };
                 case(null) {};
             };
@@ -176,7 +180,7 @@ module {
             let timestamp = clock.get_time();
             let from = { owner = caller; subaccount = from_subaccount; };
 
-            let ballot_type = vote_type_controller.put_ballot({vote_type; choice_type; args = { args with tx_id; timestamp; from; }});
+            let ballot_type = vote_type_controller.put_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id; timestamp; from; }});
 
             let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot_type);
 
@@ -190,25 +194,12 @@ module {
 
             // TODO: this is kind of a hack to have an up-to-date foresight and contribution, should be removed
             Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
-            Timeline.insert(yes_no_ballot.contribution, timestamp, lock_scheduler.preview_contribution(yes_no_ballot));
 
             // Add the ballot to that account
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
 
             // TODO: Ideally it's not the controller's responsibility to share types
             #ok(SharedConversions.shareBallotType(ballot_type));
-        };
-
-        public func get_vote_ballots(vote_id: UUID) : [BallotType] {
-            let vote = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
-                case(null) { return []; };
-                case(?v) { v };
-            };
-            let buffer = Buffer.Buffer<BallotType>(0);
-            for (ballot in vote_type_controller.vote_ballots(vote)){
-                buffer.add(ballot);
-            };
-            Buffer.toArray(buffer);
         };
 
         public func run() : async* () {
@@ -226,28 +217,8 @@ module {
             };
         };
 
-        public func get_ballots({ account: Account; previous: ?UUID; limit: Nat; filter_active: Bool; }) : [BallotType] {
-            queries.get_ballots({ account; previous; limit; filter_active; });
-        };
-
-        public func get_locked_amount({ account: Account; }) : Nat {
-            queries.get_locked_amount({ account; });
-        };
-
-        public func get_votes({origin: Principal; filter_ids: ?[UUID]}) : [VoteType] {
-            queries.get_votes({ origin; filter_ids; });
-        };
-
-        public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; }) : [VoteType] {
-            queries.get_votes_by_author({ author; previous; limit; });
-        };
-
-        public func find_vote(vote_id: UUID) : ?VoteType {
-            Map.get(vote_register.votes, Map.thash, vote_id);
-        };
-
-        public func find_ballot(ballot_id: UUID) : ?BallotType {
-            Map.get(ballot_register.ballots, Map.thash, ballot_id);
+        public func get_queries() : Queries.Queries {
+            queries;
         };
 
         public func get_clock() : Clock.Clock {

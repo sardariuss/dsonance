@@ -44,17 +44,10 @@ module {
                 votes = Map.new<UUID, VoteType>();
                 by_origin = Map.new<Principal, Set<UUID>>();
                 by_author = Map.new<Account, Set<UUID>>();
-                junctions = {
-                    dsn_debts = Map.new<UUID, Nat>();
-                };
             };
             ballot_register = {
                 ballots = Map.new<UUID, BallotType>();
                 by_account = Map.new<Account, Set<UUID>>();
-                junctions = {
-                    dsn_debts = Map.new<UUID, Nat>();
-                    btc_debts = Map.new<UUID, Nat>();
-                };
             };
             lock_register = {
                 var time_last_dispense = now;
@@ -73,18 +66,16 @@ module {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(btc.ledger));
                 fee = btc.fee;
                 debt_register = {
-                    var index = 0;
-                    map = Map.new<Nat, DebtInfo>();
-                    pending_transfer = Set.new<Nat>();
+                    debts = Map.new<UUID, DebtInfo>();
+                    pending_transfer = Set.new<UUID>();
                 };
             };
             dsn = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(dsn.ledger));
                 fee = dsn.fee;
                 debt_register = {
-                    var index = 0;
-                    map = Map.new<Nat, DebtInfo>();
-                    pending_transfer = Set.new<Nat>();
+                    debts = Map.new<UUID, DebtInfo>();
+                    pending_transfer = Set.new<UUID>();
                 };
             };
             parameters = { parameters with

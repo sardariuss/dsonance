@@ -1,4 +1,4 @@
-import { SYesNoVote } from "@/declarations/backend/backend.did";
+import { SVote } from "@/declarations/protocol/protocol.did";
 import { EYesNoChoice } from "./yesnochoice";
 import { BallotInfo } from "@/frontend/components/types";
 
@@ -9,7 +9,7 @@ export type VoteDetails = {
   cursor: number | undefined;
 };
 
-export const compute_vote_details = (vote: SYesNoVote, decay: number): VoteDetails => {
+export const compute_vote_details = (vote: SVote, decay: number): VoteDetails => {
   const aggregate = vote.aggregate.current.data;
   const yes = aggregate.current_yes.DECAYED / decay;
   const no = aggregate.current_no.DECAYED / decay;

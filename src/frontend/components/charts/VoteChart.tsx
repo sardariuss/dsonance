@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { STimeline_4, YesNoAggregate }                      from "@/declarations/protocol/protocol.did";
+import { STimeline_3, YesNoAggregate }                      from "@/declarations/protocol/protocol.did";
 import { SYesNoVote }                                       from "@/declarations/backend/backend.did";
 import { EYesNoChoice }                                     from "../../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump }                from "@nivo/bump";
@@ -25,7 +25,7 @@ interface ComputeChartPropsArgs {
   currentTime: bigint;
   computeDecay: (time: bigint) => number;
   duration: DurationUnit;
-  aggregate: STimeline_4;
+  aggregate: STimeline_3;
 }
 
 type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[], color: string}>[];

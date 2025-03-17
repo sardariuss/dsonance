@@ -7,7 +7,7 @@ import DurationChart, { CHART_COLORS, SerieInput } from "../charts/DurationChart
 import { unwrapLock } from "../../utils/conversions/ballot";
 import { formatBalanceE8s } from "../../utils/conversions/token";
 
-import { SBallotType } from "@/declarations/protocol/protocol.did";
+import { SBallotType, STimeline_4 } from "@/declarations/protocol/protocol.did";
 import { useEffect, useMemo, useState } from "react";
 import ChevronUpIcon from "../icons/ChevronUpIcon";
 import ChevronDownIcon from "../icons/ChevronDownIcon";
@@ -19,6 +19,7 @@ import { fromNullable } from "@dfinity/utils";
 import { toEnum } from "../../utils/conversions/yesnochoice";
 import { useCurrencyContext } from "../CurrencyContext";
 import ChoiceView from "../ChoiceView";
+import { protocolActor } from "../../actors/ProtocolActor";
 
 enum CHART_TOGGLE {
     DURATION,
@@ -67,9 +68,18 @@ const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, c
 interface BallotDetailsProps {
   ballot: SBallotType;
   now: bigint;
+  contribution: STimeline_4 | undefined;
 }
 
-const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
+const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contribution }) => {
+
+    if (!contribution) {
+      return (
+        <div className="w-full mt-3">
+          <div className="w-full h-12 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+        </div>
+      );
+    }
 
     const releaseTimestamp = ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data;
 
@@ -114,7 +124,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
         {
           title: "Mining earned:",
           value: formatBalanceE8s(
-            BigInt(Math.floor(ballot.YES_NO.contribution.current.data.earned)),
+            BigInt(Math.floor(contribution.current.data.earned)),
             DSONANCE_COIN_SYMBOL,
             2
           ),
@@ -122,11 +132,11 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
           chartTimelines: new Map([
             [
               "earned",
-              { timeline: map_timeline_hack(ballot.YES_NO.contribution, (contribution) => contribution.earned), color: CHART_COLORS.BLUE },
+              { timeline: map_timeline_hack(contribution, (contribution) => contribution.earned), color: CHART_COLORS.BLUE },
             ],
             [
               "pending",
-              { timeline: map_timeline_hack(ballot.YES_NO.contribution, (contribution) => contribution.pending), color: CHART_COLORS.PURPLE },
+              { timeline: map_timeline_hack(contribution, (contribution) => contribution.pending), color: CHART_COLORS.PURPLE },
             ],
           ]),
           formatValue: (value: number) => formatBalanceE8s(BigInt(value), DSONANCE_COIN_SYMBOL, 2),
@@ -197,8 +207,15 @@ const BallotView : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
       args: [{ vote_id: ballot.YES_NO.vote_id }],
   });
 
+  const { data: debtInfo, call: refreshDebtInfo } = protocolActor.useQueryCall({
+    functionName: "get_debt_info",
+    args: [ballot.YES_NO.ballot_id],
+    onSuccess: (b) => console.log("Debt info", b)
+  });
+
   useEffect(() => {
     refreshVote();
+    refreshDebtInfo();
   }
   , [ballot]);
 
@@ -206,6 +223,11 @@ const BallotView : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
     return vote ? fromNullable(vote) : undefined;
   }
   , [vote]);
+
+  const actualDebtInfo = useMemo(() => {
+    return debtInfo ? fromNullable(debtInfo) : undefined;
+  }
+  , [debtInfo]);
 
   return (
     <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>
@@ -247,7 +269,7 @@ const BallotView : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
           <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
         </div>
       </div>
-      <BallotDetails ballot={ballot} now={now}/>
+      <BallotDetails ballot={ballot} now={now} contribution={actualDebtInfo?.amount}/>
     </div>
     );
 }

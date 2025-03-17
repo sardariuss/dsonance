@@ -9,6 +9,7 @@ import Map                "mo:map/Map";
 
 import Float              "mo:base/Float";
 import Iter               "mo:base/Iter";
+import Debug "mo:base/Debug";
 
 module {
 
@@ -70,19 +71,11 @@ module {
             ballot_aggregator;
             hot_map;
             decay_model;
-            iter_ballots = func() : Iter<(UUID, YesNoBallot)> {
-                let it = Map.entries(ballot_register.ballots);
-                func next() : ?(UUID, YesNoBallot) {
-                    switch(it.next()){
-                        case(null) { return null; };
-                        case(?(id, ballot)) { 
-                            switch(ballot){
-                                case(#YES_NO(b)) { ?(id, b); };
-                            };
-                        };
-                    };
+            get_ballot = func(id: UUID) : YesNoBallot {
+                switch(Map.get(ballot_register.ballots, Map.thash, id)){
+                    case(null) { Debug.trap("Ballot not found"); };
+                    case(?(#YES_NO(b))) { b; };
                 };
-                return { next };
             };
             add_ballot = func(id: UUID, ballot: YesNoBallot) {
                 Map.set(ballot_register.ballots, Map.thash, id, #YES_NO(ballot));
