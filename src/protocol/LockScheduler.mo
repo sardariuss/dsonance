@@ -73,9 +73,16 @@ module {
             let { locks; total_amount; } = lock_register;
 
             if (not BTree.has(locks, compare_locks, lock)){
+                
+                // Need to dispense the locks until current time before adding the new lock
                 try_unlock(time);
+
+                // Add the lock
                 ignore BTree.insert(locks, compare_locks, lock, ballot);
                 Timeline.insert(total_amount, time, Timeline.current(total_amount) + ballot.amount);
+
+                // Dispense that lock to initialize the debt info
+                dispense_lock({ ballot; lock; time; });
             };
         };
 
@@ -113,10 +120,7 @@ module {
                     case(?(lock, ballot)) {
                         if (lock.release_date > time) { break unlock; };
 
-                        dispense_rewards({
-                            total_locked = Timeline.current(total_amount);
-                            time = lock.release_date;
-                        });
+                        dispense_locks(lock.release_date);
 
                         let reward = Timeline.current(ballot.foresight).reward;
 
@@ -140,17 +144,14 @@ module {
             };
 
             // Dispense the remaining contribution until now
-            dispense_rewards({
-                total_locked = Timeline.current(total_amount);
-                time;
-            });
+            dispense_locks(time);
         };
 
         public func get_total_locked() : Timeline<Nat> {
             lock_register.total_amount;
         };
 
-        func dispense_rewards({total_locked: Nat; time: Nat; }) {
+        func dispense_locks(time: Nat) {
 
             let period = time - lock_register.time_last_dispense;
 
@@ -165,12 +166,11 @@ module {
 
             Debug.print("Dispensing rewards over period: " # debug_show(period));
 
-            let { contribution_per_ns } = parameters;
             let { total_amount; locks; yield; } = lock_register;
+            let total_locked = Float.fromInt(Timeline.current(total_amount));
 
             // Refresh yield cumulated
-            yield.cumulated += (Float.fromInt(period) / Float.fromInt(Duration.NS_IN_YEAR)) 
-                * Float.fromInt(Timeline.current(total_amount)) * yield.rate;
+            yield.cumulated += (Float.fromInt(period) / Float.fromInt(Duration.NS_IN_YEAR)) * total_locked * yield.rate;
 
             // Refresh yield contribution
             yield.contributions.sum_current := 0.0;
@@ -185,11 +185,7 @@ module {
                 yield.contributions.sum_cumulated += Float.fromInt(ballot.amount) * Float.fromInt(time - ballot.timestamp) * discernment;
 
                 // DSN Contribution
-                // TODO: function to compute contribution over period
-                let amount = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(period) * contribution_per_ns;
-                let pending = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(lock.release_date - time) * contribution_per_ns;
-                
-                dispense_lock({ ballot; time; amount; pending; });
+                dispense_lock({ ballot; lock; time; });
             };
 
             Debug.print("time: " # debug_show(time));
@@ -246,7 +242,14 @@ module {
             compute_ballot_foresight(get_lock(ballot), ballot, locker_state, ballot.timestamp);
         };
 
-        func dispense_lock({ ballot: YesNoBallot; time: Nat; amount: Float; pending: Float; }) {
+        func dispense_lock({ ballot: YesNoBallot; lock: Lock; time: Nat; }) {
+
+            let period = time - lock_register.time_last_dispense;
+            let total_locked = Float.fromInt(Timeline.current(lock_register.total_amount));
+            let { contribution_per_ns } = parameters;
+
+            let amount = (Float.fromInt(ballot.amount) / total_locked) * Float.fromInt(period) * contribution_per_ns;
+            let pending = (Float.fromInt(ballot.amount) / total_locked) * Float.fromInt(lock.release_date - time) * contribution_per_ns;
 
             // Split the amount between the ballot and the author of the vote
 
