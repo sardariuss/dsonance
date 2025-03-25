@@ -9,7 +9,7 @@ The **lock duration** is determined by the **vote's popularity** at the time the
 
 <figure><img src="../.gitbook/assets/lock_duration.png" alt=""><figcaption><p>The lock duration depends on the popularity of the vote at the time the ballot is cast and increases with subsequent ballots</p></figcaption></figure>
 
-The **hotness** of a ballot represents its **recent popularity** and determines how long ballots remain locked. It is calculated using the sum of a ballot’s own Bitcoin amount plus the weighted influence of surrounding ballots, adjusted by a **decay factor**:
+The **hotness** of a ballot represents its **recent popularity** and determines how long ballots remain locked. It is calculated using the sum of a ballot’s own token amount plus the weighted influence of surrounding ballots, adjusted by a **decay factor**:
 
 $$
 \text{hotness}_i = \text{amount}_i + \sum_{j < i} \left(\frac{\text{decay}_j}{\text{decay}_i} \times \text{amount}_j\right) + \sum_{j > i} \left(\frac{\text{decay}_i}{\text{decay}_j} \times \text{amount}_j\right)

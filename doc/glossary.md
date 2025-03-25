@@ -7,7 +7,7 @@ coverY: 0
 
 #### Effective Voting Power (EVP)
 
-For a vote, EVP represents the total amount of Bitcoin used to determine the consensus. It is calculated as the sum of Bitcoin locked in all ballots (both True and False), weighted by their decay over time, as explained in [stake-weighted-voting.md](protocol-beta-version/stake-weighted-voting.md "mention").
+For a vote, EVP represents the total amount of token used to determine the consensus. It is calculated as the sum of tokens locked in all ballots (both True and False), weighted by their decay over time, as explained in [stake-weighted-voting.md](protocol-beta-version/stake-weighted-voting.md "mention").
 
 * When a new ballot is added, EVP increases by the amount locked in that ballot.
 * When time passes without new ballots being added, EVP decreases due to decay.

@@ -11,12 +11,12 @@ coverY: 0
 ***
 
 **Q: How does consensus evolve over time?**\
-**A:** Consensus evolves dynamically with each new ballot cast. It is weighted by the decay of locked Bitcoin, meaning newer ballots have greater influence than older ones. This mechanism ensures the consensus stays adaptable and reflective of the most recent opinions.
+**A:** Consensus evolves dynamically with each new ballot cast. It is weighted by the decay of locked tokens, meaning newer ballots have greater influence than older ones. This mechanism ensures the consensus stays adaptable and reflective of the most recent opinions.
 
 ***
 
-**Q: What happens to my locked Bitcoin after the lock duration?**\
-**A:** Once the lock duration ends, your Bitcoin is fully returned, minus a nominal fee of 20 sats (approximately 0.02 USD at the time of writing).
+**Q: What happens to my locked tokens after the lock duration?**\
+**A:** Once the lock duration ends, your tokens are fully returned, minus twice the transaction fee specific to that token.
 
 ***
 

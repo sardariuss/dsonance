@@ -5,7 +5,7 @@ coverY: 0
 
 # Introduction
 
-**Dsonance** is a platform that enables users to **earn yield on their Bitcoin** and **win additional rewards** by voting on a list of **empirical statements**. By harnessing the power of **Proof-of-Foresight**, the platform ensures that consensus remains **genuine**, adapts in **real-time** to shifts in public opinion, and **resists manipulation**.
+**Dsonance** is a modular platform hosting **real-time consensus**, each **tied 1:1 to a DAO**. Members stake their DAO’s token (e.g. ICP for the NNS) to **vote on empirical statements**. By harnessing the power of the **Proof-of-Foresight**, the platform ensures that consensus remains **genuine**, adapts in **real-time** to shifts in public opinion, and **resists manipulation**.
 
 #### 🎯 **Goals**
 
@@ -16,9 +16,9 @@ coverY: 0
 
 #### ⚙️ **Proof-of-Foresight**
 
-* **Stake-weighted voting:** Users lock Bitcoin to vote on specific statements, with voting power proportional to their stake.
+* **Stake-weighted voting:** Lock your DAO’s coins to vote on community-specific statements, with influence tied to your stake.
 * **Dynamic lock duration:** Lock durations adjust to each ballot and extend over time as topics gain popularity.
-* **Earn twice:** Get DSN tokens for your participation—and maximize your BTC yield with your foresight!
+* **Earn twice:** Earn DSN for your participation, plus a yield on your DAO's coins based on the accuracy of your predictions.
 
 #### 🎲 **Game Theory**
 

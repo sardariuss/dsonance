@@ -8,16 +8,16 @@ coverY: 0
 Rewards are divided into two parts:
 
 1. **DSN Rewards** – Rewarding participation in the protocol.
-2. **BTC Rewards** – Rewarding ballot foresight.
+2. **Token yield** – Rewarding ballot foresight with DAO's tokens.
 
 ***
 
 #### **DSN Rewards**
 
-Contribution rewards are distributed continuously throughout the active period of a lock. The amount each voter receives is proportional to the amount of Bitcoin in their lock relative to the total Bitcoin locked in the protocol.
+Contribution rewards are distributed continuously throughout the active period of a lock. The amount each voter receives is proportional to the amount of token in their lock relative to the total amount of token locked in the protocol.
 
 * **Ballot choice does not impact contribution rewards**—only the total locked amount matters.
-* Since total locked Bitcoin changes over time, contribution is computed using a **time-weighted integral**, ensuring fairness.
+* Since the total of locked tokens changes over time, contribution is computed using a **time-weighted integral**, ensuring fairness.
 
 $$
 \text{contribution} = \int_{t_{\text{lock}}}^{t_{\text{unlock}}} \left( \frac{\text{ballot\_amount}}{\text{total\_locked}(t)} \right) \times \text{minting\_rate} \, dt
@@ -31,11 +31,11 @@ $$
 Totals expressed in the following paragraphs represent the sum of ballots amounts weighted by their decay as expressed in the [stake-weighted-voting.md](stake-weighted-voting.md "mention") chapter.
 {% endhint %}
 
-Before defining _BTC rewards_, it is important to introduce two key metrics:
+Before defining _token yield_, it is important to introduce two key metrics:
 
 **Dissent**
 
-Dissent measures how much a single satoshi challenges the current consensus. It is defined as:
+Dissent measures how much a single token challenges the current consensus. It is defined as:
 
 $$
 \text{dissent} =
@@ -51,7 +51,7 @@ $$
 \text{dissent} = \frac{\text{total\_opposit}}{\text{total}}
 $$
 
-where $$\text{total\_opposit}$$ represents the amount of Bitcoin locked in ballots that voted the opposite way.
+where $$\text{total\_opposit}$$ represents the amount of token locked in ballots that voted the opposite way.
 
 To avoid completely disincentivizing voting when the consensus is already aligned with the voter’s choice, the **dissent** **is adjusted** using a power function controlled by the protocol parameter _**dissent\_steepness**_:
 
@@ -86,7 +86,7 @@ where $$K$$ is the _**initial\_dissent\_addend**_ protocol parameter.
 
 #### Consent
 
-The **consent** measures how well a single satoshi **aligns** with the current consensus.
+The **consent** measures how well a single token **aligns** with the current consensus.
 
 $$
 \text{consent} =
@@ -117,9 +117,9 @@ Where:
 
 ***
 
-#### BTC rewards
+#### Token yield
 
-BTC rewards are distributed **at the end of a lock** and depend on the foresight of each lock:
+The token yield is distributed **at the end of a lock** and depend on the foresight of each lock:
 
 $$
 \text{foresight} = \text{lock_amount} \times \text{age_bonus} \times \text{ballot_dissent}_{t_0} \times \text{ballot_consent}_{t_{\text{end}}}
@@ -127,13 +127,13 @@ $$
 
 Where:
 
-* $$\text{lock_amount}$$ is the amount of satoshis in the ballot
+* $$\text{lock_amount}$$ is the amount of token in the ballot
 * $$\text{age_bonus}$$ is the age bonus of the lock, between 1 and 1.25
 * $$\text{ballot\_dissent}_{t_0}$$represents how bold the choice was at the time of casting
 * $$\text{ballot\_consent}_{t_{\text{end}}}$$represents how well the ballot aligns with the final consensus:
 
-The reward for a lock is its weighted proportion of foresight, relative to the total foresight of all active locks, multiplied by the total BTC yield accumulated by all locks:
+The reward for a lock is its weighted proportion of foresight, relative to the total foresight of all active locks, multiplied by the total token yield accumulated by all locks:
 
 $$
-\text{btc_reward}_i = \frac{\text{foresight}_i}{\sum_{j} \text{foresight}_j} \times {\text{total_accumulated_btc}}
+\text{token_yield}_i = \frac{\text{foresight}_i}{\sum_{j} \text{foresight}_j} \times {\text{total_accumulated_token}}
 $$
