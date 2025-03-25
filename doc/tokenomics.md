@@ -14,9 +14,9 @@ Dsonance operates each DAO with two tokens:
 
 Dsonance uses each DAO's native token to facilitate the redirection of empirical votes to the Dsonance community, which is specifically designed to handle such votes more effectively. The DAO’s coin serves the following functions:
 
-* Open new consensus votes.
-* Participate in votes and influence consensus.
-* Borrowing: Can be used as collateral for borrowing DSN tokens.
+* **Open new consensus votes**.
+* **Participate in votes** and influence consensus.
+* **Borrowing**: Can be used as collateral for borrowing DSN tokens.
 
 ### **DSN Token**
 
