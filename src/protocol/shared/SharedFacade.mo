@@ -2,8 +2,6 @@ import Types             "../Types";
 import Controller        "../Controller";
 import SharedConversions "SharedConversions";
 
-import Array             "mo:base/Array";
-import Option            "mo:base/Option";
 import Result            "mo:base/Result";
 
 module {
@@ -12,7 +10,6 @@ module {
     type UUID = Types.UUID;
     type VoteType = Types.VoteType;
     type BallotType = Types.BallotType;
-    type SVoteType = Types.SVoteType;
     type PutBallotResult = Types.PutBallotResult;
     type PreviewBallotResult = Types.PreviewBallotResult;
     type SPreviewBallotResult = Types.SPreviewBallotResult;
@@ -31,6 +28,9 @@ module {
     type STimeline<T> = Types.STimeline<T>;
     type ProtocolParameters = Types.ProtocolParameters;
     type SProtocolParameters = Types.SProtocolParameters;
+    type SVoteType = Types.SVoteType;
+    type SDebtInfo = Types.SDebtInfo;
+    type DebtRecord = Types.DebtRecord;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -48,31 +48,6 @@ module {
 
         public func run() : async* () {
             await* controller.run();
-        };
-
-        public func get_votes({origin: Principal; filter_ids: ?[UUID] }) : [SVoteType] {
-            let vote_types = controller.get_votes({origin; filter_ids;});
-            Array.map(vote_types, SharedConversions.shareVoteType);
-        };
-
-        public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
-            Array.map(controller.get_vote_ballots(vote_id), SharedConversions.shareBallotType);
-        };
-
-        public func find_vote({vote_id: UUID;}) : ?SVoteType {
-            Option.map(controller.find_vote(vote_id), SharedConversions.shareVoteType);
-        };
-
-        public func get_ballots(args: GetBallotArgs) : [SBallotType] {
-            Array.map(controller.get_ballots(args), SharedConversions.shareBallotType);
-        };
-
-        public func get_locked_amount({ account: Account; }) : Nat {
-            controller.get_locked_amount({account});
-        };
-
-        public func find_ballot(ballot_id: UUID) : ?SBallotType {
-            Option.map<BallotType, SBallotType>(controller.find_ballot(ballot_id), SharedConversions.shareBallotType);
         };
 
         public func set_timer_interval({ caller: Principal; interval_s: Nat; }) : async* Result<(), Text> {
@@ -101,6 +76,46 @@ module {
 
         public func get_parameters() : SProtocolParameters {
             SharedConversions.shareProtocolParameters(controller.get_parameters());
+        };
+
+        public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
+            controller.get_queries().get_vote_ballots(vote_id);
+        };
+
+        public func get_votes({origin: Principal; filter_ids: ?[UUID] }) : [SVoteType] {
+            controller.get_queries().get_votes({origin; filter_ids;});
+        };
+        
+        public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; }) : [SVoteType] {
+            controller.get_queries().get_votes_by_author({author; previous; limit;});
+        };
+        
+        public func find_vote({vote_id: UUID;}) : ?SVoteType {
+            controller.get_queries().find_vote(vote_id);
+        };
+        
+        public func get_ballots(args: GetBallotArgs) : [SBallotType] {
+            controller.get_queries().get_ballots(args);
+        };
+        
+        public func get_locked_amount({ account: Account; }) : Nat {
+            controller.get_queries().get_locked_amount({account});
+        };
+        
+        public func find_ballot(ballot_id: UUID) : ?SBallotType {
+            controller.get_queries().find_ballot(ballot_id);
+        };
+
+        public func get_debt_info(debt_id: UUID) : ?SDebtInfo {
+            controller.get_queries().get_debt_info(debt_id);
+        };
+        
+        public func get_debt_infos(ids: [UUID]) : [SDebtInfo] {
+            controller.get_queries().get_debt_infos(ids);
+        };
+
+        public func get_mined_by_author({ author: Account }) : DebtRecord {
+            controller.get_queries().get_mined_by_author({author});
         };
         
     };

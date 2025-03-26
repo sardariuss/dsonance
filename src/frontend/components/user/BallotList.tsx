@@ -12,7 +12,7 @@ import { Account, SBallotType } from "@/declarations/protocol/protocol.did";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
 import { toNullable } from "@dfinity/utils";
-import InfiniteScroll from "react-infinite-scroll-component";
+import AdaptiveInfiniteScroll from "../AdaptiveInfinitScroll";
 
 type BallotEntries = {
   ballots: SBallotType[];
@@ -55,7 +55,7 @@ const BallotList = () => {
     });
   }
 
-  const selecteBallot = (ballotId: string) => {
+  const selectBallot = (ballotId: string) => {
     setSearchParams((prevParams) => {
       const newParams = new URLSearchParams(prevParams);
       newParams.set("ballotId", ballotId);
@@ -133,21 +133,19 @@ const BallotList = () => {
   
   return (
     <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 p-2 rounded w-full">
-      <div className={`flex flex-col items-center w-full pt-5`}>
-        <div className="flex flex-row w-full space-x-1 justify-center items-baseline">
-          <span>Total locked:</span>
-          {
-            lockedAmount !== undefined ?
-            <div className="flex flex-row items-baseline space-x-1">
-              <span className="text-lg">{ formatSatoshis(lockedAmount) }</span>
-              <div className="flex self-center">
-                <BitcoinIcon/>
-              </div>
+      <div className="flex flex-row w-full space-x-1 justify-center items-baseline pt-5">
+        <span>Total locked:</span>
+        {
+          lockedAmount !== undefined ?
+          <div className="flex flex-row items-baseline space-x-1">
+            <span className="text-lg">{ formatSatoshis(lockedAmount) }</span>
+            <div className="flex self-center">
+              <BitcoinIcon/>
             </div>
-              :
-            <span className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse self-center"/>
-          }
-        </div>
+          </div>
+            :
+          <span className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse self-center"/>
+        }
       </div>
       { ballotEntries.ballots.length > 0 && 
         <div className="flex w-full py-8 sm:py-6">
@@ -161,7 +159,7 @@ const BallotList = () => {
           <div className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-focus:ring-2 peer-focus:ring-purple-900 dark:peer-focus:ring-purple-900 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-900 dark:peer-checked:bg-purple-700"></div>
         </label>
       }
-      <InfiniteScroll
+      <AdaptiveInfiniteScroll
         dataLength={ballotEntries.ballots.length}
         next={fetchNextBallots}
         hasMore={ballotEntries.hasMore}
@@ -175,7 +173,7 @@ const BallotList = () => {
             ballotEntries.ballots.map((ballot, index) => (
               <li key={index} ref={(el) => (ballotRefs.current.set(ballot.YES_NO.ballot_id, el))} 
                 className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]" 
-                onClick={(e) => { selecteBallot(ballot.YES_NO.ballot_id); navigate(`/ballot/${ballot.YES_NO.ballot_id}`); }}>
+                onClick={(e) => { selectBallot(ballot.YES_NO.ballot_id); navigate(`/ballot/${ballot.YES_NO.ballot_id}`); }}>
                 <BallotRow 
                   ballot={ballot}
                   now={info?.current_time}
@@ -185,7 +183,7 @@ const BallotList = () => {
             ))
           }
         </ul>
-      </InfiniteScroll>
+      </AdaptiveInfiniteScroll>
     </div>
   );
 }

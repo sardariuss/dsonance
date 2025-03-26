@@ -12,6 +12,7 @@ module {
     type YesNoChoice    = Types.YesNoChoice;
     type UUID           = Types.UUID;
     type BallotType     = Types.BallotType;
+    type Account        = Types.Account;
     
     type Iter<T>        = Iter.Iter<T>;
 
@@ -22,9 +23,9 @@ module {
         yes_no_controller: VoteController.VoteController<YesNoAggregate, YesNoChoice>;
     }){
 
-        public func new_vote({ vote_id: UUID; tx_id: Nat; vote_type_enum: VoteTypeEnum; date: Nat; origin: Principal; }) : VoteType {
+        public func new_vote({ vote_id: UUID; tx_id: Nat; vote_type_enum: VoteTypeEnum; date: Nat; origin: Principal; author: Account }) : VoteType {
             switch(vote_type_enum){
-                case(#YES_NO) { #YES_NO(yes_no_controller.new_vote({vote_id; tx_id; date; origin;})); }
+                case(#YES_NO) { #YES_NO(yes_no_controller.new_vote({vote_id; tx_id; date; origin; author;})); }
             };
         };
 

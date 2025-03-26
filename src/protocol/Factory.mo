@@ -1,6 +1,7 @@
 import Types                  "Types";
 import Controller             "Controller";
 import ProtocolTimer          "ProtocolTimer";
+import Queries                "Queries";
 import Decay                  "duration/Decay";
 import DurationCalculator     "duration/DurationCalculator";
 import VoteFactory            "votes/VoteFactory";
@@ -11,11 +12,6 @@ import Clock                  "utils/Clock";
 import HotMap                 "locks/HotMap";
 import Timeline               "utils/Timeline";
 import DebtProcessor          "DebtProcessor";
-import BallotUtils            "votes/BallotUtils";
-
-import Map                    "mo:map/Map";
-
-import Debug                  "mo:base/Debug";
 
 module {
 
@@ -37,34 +33,18 @@ module {
         let clock = Clock.Clock(parameters.clock);
 
         let btc_debt = DebtProcessor.DebtProcessor({
-            btc with 
-            get_debt_info = func (id: UUID) : DebtInfo {
-                switch(Map.get(ballot_register.ballots, Map.thash, id)) {
-                    case(null) { Debug.trap("Debt not found"); };
-                    case(?ballot) {
-                        BallotUtils.unwrap_yes_no(ballot).btc_debt;
-                    };
-                };
-            };
             ledger = btc_ledger;
+            register = btc.debt_register;
             on_successful_transfer = null;
         });
 
         let dsn_debt = DebtProcessor.DebtProcessor({
-            dsn with 
-            get_debt_info = func (id: UUID) : DebtInfo {
-                switch(Map.get(ballot_register.ballots, Map.thash, id)) {
-                    case(null) { Debug.trap("Debt not found"); };
-                    case(?ballot) {
-                        BallotUtils.unwrap_yes_no(ballot).dsn_debt;
-                    };
-                };
-            };
             ledger = dsn_ledger;
+            register = dsn.debt_register;
             on_successful_transfer = ?(
                 func({amount: Nat}) {
                     // Update the total amount minted
-                    Timeline.add(minting_info.amount_minted, clock.get_time(), minting_info.amount_minted.current.data + amount);
+                    Timeline.insert(minting_info.amount_minted, clock.get_time(), minting_info.amount_minted.current.data + amount);
                 }
             );
         });
@@ -81,6 +61,7 @@ module {
             };
             btc_debt;
             dsn_debt;
+            votes = vote_register.votes;
         });
 
         let decay_model = Decay.DecayModel(decay);
@@ -96,6 +77,13 @@ module {
             yes_no_controller;
         });
 
+        let queries = Queries.Queries({
+            vote_register;
+            ballot_register;
+            dsn_debt_register = dsn.debt_register;
+            clock;
+        });
+
         let protocol_timer = ProtocolTimer.ProtocolTimer({
             admin;
             parameters = parameters.timer;
@@ -109,6 +97,7 @@ module {
             vote_type_controller;
             btc_debt;
             dsn_debt;
+            queries;
             protocol_timer;
             minting_info;
             parameters;

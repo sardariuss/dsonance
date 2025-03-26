@@ -188,7 +188,7 @@ async function callCanisterMethod() {
 
     // A random user opens up a new vote
     for (let i = 0; i < NUM_VOTES; i++) {
-        const args = { text: VOTES_TO_OPEN[i], vote_id: uuidv4(), category: getRandomCategory(categories), from_subaccount: [] };
+        const args = { text: VOTES_TO_OPEN[i], id: uuidv4(), category: getRandomCategory(categories), from_subaccount: [] };
         getRandomUserActor(userActors).backend.new_vote(args).then((_) => {
             console.log('New vote added');
         });
@@ -224,7 +224,7 @@ async function callCanisterMethod() {
                     putBallotPromises.push(
                         actors.protocol.put_ballot({
                             vote_id,
-                            ballot_id: uuidv4(),
+                            id: uuidv4(),
                             from_subaccount: [],
                             amount: BigInt(Math.floor(exponentialRandom(MEAN_BALLOT_AMOUNT))),
                             choice_type: { 'YES_NO': Math.random() < yesProbability ? { 'YES': null } : { 'NO': null } }

@@ -10,19 +10,25 @@ import Text "mo:base/Text";
 import Int "mo:base/Int";
 import Debug "mo:base/Debug";
 import Float "mo:base/Float";
+import Option "mo:base/Option";
+
+import Map "mo:map/Map";
 
 module {
 
     type UUID = Types.UUID;
     type Lock = Types.Lock;
-    type BTree<K, V> = BTree.BTree<K, V>;
-    type Order = Order.Order;
     type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
     type LockRegister = Types.LockRegister;
     type Timeline<T> = Types.Timeline<T>;
     type ProtocolParameters = Types.ProtocolParameters;
-    type Contribution = Types.Contribution;
     type Foresight = Types.Foresight;
+    type VoteType = Types.VoteType;
+    type YesNoVote = Types.YesNoVote;
+    type DebtRecord = Types.DebtRecord;
+
+    type Map<K, V> = Map.Map<K, V>;
+    type Order = Order.Order;
 
     type LockerState = {
         total_amount: Nat;
@@ -48,8 +54,9 @@ module {
         parameters: ProtocolParameters;
         lock_register: LockRegister;
         update_lock_duration: (YesNoBallot, Nat) -> ();
-        dsn_debt: DebtProcessor.DebtProcessor;
         btc_debt: DebtProcessor.DebtProcessor;
+        dsn_debt: DebtProcessor.DebtProcessor;
+        votes: Map<UUID, VoteType>;
     }) {
 
         // TODO: should not be public but it is required for ballot preview
@@ -66,9 +73,16 @@ module {
             let { locks; total_amount; } = lock_register;
 
             if (not BTree.has(locks, compare_locks, lock)){
+                
+                // Need to dispense the locks until current time before adding the new lock
                 try_unlock(time);
+
+                // Add the lock
                 ignore BTree.insert(locks, compare_locks, lock, ballot);
-                Timeline.add(total_amount, time, Timeline.current(total_amount) + ballot.amount);
+                Timeline.insert(total_amount, time, Timeline.current(total_amount) + ballot.amount);
+
+                // Dispense that lock to initialize the debt info
+                dispense_lock({ ballot; lock; time; });
             };
         };
 
@@ -106,38 +120,38 @@ module {
                     case(?(lock, ballot)) {
                         if (lock.release_date > time) { break unlock; };
 
-                        dispense_rewards({
-                            total_locked = Timeline.current(total_amount);
-                            time = lock.release_date;
-                        });
+                        dispense_locks(lock.release_date);
 
                         let reward = Timeline.current(ballot.foresight).reward;
 
-                        // Trigger the transfer of the original amount and reward and delete that lock
-                        // TODO: check of floating point makes sense here
-                        btc_debt.add_debt({ id = ballot.ballot_id; amount = Float.fromInt(ballot.amount + reward); time = lock.release_date; });
+                        // Trigger the transfer of the original amount plus the reward
+                        btc_debt.increase_debt({ 
+                            id = ballot.ballot_id;
+                            account = ballot.from;
+                            amount = Float.fromInt(ballot.amount + reward);
+                            pending = 0.0;
+                            time = lock.release_date;
+                        });
+
+                        // Remove the lock
                         ignore BTree.delete(locks, compare_locks, lock);
 
-                        // Update the total locked, cumulated yield and last dispense time
-                        // TODO: update yield_contribution
-                        Timeline.add(total_amount, lock.release_date, Timeline.current(total_amount) - ballot.amount);
+                        // Update the total locked and cumulated yield
+                        Timeline.insert(total_amount, lock.release_date, Timeline.current(total_amount) - ballot.amount);
                         yield.cumulated -= Float.fromInt(reward);
                     };
                 };
             };
 
             // Dispense the remaining contribution until now
-            dispense_rewards({
-                total_locked = Timeline.current(total_amount);
-                time;
-            });
+            dispense_locks(time);
         };
 
         public func get_total_locked() : Timeline<Nat> {
             lock_register.total_amount;
         };
 
-        func dispense_rewards({total_locked: Nat; time: Nat;}) {
+        func dispense_locks(time: Nat) {
 
             let period = time - lock_register.time_last_dispense;
 
@@ -152,12 +166,11 @@ module {
 
             Debug.print("Dispensing rewards over period: " # debug_show(period));
 
-            let { contribution_per_ns } = parameters;
             let { total_amount; locks; yield; } = lock_register;
+            let total_locked = Float.fromInt(Timeline.current(total_amount));
 
             // Refresh yield cumulated
-            yield.cumulated += (Float.fromInt(period) / Float.fromInt(Duration.NS_IN_YEAR)) 
-                * Float.fromInt(Timeline.current(total_amount)) * yield.rate;
+            yield.cumulated += (Float.fromInt(period) / Float.fromInt(Duration.NS_IN_YEAR)) * total_locked * yield.rate;
 
             // Refresh yield contribution
             yield.contributions.sum_current := 0.0;
@@ -172,13 +185,7 @@ module {
                 yield.contributions.sum_cumulated += Float.fromInt(ballot.amount) * Float.fromInt(time - ballot.timestamp) * discernment;
 
                 // DSN Contribution
-                let earned = Timeline.current(ballot.contribution).earned;
-                let to_add = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(period) * contribution_per_ns;
-                let pending = (Float.fromInt(ballot.amount) / Float.fromInt(total_locked)) * Float.fromInt(lock.release_date - time) * contribution_per_ns;
-
-                // Update ballots DSN contribution and transfer it right away
-                Timeline.add(ballot.contribution, time, { earned = earned + to_add; pending; });
-                dsn_debt.add_debt({ id = lock.id; amount = to_add; time; });
+                dispense_lock({ ballot; lock; time; });
             };
 
             Debug.print("time: " # debug_show(time));
@@ -189,8 +196,8 @@ module {
             Debug.print("yield_contributions.sum_cumulated: " # debug_show(yield.contributions.sum_cumulated));
 
             for ((lock, ballot) in BTree.entries(locks)){
-                // Update ballots BTC reward (foresight); will be transfered when the lock is unlocked
-                Timeline.add(ballot.foresight, time, compute_ballot_foresight(
+                // Update ballots BTC reward (foresight); will be transferred when the lock is unlocked
+                Timeline.insert(ballot.foresight, time, compute_ballot_foresight(
                     lock,
                     ballot,
                     get_locker_state(),
@@ -205,7 +212,7 @@ module {
             lock_register.time_last_dispense;
         };
 
-        public func preview_contribution(ballot: YesNoBallot) : Contribution {
+        public func preview_contribution(ballot: YesNoBallot) : DebtRecord {
 
             let lock = get_lock(ballot);
             
@@ -233,6 +240,36 @@ module {
             };
 
             compute_ballot_foresight(get_lock(ballot), ballot, locker_state, ballot.timestamp);
+        };
+
+        func dispense_lock({ ballot: YesNoBallot; lock: Lock; time: Nat; }) {
+
+            let period = time - lock_register.time_last_dispense;
+            let total_locked = Float.fromInt(Timeline.current(lock_register.total_amount));
+            let { contribution_per_ns } = parameters;
+
+            let amount = (Float.fromInt(ballot.amount) / total_locked) * Float.fromInt(period) * contribution_per_ns;
+            let pending = (Float.fromInt(ballot.amount) / total_locked) * Float.fromInt(lock.release_date - time) * contribution_per_ns;
+
+            // Split the amount between the ballot and the author of the vote
+
+            dsn_debt.increase_debt({ 
+                id = ballot.ballot_id;
+                account = ballot.from;
+                amount = amount * ( 1.0 - parameters.author_share);
+                pending = pending * ( 1.0 - parameters.author_share);
+                time;
+            });
+            
+            let vote = get_vote({ vote_id = ballot.vote_id });
+
+            dsn_debt.increase_debt({ 
+                id = vote.vote_id;
+                account = vote.author;
+                amount = amount * parameters.author_share;
+                pending = pending * parameters.author_share;
+                time;
+            });
         };
 
         func compute_discernment(ballot: YesNoBallot) : Float {
@@ -329,6 +366,18 @@ module {
                 };
             };
         };
+
+        func get_vote({ vote_id: UUID; }) : YesNoVote {
+            switch(Map.get(votes, Map.thash, vote_id)){
+                case(null) { Debug.trap("The vote does not exist"); };
+                case(?v) { 
+                    switch(v){
+                        case(#YES_NO(vote)) { vote; };
+                    };
+                };
+            };
+        };
+
     };
 
 };

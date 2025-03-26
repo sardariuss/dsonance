@@ -2,8 +2,6 @@ import Types "Types";
 import Timeline "utils/Timeline";
 import LedgerFacade "payement/LedgerFacade";
 
-import Set "mo:map/Set";
-import Map "mo:map/Map";
 import Array "mo:base/Array";
 import Result "mo:base/Result";
 import Buffer "mo:base/Buffer";
@@ -11,57 +9,97 @@ import Float "mo:base/Float";
 import Int "mo:base/Int";
 import Debug "mo:base/Debug";
 import Option "mo:base/Option";
+import Nat "mo:base/Nat";
+
+import Map "mo:map/Map";
+import Set "mo:map/Set";
 
 module {
 
-    type UUID = Types.UUID;
     type Timeline<T> = Types.Timeline<T>;
     type Account = Types.Account;
     type DebtInfo = Types.DebtInfo;
-    type TransferResult = Types.TransferResult;
     type TxIndex = Types.TxIndex;
-
-    type Set<K> = Set.Set<K>;
+    type UUID = Types.UUID;
+    type DebtRecord = Types.DebtRecord;
     type Map<K, V> = Map.Map<K, V>;
+    type Set<T> = Set.Set<T>;
+
+    type DebtRegister = {
+        debts: Map<UUID, DebtInfo>;
+        pending_transfer: Set<UUID>;
+    };
 
     type TransferCallback = ({amount: Nat;}) -> ();
 
-    public func init_debt_info(time: Nat, account: Account) : DebtInfo {
-        {
-            amount = Timeline.initialize<Float>(time, 0.0);
-            account;
-            var owed = 0.0;
-            var pending = 0;
-            var transfers = [];
-        };
-    };
-
     public class DebtProcessor({
         ledger: LedgerFacade.LedgerFacade;
-        get_debt_info: (UUID) -> DebtInfo;
-        owed: Set<UUID>;
+        register: DebtRegister;
         on_successful_transfer: ?(TransferCallback);
     }){
 
-        public func add_debt({ id: UUID; amount: Float; time: Nat; }) {
-            let info = get_debt_info(id);
-            Timeline.add(info.amount, time, Timeline.current(info.amount) + amount);
-            info.owed += amount;
-            tag_to_transfer(id, info);
+        public func increase_debt({ id: UUID; time: Nat; account: Account; amount: Float; pending: Float; }) {
+
+            // Update or create the debt info
+            switch(Map.get(register.debts, Map.thash, id)){
+                case(?debt_info) {
+                    let current_debt = debt_info.amount.current;
+                    switch(Nat.compare(time, current_debt.timestamp)){
+                        case(#less) {
+                            Debug.trap("The timestamp must be greater than or equal to the current timestamp");
+                        };
+                        case(#equal){
+                            debt_info.amount.current := {
+                                timestamp = time;
+                                data = { 
+                                    earned = current_debt.data.earned + amount;
+                                    pending = current_debt.data.pending + pending;
+                                };
+                            };
+                        };
+                        case(#greater){
+                            Timeline.insert(debt_info.amount, time, { 
+                                earned = current_debt.data.earned + amount;
+                                pending; // Reset pending
+                            });
+                        };
+                    };
+                };
+                case(null) { 
+                    let debt_info : DebtInfo = {
+                        id;
+                        amount = Timeline.initialize<DebtRecord>(time, { earned = amount; pending; });
+                        account;
+                        var transferred = 0;
+                        var transfers = [];
+                    };
+                    Map.set(register.debts, Map.thash, id, debt_info);
+                };
+            };
+
+            // Add to transfer queue
+            Set.add(register.pending_transfer, Set.thash, id);
         };
 
-        // TODO: ideally use icrc3 to perform multiple transfers at once
-        public func transfer_owed() : async* () {
-            let calls = Buffer.Buffer<async* ()>(Set.size(owed));
+        // TODO: ideally use icrc4 to perform multiple transfers at once
+        public func transfer_pending() : async* () {
+            let calls = Buffer.Buffer<async* ()>(Set.size(register.pending_transfer));
             label infinite while(true){
-                switch(Set.pop(owed, Map.thash)){
+                switch(Set.pop(register.pending_transfer, Set.thash)){
                     case(null) { 
                         Debug.print("No more debts to transfer");
                         break infinite; 
                     };
                     case(?id) {
                         Debug.print("Transferring debt for id: " # debug_show(id));
-                        calls.add(transfer(id));
+                        switch(Map.get(register.debts, Map.thash, id)){
+                            case(null) { 
+                                Debug.trap("DebtInfo not found");
+                            };
+                            case(?debt_info) { 
+                                calls.add(transfer(debt_info));
+                            };
+                        };
                     };
                 };
             };
@@ -70,42 +108,38 @@ module {
             };
         };
 
-        public func get_owed() : [UUID] {
-            Set.toArray(owed);
-        };
-
         public func get_ledger() : LedgerFacade.LedgerFacade {
             ledger;
         };
 
-        func transfer(id: UUID) : async* () {
-            let info = get_debt_info(id);
-            let difference : Nat = Int.abs(Float.toInt(info.owed)) - info.pending;
-            info.pending += difference;
+        func transfer(debt_info: DebtInfo) : async* () {
+
+            let difference = Int.abs(Float.toInt(Timeline.current(debt_info.amount).earned)) - debt_info.transferred;
+
             // Remove the debt from the set, it will be added back if the transfer fails
-            Set.delete(owed, Map.thash, id);
-            // Run the transfer
-            let transfer = await* ledger.transfer({ to = info.account; amount = difference; });
-            info.transfers := Array.append(info.transfers, [transfer]);
-            info.pending -= difference;
-            // Update what is owed if the transfer succeded
+            Set.delete(register.pending_transfer, Set.thash, debt_info.id);
+
+            // The conversion from Float to Int may result in a difference of 0, in which case
+            // there is no need to transfer anything
+            if (difference == 0) {
+                return;
+            };
+
+            let transfer = await* ledger.transfer({ to = debt_info.account; amount = difference; });
+            
+            // Add the transfer to the list of transfers
+            debt_info.transfers := Array.append(debt_info.transfers, [transfer]);
+            
             Result.iterate(transfer.result, func(_: TxIndex){
-                info.owed -= Float.fromInt(difference);
+
+                // Update successfully transferred amount
+                debt_info.transferred += difference;
+
                 // Notify the callback if there is one
                 Option.iterate(on_successful_transfer, func(f: TransferCallback){
                     f({ amount = difference; });
                 });
             });
-            // Add the debt back in case there is still something owed
-            tag_to_transfer(id, info);
-        };
-
-        func tag_to_transfer(id: UUID, info: DebtInfo) {
-            if (info.owed > 1.0) {
-                Set.add(owed, Map.thash, id);
-            } else {
-                Set.delete(owed, Map.thash, id);
-            };
         };
 
     };

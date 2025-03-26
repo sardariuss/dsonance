@@ -1,3 +1,5 @@
+import Types "../Types";
+
 import Result "mo:base/Result";
 import Array "mo:base/Array";
 import Debug "mo:base/Debug";
@@ -6,10 +8,7 @@ module {
 
   type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-  type Timeline<T> = {
-    var current: TimedData<T>;
-    var history: [TimedData<T>];
-  };
+  type Timeline<T> = Types.Timeline<T>;
 
   public type TimedData<T> = {
     timestamp: Nat;
@@ -33,10 +32,10 @@ module {
     }
   };
 
-  // Add a new entry to the history
-  public func add<T>(timeline: Timeline<T>, timestamp: Nat, data: T) {
+  // Insert a new entry
+  public func insert<T>(timeline: Timeline<T>, timestamp: Nat, data: T) {
     if (timestamp < timeline.current.timestamp) {
-      Debug.trap("Date must be greater than the last date");
+      Debug.trap("The timestamp must be greater than or equal to the current timestamp");
     };
     timeline.history := Array.append(timeline.history, [timeline.current]);
     timeline.current := { timestamp; data };

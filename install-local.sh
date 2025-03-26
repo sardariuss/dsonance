@@ -81,7 +81,8 @@ dfx deploy protocol --argument '( variant {
       minimum_ballot_amount = 100;
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
-      opening_vote_fee = 5_000_000_000;
+      author_fee = 5_000_000_000;
+      author_share = 0.2;
       timer_interval_s = 216;
       clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
     };

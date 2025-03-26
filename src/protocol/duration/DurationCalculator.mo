@@ -56,7 +56,7 @@ module {
                 };
                 case(?lock) {
                     if (release_date != lock.release_date) {
-                        Timeline.add(lock.duration_ns, time, duration);
+                        Timeline.insert(lock.duration_ns, time, duration);
                         lock.release_date := release_date;
                     };
                 };

@@ -29,6 +29,10 @@ module {
     type ProtocolInfo = Types.ProtocolInfo;
     type SProtocolInfo = Types.SProtocolInfo;
 
+    public func shareOpt<T, S>(opt: ?T, f: T -> S) : ?S {
+        Option.map(opt, f);
+    };
+
     public func shareVoteType(vote_type: VoteType) : SVoteType {
         switch(vote_type){
             case(#YES_NO(vote)) { #YES_NO(shareVote(vote)); };
@@ -58,9 +62,6 @@ module {
             dissent = ballot.dissent;
             consent = shareTimeline(ballot.consent);
             foresight = shareTimeline(ballot.foresight);
-            contribution = shareTimeline(ballot.contribution);
-            btc_debt = shareDebtInfo(ballot.btc_debt);
-            dsn_debt = shareDebtInfo(ballot.dsn_debt);
             tx_id = ballot.tx_id;
             from = ballot.from;
             hotness = ballot.hotness;
@@ -106,11 +107,12 @@ module {
         };
     };
 
-    func shareDebtInfo(debt_info: DebtInfo) : SDebtInfo {
+    public func shareDebtInfo(debt_info: DebtInfo) : SDebtInfo {
         {
+            id = debt_info.id;
+            account = debt_info.account;
             amount = shareTimeline(debt_info.amount);
-            owed = debt_info.owed;
-            pending = debt_info.pending;
+            transferred = debt_info.transferred;
             transfers = debt_info.transfers;
         };
     };

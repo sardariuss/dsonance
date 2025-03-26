@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { TabButton } from "./TabButton";
 import VoteList from "./VoteList";
 import BallotList from "./user/BallotList";
+import UserVotes from "./user/UserVotes";
 
 const Home = () => {
 
@@ -10,17 +11,18 @@ const Home = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tabs = [
-    { key: "votes", label: "Votes" },
-    { key: "ballots", label: "Your ballots" },
+    { key: "all_votes", label: "All votes" },
+    { key: "your_ballots", label: "Your ballots" },
+    { key: "your_votes", label: "Your votes" },
   ];
 
   // Get the current tab or default to "votes"
-  let selectedTab = searchParams.get("tab") || "votes";
+  let selectedTab = searchParams.get("tab") || "all_votes";
 
   // Ensure the tab is valid, otherwise reset to "votes"
   useEffect(() => {
     if (!tabs.some(tab => tab.key === selectedTab)) {
-      setSearchParams({ tab: "votes" }, { replace: true });
+      setSearchParams({ tab: "all_votes" }, { replace: true });
     }
   }, [selectedTab, setSearchParams]);
 
@@ -39,13 +41,13 @@ const Home = () => {
         ))}
         {/* New Button to the right */}
         <li className="ml-auto" onClick={() => navigate("/new")}>
-          <button className="button-simple text-base font-semibold">Open new vote</button>
+          <button className="button-simple text-base font-semibold">Create vote</button>
         </li>
       </ul>
 
       {/* Content */}
       <div className="w-full">
-        {selectedTab === "votes" ? <VoteList /> : <BallotList/>}
+        {selectedTab === "all_votes" ? <VoteList /> : selectedTab === "your_ballots" ? <BallotList/> : <UserVotes/>}
       </div>
     </div>
   );

@@ -2,8 +2,7 @@ import BallotAggregator   "BallotAggregator";
 import Types              "../Types";
 import Timeline           "../utils/Timeline";
 import HotMap             "../locks/HotMap";
-import Decay              "../duration/Decay";  
-import DebtProcessor      "../DebtProcessor";
+import Decay              "../duration/Decay";
 
 import Set                "mo:map/Set";
 
@@ -18,7 +17,6 @@ module {
     type Ballot<B> = Types.Ballot<B>;
     type LockInfo = Types.LockInfo;
     type Foresight = Types.Foresight;
-    type Contribution = Types.Contribution;
 
     type Iter<T> = Iter.Iter<T>;
 
@@ -35,7 +33,7 @@ module {
         ballot_aggregator: BallotAggregator.BallotAggregator<A, B>;
         decay_model: Decay.DecayModel;
         hot_map: HotMap.HotMap;
-        iter_ballots: () -> Iter<(UUID, Ballot<B>)>;
+        get_ballot: UUID -> Ballot<B>;
         add_ballot: (UUID, Ballot<B>) -> ();
     }){
 
@@ -44,6 +42,7 @@ module {
             tx_id: Nat;
             date: Nat;
             origin: Principal;
+            author: Account;
         }) : Vote<A, B> {
             {
                 vote_id;
@@ -53,6 +52,7 @@ module {
                 origin;
                 aggregate = Timeline.initialize(date, empty_aggregate);
                 ballots = Set.new<UUID>();
+                author;
             };
         };
 
@@ -86,11 +86,11 @@ module {
             let { dissent; consent } = outcome.ballot;
 
             // Update the vote aggregate
-            Timeline.add(vote.aggregate, timestamp, aggregate);
+            Timeline.insert(vote.aggregate, timestamp, aggregate);
 
             // Update the ballot consents because of the new aggregate
             for (ballot in vote_ballots(vote)) {
-                Timeline.add(ballot.consent, timestamp, ballot_aggregator.get_consent({ aggregate; choice = ballot.choice; time; }));
+                Timeline.insert(ballot.consent, timestamp, ballot_aggregator.get_consent({ aggregate; choice = ballot.choice; time; }));
             };
 
             // Update the hotness
@@ -105,15 +105,13 @@ module {
         };
 
         public func vote_ballots(vote: Vote<A, B>) : Iter<Ballot<B>> {
-            let it = iter_ballots();
+            let it = Set.keys(vote.ballots);
             func next() : ?(Ballot<B>) {
                 label get_next while(true) {
                     switch(it.next()){
                         case(null) { break get_next; };
-                        case(?(id, ballot)) { 
-                            if (Set.has(vote.ballots, Set.thash, id)) {
-                                return ?ballot;
-                            };
+                        case(?id) { 
+                            return ?get_ballot(id);
                         };
                     };
                 };
@@ -129,7 +127,7 @@ module {
             dissent: Float;
             consent: Float;
         }) : Ballot<B> {
-            let { timestamp; from; } = args;
+            let { timestamp; } = args;
 
             let ballot : Ballot<B> = {
                 args with
@@ -138,9 +136,6 @@ module {
                 dissent;
                 consent = Timeline.initialize<Float>(timestamp, consent);
                 foresight = Timeline.initialize<Foresight>(timestamp, { reward = 0; apr = { current = 0.0; potential = 0.0; }; });
-                contribution = Timeline.initialize<Contribution>(timestamp, { earned = 0.0; pending = 0.0; });
-                btc_debt = DebtProcessor.init_debt_info(timestamp, from);
-                dsn_debt = DebtProcessor.init_debt_info(timestamp, from);
                 decay = decay_model.compute_decay(timestamp);
                 var hotness = 0.0;
                 var lock : ?LockInfo = null;

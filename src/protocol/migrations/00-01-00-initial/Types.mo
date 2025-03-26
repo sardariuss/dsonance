@@ -154,6 +154,11 @@ module {
 
     public type UUID = Text;
 
+    public type Register<T> = {
+        var index: Nat;
+        map: Map.Map<Nat, T>;
+    };
+
     public type Timeline<T> = {
         var current: TimedData<T>;
         var history: [TimedData<T>];
@@ -167,6 +172,7 @@ module {
     public type VoteRegister = {
         votes: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
+        by_author: Map<Account, Set.Set<UUID>>;
     };
 
     public type BallotRegister = {
@@ -205,14 +211,25 @@ module {
         origin: Principal;
         aggregate: Timeline<A>;
         ballots: Set<UUID>;
+        author: Account;
+    };
+
+    public type DebtRecord = {
+        earned: Float;
+        pending: Float;
     };
 
     public type DebtInfo = {
-        amount: Timeline<Float>;
+        id: UUID;
         account: Account;
-        var owed: Float;
-        var pending: Nat;
+        amount: Timeline<DebtRecord>;
+        var transferred: Nat;
         var transfers: [Transfer];
+    };
+
+    public type DebtRegister = {
+        debts: Map<UUID, DebtInfo>;
+        pending_transfer: Set<UUID>;
     };
 
     public type Foresight = {
@@ -221,11 +238,6 @@ module {
             current: Float;
             potential: Float;
         };
-    };
-
-    public type Contribution = {
-        earned: Float;
-        pending: Float;
     };
 
     public type Ballot<B> = {
@@ -237,9 +249,6 @@ module {
         dissent: Float;
         consent: Timeline<Float>;
         foresight: Timeline<Foresight>;
-        contribution: Timeline<Contribution>;
-        btc_debt: DebtInfo;
-        dsn_debt: DebtInfo;
         tx_id: Nat;
         from: Account;
         decay: Float;
@@ -322,7 +331,8 @@ module {
         consent_steepness: Float;
         age_coefficient: Float;
         max_age: Nat;
-        opening_vote_fee: Nat;
+        author_fee: Nat;
+        author_share: Float;
         timer: TimerParameters;
         decay: {
             half_life: Duration;
@@ -356,7 +366,8 @@ module {
             minimum_ballot_amount: Nat;
             dissent_steepness: Float;
             consent_steepness: Float;
-            opening_vote_fee: Nat;
+            author_fee: Nat;
+            author_share: Float;
             timer_interval_s: Nat;
             clock: ClockInitArgs;
         };
@@ -373,12 +384,12 @@ module {
         btc: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            owed: Set<UUID>;
+            debt_register: DebtRegister;
         };
         dsn: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
-            owed: Set<UUID>;
+            debt_register: DebtRegister;
         };
         parameters: ProtocolParameters;
         minting_info: MintingInfo;

@@ -30,6 +30,7 @@ module {
     type YesNoChoice   = Types.YesNoChoice;
     type VoteType      = Types.VoteType;
     type BallotType    = Types.BallotType;
+    type Set<K>        = Set.Set<K>;
 
     let BTREE_ORDER = 8;
 
@@ -41,11 +42,12 @@ module {
         #v0_1_0({
             vote_register = { 
                 votes = Map.new<UUID, VoteType>();
-                by_origin = Map.new<Principal, Set.Set<UUID>>();
+                by_origin = Map.new<Principal, Set<UUID>>();
+                by_author = Map.new<Account, Set<UUID>>();
             };
             ballot_register = {
                 ballots = Map.new<UUID, BallotType>();
-                by_account = Map.new<Account, Set.Set<UUID>>();
+                by_account = Map.new<Account, Set<UUID>>();
             };
             lock_register = {
                 var time_last_dispense = now;
@@ -63,12 +65,18 @@ module {
             btc = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(btc.ledger));
                 fee = btc.fee;
-                owed = Set.new<UUID>();
+                debt_register = {
+                    debts = Map.new<UUID, DebtInfo>();
+                    pending_transfer = Set.new<UUID>();
+                };
             };
             dsn = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(dsn.ledger));
                 fee = dsn.fee;
-                owed = Set.new<UUID>();
+                debt_register = {
+                    debts = Map.new<UUID, DebtInfo>();
+                    pending_transfer = Set.new<UUID>();
+                };
             };
             parameters = { parameters with
                 contribution_per_ns = Float.fromInt(parameters.contribution_per_day) / Float.fromInt(Duration.NS_IN_DAY);
