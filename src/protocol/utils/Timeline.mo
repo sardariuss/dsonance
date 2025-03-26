@@ -41,28 +41,6 @@ module {
     timeline.current := { timestamp; data };
   };
 
-  // Update the current entry or insert a new one
-  public func accumulate<T>(
-    timeline: Timeline<T>, 
-    timestamp: Nat,
-    data: T, 
-    add: (T, T) -> T
-  ) {
-    if (timestamp < timeline.current.timestamp) {
-      Debug.trap("The timestamp must be greater than or equal to the current timestamp");
-    } else {
-      let accumulated_data = add(timeline.current.data, data);
-      if (timestamp > timeline.current.timestamp) {
-        insert(timeline, timestamp, accumulated_data);
-      } else {
-        timeline.current := {
-          timestamp = timeline.current.timestamp;
-          data = accumulated_data;
-        };
-      };
-    };
-  };
-
   // Retrieve the latest entry
   public func current<T>(timeline: Timeline<T>): T {
     timeline.current.data;

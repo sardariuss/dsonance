@@ -9,6 +9,7 @@ import Float "mo:base/Float";
 import Int "mo:base/Int";
 import Debug "mo:base/Debug";
 import Option "mo:base/Option";
+import Nat "mo:base/Nat";
 
 import Map "mo:map/Map";
 import Set "mo:map/Set";
@@ -41,9 +42,28 @@ module {
 
             // Update or create the debt info
             switch(Map.get(register.debts, Map.thash, id)){
-                case(?debt_info) { 
-                    let prev_earned = Timeline.current(debt_info.amount).earned;
-                    Timeline.insert(debt_info.amount, time, { earned = prev_earned + amount; pending; });
+                case(?debt_info) {
+                    let current_debt = debt_info.amount.current;
+                    switch(Nat.compare(time, current_debt.timestamp)){
+                        case(#less) {
+                            Debug.trap("The timestamp must be greater than or equal to the current timestamp");
+                        };
+                        case(#equal){
+                            debt_info.amount.current := {
+                                timestamp = time;
+                                data = { 
+                                    earned = current_debt.data.earned + amount;
+                                    pending = current_debt.data.pending + pending;
+                                };
+                            };
+                        };
+                        case(#greater){
+                            Timeline.insert(debt_info.amount, time, { 
+                                earned = current_debt.data.earned + amount;
+                                pending; // Reset pending
+                            });
+                        };
+                    };
                 };
                 case(null) { 
                     let debt_info : DebtInfo = {
