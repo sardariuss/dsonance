@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { TabButton } from "./TabButton";
 import VoteList from "./VoteList";
 import BallotList from "./user/BallotList";
+import UserVotes from "./user/UserVotes";
 
 const Home = () => {
 
@@ -11,7 +12,8 @@ const Home = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabs = [
     { key: "votes", label: "Votes" },
-    { key: "ballots", label: "Your ballots" },
+    { key: "your_ballots", label: "Your ballots" },
+    { key: "opened_votes", label: "Opened votes" },
   ];
 
   // Get the current tab or default to "votes"
@@ -45,7 +47,7 @@ const Home = () => {
 
       {/* Content */}
       <div className="w-full">
-        {selectedTab === "votes" ? <VoteList /> : <BallotList/>}
+        {selectedTab === "votes" ? <VoteList /> : selectedTab === "your_ballots" ? <BallotList/> : <UserVotes/>}
       </div>
     </div>
   );

@@ -30,6 +30,7 @@ module {
     type SProtocolParameters = Types.SProtocolParameters;
     type SVoteType = Types.SVoteType;
     type SDebtInfo = Types.SDebtInfo;
+    type DebtRecord = Types.DebtRecord;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -111,6 +112,10 @@ module {
         
         public func get_debt_infos(ids: [UUID]) : [SDebtInfo] {
             controller.get_queries().get_debt_infos(ids);
+        };
+
+        public func get_mined_by_author({ author: Account }) : DebtRecord {
+            controller.get_queries().get_mined_by_author({author});
         };
         
     };

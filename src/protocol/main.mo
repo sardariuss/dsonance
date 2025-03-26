@@ -59,12 +59,19 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().find_vote(args);
     };
 
+    // TODO: rename, this is specific to DSN
     public query func get_debt_info(debt_id: Types.UUID) : async ?Types.SDebtInfo {
         getFacade().get_debt_info(debt_id);
     };
 
+    // TODO: rename, this is specific to DSN
     public query func get_debt_infos(ids: [Types.UUID]) : async [Types.SDebtInfo] {
         getFacade().get_debt_infos(ids);
+    };
+
+    // TODO: rename, this is specific to DSN
+    public func get_mined_by_author({ author: Types.Account }) : async Types.DebtRecord {
+        getFacade().get_mined_by_author({ author; });
     };
 
     public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.SPreviewBallotResult {

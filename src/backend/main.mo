@@ -26,6 +26,7 @@ shared({ caller = admin }) actor class Backend() = this {
     type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate, YesNoChoice> and { info: VoteInfo };
     type Account = ProtocolTypes.Account;
     type UUID = ProtocolTypes.UUID;
+    type GetVotesByAuthorArgs = ProtocolTypes.GetVotesByAuthorArgs;
 
     type SNewVoteResult = Result.Result<SYesNoVote, SNewVoteError>;
     type SNewVoteError = ProtocolTypes.NewVoteError or { #AnonymousCaller; #CategoryNotFound; };
@@ -131,6 +132,13 @@ shared({ caller = admin }) actor class Backend() = this {
         };
 
         return Buffer.toArray(result);
+    };
+
+    public composite query func get_votes_by_author(args: GetVotesByAuthorArgs) : async [SYesNoVote] {
+        let votes = await Protocol.get_votes_by_author(args);
+        Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {
+            with_info(vote_type);
+        });
     };
 
     public shared({caller}) func set_vote_visible({vote_id: UUID; visible: Bool; }) : async Result.Result<(), Text> {
