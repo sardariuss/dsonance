@@ -4,13 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import VoteChart from "./charts/VoteChart";
 import { BallotInfo } from "./types";
-import { compute_vote_details } from "../utils/conversions/votedetails";
+import { add_ballot, compute_vote_details } from "../utils/conversions/votedetails";
 import { useNavigate } from "react-router-dom";
 import { useProtocolContext } from "./ProtocolContext";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import VoteFigures, { VoteFiguresSkeleton } from "./VoteFigures";
 import BackArrowIcon from "./icons/BackArrowIcon";
+import { interpolate_now, map_timeline } from "../utils/timeline";
+import ConsensusChart from "./charts/ConsensusChart";
+import { blendColors } from "../utils/colors";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -25,12 +28,37 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
 
   const { computeDecay, info } = useProtocolContext();
 
-  const voteDetails = useMemo(() => {
+    // TODO: remove redundant code
+  const { voteDetails, liveDetails } = useMemo(() => {
     if (computeDecay === undefined || info === undefined) {
+      return { voteDetails: undefined, liveDetails: undefined };
+    }
+  
+    const voteDetails = compute_vote_details(vote, computeDecay(info.current_time));
+    const liveDetails = ballot ? add_ballot(voteDetails, ballot) : voteDetails;
+  
+    return { voteDetails, liveDetails };
+  }, [vote, computeDecay, info, ballot]);
+  
+  const consensusTimeline = useMemo(() => {
+    if (liveDetails === undefined || info === undefined) {
       return undefined;
     }
-    return compute_vote_details(vote, computeDecay(info.current_time));
-  }, [vote, computeDecay, info]);
+  
+    let timeline = interpolate_now(
+      map_timeline(vote.aggregate, (aggregate) => 
+        Number(aggregate.total_yes) / Number(aggregate.total_yes + aggregate.total_no)
+      ),
+      info.current_time
+    );
+  
+    if (liveDetails.cursor !== undefined) {
+      timeline.current.data = liveDetails.cursor;
+    }
+  
+    return timeline;
+  }, [liveDetails]);
+    
 
   const resetVote = () => {
     setBallot({ choice: EYesNoChoice.Yes, amount: 0n });
@@ -58,9 +86,8 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
       }
       { voteDetails !== undefined && vote.vote_id !== undefined ? 
         <div className="flex flex-col space-y-2 items-center w-full">
-          {voteDetails.total > 0 && (
-            <VoteChart vote={vote} ballot={ballot} />
-          )}
+          { voteDetails.total > 0 && <VoteChart vote={vote} ballot={ballot} /> }
+          { consensusTimeline !== undefined && liveDetails?.cursor !== undefined && <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} color={blendColors("#07E344", "#03B5FD", liveDetails.cursor)} y_max={1} y_min={0}/> }
           <PutBallot
             id={vote.vote_id}
             disabled={false}

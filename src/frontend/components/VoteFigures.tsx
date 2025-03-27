@@ -7,22 +7,7 @@ import { niceFormatDate, timeToDate } from "../utils/conversions/date";
 import InfoIcon from "./icons/InfoIcon";
 import { Link } from "react-router-dom";
 import { DOCS_EVP_URL } from "../constants";
-
-// Utility to blend two colors based on a ratio (0 to 1)
-const blendColors = (color1: string, color2: string, ratio: number) => {
-  const hexToRgb = (hex: string) =>
-    hex
-      .replace(/^#/, "")
-      .match(/.{2}/g)!
-      .map((x) => parseInt(x, 16));
-  const rgbToHex = (rgb: number[]) =>
-    `#${rgb.map((x) => x.toString(16).padStart(2, "0")).join("")}`;
-
-  const rgb1 = hexToRgb(color1);
-  const rgb2 = hexToRgb(color2);
-  const blended = rgb1.map((c1, i) => Math.round(c1 * ratio + rgb2[i] * (1 - ratio)));
-  return rgbToHex(blended);
-};
+import { blendColors } from "../utils/colors";
 
 interface VoteFiguresProps {
   category: string;
@@ -80,7 +65,7 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ category, timestamp, voteDeta
           className={`${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
           style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
         >
-          { liveDetails.cursor !== undefined ? liveDetails.cursor.toFixed(2) : ""}
+          { liveDetails.cursor !== undefined ? (liveDetails.cursor * 100).toFixed(0) + "%" : ""}
         </div>
       </div>
     </div>

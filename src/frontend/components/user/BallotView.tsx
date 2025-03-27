@@ -210,7 +210,6 @@ const BallotView : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
   const { data: debtInfo, call: refreshDebtInfo } = protocolActor.useQueryCall({
     functionName: "get_debt_info",
     args: [ballot.YES_NO.ballot_id],
-    onSuccess: (b) => console.log("Debt info", b)
   });
 
   useEffect(() => {

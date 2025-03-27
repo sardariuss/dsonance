@@ -1,13 +1,12 @@
 
 import { STimeline } from "@/declarations/protocol/protocol.did";
-import { nsToMs } from "../../utils/conversions/date";
-
 import { ResponsiveLine, Serie } from '@nivo/line';
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { ThemeContext } from "../App";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
+import { create_serie } from "./utils";
 
 export enum CHART_COLORS {
   BLUE = "rgb(59 130 246)",
@@ -28,20 +27,6 @@ interface DurationChartProps {
 export type SerieInput = {
   timeline: STimeline;
   color: CHART_COLORS;
-};
-
-const create_serie = (id: string, duration_timeline: STimeline): Serie => {
-  let data = duration_timeline.history.map((duration_ns) => {
-    return {
-      x: new Date(nsToMs(duration_ns.timestamp)),
-      y: duration_ns.data
-    };
-  });
-  data.push({
-    x: new Date(nsToMs(duration_timeline.current.timestamp)),
-    y: duration_timeline.current.data
-  });
-  return { id, data };
 };
   
 const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max }: DurationChartProps) => {

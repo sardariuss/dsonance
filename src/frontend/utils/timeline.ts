@@ -1,11 +1,10 @@
-import { release } from "os";
 
-type TimeLine<T> = {
+export type TimeLine<T> = {
   current: TimedData<T>;
   history: TimedData<T>[];
 }
 
-type TimedData<T> = {
+export type TimedData<T> = {
   timestamp: bigint;
   data: T;
 };
