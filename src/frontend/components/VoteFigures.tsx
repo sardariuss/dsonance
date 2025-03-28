@@ -6,17 +6,17 @@ import { useProtocolContext } from "./ProtocolContext";
 import { niceFormatDate, timeToDate } from "../utils/conversions/date";
 import InfoIcon from "./icons/InfoIcon";
 import { Link } from "react-router-dom";
-import { DOCS_EVP_URL } from "../constants";
+import { DOCS_EVP_URL, DOCS_TVL_URL } from "../constants";
 import { blendColors } from "../utils/colors";
 
 interface VoteFiguresProps {
-  category: string;
   timestamp: bigint;
   voteDetails: VoteDetails;
+  tvl: bigint;
   ballot?: BallotInfo;
 }
 
-const VoteFigures: React.FC<VoteFiguresProps> = ({ category, timestamp, voteDetails, ballot }) => {
+const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, ballot }) => {
 
   const { formatSatoshis } = useCurrencyContext();
   const { info, refreshInfo } = useProtocolContext();
@@ -47,10 +47,6 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ category, timestamp, voteDeta
         <span>{ (info !== undefined ? niceFormatDate(timeToDate(timestamp), timeToDate(info.current_time)) : "") } </span>
       </div>
       <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
-        <span className="text-sm text-gray-600 dark:text-gray-400">Category</span>
-        <span>{category}</span>
-      </div>
-      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
         <span className="flex flex-row gap-x-1 items-center">
           <span className="text-sm text-gray-600 dark:text-gray-400">EVP</span>
           <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noopener">
@@ -58,6 +54,15 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ category, timestamp, voteDeta
           </Link>
         </span>
         <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(BigInt(Math.trunc(liveDetails.total)))}</span>
+      </div>
+      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+        <span className="flex flex-row gap-x-1 items-center">
+          <span className="text-sm text-gray-600 dark:text-gray-400">TVL</span>
+          <Link className="w-full hover:cursor-pointer" to={DOCS_TVL_URL} target="_blank" rel="noopener">
+            <InfoIcon/>
+          </Link>
+        </span>
+        <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{ formatSatoshis(tvl + (ballot?.amount ?? 0n)) }</span>
       </div>
       <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
         <span className="text-sm text-gray-600 dark:text-gray-400">Consensus</span>

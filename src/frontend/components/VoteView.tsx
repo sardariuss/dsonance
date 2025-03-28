@@ -17,6 +17,9 @@ import { blendColors } from "../utils/colors";
 import { protocolActor } from "../actors/ProtocolActor";
 import NewLockChart from "./charts/NewLockChart";
 import { useBallotPreview } from "./hooks/useBallotPreview";
+import { DurationUnit } from "../utils/conversions/durationUnit";
+import IntervalPicker from "./charts/IntervalPicker";
+import ChartToggle, { ChartType } from "./charts/ChartToggle";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -28,6 +31,8 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
   const navigate = useNavigate();
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
+  const [duration, setDuration] = useState<DurationUnit>(DurationUnit.YEAR);
+  const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.EVL);
 
   const { data: voteBallots } = protocolActor.useQueryCall({
     functionName: "get_vote_ballots",
@@ -90,14 +95,24 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
         { vote.info.text }
       </div>
       { voteDetails !== undefined ? 
-        <VoteFigures category={vote.info.category} timestamp={vote.date} voteDetails={voteDetails} ballot={ballot} /> :
+        <VoteFigures timestamp={vote.date} voteDetails={voteDetails} ballot={ballot} tvl={vote.tvl} /> :
         <VoteFiguresSkeleton />
       }
       { voteDetails !== undefined && vote.vote_id !== undefined ? 
         <div className="flex flex-col space-y-2 items-center w-full">
-          { voteDetails.total > 0 && <VoteChart vote={vote} ballot={ballot} /> }
-          { consensusTimeline !== undefined && liveDetails?.cursor !== undefined && <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} color={blendColors("#07E344", "#03B5FD", liveDetails.cursor)} y_max={1} y_min={0}/> }
-          { voteBallots !== undefined && <NewLockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} /> }
+          { voteDetails.total > 0 && selectedChart === ChartType.EVL && 
+            <VoteChart vote={vote} ballot={ballot} duration={duration} /> 
+          }
+          { consensusTimeline !== undefined && liveDetails?.cursor !== undefined && selectedChart === ChartType.Consensus &&
+            <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} color={blendColors("#07E344", "#03B5FD", liveDetails.cursor)} y_max={1} y_min={0}/> 
+          }
+          { voteBallots !== undefined && selectedChart === ChartType.TVL &&
+            <NewLockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} duration={duration}/> 
+          }
+          <div className="flex flex-row justify-between items-center w-full">
+            <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
+            <ChartToggle selected={selectedChart} setSelected={setSelectedChart}/>
+          </div>
           <PutBallot
             id={vote.vote_id}
             disabled={false}

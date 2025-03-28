@@ -6,7 +6,6 @@ import { AreaBumpSerie, ResponsiveAreaBump }                from "@nivo/bump";
 import { BallotInfo }                                       from "../types";
 import { DurationUnit, toNs }                               from "../../utils/conversions/durationUnit";
 import { CHART_CONFIGURATIONS, computeInterval }            from ".";
-import IntervalPicker                                       from "./IntervalPicker";
 import { useCurrencyContext }                               from "../CurrencyContext";
 import { ThemeContext }                                     from "../App";
 import { useProtocolContext }                               from "../ProtocolContext";
@@ -96,12 +95,12 @@ const computePriceLevels = (min: number, max: number) : number[] => {
 interface VoteChartrops {
   vote: SYesNoVote;
   ballot: BallotInfo;
+  duration: DurationUnit;
 }
 
-const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
+const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, duration }) => {
 
   const { theme } = useContext(ThemeContext);
-  const [duration, setDuration] = useState<DurationUnit>(DurationUnit.WEEK);
   
   const [containerSize, setContainerSize] = useState<Size | undefined>(undefined); // State to store the size of the div
   const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
@@ -148,21 +147,6 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
     });
   }, 
   [info, parameters, computeDecay, duration]);
-
-  useEffect(() => {
-    // Set the duration based on the current time
-    if (info){
-      let timeDifference = info.current_time - vote.aggregate.history[0].timestamp;
-      if (timeDifference < toNs(1, DurationUnit.WEEK)){
-        setDuration(DurationUnit.WEEK);
-      } else if (timeDifference < toNs(1, DurationUnit.MONTH)){
-        setDuration(DurationUnit.MONTH);
-      } else {
-        setDuration(DurationUnit.YEAR);
-      }
-    }
-  }
-  , [info]);
 
   const { chartData, total, priceLevels, dateTicks } = useMemo<ChartProperties>(() => {
     const newTotal = { maximum : voteData.total.maximum, current: voteData.total.current + Number(ballot.amount) };
@@ -288,7 +272,6 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
         />
       </div>
       }
-      <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
     </div>
   );
 }

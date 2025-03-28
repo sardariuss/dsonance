@@ -146,6 +146,7 @@ module {
         date: Nat;
         origin: Principal;
         aggregate: STimeline<A>;
+        tvl: Nat;
     };
 
     public type SProtocolInfo = {

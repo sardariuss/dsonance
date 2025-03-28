@@ -196,7 +196,12 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
     );
 }
 
-const BallotView : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
+interface BallotViewProps {
+  ballot: SBallotType;
+  now: bigint;
+}
+
+const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const navigate = useNavigate();

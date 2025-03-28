@@ -5,8 +5,6 @@ import Option "mo:base/Option";
 
 module {
 
-    type VoteType = Types.VoteType;
-    type SVoteType = Types.SVoteType;
     type BallotType = Types.BallotType;
     type SBallotType = Types.SBallotType;
     type Vote<A, B> = Types.Vote<A, B>;
@@ -33,22 +31,9 @@ module {
         Option.map(opt, f);
     };
 
-    public func shareVoteType(vote_type: VoteType) : SVoteType {
-        switch(vote_type){
-            case(#YES_NO(vote)) { #YES_NO(shareVote(vote)); };
-        };
-    };
-
     public func shareBallotType(ballot: BallotType) : SBallotType {
         switch(ballot){
             case(#YES_NO(ballot)) { #YES_NO(shareBallot(ballot)); };
-        };
-    };
-
-    func shareVote<A, B>(vote: Vote<A, B>) : SVote<A, B> {
-        {
-            vote with 
-            aggregate = shareTimeline(vote.aggregate);
         };
     };
 

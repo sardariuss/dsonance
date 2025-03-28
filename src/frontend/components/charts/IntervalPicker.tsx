@@ -14,11 +14,11 @@ const IntervalPicker: React.FC<IntervalPickerProps> = ({ duration, setDuration, 
     };
 
     return (
-        <div className="flex flex-row space-x-1 dark:bg-slate-800 bg-slate-200 p-1 rounded ">
+        <div className="flex flex-row space-x-1 p-1 ">
         {availableDurations.map((interval) => (
             <button
-                className={`text-xs w-10 min-w-10 h-6 justify-center items-center button-discrete
-                    ${duration === interval ? "dark:bg-slate-700 bg-slate-300" : "dark:bg-slate-800 bg-slate-200"}`}
+                className={`h-8 px-2 justify-center items-center button-discrete rounded-full
+                    ${duration === interval ? "dark:bg-slate-700 bg-slate-300" : ""}`}
                 key={interval}
                 onClick={() => handleIntervalChange(interval)}
             >

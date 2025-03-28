@@ -6,6 +6,7 @@ export const PRICE_BTC_IN_USD = 100_000;
 export const MOBILE_MAX_WIDTH_QUERY = "(max-width: 640px)";
 export const DOCS_URL = "https://sardarius-corp.gitbook.io/dsonance";
 export const DOCS_EVP_URL = DOCS_URL + "/glossary#effective-voting-power-evp"
+export const DOCS_TVL_URL = DOCS_URL + "/glossary#total-value-locked-tvl"
 export const X_URL = "https://x.com/dsonance_xyz"
 export const GITHUB_URL = "https://github.com/sardariuss/dsonance"
 export const OPENCHAT_URL = "https://oc.app/community/b6oax-faaaa-aaaac-anaya-cai/"

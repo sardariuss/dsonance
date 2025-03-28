@@ -115,7 +115,7 @@ module {
             MapUtils.putInnerSet(vote_register.by_author, MapUtils.acchash, account, Map.thash, vote_id);
             
             // TODO: ideally it's not the controller's responsibility to share types
-            #ok(SharedConversions.shareVoteType(vote));
+            #ok(queries.shareVoteType(vote));
         };
 
         public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {

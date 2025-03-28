@@ -1,7 +1,6 @@
 import { useMemo, useEffect, useRef, useState, Fragment, useContext } from 'react';
 import { ResponsiveLine, Serie } from '@nivo/line';
 import { SBallot } from '@/declarations/protocol/protocol.did';
-import IntervalPicker from './IntervalPicker';
 import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
 import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
 import { formatDate, msToNs, nsToMs, timeToDate } from '../../utils/conversions/date';
@@ -17,9 +16,10 @@ import { EYesNoChoice, toEnum } from '../../utils/conversions/yesnochoice';
 interface NewLockChartProps {
   ballots: SBallot[];
   ballotPreview: SBallot | null;
+  duration: DurationUnit;
 };
 
-const NewLockChart = ({ ballots, ballotPreview }: NewLockChartProps) => {
+const NewLockChart = ({ ballots, ballotPreview, duration }: NewLockChartProps) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
@@ -51,8 +51,6 @@ const NewLockChart = ({ ballots, ballotPreview }: NewLockChartProps) => {
 
   const { info } = useProtocolContext();
 
-  const [duration, setDuration] = useState<DurationUnit>(DurationUnit.YEAR);
-
   const { data, dateRange, processedSegments, yMax } = useMemo(() => {
   
     let minDate = Infinity;
@@ -75,7 +73,7 @@ const NewLockChart = ({ ballots, ballotPreview }: NewLockChartProps) => {
 
     let total_locked = all_ballots.reduce((acc, ballot) => acc + ballot.amount, 0n);
 
-    const padding = (100 / (all_ballots.length));
+    const padding = (50 / (all_ballots.length));
 
     all_ballots.forEach((ballot, index) => {
       const { timestamp, amount, ballot_id } = ballot;
@@ -90,7 +88,7 @@ const NewLockChart = ({ ballots, ballotPreview }: NewLockChartProps) => {
       if (baseTimestamp < minDate) minDate = baseTimestamp;
       if (actualLockEnd > maxDate) maxDate = actualLockEnd;
 
-      let height = (Number(ballot.amount) / Number(total_locked)) * 400; // total height is 500, 100 is padding
+      let height = (Number(ballot.amount) / Number(total_locked)) * 200; // total height is 250, 50 is padding
 
       let y = total_height + (height / 2 + padding);
       
@@ -247,7 +245,7 @@ const NewLockChart = ({ ballots, ballotPreview }: NewLockChartProps) => {
         ref={chartRef}
         style={{
           width: `${containerWidth}px`, // Dynamic width based on container
-          height: `${600}px`, // Dynamic height based on data length
+          height: `${300}px`, // Dynamic height based on data length
           overflowX: 'auto',
           overflowY: 'hidden',
         }}
@@ -269,7 +267,7 @@ const NewLockChart = ({ ballots, ballotPreview }: NewLockChartProps) => {
               min: 0,
               max: yMax,
             }}
-            animate={false}
+            animate={true}
             enableGridY={false}
             enableGridX={true}
             gridXValues={config.ticks.map((tick) => new Date(tick))}
@@ -301,7 +299,7 @@ const NewLockChart = ({ ballots, ballotPreview }: NewLockChartProps) => {
             axisLeft={null}
             enablePoints={false}
             lineWidth={20}
-            margin={isMobile ? { top: 25, right: 25, bottom: 25, left: 25 } : { top: 50, right: 50, bottom: 50, left: 60 }}
+            margin={isMobile ? { top: 25, right: 25, bottom: 25, left: 25 } : { top: 25, right: 25, bottom: 50, left: 60 }}
             markers={info ? [
               {
                 axis: 'x',
@@ -331,7 +329,6 @@ const NewLockChart = ({ ballots, ballotPreview }: NewLockChartProps) => {
         </div>
       </div>
       }
-      <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.MONTH, DurationUnit.YEAR]}  />
     </div>
   );
 };

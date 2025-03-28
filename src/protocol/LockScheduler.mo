@@ -31,7 +31,7 @@ module {
     type Order = Order.Order;
 
     type LockerState = {
-        total_amount: Nat;
+        total_locked: Nat;
         yield: {
             rate: Float;
             cumulated: Float;
@@ -70,7 +70,7 @@ module {
             update_lock_duration(ballot, time);
             
             let lock = get_lock(ballot);
-            let { locks; total_amount; } = lock_register;
+            let { locks; total_locked; locked_per_vote; } = lock_register;
 
             if (not BTree.has(locks, compare_locks, lock)){
                 
@@ -79,7 +79,9 @@ module {
 
                 // Add the lock
                 ignore BTree.insert(locks, compare_locks, lock, ballot);
-                Timeline.insert(total_amount, time, Timeline.current(total_amount) + ballot.amount);
+                Timeline.insert(total_locked, time, Timeline.current(total_locked) + ballot.amount);
+                let locked_in_vote = Option.get(Map.get(locked_per_vote, Map.thash, ballot.vote_id), 0);
+                Map.set(locked_per_vote, Map.thash, ballot.vote_id, locked_in_vote + ballot.amount);
 
                 // Dispense that lock to initialize the debt info
                 dispense_lock({ ballot; lock; time; });
@@ -112,7 +114,7 @@ module {
                 return;
             };
 
-            let { locks; total_amount; yield; } = lock_register;
+            let { locks; total_locked; locked_per_vote; yield; } = lock_register;
 
             label unlock while (true) {
                 switch(BTree.min(locks)) {
@@ -137,7 +139,13 @@ module {
                         ignore BTree.delete(locks, compare_locks, lock);
 
                         // Update the total locked and cumulated yield
-                        Timeline.insert(total_amount, lock.release_date, Timeline.current(total_amount) - ballot.amount);
+                        Timeline.insert(total_locked, lock.release_date, Timeline.current(total_locked) - ballot.amount);
+                        let locked_in_vote = Option.get(Map.get(locked_per_vote, Map.thash, ballot.vote_id), 0);
+                        let diff : Int = locked_in_vote - ballot.amount;
+                        if (diff < 0) {
+                            Debug.trap("The amount to unlock from the vote is greater than the locked amount");
+                        };
+                        Map.set(locked_per_vote, Map.thash, ballot.vote_id, Int.abs(diff));
                         yield.cumulated -= Float.fromInt(reward);
                     };
                 };
@@ -148,7 +156,7 @@ module {
         };
 
         public func get_total_locked() : Timeline<Nat> {
-            lock_register.total_amount;
+            lock_register.total_locked;
         };
 
         func dispense_locks(time: Nat) {
@@ -166,11 +174,11 @@ module {
 
             Debug.print("Dispensing rewards over period: " # debug_show(period));
 
-            let { total_amount; locks; yield; } = lock_register;
-            let total_locked = Float.fromInt(Timeline.current(total_amount));
+            let { total_locked; locks; yield; } = lock_register;
+            let total = Float.fromInt(Timeline.current(total_locked));
 
             // Refresh yield cumulated
-            yield.cumulated += (Float.fromInt(period) / Float.fromInt(Duration.NS_IN_YEAR)) * total_locked * yield.rate;
+            yield.cumulated += (Float.fromInt(period) / Float.fromInt(Duration.NS_IN_YEAR)) * total * yield.rate;
 
             // Refresh yield contribution
             yield.contributions.sum_current := 0.0;
@@ -217,7 +225,7 @@ module {
             let lock = get_lock(ballot);
             
             let { contribution_per_ns } = parameters;
-            let total_locked = Timeline.current(lock_register.total_amount);
+            let total_locked = Timeline.current(lock_register.total_locked);
 
             {
                 earned = 0.0;
@@ -228,7 +236,7 @@ module {
         public func preview_foresight(ballot: YesNoBallot) : Foresight {
 
             let locker_state = {
-                total_amount = Timeline.current(lock_register.total_amount) + ballot.amount;
+                total_locked = Timeline.current(lock_register.total_locked) + ballot.amount;
                 yield = {
                     rate = lock_register.yield.rate;
                     cumulated = lock_register.yield.cumulated;
@@ -245,7 +253,7 @@ module {
         func dispense_lock({ ballot: YesNoBallot; lock: Lock; time: Nat; }) {
 
             let period = time - lock_register.time_last_dispense;
-            let total_locked = Float.fromInt(Timeline.current(lock_register.total_amount));
+            let total_locked = Float.fromInt(Timeline.current(lock_register.total_locked));
             let { contribution_per_ns } = parameters;
 
             let amount = (Float.fromInt(ballot.amount) / total_locked) * Float.fromInt(period) * contribution_per_ns;
@@ -295,7 +303,7 @@ module {
 
         func get_locker_state() : LockerState {
             {
-                total_amount = Timeline.current(lock_register.total_amount);
+                total_locked = Timeline.current(lock_register.total_locked);
                 yield = {
                     rate = lock_register.yield.rate;
                     cumulated = lock_register.yield.cumulated;
@@ -326,7 +334,7 @@ module {
                 };
             };
 
-            let { yield; total_amount; } = locker_state;
+            let { yield; total_locked; } = locker_state;
             let yield_contrib = yield.contributions;
 
             let discernment = compute_discernment(ballot);
@@ -352,7 +360,7 @@ module {
                     0.0; 
                 } else {
                     (ballot_current_yield_contribution / yield_contrib.sum_current) 
-                    * yield.rate * remaining_duration * Float.fromInt(total_amount);
+                    * yield.rate * remaining_duration * Float.fromInt(total_locked);
                 };
             };
             let reward = Int.abs(Float.toInt(actual_reward + projected_reward));

@@ -2,9 +2,8 @@ import { SYesNoVote } from "../../declarations/backend/backend.did";
 import { backendActor } from "../actors/BackendActor";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import BitcoinIcon from "./icons/BitcoinIcon";
 import { useMediaQuery } from "react-responsive";
-import { DOCS_EVP_URL, MOBILE_MAX_WIDTH_QUERY } from "../constants";
+import { DOCS_EVP_URL, DOCS_TVL_URL, MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import VoteRow, { VoteRowSkeleton } from "./VoteRow";
 import { useProtocolContext } from "./ProtocolContext";
 import { compute_vote_details } from "../utils/conversions/votedetails";
@@ -95,31 +94,17 @@ const VoteList = () => {
   return (
     <div className="flex flex-col gap-y-1 w-full bg-slate-50 dark:bg-slate-850 rounded-md">
       {/* Vote List */}
-      <div className="grid grid-cols-[1fr_60px] sm:grid-cols-[100px_1fr_100px_100px] gap-x-2 sm:gap-x-4 grow py-5 pr-3 sm:pr-5">
-        { !isMobile && <div className="text-center text-gray-600 dark:text-gray-400 font-light relative" onClick={() => setDropdownOpen(!dropdownOpen)}>
-          Category
-          {dropdownOpen && (
-            <div className="absolute mt-2 bg-white dark:bg-gray-800 shadow-md rounded-md p-3 w-48">
-              <ul>
-                {categories &&
-                  categories.map((cat, index) => (
-                    <li key={index} className="flex items-center gap-2 p-1">
-                      <input
-                        type="checkbox"
-                        checked={checkedCategories.includes(cat)}
-                        onChange={() => toggleCategory(cat)}
-                      />
-                      <span>{cat}</span>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          )}
-        </div>}
-        <div className={`justify-self-start text-gray-600 dark:text-gray-400 font-light ${isMobile ? "pl-3" : ""}`}>Statement</div>
+      <div className="grid grid-cols-[1fr_60px] sm:grid-cols-[1fr_100px_100px_100px] gap-x-2 sm:gap-x-4 grow py-5 pr-3 sm:pr-5">
+        <div className={`justify-self-start text-gray-600 dark:text-gray-400 font-light pl-3`}>Statement</div>
         { !isMobile && <div className="justify-self-end text-gray-600 dark:text-gray-400 font-light flex flex-row items-center space-x-1">
           <span className="text-sm text-gray-600 dark:text-gray-400">EVP</span>
           <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noopener">
+            <InfoIcon/>
+          </Link>
+        </div>}
+        { !isMobile && <div className="justify-self-end text-gray-600 dark:text-gray-400 font-light flex flex-row items-center space-x-1">
+          <span className="text-sm text-gray-600 dark:text-gray-400">TVL</span>
+          <Link className="w-full hover:cursor-pointer" to={DOCS_TVL_URL} target="_blank" rel="noopener">
             <InfoIcon/>
           </Link>
         </div>}
@@ -141,7 +126,7 @@ const VoteList = () => {
                   className="flex flex-row items-baseline w-full bg-slate-50 dark:bg-slate-850 hover:cursor-pointer py-1"
                   onClick={() => { setSearchParams({ voteId: vote.vote_id }); navigate(`/vote/${vote.vote_id}`); }}
                 >
-                  <VoteRow category={vote.info.category} voteDetails={compute_vote_details(vote, computeDecay(info.current_time))} text={vote.info.text} />
+                  <VoteRow tvl={vote.tvl} voteDetails={compute_vote_details(vote, computeDecay(info.current_time))} text={vote.info.text} />
                 </div>
               </li>
           ))}

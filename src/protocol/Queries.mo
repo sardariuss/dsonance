@@ -30,10 +30,12 @@ module {
     type DebtInfo = Types.DebtInfo;
     type SDebtInfo = Types.SDebtInfo;
     type DebtRecord = Types.DebtRecord;
+    type LockRegister = Types.LockRegister;
 
     public class Queries({
         clock: Clock.Clock;
         vote_register: VoteRegister;
+        lock_register: LockRegister;
         ballot_register: BallotRegister;
         dsn_debt_register: DebtRegister;
     }){
@@ -73,7 +75,7 @@ module {
         };
 
         public func find_vote(vote_id: UUID) : ?SVoteType {
-            Option.map<VoteType, SVoteType>(Map.get(vote_register.votes, Map.thash, vote_id), SharedConversions.shareVoteType);
+            Option.map<VoteType, SVoteType>(Map.get(vote_register.votes, Map.thash, vote_id), shareVoteType);
         };
 
         public func get_locked_amount({ account: Account; }) : Nat {
@@ -119,7 +121,9 @@ module {
                 Map.get(vote_register.votes, Map.thash, vote_id);
             });
 
-            Array.map(array, SharedConversions.shareVoteType);
+            Array.map(array, func(vote: VoteType) : SVoteType {
+                shareVoteType(vote);
+            });
         };
 
         public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; }) : [SVoteType] {
@@ -137,7 +141,7 @@ module {
                     };
                 };
             }); 
-            Buffer.toArray(Buffer.map<VoteType, SVoteType>(buffer, SharedConversions.shareVoteType));
+            Buffer.toArray(Buffer.map<VoteType, SVoteType>(buffer, shareVoteType));
         };
 
         public func get_mined_by_author({ author: Account }) : DebtRecord {
@@ -182,6 +186,19 @@ module {
             Array.mapFilter<UUID, SDebtInfo>(ids, func(id: UUID) : ?SDebtInfo {
                 Option.map<DebtInfo, SDebtInfo>(Map.get(dsn_debt_register.debts, Map.thash, id), SharedConversions.shareDebtInfo);
             });
+        };
+
+        public func shareVoteType(vote: VoteType) : SVoteType {
+            switch(vote){
+                case(#YES_NO(v)) { 
+                    let vote = {
+                        v with 
+                        aggregate = SharedConversions.shareTimeline(v.aggregate);
+                        tvl = Option.get(Map.get(lock_register.locked_per_vote, Map.thash, v.vote_id), 0);
+                    };
+                    #YES_NO(vote);
+                };
+            };
         };
 
     };

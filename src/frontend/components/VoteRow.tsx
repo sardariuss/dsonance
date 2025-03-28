@@ -21,12 +21,12 @@ const blendColors = (color1: string, color2: string, ratio: number) => {
 };
 
 interface VoteRowProps {
-  category: string;
+  tvl: bigint;
   voteDetails: VoteDetails;
   text: string;
 }
 
-const VoteRow: React.FC<VoteRowProps> = ({ category, voteDetails, text }) => {
+const VoteRow: React.FC<VoteRowProps> = ({ tvl, voteDetails, text }) => {
 
   const { formatSatoshis } = useCurrencyContext();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
@@ -39,15 +39,17 @@ const VoteRow: React.FC<VoteRowProps> = ({ category, voteDetails, text }) => {
   }, [voteDetails]);
 
   return (
-    <div className="grid grid-cols-[auto_60px] sm:grid-cols-[100px_auto_100px_100px] gap-x-2 sm:gap-x-4 justify-items-center items-center grow pr-3 sm:pr-5">
-      { !isMobile && <span>{category.split(" ")[0]}</span> }
-      <div className={`flex items-center h-[4.5em] sm:h-[3em] justify-self-start max-w-full ${isMobile ? "pl-3" : ""}`}>
+    <div className="grid grid-cols-[auto_60px] sm:grid-cols-[auto_100px_100px_100px] gap-x-2 sm:gap-x-4 justify-items-center items-center grow pr-3 sm:pr-5">
+      <div className={`flex items-center h-[4.5em] sm:h-[3em] justify-self-start max-w-full pl-3`}>
         <span className="line-clamp-3 sm:line-clamp-2 overflow-hidden">
           {text}
         </span>
       </div>
       { !isMobile && 
         <span className={`justify-self-end`}>{formatSatoshis(BigInt(Math.trunc(voteDetails.total)))}</span>
+      }
+      { !isMobile && 
+        <span className={`justify-self-end`}>{formatSatoshis(tvl)}</span>
       }
       <div
         className={`justify-self-end text-lg leading-none`}
