@@ -14,6 +14,8 @@ import BackArrowIcon from "./icons/BackArrowIcon";
 import { interpolate_now, map_timeline } from "../utils/timeline";
 import ConsensusChart from "./charts/ConsensusChart";
 import { blendColors } from "../utils/colors";
+import { protocolActor } from "../actors/ProtocolActor";
+import NewLockChart from "./charts/NewLockChart";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -25,6 +27,11 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
   const navigate = useNavigate();
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
+
+  const { data: voteBallots } = protocolActor.useQueryCall({
+    functionName: "get_vote_ballots",
+    args: [vote.vote_id], 
+  });
 
   const { computeDecay, info } = useProtocolContext();
 
@@ -59,7 +66,6 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
     return timeline;
   }, [liveDetails]);
     
-
   const resetVote = () => {
     setBallot({ choice: EYesNoChoice.Yes, amount: 0n });
   }
@@ -88,6 +94,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
         <div className="flex flex-col space-y-2 items-center w-full">
           { voteDetails.total > 0 && <VoteChart vote={vote} ballot={ballot} /> }
           { consensusTimeline !== undefined && liveDetails?.cursor !== undefined && <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} color={blendColors("#07E344", "#03B5FD", liveDetails.cursor)} y_max={1} y_min={0}/> }
+          { voteBallots !== undefined && <NewLockChart ballots={voteBallots} /> }
           <PutBallot
             id={vote.vote_id}
             disabled={false}

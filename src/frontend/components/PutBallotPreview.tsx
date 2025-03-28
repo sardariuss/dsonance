@@ -1,14 +1,13 @@
 import { protocolActor } from "../actors/ProtocolActor";
 import { toCandid } from "../utils/conversions/yesnochoice";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDuration } from "../utils/conversions/durationUnit";
 import { DSONANCE_COIN_SYMBOL } from "../constants";
 import { BallotInfo } from "./types";
 import { get_current } from "../utils/timeline";
 import { v4 as uuidv4 } from 'uuid';
 import { unwrapLock } from "../utils/conversions/ballot";
-import { formatBalanceE8s, formatCurrency, fromE8s } from "../utils/conversions/token";
-import { NS_IN_YEAR } from "../utils/conversions/duration";
+import { formatBalanceE8s } from "../utils/conversions/token";
 
 interface PutBallotPreviewProps {
   vote_id: string;
@@ -42,16 +41,6 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ vote_id, ballot }) 
       },
     ]);
   }, [debouncedBallot]);
-
-  const annualMining = useMemo(() => {
-    // @todo
-    //if (preview && "ok" in preview) {
-      //return preview.ok.YES_NO.contribution.current.data.pending 
-        /// (Number(unwrapLock(preview.ok).duration_ns.current.data) / Number(NS_IN_YEAR))
-    //}
-    return null;
-  },
-  [preview]);
 
   // Check if preview is valid, otherwise default to "N/A"
   const isPreviewValid = preview && "ok" in preview;
