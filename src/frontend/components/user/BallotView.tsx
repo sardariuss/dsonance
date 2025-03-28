@@ -81,13 +81,13 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
       );
     }
 
-    const releaseTimestamp = ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data;
+    const releaseTimestamp = ballot.YES_NO.timestamp + unwrapLock(ballot.YES_NO).duration_ns.current.data;
 
     const [chartToggle, setChartToggle] = useState<CHART_TOGGLE | undefined>(undefined);
 
     const chartData = useMemo(() => {
 
-      let duration_diff = get_timeline_diff(unwrapLock(ballot).duration_ns);
+      let duration_diff = get_timeline_diff(unwrapLock(ballot.YES_NO).duration_ns);
       let consent_diff = get_timeline_diff(ballot.YES_NO.consent);
 
       // TODO: hack to avoid first value
@@ -158,7 +158,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
           value:
             releaseTimestamp > now
               ? formatDuration(releaseTimestamp - now)
-              : formatDuration(get_current(unwrapLock(ballot).duration_ns).data),
+              : formatDuration(get_current(unwrapLock(ballot.YES_NO).duration_ns).data),
           diff: duration_diff !== undefined ? `(+ ${formatDuration(duration_diff)})` : undefined,
           toggleKey: CHART_TOGGLE.DURATION,
           chartTimelines:
@@ -167,7 +167,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
                   [
                     "time_left",
                     {
-                      timeline: to_number_timeline(to_time_left(unwrapLock(ballot).duration_ns, now)),
+                      timeline: to_number_timeline(to_time_left(unwrapLock(ballot.YES_NO).duration_ns, now)),
                       color: CHART_COLORS.PURPLE,
                     },
                   ],
@@ -176,7 +176,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
                   [
                     "duration",
                     {
-                      timeline: to_number_timeline(unwrapLock(ballot).duration_ns),
+                      timeline: to_number_timeline(unwrapLock(ballot.YES_NO).duration_ns),
                       color: CHART_COLORS.PURPLE,
                     },
                   ],

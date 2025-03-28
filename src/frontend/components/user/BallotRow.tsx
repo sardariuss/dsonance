@@ -73,7 +73,7 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
       return {
         contribution: BigInt(Math.floor(debt?.amount.current.data.earned || 0)),
         foresightAPR: ballot.YES_NO.foresight.current.data.apr.current,
-        releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data 
+        releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot.YES_NO).duration_ns.current.data 
       }
     },
     [ballot, debt_info]

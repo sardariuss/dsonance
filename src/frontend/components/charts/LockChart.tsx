@@ -71,7 +71,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
     ballots.forEach((ballot, index) => {
       const { YES_NO: { timestamp, amount, ballot_id } } = ballot;
-      const duration_ns = unwrapLock(ballot).duration_ns;
+      const duration_ns = unwrapLock(ballot.YES_NO).duration_ns;
 
       // Compute timestamps
       const baseTimestamp = nsToMs(timestamp);

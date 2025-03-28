@@ -202,8 +202,20 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
     return height * ratio;
   }
 
+  const pulseArea = useMemo(() => {
+    if (parameters !== undefined && ballot.amount > parameters.minimum_ballot_amount){
+      if (ballot.choice === EYesNoChoice.Yes){
+        return "pulse-area-true";
+      } else {
+        return "pulse-area-false";
+      }
+    }
+    return "";
+  }
+  , [ballot, parameters]);
+
   return (
-    <div className="flex flex-col items-center space-y-2 w-full" ref={containerRef}>
+    <div className={`flex flex-col items-center space-y-2 w-full ${pulseArea}`} ref={containerRef}>
       { containerSize &&
       <div style={{ position: 'relative', width: `${containerSize.width}px`, height: `${containerSize.height}px`, zIndex: 10 }}>
         { /* TODO: fix opacity of price levels via a custom layer */ }
@@ -242,7 +254,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
           activeBorderOpacity={0.5}
           colors={(serie) => serie.color}
           borderColor={(serie) => serie.color}
-          fillOpacity={0.7}
+          fillOpacity={0.8}
           borderWidth={2}
           blendMode="normal"
           axisTop={null}

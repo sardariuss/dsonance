@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef, useState, Fragment, useContext } from 'react';
 import { ResponsiveLine, Serie } from '@nivo/line';
-import { SBallotType } from '@/declarations/protocol/protocol.did';
+import { SBallot } from '@/declarations/protocol/protocol.did';
 import IntervalPicker from './IntervalPicker';
 import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
 import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
@@ -15,10 +15,11 @@ import { useProtocolContext } from '../ProtocolContext';
 import { EYesNoChoice, toEnum } from '../../utils/conversions/yesnochoice';
 
 interface NewLockChartProps {
-  ballots: SBallotType[];
+  ballots: SBallot[];
+  ballotPreview: SBallot | null;
 };
 
-const NewLockChart = ({ ballots }: NewLockChartProps) => {
+const NewLockChart = ({ ballots, ballotPreview }: NewLockChartProps) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
@@ -68,13 +69,16 @@ const NewLockChart = ({ ballots }: NewLockChartProps) => {
     };
     const segments : Segment[] = [];
 
-    let total_locked = ballots.reduce((acc, ballot) => acc + ballot.YES_NO.amount, 0n);
-
     let total_height = 0;
-    const padding = (100 / (ballots.length));
+    
+    const all_ballots = [...ballots, ...(ballotPreview ? [ballotPreview] : [])];
 
-    ballots.forEach((ballot, index) => {
-      const { YES_NO: { timestamp, amount, ballot_id } } = ballot;
+    let total_locked = all_ballots.reduce((acc, ballot) => acc + ballot.amount, 0n);
+
+    const padding = (100 / (all_ballots.length));
+
+    all_ballots.forEach((ballot, index) => {
+      const { timestamp, amount, ballot_id } = ballot;
       const duration_ns = unwrapLock(ballot).duration_ns;
 
       // Compute timestamps
@@ -86,7 +90,7 @@ const NewLockChart = ({ ballots }: NewLockChartProps) => {
       if (baseTimestamp < minDate) minDate = baseTimestamp;
       if (actualLockEnd > maxDate) maxDate = actualLockEnd;
 
-      let height = (Number(ballot.YES_NO.amount) / Number(total_locked)) * 400; // total height is 500, 100 is padding
+      let height = (Number(ballot.amount) / Number(total_locked)) * 400; // total height is 500, 100 is padding
 
       let y = total_height + (height / 2 + padding);
       
@@ -107,7 +111,8 @@ const NewLockChart = ({ ballots }: NewLockChartProps) => {
         end: points[1],
         height: height,
         label: formatSatoshis(amount) ?? "",
-        className: `${toEnum(ballot.YES_NO.choice) === EYesNoChoice.Yes ? "fill-brand-true stroke-brand-true" : "fill-brand-false stroke-brand-false"} stroke-2`,
+        className: `${toEnum(ballot.choice) === EYesNoChoice.Yes ? "fill-brand-true stroke-brand-true" : "fill-brand-false stroke-brand-false"}
+         stroke-2 ${ballot.ballot_id === ballotPreview?.ballot_id ? "animate-pulse" : ""}`,
       });
 
       total_height += height + padding;
@@ -203,7 +208,7 @@ const NewLockChart = ({ ballots }: NewLockChartProps) => {
                   className={className}
                   style={{
                     zIndex: 0,
-                    fillOpacity: 0.7,
+                    fillOpacity: 0.8,
                   }}
                 />
             </Fragment>

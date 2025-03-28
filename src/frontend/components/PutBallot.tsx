@@ -12,6 +12,7 @@ import PutBallotPreview from './PutBallotPreview';
 import { protocolActor } from '../actors/ProtocolActor';
 import { useNavigate } from 'react-router-dom';
 import ResetIcon from './icons/ResetIcon';
+import { SBallot } from '@/declarations/protocol/protocol.did';
 
 const CURSOR_HEIGHT = "0.3rem";
 const PREDEFINED_PERCENTAGES = [0.1, 0.25, 0.5, 1.0];
@@ -28,11 +29,12 @@ type Props = {
   voteDetails: VoteDetails;
   ballot: BallotInfo;
   setBallot: (ballot: BallotInfo) => void;
+  ballotPreview: SBallot | null;
   onMouseUp: () => (void);
   onMouseDown: () => (void);
 };
 
-const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onMouseDown}: Props) => {
+const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview, onMouseUp, onMouseDown}: Props) => {
 
   const { currencySymbol, currencyToSatoshis, formatSatoshis } = useCurrencyContext();
   const { btcAllowance, refreshBtcAllowance } = useAllowanceContext();
@@ -149,7 +151,7 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, onMouseUp, onM
         </div>
       }
       <div className="w-full items-center rounded-lg p-2 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
-        <PutBallotPreview vote_id={id} ballot={ballot} />
+        <PutBallotPreview ballotPreview={ballotPreview} />
       </div>
       <div className={`flex flex-col items-center w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 space-y-2`}>
         <div className="flex flex-row w-full justify-between space-x-2">

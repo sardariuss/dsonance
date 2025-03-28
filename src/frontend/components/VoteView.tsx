@@ -16,6 +16,7 @@ import ConsensusChart from "./charts/ConsensusChart";
 import { blendColors } from "../utils/colors";
 import { protocolActor } from "../actors/ProtocolActor";
 import NewLockChart from "./charts/NewLockChart";
+import { useBallotPreview } from "./hooks/useBallotPreview";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -34,8 +35,10 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
   });
 
   const { computeDecay, info } = useProtocolContext();
+  
+  const ballotPreview = useBallotPreview(vote.vote_id, ballot);
 
-    // TODO: remove redundant code
+  // TODO: remove redundant code
   const { voteDetails, liveDetails } = useMemo(() => {
     if (computeDecay === undefined || info === undefined) {
       return { voteDetails: undefined, liveDetails: undefined };
@@ -94,13 +97,14 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
         <div className="flex flex-col space-y-2 items-center w-full">
           { voteDetails.total > 0 && <VoteChart vote={vote} ballot={ballot} /> }
           { consensusTimeline !== undefined && liveDetails?.cursor !== undefined && <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} color={blendColors("#07E344", "#03B5FD", liveDetails.cursor)} y_max={1} y_min={0}/> }
-          { voteBallots !== undefined && <NewLockChart ballots={voteBallots} /> }
+          { voteBallots !== undefined && <NewLockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} /> }
           <PutBallot
             id={vote.vote_id}
             disabled={false}
             voteDetails={voteDetails}
             ballot={ballot}
             setBallot={setBallot}
+            ballotPreview={ballotPreview}
             onMouseUp={() => {}}
             onMouseDown={() => {}}
           />
