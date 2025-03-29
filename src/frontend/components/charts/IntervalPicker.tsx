@@ -17,7 +17,7 @@ const IntervalPicker: React.FC<IntervalPickerProps> = ({ duration, setDuration, 
         <div className="flex flex-row space-x-1 p-1 ">
         {availableDurations.map((interval) => (
             <button
-                className={`h-8 px-2 justify-center items-center button-discrete rounded-full
+                className={`text-base h-8 px-2 justify-center items-center button-discrete rounded-full
                     ${duration === interval ? "dark:bg-slate-700 bg-slate-300" : ""}`}
                 key={interval}
                 onClick={() => handleIntervalChange(interval)}

@@ -6,7 +6,7 @@ import { formatBalanceE8s } from "../utils/conversions/token";
 import { SBallot } from "@/declarations/protocol/protocol.did";
 
 interface PutBallotPreviewProps {
-  ballotPreview: SBallot | null;
+  ballotPreview: SBallot | undefined;
 }
 
 const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ ballotPreview }) => {

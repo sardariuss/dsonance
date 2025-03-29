@@ -31,6 +31,8 @@ module {
     type SVoteType = Types.SVoteType;
     type SDebtInfo = Types.SDebtInfo;
     type DebtRecord = Types.DebtRecord;
+    type BallotPreview = Types.BallotPreview;
+    type SBallotPreview = Types.SBallotPreview;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -39,7 +41,7 @@ module {
         };
 
         public func preview_ballot(args: PutBallotArgs and { caller: Principal; }) : SPreviewBallotResult {
-            Result.mapOk<BallotType, SBallotType, PreviewBallotError>(controller.preview_ballot(args), SharedConversions.shareBallotType);
+            Result.mapOk<BallotPreview, SBallotPreview, PreviewBallotError>(controller.preview_ballot(args), SharedConversions.shareBallotPreview);
         };
 
         public func put_ballot(args: PutBallotArgs and { caller: Principal; }) : async* PutBallotResult {

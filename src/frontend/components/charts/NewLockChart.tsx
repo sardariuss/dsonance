@@ -1,10 +1,10 @@
 import { useMemo, useEffect, useRef, useState, Fragment, useContext } from 'react';
 import { ResponsiveLine, Serie } from '@nivo/line';
-import { SBallot } from '@/declarations/protocol/protocol.did';
+import { SBallot, SBallotPreview } from '@/declarations/protocol/protocol.did';
 import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
 import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
 import { formatDate, msToNs, nsToMs, timeToDate } from '../../utils/conversions/date';
-import { get_current, get_first } from '../../utils/timeline';
+import { get_current } from '../../utils/timeline';
 import { unwrapLock } from '../../utils/conversions/ballot';
 import { useCurrencyContext } from '../CurrencyContext';
 import { ThemeContext } from '../App';
@@ -15,7 +15,7 @@ import { EYesNoChoice, toEnum } from '../../utils/conversions/yesnochoice';
 
 interface NewLockChartProps {
   ballots: SBallot[];
-  ballotPreview: SBallot | null;
+  ballotPreview: SBallotPreview | undefined;
   duration: DurationUnit;
 };
 
@@ -60,6 +60,7 @@ const NewLockChart = ({ ballots, ballotPreview, duration }: NewLockChartProps) =
     type Segment = {
       id: string | number;
       start: { x: Date; y: number};
+      mid: { x: Date; y: number};
       end: { x: Date; y: number};
       height: number;
       label: string;
@@ -67,13 +68,22 @@ const NewLockChart = ({ ballots, ballotPreview, duration }: NewLockChartProps) =
     };
     const segments : Segment[] = [];
 
-    let total_height = 0;
+    let height_no = 0;
+    let height_yes = 250;
     
-    const all_ballots = [...ballots, ...(ballotPreview ? [ballotPreview] : [])];
+    const all_ballots : SBallot[] = [...ballots, ...(ballotPreview ? [ballotPreview.new.YES_NO] : [])];
+
+    // Create map of preview ballots
+    const previewLockDuration = new Map<string, bigint>();
+    if (ballotPreview !== undefined) {
+      ballotPreview.previous.forEach((b) => {
+        previewLockDuration.set(b.YES_NO.ballot_id, unwrapLock(b.YES_NO).duration_ns.current.data);
+      });
+    }
 
     let total_locked = all_ballots.reduce((acc, ballot) => acc + ballot.amount, 0n);
 
-    const padding = (50 / (all_ballots.length));
+    const padding = (0 / (all_ballots.length));
 
     all_ballots.forEach((ballot, index) => {
       const { timestamp, amount, ballot_id } = ballot;
@@ -81,16 +91,24 @@ const NewLockChart = ({ ballots, ballotPreview, duration }: NewLockChartProps) =
 
       // Compute timestamps
       const baseTimestamp = nsToMs(timestamp);
-      const initialLockEnd = baseTimestamp + nsToMs(get_first(duration_ns).data);
-      const actualLockEnd = baseTimestamp + nsToMs(get_current(duration_ns).data);
+      const initialLockEnd = baseTimestamp + nsToMs(get_current(duration_ns).data);
+      const actualLockEnd = baseTimestamp + nsToMs(previewLockDuration.get(ballot_id) ?? get_current(duration_ns).data);
 
       // Update min and max directly
       if (baseTimestamp < minDate) minDate = baseTimestamp;
       if (actualLockEnd > maxDate) maxDate = actualLockEnd;
 
-      let height = (Number(ballot.amount) / Number(total_locked)) * 200; // total height is 250, 50 is padding
+      const height = (Number(ballot.amount) / Number(total_locked)) * 250; // total height is 250, 50 is padding
 
-      let y = total_height + (height / 2 + padding);
+      let y = 0;
+      if (toEnum(ballot.choice) === EYesNoChoice.No) {
+        y = height_no + (height / 2 + padding);
+        height_no += height + padding;
+      }
+      else {
+        y = height_yes - (height / 2 + padding);
+        height_yes -= height + padding;
+      }
       
       // Generate chart data points for this ballot
       const points = [
@@ -106,14 +124,13 @@ const NewLockChart = ({ ballots, ballotPreview, duration }: NewLockChartProps) =
       segments.push({
         id: ballot_id,
         start: points[0],
+        mid: { x: new Date(initialLockEnd), y },
         end: points[1],
         height: height,
         label: formatSatoshis(amount) ?? "",
         className: `${toEnum(ballot.choice) === EYesNoChoice.Yes ? "fill-brand-true stroke-brand-true" : "fill-brand-false stroke-brand-false"}
-         stroke-2 ${ballot.ballot_id === ballotPreview?.ballot_id ? "animate-pulse" : ""}`,
+         stroke-1 ${ballot.ballot_id === ballotPreview?.new.YES_NO.ballot_id ? "animate-pulse" : ""}`,
       });
-
-      total_height += height + padding;
 
     });
 
@@ -127,7 +144,7 @@ const NewLockChart = ({ ballots, ballotPreview, duration }: NewLockChartProps) =
         maxDate,
         nsDiff,
       },
-      yMax: total_height + padding,
+      yMax: 250,
     };
   }, [ballots, formatSatoshis]);
 
@@ -186,16 +203,15 @@ const NewLockChart = ({ ballots, ballotPreview, duration }: NewLockChartProps) =
       <>
         {/* Render custom lines */}
         {processedSegments.map((segment, index) => {
-          const { start, end, height, className } = segment;
+          const { start, mid, end, height, className } = segment;
           
           const x1 = xScale(start.x);
-          const x2 = xScale(end.x);
+          const x2 = xScale(mid.x);
+          const x3 = xScale(end.x);
           const y1 = yScale(start.y);
   
           return (
             <Fragment key={`segment-${index}`}>
-              
-
               {/* Main line */}
                 <rect 
                   key={`rect-${index}`}
@@ -209,6 +225,19 @@ const NewLockChart = ({ ballots, ballotPreview, duration }: NewLockChartProps) =
                     fillOpacity: 0.8,
                   }}
                 />
+                { (x3 - x2 > 0) && <rect 
+                  key={`rect-preview-${index}`}
+                  x={x2}
+                  y={y1 - height / 2}
+                  width={x3 - x2}
+                  height={height}
+                  className={className + " animate-pulse"}
+                  style={{
+                    zIndex: 0,
+                    fillOpacity: 0.8,
+                  }}
+                  />
+                }
             </Fragment>
           );
         })}
@@ -268,8 +297,8 @@ const NewLockChart = ({ ballots, ballotPreview, duration }: NewLockChartProps) =
               max: yMax,
             }}
             animate={true}
-            enableGridY={false}
-            enableGridX={true}
+            enableGridY={true}
+            enableGridX={false}
             gridXValues={config.ticks.map((tick) => new Date(tick))}
             axisBottom={{
               tickSize: 5,
@@ -296,10 +325,9 @@ const NewLockChart = ({ ballots, ballotPreview, duration }: NewLockChartProps) =
                 </g>
               ),
             }}
-            axisLeft={null}
             enablePoints={false}
-            lineWidth={20}
-            margin={isMobile ? { top: 25, right: 25, bottom: 25, left: 25 } : { top: 25, right: 25, bottom: 50, left: 60 }}
+            lineWidth={1}
+            margin={isMobile ? { top: 25, right: 25, bottom: 25, left: 25 } : { top: 25, right: 25, bottom: 25, left: 60 }}
             markers={info ? [
               {
                 axis: 'x',
@@ -325,6 +353,13 @@ const NewLockChart = ({ ballots, ballotPreview, duration }: NewLockChartProps) =
               'markers',
               'legends',
             ]}
+            theme={{
+              grid: {
+                  line: {
+                      strokeWidth: "0.5px",
+                  },
+              },
+            }}
           />
         </div>
       </div>

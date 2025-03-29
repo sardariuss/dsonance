@@ -27,5 +27,5 @@ export const useBallotPreview = (vote_id: string, ballot: BallotInfo) => {
     ]);
   }, [debouncedBallot]);
 
-  return (preview && "ok" in preview) ? preview.ok.YES_NO : null;
+  return (preview && "ok" in preview) ? preview.ok : undefined;
 };

@@ -27,6 +27,11 @@ module {
         tx_id: Nat;
         from: Account;
     };
+
+    type BallotPreview<B> = {
+        new: Ballot<B>;
+        previous: [Ballot<B>];
+    };
    
     public class VoteController<A, B>({
         empty_aggregate: A;
@@ -56,7 +61,7 @@ module {
             };
         };
 
-        public func preview_ballot(vote: Vote<A, B>, choice: B, args: PutBallotArgs) : Ballot<B> {
+        public func preview_ballot(vote: Vote<A, B>, choice: B, args: PutBallotArgs) : BallotPreview<B> {
 
             let { vote_id } = vote;
             let { amount; timestamp; } = args;
@@ -66,9 +71,13 @@ module {
             let { dissent; consent } = outcome.ballot;
 
             let ballot = init_ballot({vote_id; choice; args; dissent; consent; });
-            hot_map.add_new({ iter = vote_ballots(vote); elem = ballot; update_previous = false; });
+            let ballots = Iter.toArray(vote_ballots_copy(vote)); // Copy the iterator to avoid mutation
+            hot_map.add_new({ iter = Iter.fromArray(ballots); elem = ballot; update_previous = true; });
 
-            ballot;
+            {
+                new = ballot;
+                previous = ballots;
+            };
         };
 
         public func put_ballot(vote: Vote<A, B>, choice: B, args: PutBallotArgs) : Ballot<B> {
@@ -112,6 +121,37 @@ module {
                         case(null) { break get_next; };
                         case(?id) { 
                             return ?get_ballot(id);
+                        };
+                    };
+                };
+                null;
+            };
+            return { next };
+        };
+
+        public func vote_ballots_copy(vote: Vote<A, B>) : Iter<Ballot<B>> {
+            let it = Set.keys(vote.ballots);
+            func next() : ?(Ballot<B>) {
+                label get_next while(true) {
+                    switch(it.next()){
+                        case(null) { break get_next; };
+                        case(?id) { 
+                            let ballot = get_ballot(id);
+                            return ?{
+                                ballot_id = ballot.ballot_id;
+                                vote_id = ballot.vote_id;
+                                timestamp = ballot.timestamp;
+                                choice = ballot.choice;
+                                amount = ballot.amount;
+                                dissent = ballot.dissent;
+                                consent = ballot.consent;
+                                foresight = ballot.foresight;
+                                tx_id = ballot.tx_id;
+                                from = ballot.from;
+                                decay = ballot.decay;
+                                var hotness = ballot.hotness;
+                                var lock = ballot.lock;
+                            };
                         };
                     };
                 };

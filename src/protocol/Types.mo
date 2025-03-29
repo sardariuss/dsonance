@@ -1,11 +1,13 @@
 import Float "mo:base/Float";
 import Result "mo:base/Result";
+import Iter  "mo:base/Iter";
 
 import Types "migrations/Types";
 
 module {
 
     type Result<Ok, Err> = Result.Result<Ok, Err>;
+    type Iter<T> = Iter.Iter<T>;
 
     // MIGRATION TYPES
 
@@ -226,6 +228,16 @@ module {
 
     // RESULT/ERROR TYPES
 
+    public type BallotPreview = {
+        new: BallotType;
+        previous: [BallotType];
+    };
+
+    public type SBallotPreview = {
+        new: SBallotType;
+        previous: [SBallotType];
+    };
+
     public type VoteNotFoundError        = { #VoteNotFound: { vote_id: UUID; }; };
     public type InsuficientAmountError   = { #InsufficientAmount: { amount: Nat; minimum: Nat; }; };
     public type NewVoteError             = { #VoteAlreadyExists: { vote_id: UUID; }; } or TransferFromError;
@@ -235,7 +247,7 @@ module {
     public type PutBallotResult          = Result<SBallotType, PutBallotError>;
     public type NewVoteResult            = Result<VoteType, NewVoteError>;
     public type SNewVoteResult           = Result<SVoteType, NewVoteError>;
-    public type PreviewBallotResult      = Result<BallotType, PreviewBallotError>;
-    public type SPreviewBallotResult     = Result<SBallotType, PreviewBallotError>;
+    public type PreviewBallotResult      = Result<BallotPreview, PreviewBallotError>;
+    public type SPreviewBallotResult     = Result<SBallotPreview, PreviewBallotError>;
 
 };

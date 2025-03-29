@@ -213,7 +213,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, duration }) => {
                     <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
                       <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
                         { !isMobile && <div className="text-xs" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div> }
-                        <div className="flex w-full h-[2.0px] bg-slate-500 dark:bg-white" style={{ position: 'absolute', bottom: 0, opacity: 0.3 }}/>
+                        <div className="flex w-full h-[1.0px] bg-slate-500 dark:bg-white" style={{ position: 'absolute', bottom: 0, opacity: 0.3 }}/>
                       </div>
                     </div> : <></>
                   }

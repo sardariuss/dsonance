@@ -16,7 +16,7 @@ const ChartToggle: React.FC<ChartToggleProps> = ({ selected, setSelected }) => {
         <div className="flex flex-row space-x-1 p-1 rounded ">
         {[ChartType.EVL, ChartType.TVL, ChartType.Consensus].map((chartType) => (
             <button
-                className={`h-8 px-2 justify-center items-center button-discrete
+                className={`text-base h-8 px-2 justify-center items-center button-discrete
                     ${selected === chartType ? "dark:bg-slate-700 bg-slate-300" : ""}`}
                 key={chartType}
                 onClick={() => setSelected(chartType)}

@@ -19,6 +19,7 @@ import Debug                   "mo:base/Debug";
 import Buffer                  "mo:base/Buffer";
 import Iter                    "mo:base/Iter";
 import Result                  "mo:base/Result";
+import Array                   "mo:base/Array";
 
 module {
 
@@ -136,15 +137,18 @@ module {
             let timestamp = clock.get_time();
             let from = { owner = caller; subaccount = from_subaccount; };
 
-            let ballot = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id = 0; timestamp; from; }});
+            let { new; previous; } = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id = 0; timestamp; from; }});
 
-            let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot);
-
+            // refresh the lock durations
+            let yes_no_ballot = BallotUtils.unwrap_yes_no(new);
             lock_scheduler.refresh_lock_duration(yes_no_ballot, timestamp);
+            for (b in Array.vals(previous)){
+                lock_scheduler.refresh_lock_duration(BallotUtils.unwrap_yes_no(b), timestamp);
+            };
 
             Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
 
-            #ok(ballot);
+            #ok({ new; previous; });
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
