@@ -22,7 +22,7 @@ Dsonance uses each DAO's native token to facilitate the redirection of empirical
 
 The DSN token serves as a utility and governance token for the Dsonance platform:
 
-* **Rewards** – 60% of the token is distributed to active participants.
+* **Rewards** – 55% of the token is distributed to active participants.
 * **Burn Mechanism** – Required for certain platform actions, such as opening new communities or boosting vote rewards.
 * **Collateral** – Used to borrow DAO's coins.
 * **Governance** – Locked in neurons, enabling participation in decisions shaping the future of Dsonance.
@@ -54,10 +54,10 @@ The total supply of DSN will be **1 billion tokens** distributed as follows:
   Reserved as a **reward and incentive for the development team** for their contributions to the project.
 * **180 million DSN (18%) – SNS Decentralization Swap**\
   Allocated for the SNS swap, ensuring broad community ownership and decentralized governance.
-* **95 million DSN (9.5%) – Treasury**\
+* **145 million DSN (14.5%) – Treasury**\
   Held in reserve for future initiatives, partnerships, ecosystem grants, and unforeseen needs.
 * **5 million DSN (0.5%) – Airdrop**\
   A small portion dedicated to initial distribution, rewarding early adopters and fostering community engagement while minimizing the risk of excessive sell pressure.
-* **600 million DSN (60%) – Mining**\
+* **550 million DSN (55%) – Mining**\
   Gradually distributed to users over time as incentives for opening votes and voting, following an **exponential halving model every four years**, ensuring long-term engagement and sustainable growth.
 
