@@ -35,7 +35,7 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  const { theme } = useContext(ThemeContext)
+  const { theme } = useContext(ThemeContext);
   const { formatSatoshis, satoshisToCurrency } = useCurrencyContext();
   const { info } = useProtocolContext();
 

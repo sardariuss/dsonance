@@ -1,6 +1,6 @@
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import PutBallot from "./PutBallot";
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import VoteChart from "./charts/VoteChart";
 import { BallotInfo } from "./types";
@@ -13,13 +13,13 @@ import VoteFigures, { VoteFiguresSkeleton } from "./VoteFigures";
 import BackArrowIcon from "./icons/BackArrowIcon";
 import { interpolate_now, map_timeline } from "../utils/timeline";
 import ConsensusChart from "./charts/ConsensusChart";
-import { blendColors } from "../utils/colors";
 import { protocolActor } from "../actors/ProtocolActor";
 import NewLockChart from "./charts/NewLockChart";
 import { useBallotPreview } from "./hooks/useBallotPreview";
 import { DurationUnit } from "../utils/conversions/durationUnit";
 import IntervalPicker from "./charts/IntervalPicker";
 import ChartToggle, { ChartType } from "./charts/ChartToggle";
+import { ThemeContext } from "./App";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -29,10 +29,11 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const navigate = useNavigate();
+  const { theme } = useContext(ThemeContext);
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
   const [duration, setDuration] = useState<DurationUnit>(DurationUnit.YEAR);
-  const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.EVL);
+  const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.EVP);
 
   const { data: voteBallots } = protocolActor.useQueryCall({
     functionName: "get_vote_ballots",
@@ -100,11 +101,11 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
       }
       { voteDetails !== undefined && vote.vote_id !== undefined ? 
         <div className="flex flex-col space-y-2 items-center w-full">
-          { voteDetails.total > 0 && selectedChart === ChartType.EVL && 
+          { voteDetails.total > 0 && selectedChart === ChartType.EVP && 
             <VoteChart vote={vote} ballot={ballot} duration={duration} /> 
           }
           { consensusTimeline !== undefined && liveDetails?.cursor !== undefined && selectedChart === ChartType.Consensus &&
-            <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} color={blendColors("#07E344", "#03B5FD", liveDetails.cursor)} y_max={1} y_min={0}/> 
+            <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} color={theme === "dark" ? "#ddd" : "#222"} y_max={1} y_min={0}/> 
           }
           { voteBallots !== undefined && selectedChart === ChartType.TVL &&
             <NewLockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} durationWindow={duration}/> 

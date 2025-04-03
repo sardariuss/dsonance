@@ -7,7 +7,7 @@ import { niceFormatDate, timeToDate } from "../utils/conversions/date";
 import InfoIcon from "./icons/InfoIcon";
 import { Link } from "react-router-dom";
 import { DOCS_EVP_URL, DOCS_TVL_URL } from "../constants";
-import { blendColors } from "../utils/colors";
+import ConsensusIndicator from "./ConsensusIndicator";
 
 interface VoteFiguresProps {
   timestamp: bigint;
@@ -28,13 +28,6 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, 
     return voteDetails;
   }, [voteDetails, ballot]);
 
-  const blendedColor = useMemo(() => {
-    if (liveDetails.cursor === undefined) {
-      return undefined;
-    }
-    return blendColors("#07E344", "#03B5FD", liveDetails.cursor); // Blend yes and no colors
-  }, [liveDetails]);
-
   useEffect(() => {
     refreshInfo();
   }
@@ -42,36 +35,33 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, 
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
-      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
-        <span className="text-sm text-gray-600 dark:text-gray-400">Opened</span>
-        <span>{ (info !== undefined ? niceFormatDate(timeToDate(timestamp), timeToDate(info.current_time)) : "") } </span>
+      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end h-16 gap-y-1">
+        <span className="self-center text-sm text-gray-600 dark:text-gray-400">Opened</span>
+        <span className="self-center">{ (info !== undefined ? niceFormatDate(timeToDate(timestamp), timeToDate(info.current_time)) : "") } </span>
       </div>
-      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
-        <span className="flex flex-row gap-x-1 items-center">
+      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end h-16 gap-y-1">
+        <span className="self-center flex flex-row gap-x-1 items-center">
           <span className="text-sm text-gray-600 dark:text-gray-400">EVP</span>
           <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noopener">
             <InfoIcon/>
           </Link>
         </span>
-        <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(BigInt(Math.trunc(liveDetails.total)))}</span>
+        <span className={`self-center ${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(BigInt(Math.trunc(liveDetails.total)))}</span>
       </div>
-      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
-        <span className="flex flex-row gap-x-1 items-center">
+      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end h-16 gap-y-1">
+        <span className="self-center flex flex-row gap-x-1 items-center">
           <span className="text-sm text-gray-600 dark:text-gray-400">TVL</span>
           <Link className="w-full hover:cursor-pointer" to={DOCS_TVL_URL} target="_blank" rel="noopener">
             <InfoIcon/>
           </Link>
         </span>
-        <span className={`${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{ formatSatoshis(tvl + (ballot?.amount ?? 0n)) }</span>
+        <span className={`self-center ${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{ formatSatoshis(tvl + (ballot?.amount ?? 0n)) }</span>
       </div>
-      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
-        <span className="text-sm text-gray-600 dark:text-gray-400">Consensus</span>
-        <div
-          className={`${ballot && ballot?.amount > 0n ? `animate-pulse` : ``}`}
-          style={{ color: blendedColor, textShadow: "0.2px 0.2px 1px rgba(0, 0, 0, 0.4)" }}
-        >
-          { liveDetails.cursor !== undefined ? (liveDetails.cursor * 100).toFixed(0) + "%" : ""}
-        </div>
+      <div className="grid grid-rows-2 justify-items-center sm:justify-items-end h-16 gap-y-1">
+        <span className="self-center text-sm text-gray-600 dark:text-gray-400">Consensus</span>
+        <span className="self-center">
+          { liveDetails.cursor === undefined ? <></> : <ConsensusIndicator cursor={liveDetails.cursor} pulse={ballot && ballot?.amount > 0n}/> }
+        </span>
       </div>
     </div>
   );
