@@ -139,11 +139,15 @@ module {
 
             let { new; previous; } = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id = 0; timestamp; from; }});
 
-            // refresh the lock durations
+            // Refresh the lock durations
             let yes_no_ballot = BallotUtils.unwrap_yes_no(new);
             lock_scheduler.refresh_lock_duration(yes_no_ballot, timestamp);
-            for (b in Array.vals(previous)){
-                lock_scheduler.refresh_lock_duration(BallotUtils.unwrap_yes_no(b), timestamp);
+            for (prev in Array.vals(previous)){
+                let b = BallotUtils.unwrap_yes_no(prev);
+                let lock = BallotUtils.unwrap_lock(b);
+                if (lock.release_date > yes_no_ballot.timestamp){
+                    lock_scheduler.refresh_lock_duration(b, timestamp);
+                };
             };
 
             Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));

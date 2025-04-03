@@ -67,12 +67,13 @@ export const VoteRowSkeleton: React.FC = () => {
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   return (
-    <div className="grid grid-cols-[auto_60px] sm:grid-cols-[100px_auto_100px_100px] gap-x-2 sm:gap-x-4 justify-items-center items-center grow pr-3 sm:pr-5">
-      {!isMobile && <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />}
+    <div className="grid grid-cols-[auto_60px] sm:grid-cols-[auto_100px_100px_100px] gap-x-2 sm:gap-x-4 justify-items-center items-center grow pr-3 sm:pr-5">
       
-      <div className={`flex items-center h-[4.5em] sm:h-[3em] justify-self-start w-full ${isMobile ? "pl-3" : ""}`}>
+      <div className={`flex items-center h-[4.5em] sm:h-[3em] justify-self-start w-full pl-3`}>
         <div className="w-full h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
       </div>
+
+      {!isMobile && <div className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse justify-self-end" />}
 
       {!isMobile && <div className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse justify-self-end" />}
       

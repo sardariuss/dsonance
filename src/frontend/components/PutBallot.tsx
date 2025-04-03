@@ -29,7 +29,7 @@ type Props = {
   voteDetails: VoteDetails;
   ballot: BallotInfo;
   setBallot: (ballot: BallotInfo) => void;
-  ballotPreview: SBallot | null;
+  ballotPreview: SBallot | undefined;
   onMouseUp: () => (void);
   onMouseDown: () => (void);
 };

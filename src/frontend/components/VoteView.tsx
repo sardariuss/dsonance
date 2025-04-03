@@ -107,7 +107,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
             <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} color={blendColors("#07E344", "#03B5FD", liveDetails.cursor)} y_max={1} y_min={0}/> 
           }
           { voteBallots !== undefined && selectedChart === ChartType.TVL &&
-            <NewLockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} duration={duration}/> 
+            <NewLockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} durationWindow={duration}/> 
           }
           <div className="flex flex-row justify-between items-center w-full">
             <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
