@@ -91,7 +91,7 @@ const getDateFormat = (tickInterval: number): string => {
     if (tickInterval < 60 * 60 * 1000) return "HH:mm"; // Less than an hour -> time
     if (tickInterval < 24 * 60 * 60 * 1000) return "dd MMM HH:mm"; // Less than a day -> date + time
     if (tickInterval < 30 * 24 * 60 * 60 * 1000) return "dd MMM"; // Less than a month -> day + month
-    if (tickInterval < 365 * 24 * 60 * 60 * 1000) return "MMM yyyy"; // Less than a year -> month + year
+    if (tickInterval < 365 * 24 * 60 * 60 * 1000) return "MMM yy"; // Less than a year -> month + year
     return "yyyy"; // More than a year -> only year
 };
 

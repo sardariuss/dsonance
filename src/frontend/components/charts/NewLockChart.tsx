@@ -2,8 +2,8 @@ import { useMemo, useEffect, useRef, useState, Fragment, useContext } from 'reac
 import { ResponsiveLine, Serie } from '@nivo/line';
 import { SBallot, SBallotPreview } from '@/declarations/protocol/protocol.did';
 import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
-import { computeAdaptiveTicks } from '.';
-import { formatDate, nsToMs, timeToDate } from '../../utils/conversions/date';
+import { computeAdaptiveTicks, computeNiceGridLines } from '.';
+import { nsToMs, timeToDate } from '../../utils/conversions/date';
 import { get_current } from '../../utils/timeline';
 import { unwrapLock } from '../../utils/conversions/ballot';
 import { useCurrencyContext } from '../CurrencyContext';
@@ -19,7 +19,8 @@ type LockRect = {
   start: { x: Date; y: number};
   mid: { x: Date; y: number};
   end: { x: Date; y: number};
-  height: number;
+  bottom: number;
+  top: number;
   label: string;
   className: string;
 };
@@ -30,14 +31,12 @@ interface NewLockChartProps {
   durationWindow: DurationUnit;
 };
 
-const CHART_HEIGHT = 250;
-
 const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartProps) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const { theme } = useContext(ThemeContext)
-  const { formatSatoshis } = useCurrencyContext();
+  const { formatSatoshis, satoshisToCurrency } = useCurrencyContext();
   const { info } = useProtocolContext();
 
   const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
@@ -62,16 +61,17 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
     };
   }, []);
 
-  const { dateRange, chartData, lockRects, gridX, totalLocked } = useMemo(() => {
+  const { dateRange, chartData, lockRects, gridX, gridY, totalLocked } = useMemo(() => {
   
     let dateRange = { start: Infinity, end: -Infinity };
     const chartData : Serie[] = [];
     const lockRects : LockRect[] = [];
     let gridX : { ticks: number[]; format: string } = { ticks: [], format: "" };
-    let totalLocked = 0n;
+    let gridY : number[] = [];
+    let totalLocked = 0;
 
-    if (info === undefined) {
-      return { dateRange, chartData, lockRects, gridX };
+    if (info === undefined || satoshisToCurrency === undefined) {
+      return { dateRange, chartData, lockRects, gridX, gridY, totalLocked };
     }
 
     dateRange.start = nsToMs(info.current_time - toNs(1, durationWindow));
@@ -87,13 +87,19 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
       });
     }
 
-    totalLocked = all_ballots.reduce((acc, ballot) => acc + ballot.amount, 0n);
+    totalLocked = all_ballots.reduce((acc, ballot) => { 
+      const baseTimestamp = nsToMs(ballot.timestamp);
+      const actualLockEnd = baseTimestamp + nsToMs(previewLockDuration.get(ballot.ballot_id) ?? get_current(unwrapLock(ballot).duration_ns).data);
+      // Skip locks that expired before the start date
+      const to_add = actualLockEnd > dateRange.start ? (satoshisToCurrency(ballot.amount) ?? 0) : 0;
+      return acc + to_add;
+    }, 0);
 
     let height_no = 0;
-    let height_yes = CHART_HEIGHT;
+    let height_yes = totalLocked;
 
     all_ballots.forEach((ballot, index) => {
-      const { timestamp, amount, ballot_id } = ballot;
+      const { timestamp, amount, ballot_id, choice } = ballot;
       const duration_ns = unwrapLock(ballot).duration_ns;
 
       // Compute timestamps
@@ -107,10 +113,10 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
         // Update the end date to show the full range of the chart
         if (actualLockEnd > dateRange.end) dateRange.end = actualLockEnd;
 
-        const height = (Number(ballot.amount) / Number(totalLocked)) * CHART_HEIGHT;
+        const height = satoshisToCurrency(amount) ?? 0;
 
         let y = 0;
-        if (toEnum(ballot.choice) === EYesNoChoice.No) {
+        if (toEnum(choice) === EYesNoChoice.No) {
           y = height_no + height / 2;
           height_no += height;
         }
@@ -135,20 +141,22 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
           start: points[0],
           mid: { x: new Date(initialLockEnd), y },
           end: points[1],
-          height: height,
+          bottom: y - height / 2,
+          top: y + height / 2,
           label: formatSatoshis(amount) ?? "",
-          className: `${toEnum(ballot.choice) === EYesNoChoice.Yes ? "fill-brand-true stroke-brand-true" : "fill-brand-false stroke-brand-false"}
-            ${ballot.ballot_id === ballotPreview?.new.YES_NO.ballot_id ? "" : ""}`,
+          className: `${toEnum(choice) === EYesNoChoice.Yes ? "fill-brand-true stroke-brand-true" : "fill-brand-false stroke-brand-false"}
+            ${ballot_id === ballotPreview?.new.YES_NO.ballot_id ? " animate-pulse" : " "}`,
         });
       }
 
     });
 
     gridX = computeAdaptiveTicks(new Date(dateRange.start), new Date(dateRange.end));
+    gridY = computeNiceGridLines(0, totalLocked).filter((tick) => tick <= totalLocked);
 
-    return { dateRange, chartData, lockRects, gridX, totalLocked };
+    return { dateRange, chartData, lockRects, gridX, gridY, totalLocked };
 
-  }, [ballots, formatSatoshis, info, ballotPreview]);
+  }, [ballots, formatSatoshis, info, ballotPreview, satoshisToCurrency, durationWindow]);
 
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -162,12 +170,13 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
       <>
         {/* Render custom lines */}
         {lockRects.map((segment, index) => {
-          const { start, mid, end, height, className } = segment;
+          const { start, mid, end, bottom, top, className } = segment;
           
           const x1 = xScale(start.x);
           const x2 = xScale(mid.x);
           const x3 = xScale(end.x);
           const y1 = yScale(start.y);
+          const height = yScale(bottom) - yScale(top);
   
           return (
             <Fragment key={`segment-${index}`}>
@@ -190,7 +199,7 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
                   y={y1 - height / 2}
                   width={x3 - x2}
                   height={height}
-                  className={className}
+                  className={className + " animate-pulse"}
                   style={{
                     zIndex: 0,
                     fillOpacity: 0.8,
@@ -203,10 +212,11 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
   
         {/* Render custom lock labels */}
         {lockRects.map((segment, index) => {
-          const { start, end, height } = segment;
+          const { start, end, bottom, top } = segment;
           const x1 = xScale(start.x);
           const x2 = xScale(end.x);
           const y = yScale(start.y);
+          const height = yScale(bottom) - yScale(top);
   
           return (
             height < 16 ? <></> : // Skip rendering if height is too small
@@ -255,12 +265,13 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
             yScale={{
               type: 'linear',
               min: 0,
-              max: CHART_HEIGHT,
+              max: totalLocked,
             }}
             animate={true}
-            enableGridY={false}
-            enableGridX={true}
+            enableGridX={false}
+            enableGridY={true}
             gridXValues={gridX.ticks.map((tick) => new Date(tick))}
+            gridYValues={gridY}
             axisBottom={{
               tickSize: 5,
               tickPadding: 5,
@@ -286,6 +297,15 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
                 </g>
               ),
             }}
+            axisLeft={{
+              tickSize: 5,
+              tickPadding: 10,
+              tickRotation: 0,
+              tickValues: gridY,
+              legend: '',
+              legendPosition: 'middle',
+              legendOffset: 64,
+            }}
             enablePoints={false}
             lineWidth={1}
             margin={isMobile ? { top: 25, right: 25, bottom: 25, left: 25 } : { top: 25, right: 25, bottom: 25, left: 60 }}
@@ -294,17 +314,10 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
                 axis: 'x',
                 value: timeToDate(info.current_time).getTime(),
                 lineStyle: {
-                  stroke: theme === "dark" ? "yellow" : "black",
+                  stroke: theme === "dark" ? "#ccc" : "#666",
                   strokeWidth: 1,
                   zIndex: 20,
                 },
-                legend: formatDate(timeToDate(info.current_time)),
-                legendOrientation: 'horizontal',
-                legendPosition: 'top',
-                textStyle: {
-                  fill: theme === "dark" ? "white" : "black",
-                  fontSize: 12,
-                }
               },
             ] : []}
             layers={[
@@ -315,6 +328,14 @@ const NewLockChart = ({ ballots, ballotPreview, durationWindow }: NewLockChartPr
               'legends',
             ]}
             theme={{
+              axis: {
+                ticks: {
+                  text: {
+                    fontSize: '12px',
+                    fill: theme === "dark" ? "#AAA" : "#666",
+                  },
+                },
+              },
               grid: {
                   line: {
                       strokeWidth: "0.5px",
