@@ -18,3 +18,11 @@ export const SIMULATION_EMOJI = "🧪";
 export const MINING_EMOJI = "⛏️";
 export const VOTE_EMOJI = "🗳️";
 export const FORESIGHT_EMOJI = "👁️";
+
+// CHARTS
+export const TICK_TEXT_COLOR_DARK = "#aaa";
+export const TICK_TEXT_COLOR_LIGHT = "#666";
+
+// BRANDING
+export const BRAND_TRUE_COLOR = "rgb(7 227 68)";
+export const BRAND_FALSE_COLOR = "rgb(0 203 253)";

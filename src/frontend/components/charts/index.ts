@@ -1,6 +1,7 @@
 import { format }             from "date-fns";
 import { DurationUnit, toNs } from "../../utils/conversions/durationUnit";
 import { nsToMs }             from "../../utils/conversions/date";
+import { TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from "../../constants";
 
 export type DurationParameters = {
     duration: bigint; 
@@ -13,7 +14,7 @@ export const CHART_CONFIGURATIONS = new Map<DurationUnit, DurationParameters>([
     [DurationUnit.DAY,   { duration: toNs(1, DurationUnit.DAY),   sample: toNs(1, DurationUnit.HOUR), tick: toNs(2, DurationUnit.HOUR),  format: (date: Date) => format(date,                                     "HH:mm")} ],
     [DurationUnit.WEEK,  { duration: toNs(1, DurationUnit.WEEK),  sample: toNs(6, DurationUnit.HOUR), tick: toNs(12, DurationUnit.HOUR), format: (date: Date) => format(date, date.getHours() === 0 ? "dd MMM" : "HH:mm" )} ],
     [DurationUnit.MONTH, { duration: toNs(1, DurationUnit.MONTH), sample: toNs(1, DurationUnit.DAY),  tick: toNs(2, DurationUnit.DAY),   format: (date: Date) => format(date,                                    "dd MMM")} ],
-    [DurationUnit.YEAR,  { duration: toNs(1, DurationUnit.YEAR),  sample: toNs(15, DurationUnit.DAY), tick: toNs(1, DurationUnit.MONTH), format: (date: Date) => format(date,                                    "dd MMM")} ],
+    [DurationUnit.YEAR,  { duration: toNs(1, DurationUnit.YEAR),  sample: toNs(15, DurationUnit.DAY), tick: toNs(1, DurationUnit.MONTH), format: (date: Date) => format(date,                                    "MMM yy")} ],
 ]);
 
 export type Interval = {
@@ -21,9 +22,8 @@ export type Interval = {
     ticks: number[];
 }
 
-export const computeInterval = (end: bigint, e_duration: DurationUnit, compute_decay: (time: bigint) => number): Interval => {
+export const computeInterval = (end: bigint, duration: bigint, sample: bigint, tick: bigint, compute_decay: (time: bigint) => number): Interval => {
     
-    const { duration, sample, tick } = CHART_CONFIGURATIONS.get(e_duration)!;
     let dates : { date :number; decay: number }[] = [];
     let date = end;
     const startDate = end - duration;
@@ -191,3 +191,20 @@ export const computeNiceGridLines = (
 
     return lines;
 };
+
+export const chartTheme = (theme: string) => {
+    const isDark = (theme === "dark");
+    return {
+        grid: {
+            line: {
+                stroke: isDark ? TICK_TEXT_COLOR_DARK : TICK_TEXT_COLOR_LIGHT,
+                strokeOpacity: 0.3,
+            }
+        },
+        legends: {
+            text: {
+                fill: isDark ? TICK_TEXT_COLOR_DARK : TICK_TEXT_COLOR_LIGHT,
+            }
+        }
+    };
+}

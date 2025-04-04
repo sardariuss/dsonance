@@ -7,6 +7,8 @@ import { ThemeContext } from "../App";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
 import { create_serie } from "./utils";
+import { chartTheme } from ".";
+import { useContainerSize } from "../hooks/useContainerSize";
 
 export enum CHART_COLORS {
   BLUE = "rgb(59 130 246)",
@@ -32,34 +34,8 @@ export type SerieInput = {
 const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_max }: DurationChartProps) => {
 
   const { theme } = useContext(ThemeContext);
-
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
-
-  const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
-  
-  const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
-
-  useEffect(() => {
-    // Function to update the width
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth - 20); // 20 px to make room for the slider bar if any
-      }
-    };
-
-    // Set initial width
-    updateWidth();
-
-    // Update width on window resize
-    window.addEventListener('resize', updateWidth);
-
-    return () => {
-      window.removeEventListener('resize', updateWidth);
-    };
-  }, []);
-
-  // Set up the chart container ref
-  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const { containerSize, containerRef } = useContainerSize();
 
   const data = useMemo(() => {
     const series : Serie[] = [];
@@ -72,11 +48,10 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
 
   return (
     <div className="flex flex-col items-center space-y-1 w-full" ref={containerRef}>
-      { containerWidth && <div
-        ref={chartContainerRef}
+      { containerSize && <div
         style={{
-          width: `${containerWidth}px`, // Dynamic width based on container
-          height: `300px`,
+          width: `${containerSize.width}px`,
+          height: `${containerSize.height}px`,
           overflowX: 'auto',
           overflowY: 'hidden',
         }}
@@ -138,7 +113,6 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
           axisBottom={{
             renderTick: ({ tickIndex, x, y, value }) => {
               return (
-                tickIndex % (containerWidth < 800 ? 2 : 1) ? <></> :
                 <g transform={`translate(${x},${y})`}>
                   <text
                     x={0}
@@ -178,19 +152,7 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
             }
           }}
           enableGridX={false}
-          theme={{
-            grid: {
-              line: {
-                stroke: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800,
-                strokeOpacity: 0.3,
-              }
-            },
-            legends: {
-              text: {
-                fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
-              }
-            }
-          }}
+          theme={chartTheme(theme)}
         />
       </div>
     }

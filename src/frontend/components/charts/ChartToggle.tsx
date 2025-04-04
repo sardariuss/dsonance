@@ -13,7 +13,7 @@ interface ChartToggleProps {
 const ChartToggle: React.FC<ChartToggleProps> = ({ selected, setSelected }) => {
 
     return (
-        <div className="flex flex-row space-x-1 p-1 rounded ">
+        <div className="flex flex-row space-x-0 sm:space-x-1 rounded ">
         {[ChartType.EVP, ChartType.TVL, ChartType.Consensus].map((chartType) => (
             <button
                 className={`text-base h-8 px-2 justify-center items-center button-discrete

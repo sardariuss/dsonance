@@ -3,8 +3,7 @@ import { ResponsiveLine, Serie } from '@nivo/line';
 import { SBallotType } from '@/declarations/protocol/protocol.did';
 import IntervalPicker from './IntervalPicker';
 import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
-import { CHART_CONFIGURATIONS, computeTicksMs, isNotFiniteNorNaN } from '.';
-import { protocolActor } from '../../actors/ProtocolActor';
+import { CHART_CONFIGURATIONS, chartTheme, computeTicksMs, isNotFiniteNorNaN } from '.';
 import { formatDate, msToNs, nsToMs, timeToDate } from '../../utils/conversions/date';
 import { get_current, get_first } from '../../utils/timeline';
 import { unwrapLock } from '../../utils/conversions/ballot';
@@ -13,6 +12,7 @@ import { ThemeContext } from '../App';
 import { useMediaQuery } from 'react-responsive';
 import { MOBILE_MAX_WIDTH_QUERY } from '../../constants';
 import { useProtocolContext } from '../ProtocolContext';
+import { useContainerSize } from '../hooks/useContainerSize';
 
 interface LockChartProps {
   ballots: SBallotType[];
@@ -23,33 +23,9 @@ interface LockChartProps {
 const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
-
   const { theme } = useContext(ThemeContext)
-
-  const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
-  const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
-
-  useEffect(() => {
-    // Function to update the width
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth - 20); // 20 px to make room for the slider bar if any
-      }
-    };
-
-    // Set initial width
-    updateWidth();
-
-    // Update width on window resize
-    window.addEventListener('resize', updateWidth);
-
-    return () => {
-      window.removeEventListener('resize', updateWidth);
-    };
-  }, []);
-
+  const { containerSize, containerRef } = useContainerSize();
   const { formatSatoshis } = useCurrencyContext();
-
   const { info } = useProtocolContext();
 
   const [duration, setDuration] = useState<DurationUnit>(DurationUnit.YEAR);
@@ -122,7 +98,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
     const map = new Map<DurationUnit, { chartWidth: number; ticks: number[] }>();
 
-    if (containerWidth === undefined) {
+    if (containerSize === undefined) {
       return map;
     }
 
@@ -133,7 +109,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
         const chartWidth = Math.max(
           1,
           dateRange.nsDiff / Number(toNs(1, duration))
-        ) * containerWidth; // Adjusted width
+        ) * containerSize.width; // Adjusted width
 
         const ticks = computeTicksMs(
           msToNs(dateRange.maxDate - dateRange.minDate),
@@ -146,7 +122,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
     }
 
     return map;
-  }, [dateRange, containerWidth]);
+  }, [dateRange, containerSize]);
   
   type ChartConfiguration = {
     chartWidth: number;
@@ -175,12 +151,12 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 //    const relativePosition = (currentDateTimestamp - rangeStart) / totalRange;
 //
 //    // Calculate the scroll position to center the current date
-//    const scrollPosition = relativePosition * (chartWidth - containerWidth); // Adjusted by the chart width and visible area
+//    const scrollPosition = relativePosition * (chartWidth - containerSize); // Adjusted by the chart width and visible area
 //
 //    if (chartRef.current) {
 //      chartRef.current.scrollLeft = scrollPosition;
 //    }
-//  }, [dateRange, chartWidth, containerWidth]);
+//  }, [dateRange, chartWidth, containerSize]);
 
   interface CustomLayerProps {
     xScale: (value: number | string | Date) => number; // Nivo scale function
@@ -285,10 +261,10 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
 
   return (
     <div className="flex flex-col items-center space-y-2 w-full" ref={containerRef}>
-      { containerWidth && config && <div
+      { containerSize && config && <div
         ref={chartRef}
         style={{
-          width: `${containerWidth}px`, // Dynamic width based on container
+          width: `${containerSize}px`, // Dynamic width based on container
           height: `${data.length * 40 + 100}px`, // Dynamic height based on data length
           overflowX: 'auto',
           overflowY: 'hidden',
@@ -370,6 +346,7 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
               'markers',
               'legends',
             ]}
+            theme={chartTheme(theme)}
           />
         </div>
       </div>

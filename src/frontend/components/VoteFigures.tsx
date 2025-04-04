@@ -3,11 +3,12 @@ import { BallotInfo } from "./types";
 import { add_ballot, VoteDetails } from "../utils/conversions/votedetails";
 import { useCurrencyContext } from "./CurrencyContext";
 import { useProtocolContext } from "./ProtocolContext";
-import { niceFormatDate, timeToDate } from "../utils/conversions/date";
+import { formatDate, niceFormatDate, timeToDate } from "../utils/conversions/date";
 import InfoIcon from "./icons/InfoIcon";
 import { Link } from "react-router-dom";
-import { DOCS_EVP_URL, DOCS_TVL_URL } from "../constants";
+import { DOCS_EVP_URL, DOCS_TVL_URL, MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import ConsensusIndicator from "./ConsensusIndicator";
+import { useMediaQuery } from "react-responsive";
 
 interface VoteFiguresProps {
   timestamp: bigint;
@@ -20,6 +21,7 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, 
 
   const { formatSatoshis } = useCurrencyContext();
   const { info, refreshInfo } = useProtocolContext();
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const liveDetails = useMemo(() => {
     if (ballot) {
@@ -28,16 +30,24 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, 
     return voteDetails;
   }, [voteDetails, ballot]);
 
+  const date = useMemo(() => {
+    if (info === undefined || isMobile) {
+      return formatDate(timeToDate(timestamp));
+    }
+    return niceFormatDate(timeToDate(timestamp), timeToDate(info.current_time))
+  }
+  , [timestamp, info, isMobile]);
+
   useEffect(() => {
     refreshInfo();
   }
   , [timestamp]);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
+    <div className="grid grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
       <div className="grid grid-rows-2 justify-items-center sm:justify-items-end h-16 gap-y-1">
         <span className="self-center text-sm text-gray-600 dark:text-gray-400">Opened</span>
-        <span className="self-center">{ (info !== undefined ? niceFormatDate(timeToDate(timestamp), timeToDate(info.current_time)) : "") } </span>
+        <span className="self-center">{ date } </span>
       </div>
       <div className="grid grid-rows-2 justify-items-center sm:justify-items-end h-16 gap-y-1">
         <span className="self-center flex flex-row gap-x-1 items-center">

@@ -1,62 +1,41 @@
 import { PointSymbolProps, ResponsiveLine, Serie } from '@nivo/line';
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useMemo } from 'react';
 import { create_serie } from './utils';
-import { TimeLine } from '../../utils/timeline';
 import { useMediaQuery } from 'react-responsive';
 import { ThemeContext } from '../App';
-import { MOBILE_MAX_WIDTH_QUERY } from '../../constants';
+import { MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from '../../constants';
 import { STimeline } from '@/declarations/protocol/protocol.did';
 import { nsToMs } from '../../utils/conversions/date';
 import { format } from 'date-fns';
+import { chartTheme } from '.';
+import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
+import { useContainerSize } from '../hooks/useContainerSize';
+import { useProtocolContext } from '../ProtocolContext';
 
 interface ConsensusChartProps {
   timeline: STimeline;
   format_value: (value: number) => string;
-  y_min?: number;
-  y_max?: number;
   color: string;
+  durationWindow: DurationUnit | undefined;
 };
 
-const ConsensusChart = ({ timeline, format_value, y_min, y_max, color }: ConsensusChartProps) => {
-
-  const { theme } = useContext(ThemeContext);
+const ConsensusChart = ({ timeline, format_value, color, durationWindow }: ConsensusChartProps) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
-
-  const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined); // State to store the width of the div
-  
-  const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
-
-  useEffect(() => {
-    // Function to update the width
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth - 20); // 20 px to make room for the slider bar if any
-      }
-    };
-
-    // Set initial width
-    updateWidth();
-
-    // Update width on window resize
-    window.addEventListener('resize', updateWidth);
-
-    return () => {
-      window.removeEventListener('resize', updateWidth);
-    };
-  }, []);
-
-  // Set up the chart container ref
-  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const { theme } = useContext(ThemeContext);
+  const { info } = useProtocolContext();
+  const { containerSize, containerRef } = useContainerSize();
 
   const CustomLastPoint = (props: PointSymbolProps) => {
-      if (props.datum.x === undefined || props.datum.x === null) {
+      
+    if (props.datum.x === undefined || props.datum.y === undefined || props.datum.x === null || props.datum.y === null) {
           return null;
       }
     
-      const to_compare = new Date(nsToMs(timeline.current.timestamp));
+      const point_timestamp = new Date(props.datum.x).getTime();
+      const last_timestamp = new Date(nsToMs(timeline.current.timestamp)).getTime();
 
-      if ((new Date(props.datum.x)).getTime() === to_compare.getTime()) {
+      if (point_timestamp === last_timestamp && props.datum.y === timeline.current.data) {
         return (
           <svg className="h-6 w-6" style={{ overflow: 'visible' }}>
             <circle
@@ -75,17 +54,37 @@ const ConsensusChart = ({ timeline, format_value, y_min, y_max, color }: Consens
     };
 
     const series : Serie[] = useMemo(() => {
-      return [create_serie("test", timeline)];
-    }, [timeline]);
+      if (timeline === undefined || info === undefined) {
+        return [];
+      }
 
+      if (durationWindow === undefined) {
+        return [create_serie("consensus",  { history: timeline.history, current: timeline.current })];
+      }
+
+      let filtered_history = timeline.history.filter((item) => {
+        const duration = info.current_time - item.timestamp;
+        return duration <= toNs(1, durationWindow);
+      });
+
+      // Add a first point
+      filtered_history = [
+        {
+          timestamp: info.current_time - toNs(1, durationWindow),
+          data: filtered_history.length > 0 ? filtered_history[0].data : timeline.current.data,
+        },
+        ...filtered_history,
+      ];
+
+      return [create_serie("consensus",  { history: filtered_history, current: timeline.current })];
+    }, [timeline, info, durationWindow]);
     
     return (
-      <div className="flex flex-col items-center space-y-1 w-full" ref={containerRef}>
-        { containerWidth && <div
-          ref={chartContainerRef}
+      <div className="flex flex-col items-center space-y-1 w-full h-full" ref={containerRef}>
+        { containerSize && <div
           style={{
-            width: `${containerWidth}px`, // Dynamic width based on container
-            height: `300px`,
+            width: `${containerSize.width}px`,
+            height: `${containerSize.height}px`,
             overflowX: 'auto',
             overflowY: 'hidden',
           }}
@@ -93,8 +92,8 @@ const ConsensusChart = ({ timeline, format_value, y_min, y_max, color }: Consens
         <ResponsiveLine
           data={series}
           xScale={{ type: 'time' }}
-          yScale={{ type: 'linear', min: y_min, max: y_max }}
-          margin={ isMobile ? { top: 20, bottom: 50, right: 20, left: 20 } : { top: 20, bottom: 50, right: 50, left: 90 }}
+          yScale={{ type: 'linear', min: 0, max: 1 }}
+          margin={isMobile ? { top: 25, right: 25, bottom: 25, left: 25 } : { top: 25, right: 25, bottom: 25, left: 60 }}
           curve= { 'stepAfter' }  
           animate={false}
           enablePoints={true} // Disable default points
@@ -102,23 +101,10 @@ const ConsensusChart = ({ timeline, format_value, y_min, y_max, color }: Consens
           enableGridX={false}
           legends={[]}
           colors={[color]}
-          theme={{
-            grid: {
-              line: {
-                stroke: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800,
-                strokeOpacity: 0.3,
-              }
-            },
-            legends: {
-              text: {
-                fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
-              }
-            }
-          }}
+          theme={chartTheme(theme)}
           axisBottom={{
-            renderTick: ({ tickIndex, x, y, value }) => {
+            renderTick: ({ x, y, value }) => {
               return (
-                tickIndex % (containerWidth < 800 ? 2 : 1) ? <></> :
                 <g transform={`translate(${x},${y})`}>
                   <text
                     x={0}
@@ -127,7 +113,7 @@ const ConsensusChart = ({ timeline, format_value, y_min, y_max, color }: Consens
                     dominantBaseline="central"
                     style={{
                       fontSize: '12px',
-                      fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
+                      fill: theme === "dark" ? TICK_TEXT_COLOR_DARK : TICK_TEXT_COLOR_LIGHT,
                     }}
                   >
                     { format(new Date(value), "dd MMM") }
@@ -148,7 +134,7 @@ const ConsensusChart = ({ timeline, format_value, y_min, y_max, color }: Consens
                   dominantBaseline="central"
                   style={{
                     fontSize: '12px',
-                    fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
+                    fill: theme === "dark" ? TICK_TEXT_COLOR_DARK : TICK_TEXT_COLOR_LIGHT,
                   }}
                 >
                   { format_value(value) }
