@@ -1,8 +1,9 @@
+import dsnCoinURL from "../../assets/dsn_coin.png"; // adjust path as needed
 
 const DsnCoinIcon = () => (
     <div
-        className="h-5 w-5 bg-contain bg-no-repeat bg-center rounded-full bg-slate-300 dark:bg-slate-700"
-        style={{ backgroundImage: "url('/dsn_coin.png')" }}
+        className="h-6 w-6 bg-contain bg-no-repeat bg-center rounded-full"
+        style={{ backgroundImage: `url(${dsnCoinURL})` }}
     ></div>
 );
 

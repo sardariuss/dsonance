@@ -31,6 +31,9 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
           <span className="text-3xl md:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">
             DSONANCE
           </span>
+          <span className="text-3xl md:text-4xl 2xl:text-5xl font-cafe whitespace-nowrap drop-shadow-lg shadow-white">
+            .xyz
+          </span>
         </Link>
 
         {/* Spacer to center the second element */}
@@ -106,6 +109,9 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
             </div>
             <span className="text-4xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold ">
               DSONANCE
+            </span>
+            <span className="text-4xl font-cafe whitespace-nowrap drop-shadow-lg shadow-white">
+              .xyz
             </span>
           </span>
         </Link>
