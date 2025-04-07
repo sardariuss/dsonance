@@ -1,4 +1,4 @@
-import dsnCoinURL from "../../assets/dsn_coin.png"; // adjust path as needed
+import dsnCoinURL from "../../assets/dsn_coin.png";
 
 const DsnCoinIcon = () => (
     <div
