@@ -5,12 +5,9 @@ import { backendActor } from "../actors/BackendActor";
 import { useState, useEffect } from "react";
 
 import { v4 as uuidv4 } from 'uuid';
-import { useProtocolContext } from "./ProtocolContext";
-import { useCurrencyContext } from "./CurrencyContext";
 import { useAllowanceContext } from "./AllowanceContext";
 import { Link, useNavigate } from "react-router-dom";
 import { DOCS_URL, DSONANCE_COIN_SYMBOL, NEW_VOTE_PLACEHOLDER, VOTE_MAX_CHARACTERS } from "../constants";
-import CategorySelector from "./CategorySelector";
 import { formatBalanceE8s } from "../utils/conversions/token";
 import BackArrowIcon from "./icons/BackArrowIcon";
 
@@ -21,10 +18,7 @@ function NewVote() {
   const { authenticated, login } = useAuth({});
   
   const [text, setText] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const { parameters, refreshParameters } = useProtocolContext();
-  const { formatSatoshis } = useCurrencyContext();
   const { refreshBtcAllowance } = useAllowanceContext();
   const navigate = useNavigate();
 
@@ -49,18 +43,13 @@ function NewVote() {
 
   const openVote = () => {
     if (authenticated) {
-      if (selectedCategory === null) {
-        throw new Error("Category not selected");
-      };
-      newVote( [{ text, id: uuidv4(), category: selectedCategory, from_subaccount: [] }]);
+      newVote( [{ text, id: uuidv4(), from_subaccount: [] }]);
     } else {
       login();
     }
   }
 
   useEffect(() => {
-
-    refreshParameters();
     
     let proposeVoteInput = document.getElementById(INPUT_BOX_ID);
 
@@ -113,24 +102,16 @@ function NewVote() {
 
       <span className="grow">{/* spacer */}</span>
 
-      {/* Category Selector + Button Layout */}
-      <div className="flex flex-col sm:flex-row w-full items-end sm:items-center gap-4 justify-between">
-        <div className="flex flex-row gap-x-2 items-center">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Category:</span>
-          <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
+      <div className="flex flex-row gap-x-2 w-full items-center sm:items-center justify-end">
+        <div className="flex flex-row gap-x-2">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Fee:</span>
+          {formatBalanceE8s(5_000_000_000n, DSONANCE_COIN_SYMBOL, 2)}
         </div>
-        
-        <div className="flex flex-row gap-x-2 items-center justify-end">
-          <div className="flex flex-row gap-x-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Fee:</span>
-            {formatBalanceE8s(5_000_000_000n, DSONANCE_COIN_SYMBOL, 2)}
-          </div>
-          <button className={`button-simple text-lg`} 
-                  onClick={openVote}
-                  disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS || selectedCategory === null}>
-            Create vote
-          </button>
-        </div>
+        <button className={`button-simple text-lg`} 
+                onClick={openVote}
+                disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS}>
+          Create vote
+        </button>
       </div>
     </div>
   );

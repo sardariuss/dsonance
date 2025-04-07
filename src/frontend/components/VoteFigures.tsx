@@ -88,12 +88,6 @@ export const VoteFiguresSkeleton: React.FC = () => {
       <div className="w-20 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
     </div>
 
-    {/* Category */}
-    <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
-      <span className="text-sm text-gray-600 dark:text-gray-400">Category</span>
-      <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
-    </div>
-
     {/* EVP */}
     <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
       <span className="flex flex-row gap-x-1 items-center">
@@ -102,6 +96,17 @@ export const VoteFiguresSkeleton: React.FC = () => {
           <InfoIcon/>
         </Link>
       </span>
+      <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+    </div>
+
+    {/* TVL */}
+    <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+        <span className="self-center flex flex-row gap-x-1 items-center">
+          <span className="text-sm text-gray-600 dark:text-gray-400">TVL</span>
+          <Link className="w-full hover:cursor-pointer" to={DOCS_TVL_URL} target="_blank" rel="noopener">
+            <InfoIcon/>
+          </Link>
+        </span>
       <div className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
     </div>
 

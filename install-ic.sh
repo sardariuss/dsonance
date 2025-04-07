@@ -87,14 +87,5 @@ dfx deploy minter --ic --mode=reinstall --yes
 
 # Protocol initialization and frontend generation
 dfx canister call protocol init_facade --ic
-dfx canister call backend add_categories '(
-  vec {
-    "🔬 Science";
-    "⚕️ Health";
-    "📊 Economics";
-    "🌎 Geopolitics";
-    "👫 Social";
-  }
-)' --ic
 
 dfx deploy frontend --ic

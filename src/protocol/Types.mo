@@ -66,7 +66,8 @@ module {
 
     public type GetVotesArgs = {
         origin: Principal;
-        filter_ids: ?[UUID];
+        previous: ?UUID;
+        limit: Nat;
     };
 
     public type GetVotesByAuthorArgs = {

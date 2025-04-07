@@ -104,26 +104,22 @@ module {
             };
         };
 
-        public func get_votes({origin: Principal; filter_ids: ?[UUID]}) : [SVoteType] {
-            
-            let vote_ids = Option.get(Map.get(vote_register.by_origin, Map.phash, origin), Set.new<UUID>());
-            let filter = Option.map(filter_ids, func(ids: [UUID]) : Set.Set<UUID> { Set.fromIter(Iter.fromArray(ids), Set.thash) });
-            
-            let array = Set.toArrayMap(vote_ids, func(vote_id: UUID) : ?VoteType {
-                switch(filter){
-                    case(null) {};
-                    case(?filter) {
-                        if (not Set.has(filter, Set.thash, vote_id)){
-                            return null;
+        public func get_votes({origin: Principal; previous: ?UUID; limit: Nat;}) : [SVoteType] {
+            let buffer = Buffer.Buffer<VoteType>(limit);
+            Option.iterate(Map.get(vote_register.by_origin, Map.phash, origin), func(ids: Set.Set<UUID>) {
+                let iter = Set.keysFrom(ids, Set.thash, previous);
+                label limit_loop while (buffer.size() < limit) {
+                    switch (iter.next()) {
+                        case (null) { break limit_loop; };
+                        case (?id) { 
+                            Option.iterate(Map.get(vote_register.votes, Map.thash, id), func(vote_type: VoteType) {
+                                buffer.add(vote_type);
+                            });
                         };
                     };
                 };
-                Map.get(vote_register.votes, Map.thash, vote_id);
-            });
-
-            Array.map(array, func(vote: VoteType) : SVoteType {
-                shareVoteType(vote);
-            });
+            }); 
+            Buffer.toArray(Buffer.map<VoteType, SVoteType>(buffer, shareVoteType));
         };
 
         public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; }) : [SVoteType] {

@@ -105,22 +105,26 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
       }
       { voteDetails !== undefined && vote.vote_id !== undefined ? 
         <div className="flex flex-col space-y-2 items-center w-full">
-          <div className={`w-full ${isMobile ? "h-[200px]" : "h-[300px]"}`}>
-            { selectedChart === ChartType.EVP ?
-              ( voteDetails.total > 0 && <EvpChart vote={vote} ballot={ballot} durationWindow={duration} /> )
-              : selectedChart === ChartType.Consensus ?
-              ( consensusTimeline !== undefined && liveDetails?.cursor !== undefined &&
-                <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} durationWindow={duration}/> 
-              ) 
-              : selectedChart === ChartType.TVL ?
-              ( voteBallots !== undefined &&  <LockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} durationWindow={duration}/> )
-              : <></>
-            }
-          </div>
-          <div className="flex flex-row justify-between items-center w-full">
-            <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
-            <ChartToggle selected={selectedChart} setSelected={setSelectedChart}/>
-          </div>
+          { voteBallots && voteBallots.length > 0 &&
+            <div className="w-full flex flex-col items-center justify-between space-y-2">
+              <div className={`w-full ${isMobile ? "h-[200px]" : "h-[300px]"}`}>
+              { selectedChart === ChartType.EVP ?
+                ( voteDetails.total > 0 && <EvpChart vote={vote} ballot={ballot} durationWindow={duration} /> )
+                : selectedChart === ChartType.Consensus ?
+                ( consensusTimeline !== undefined && liveDetails?.cursor !== undefined &&
+                  <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} durationWindow={duration}/> 
+                ) 
+                : selectedChart === ChartType.TVL ?
+                ( voteBallots !== undefined &&  <LockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} durationWindow={duration}/> )
+                : <></>
+              }
+              </div>
+              <div className="flex flex-row justify-between items-center w-full">
+                <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
+                <ChartToggle selected={selectedChart} setSelected={setSelectedChart}/>
+              </div>
+            </div>
+          }
           <PutBallot
             id={vote.vote_id}
             disabled={false}

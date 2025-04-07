@@ -34,8 +34,6 @@ const VoteList = () => {
   const [hasMore, setHasMore] = useState<boolean>(true);
   const limit = isMobile ? 10 : 16;
 
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [checkedCategories, setCheckedCategories] = useState<string[]>([]);
   const { computeDecay, info } = useProtocolContext();
   const navigate = useNavigate();
 
@@ -43,14 +41,9 @@ const VoteList = () => {
     functionName: "get_votes",
   });
 
-  const { data: categories } = backendActor.useQueryCall({
-    functionName: "get_categories",
-  });
-
   const fetchAndSetVotes = async () => {
 
     const fetchedVotes = await fetchVotes([{ 
-      categories: checkedCategories.length ? [checkedCategories] : [], 
       previous: toNullable(previous), 
       limit: BigInt(limit)
     }]);
@@ -71,7 +64,7 @@ const VoteList = () => {
   // Initial Fetch on Mount
   useEffect(() => {
     fetchAndSetVotes();
-  }, [checkedCategories]);
+  }, []);
 
   useEffect(() => {
     if (votes && selectedVoteId !== null) {
@@ -83,13 +76,6 @@ const VoteList = () => {
       }
     }
   }, [votes]);
-
-  // Handle category selection
-  const toggleCategory = (category: string) => {
-    setCheckedCategories((prev) =>
-      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
-    );
-  };
 
   return (
     <div className="flex flex-col gap-y-1 w-full bg-slate-50 dark:bg-slate-850 rounded-md">

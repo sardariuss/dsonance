@@ -84,8 +84,8 @@ module {
             controller.get_queries().get_vote_ballots(vote_id);
         };
 
-        public func get_votes({origin: Principal; filter_ids: ?[UUID] }) : [SVoteType] {
-            controller.get_queries().get_votes({origin; filter_ids;});
+        public func get_votes({origin: Principal; previous: ?UUID; limit: Nat }) : [SVoteType] {
+            controller.get_queries().get_votes({origin; previous; limit; });
         };
         
         public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; }) : [SVoteType] {

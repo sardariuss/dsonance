@@ -61,11 +61,6 @@ const getRandomUserActor = (userActors) => {
     let randomUserPrincipal = Array.from(userActors.keys())[randomUser];
     return userActors.get(randomUserPrincipal);
 }
-
-const getRandomCategory = (categories) => {
-    let randomCategory = Math.floor(Math.random() * categories.length);
-    return categories[randomCategory];
-}
   
 // Example function to call a canister method
 async function callCanisterMethod() {
@@ -184,11 +179,9 @@ async function callCanisterMethod() {
     }
     await Promise.all(approvePromises);
 
-    let categories = await backendSimActor.get_categories();
-
     // A random user opens up a new vote
     for (let i = 0; i < NUM_VOTES; i++) {
-        const args = { text: VOTES_TO_OPEN[i], id: uuidv4(), category: getRandomCategory(categories), from_subaccount: [] };
+        const args = { text: VOTES_TO_OPEN[i], id: uuidv4(), from_subaccount: [] };
         getRandomUserActor(userActors).backend.new_vote(args).then((_) => {
             console.log('New vote added');
         });
@@ -203,7 +196,7 @@ async function callCanisterMethod() {
         console.log("Scenario tick: ", tick);
 
         // Retrieve all votes
-        let votes = await backendSimActor.get_votes( { categories: [], previous: [], limit: 100 } );
+        let votes = await backendSimActor.get_votes( { previous: [], limit: 100 } );
         console.log(votes);
 
         let putBallotPromises = [];

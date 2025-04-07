@@ -102,15 +102,6 @@ dfx deps deploy internet_identity
 
 # Protocol initialization and frontend generation
 dfx canister call protocol init_facade
-dfx canister call backend add_categories '(
-  vec {
-    "🔬 Science";
-    "⚕️ Health";
-    "📊 Economics";
-    "🌎 Geopolitics";
-    "👫 Social";
-  }
-)'
 
 dfx generate ck_btc
 dfx generate dsn_ledger
