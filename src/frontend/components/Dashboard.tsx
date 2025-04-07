@@ -2,13 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import DurationChart, { CHART_COLORS } from "./charts/DurationChart";
 import { map_filter_timeline, to_number_timeline } from "../utils/timeline";
 import { formatBalanceE8s, fromE8s } from "../utils/conversions/token";
-import { MINING_EMOJI, DSONANCE_COIN_SYMBOL, SIMULATION_EMOJI, VOTE_EMOJI, FORESIGHT_EMOJI } from "../constants";
+import { MINING_EMOJI, DSONANCE_COIN_SYMBOL, SIMULATION_EMOJI, VOTE_EMOJI, FORESIGHT_EMOJI, MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import { useCurrencyContext } from "./CurrencyContext";
 import BitcoinIcon from "./icons/BitcoinIcon";
 import { useProtocolContext } from "./ProtocolContext";
 import { formatDateTime, timeDifference, timeToDate } from "../utils/conversions/date";
 import { formatDuration } from "../utils/conversions/durationUnit";
 import { durationToNs } from "../utils/conversions/duration";
+import { useMediaQuery } from "react-responsive";
 
 export const computeMintingRate = (btc_locked: bigint, contribution_per_ns: number, satoshisToCurrency: (satoshis: bigint) => number | undefined) => {
     if (btc_locked === 0n) {
@@ -26,6 +27,7 @@ const Dashboard = () => {
     const { formatSatoshis, satoshisToCurrency, currencySymbol } = useCurrencyContext();
 
     const { info, parameters, refreshInfo, refreshParameters } = useProtocolContext();
+    const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
     const [currentTime, setCurrentTime] = useState<Date | undefined>(undefined);
     const lastRealTimeRef = useRef<number>(Date.now()); // Store the last real timestamp
@@ -109,7 +111,7 @@ const Dashboard = () => {
                             {`${formatSatoshis(info.btc_locked.current.data)} ckBTC`}
                         </span>
                     </div>
-                    <div className="w-full sm:w-2/3">
+                    <div className={`w-full sm:w-2/3 ${isMobile ? "h-[200px]" : "h-[300px]"}`}>
                         <DurationChart
                             duration_timelines={ new Map([["total_locked", { timeline: to_number_timeline(info.btc_locked), color: CHART_COLORS.YELLOW }]]) }
                             format_value={ (value: number) => (formatSatoshis(BigInt(value)) ?? "") } 
@@ -128,11 +130,13 @@ const Dashboard = () => {
                                 {`${fromE8s(BigInt(memo.contributionRate.current.data))} ${DSONANCE_COIN_SYMBOL}/${currencySymbol}/day`}
                             </span>
                         </div>
-                        <DurationChart
-                            duration_timelines={ new Map([["mining_rate", { timeline: memo.contributionRate, color: CHART_COLORS.PURPLE }]]) }
-                            format_value={ (value: number) => `${fromE8s(BigInt(value)).toString()} ${DSONANCE_COIN_SYMBOL}/${currencySymbol}/day` }
-                            fillArea={true}
-                        />
+                        <div className={`w-full ${isMobile ? "h-[200px]" : "h-[300px]"}`}>
+                            <DurationChart
+                                duration_timelines={ new Map([["mining_rate", { timeline: memo.contributionRate, color: CHART_COLORS.PURPLE }]]) }
+                                format_value={ (value: number) => `${fromE8s(BigInt(value)).toString()} ${DSONANCE_COIN_SYMBOL}/${currencySymbol}/day` }
+                                fillArea={true}
+                            />
+                        </div>
                     </div>
                     <div className="flex flex-col w-full sm:w-2/3 px-4">
                         {[

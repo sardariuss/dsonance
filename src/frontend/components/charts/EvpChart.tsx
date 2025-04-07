@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useMemo } from "react";
 import { STimeline_3, YesNoAggregate }                      from "@/declarations/protocol/protocol.did";
 import { SYesNoVote }                                       from "@/declarations/backend/backend.did";
 import { EYesNoChoice }                                     from "../../utils/conversions/yesnochoice";
@@ -15,11 +15,6 @@ import { useContainerSize } from "../hooks/useContainerSize";
 
 // WATCHOUT: This component uses an IntractiveAreaBump chart which uses X as a category, not as a time value, hence it is 
 // up to the coder to make it so the interval between the time values are constant.
-
-interface Size {
-  width: number;
-  height: number;
-}
 
 interface ComputeChartPropsArgs {
   currentTime: bigint;
@@ -117,13 +112,13 @@ const computePriceLevels = (min: number, max: number) : number[] => {
   return levels;
 }
 
-interface VoteChartrops {
+interface EvpChartrops {
   vote: SYesNoVote;
   ballot: BallotInfo;
   durationWindow: DurationUnit | undefined;
 }
 
-const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, durationWindow }) => {
+const EvpChart: React.FC<EvpChartrops> = ({ vote, ballot, durationWindow }) => {
 
   const { theme } = useContext(ThemeContext);
   
@@ -206,7 +201,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, durationWindow }) =>
       { containerSize &&
       <div style={{ position: 'relative', width: `${containerSize.width}px`, height: `${containerSize.height}px`, zIndex: 10 }}>
         { /* TODO: fix opacity of price levels via a custom layer */ }
-        <div style={{ position: 'absolute', top: AXIS_MARGIN, right: 0, bottom: AXIS_MARGIN, left: 0, zIndex: 5 }} className="flex flex-col">
+        <div style={{ position: 'absolute', top: AXIS_MARGIN, right: 25, bottom: AXIS_MARGIN, left: isMobile ? 25 : 60, zIndex: 5 }} className="flex flex-col">
           <ul className="flex flex-col w-full" key={vote.vote_id}>
             {
               priceLevels.slice().reverse().map((price, index) => (
@@ -242,7 +237,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, durationWindow }) =>
           xPadding={0} // Important to avoid "bump effects" in the chart (because AreaBump consider the x values as categories)
           align= "end"
           data={chartData}
-          margin={{ top: AXIS_MARGIN + marginTop(priceLevels, Math.max(total.maximum, total.current)), bottom: AXIS_MARGIN }}
+          margin={{ top: AXIS_MARGIN + marginTop(priceLevels, Math.max(total.maximum, total.current)),  right: 25, bottom: AXIS_MARGIN, left: isMobile ? 25 : 60 }}
           spacing={0}
           activeBorderOpacity={0.5}
           colors={(serie) => serie.color}
@@ -261,7 +256,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, durationWindow }) =>
             legendOffset: 0,
             renderTick: ({ tickIndex, x, y, value }) => {
               return (
-                (isMobile && tickIndex % 2) ? <></> :
+                (isMobile || tickIndex % 2) ? <></> :
                 <g transform={`translate(${x},${y})`}>
                   <text
                     x={0}
@@ -286,4 +281,4 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot, durationWindow }) =>
   );
 }
 
-export default VoteChart;
+export default EvpChart;

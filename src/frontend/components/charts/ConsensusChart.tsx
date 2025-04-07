@@ -7,19 +7,23 @@ import { MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } f
 import { STimeline } from '@/declarations/protocol/protocol.did';
 import { nsToMs } from '../../utils/conversions/date';
 import { format } from 'date-fns';
-import { chartTheme } from '.';
+import { chartTheme, computeAdaptiveTicks } from '.';
 import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
 import { useContainerSize } from '../hooks/useContainerSize';
 import { useProtocolContext } from '../ProtocolContext';
 
+type ChartProperties = {
+  series : Serie[],
+  gridX: { ticks: number[]; format: string },
+}
+
 interface ConsensusChartProps {
   timeline: STimeline;
   format_value: (value: number) => string;
-  color: string;
   durationWindow: DurationUnit | undefined;
 };
 
-const ConsensusChart = ({ timeline, format_value, color, durationWindow }: ConsensusChartProps) => {
+const ConsensusChart = ({ timeline, format_value, durationWindow }: ConsensusChartProps) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const { theme } = useContext(ThemeContext);
@@ -40,12 +44,12 @@ const ConsensusChart = ({ timeline, format_value, color, durationWindow }: Conse
           <svg className="h-6 w-6" style={{ overflow: 'visible' }}>
             <circle
               r={4}
-              fill={color}
+              fill={theme === "dark" ? "#ddd" : "#222"}
               className="animate-ping"
             />
             <circle
               r={4}
-              fill={color}
+              fill={theme === "dark" ? "#ddd" : "#222"}
             />
           </svg>
         );
@@ -53,13 +57,22 @@ const ConsensusChart = ({ timeline, format_value, color, durationWindow }: Conse
       return null;
     };
 
-    const series : Serie[] = useMemo(() => {
+    const chartProperties : ChartProperties = useMemo(() => {
+
+      let series : Serie[] = [];
+      let gridX : { ticks: number[]; format: string } = { ticks: [], format: "" };
+
       if (timeline === undefined || info === undefined) {
-        return [];
+        return { series, gridX };
       }
 
       if (durationWindow === undefined) {
-        return [create_serie("consensus",  { history: timeline.history, current: timeline.current })];
+        series.push(create_serie("consensus",  { history: timeline.history, current: timeline.current }));
+        gridX = computeAdaptiveTicks(
+          new Date(nsToMs(timeline.history.length > 0 ? timeline.history[0].timestamp : (timeline.current.timestamp - toNs(1, DurationUnit.DAY)))),
+          new Date(nsToMs(timeline.current.timestamp)),
+        );
+        return { series, gridX };
       }
 
       let filtered_history = timeline.history.filter((item) => {
@@ -76,7 +89,14 @@ const ConsensusChart = ({ timeline, format_value, color, durationWindow }: Conse
         ...filtered_history,
       ];
 
-      return [create_serie("consensus",  { history: filtered_history, current: timeline.current })];
+      series.push(create_serie("consensus",  { history: filtered_history, current: timeline.current }));
+
+      gridX = computeAdaptiveTicks(
+        new Date(nsToMs(timeline.current.timestamp - toNs(1, durationWindow))),
+        new Date(nsToMs(timeline.current.timestamp)),
+      );
+
+      return { series, gridX };
     }, [timeline, info, durationWindow]);
     
     return (
@@ -90,21 +110,30 @@ const ConsensusChart = ({ timeline, format_value, color, durationWindow }: Conse
           }}
         >
         <ResponsiveLine
-          data={series}
+          data={chartProperties.series}
           xScale={{ type: 'time' }}
           yScale={{ type: 'linear', min: 0, max: 1 }}
-          margin={isMobile ? { top: 25, right: 25, bottom: 25, left: 25 } : { top: 25, right: 25, bottom: 25, left: 60 }}
+          margin={{ top: 25, right: 25, bottom: 25, left: isMobile ? 25 : 60 }}
           curve= { 'stepAfter' }  
           animate={false}
-          enablePoints={true} // Disable default points
-          pointSymbol={CustomLastPoint} // Custom last point rendering
+          enablePoints={true}
+          pointSymbol={CustomLastPoint}
           enableGridX={false}
+          gridXValues={chartProperties.gridX.ticks.map((tick) => new Date(tick))}
           legends={[]}
-          colors={[color]}
+          colors={[theme === "dark" ? "#ddd" : "#222"]}
           theme={chartTheme(theme)}
           axisBottom={{
+            tickSize: 5,
+            tickPadding: 5,
+            tickRotation: 0,
+            tickValues: chartProperties.gridX.ticks,
+            legend: '',
+            legendPosition: 'middle',
+            legendOffset: 64,
             renderTick: ({ x, y, value }) => {
               return (
+                isMobile ? <></> :
                 <g transform={`translate(${x},${y})`}>
                   <text
                     x={0}
@@ -116,7 +145,7 @@ const ConsensusChart = ({ timeline, format_value, color, durationWindow }: Conse
                       fill: theme === "dark" ? TICK_TEXT_COLOR_DARK : TICK_TEXT_COLOR_LIGHT,
                     }}
                   >
-                    { format(new Date(value), "dd MMM") }
+                    { format(new Date(value), chartProperties.gridX.format) }
                   </text>
                 </g>
               );
@@ -144,9 +173,9 @@ const ConsensusChart = ({ timeline, format_value, color, durationWindow }: Conse
             }
           }}
         />
+        </div>
+      }
       </div>
-}
-</div>
     );
 }
 

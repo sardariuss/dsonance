@@ -40,9 +40,10 @@ interface ChartCardProps {
   yMax?: number;
   setChartToggle: (toggleKey: CHART_TOGGLE | undefined) => void;
   chartToggle: CHART_TOGGLE | undefined;
+  isMobile: boolean;
 }
 
-const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, chartTimelines, formatValue, valueClassName, yMin, yMax, setChartToggle, chartToggle }) => (
+const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, chartTimelines, formatValue, valueClassName, yMin, yMax, setChartToggle, chartToggle, isMobile }) => (
   <div
     className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
     onClick={() => setChartToggle(chartToggle === toggleKey ? undefined : toggleKey)}
@@ -54,13 +55,15 @@ const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, c
       {chartToggle === toggleKey ? <ChevronUpIcon /> : <ChevronDownIcon />}
     </div>
     {chartToggle === toggleKey && (
-      <DurationChart
-        duration_timelines={chartTimelines}
-        format_value={formatValue}
-        fillArea={true}
-        y_min={yMin}
-        y_max={yMax}
-      />
+      <div className={`w-full ${isMobile ? "h-[200px]" : "h-[300px]"}`}>
+        <DurationChart
+          duration_timelines={chartTimelines}
+          format_value={formatValue}
+          fillArea={true}
+          y_min={yMin}
+          y_max={yMax}
+        />
+      </div>
     )}
   </div>
 );
@@ -69,9 +72,10 @@ interface BallotDetailsProps {
   ballot: SBallotType;
   now: bigint;
   contribution: STimeline_4 | undefined;
+  isMobile: boolean;
 }
 
-const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contribution }) => {
+const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contribution, isMobile }) => {
 
     if (!contribution) {
       return (
@@ -190,7 +194,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
     return (
       <div className="flex flex-col justify-items-center w-full mt-2 space-y-1">
         {chartData.map((item, index) => (
-          <ChartCard key={index} {...item} chartToggle={chartToggle} setChartToggle={setChartToggle} />
+          <ChartCard key={index} {...item} chartToggle={chartToggle} setChartToggle={setChartToggle} isMobile={isMobile}/>
         ))}
       </div>
     );
@@ -273,7 +277,7 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
           <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
         </div>
       </div>
-      <BallotDetails ballot={ballot} now={now} contribution={actualDebtInfo?.amount}/>
+      <BallotDetails ballot={ballot} now={now} contribution={actualDebtInfo?.amount} isMobile={isMobile}/>
     </div>
     );
 }

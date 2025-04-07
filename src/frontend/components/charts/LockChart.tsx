@@ -1,162 +1,159 @@
-import { useMemo, useEffect, useRef, useState, Fragment, useContext } from 'react';
+import { useMemo, useRef, Fragment, useContext } from 'react';
 import { ResponsiveLine, Serie } from '@nivo/line';
-import { SBallotType } from '@/declarations/protocol/protocol.did';
-import IntervalPicker from './IntervalPicker';
+import { SBallot, SBallotPreview } from '@/declarations/protocol/protocol.did';
 import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
-import { CHART_CONFIGURATIONS, chartTheme, computeTicksMs, isNotFiniteNorNaN } from '.';
-import { formatDate, msToNs, nsToMs, timeToDate } from '../../utils/conversions/date';
-import { get_current, get_first } from '../../utils/timeline';
+import { computeAdaptiveTicks, computeNiceGridLines } from '.';
+import { nsToMs, timeToDate } from '../../utils/conversions/date';
+import { get_current } from '../../utils/timeline';
 import { unwrapLock } from '../../utils/conversions/ballot';
 import { useCurrencyContext } from '../CurrencyContext';
 import { ThemeContext } from '../App';
 import { useMediaQuery } from 'react-responsive';
-import { MOBILE_MAX_WIDTH_QUERY } from '../../constants';
+import { MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from '../../constants';
 import { useProtocolContext } from '../ProtocolContext';
+import { EYesNoChoice, toEnum } from '../../utils/conversions/yesnochoice';
+import { format } from 'date-fns';
 import { useContainerSize } from '../hooks/useContainerSize';
 
-interface LockChartProps {
-  ballots: SBallotType[];
+type LockRect = {
+  id: string;
+  start: { x: Date; y: number};
+  mid: { x: Date; y: number};
+  end: { x: Date; y: number};
+  bottom: number;
+  top: number;
+  label: string;
+  choice: EYesNoChoice;
+};
+
+type ChartProperties = {
+  dateRange: { start: number; end: number };
+  chartData: Serie[];
+  lockRects: LockRect[];
+  gridX: { ticks: number[]; format: string };
+  gridY: number[];
+  totalLocked: number;
+};
+
+type Selectable = {
   selected: string | null;
   select_ballot: (id: string) => void;
 };
 
-const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
+interface LockChartProps {
+  ballots: SBallot[];
+  ballotPreview: SBallotPreview | undefined;
+  durationWindow: DurationUnit | undefined;
+  selectable?: Selectable;
+};
+
+const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockChartProps) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
-  const { theme } = useContext(ThemeContext)
-  const { containerSize, containerRef } = useContainerSize();
-  const { formatSatoshis } = useCurrencyContext();
+
+  const { theme } = useContext(ThemeContext);
+  const { formatSatoshis, satoshisToCurrency } = useCurrencyContext();
   const { info } = useProtocolContext();
+  const { containerSize, containerRef } = useContainerSize();
 
-  const [duration, setDuration] = useState<DurationUnit>(DurationUnit.YEAR);
+  const chartProperties : ChartProperties | undefined = useMemo(() => {
 
-  const { data, dateRange, processedSegments } = useMemo(() => {
-  
-    let minDate = Infinity;
-    let maxDate = -Infinity;
+    if (info === undefined || satoshisToCurrency === undefined) {
+      return undefined;
+    }
 
-    const data : Serie[] = [];
-    type Segment = {
-      id: string | number;
-      start: { x: Date; y: number};
-      end: { x: Date; y: number};
-      percentage: number;
-      label: string;
-    };
-    const segments : Segment[] = [];
+    const chartData : Serie[] = [];
+    const lockRects : LockRect[] = [];
+    let gridX : { ticks: number[]; format: string } = { ticks: [], format: "" };
+    let gridY : number[] = [];
+    let totalLocked = 0;
 
-    ballots.forEach((ballot, index) => {
-      const { YES_NO: { timestamp, amount, ballot_id } } = ballot;
-      const duration_ns = unwrapLock(ballot.YES_NO).duration_ns;
+    const all_ballots = [...ballots, ...(ballotPreview ? [ballotPreview.new.YES_NO] : [])];
+
+    const dateStart = durationWindow !== undefined
+      ? nsToMs(info.current_time - toNs(1, durationWindow))
+      : all_ballots.reduce((acc, ballot) => Math.min(acc, nsToMs(ballot.timestamp)), Number.POSITIVE_INFINITY);
+    let dateEnd = nsToMs(info.current_time);
+
+    // Create map of preview ballots
+    const previewLockDuration = new Map<string, bigint>();
+    if (ballotPreview !== undefined) {
+      ballotPreview.previous.forEach((b) => {
+        previewLockDuration.set(b.YES_NO.ballot_id, unwrapLock(b.YES_NO).duration_ns.current.data);
+      });
+    }
+
+    totalLocked = all_ballots.reduce((acc, ballot) => { 
+      const baseTimestamp = nsToMs(ballot.timestamp);
+      const actualLockEnd = baseTimestamp + nsToMs(previewLockDuration.get(ballot.ballot_id) ?? get_current(unwrapLock(ballot).duration_ns).data);
+      // Skip locks that expired before the start date
+      const to_add = (dateStart === undefined || actualLockEnd > dateStart) ? (satoshisToCurrency(ballot.amount) ?? 0) : 0;
+      return acc + to_add;
+    }, 0);
+
+    let height_no = 0;
+    let height_yes = totalLocked;
+
+    all_ballots.forEach((ballot, index) => {
+      const { timestamp, amount, ballot_id, choice } = ballot;
+      const duration_ns = unwrapLock(ballot).duration_ns;
 
       // Compute timestamps
       const baseTimestamp = nsToMs(timestamp);
-      const initialLockEnd = baseTimestamp + nsToMs(get_first(duration_ns).data);
-      const actualLockEnd = baseTimestamp + nsToMs(get_current(duration_ns).data);
+      const initialLockEnd = baseTimestamp + nsToMs(get_current(duration_ns).data);
+      const actualLockEnd = baseTimestamp + nsToMs(previewLockDuration.get(ballot_id) ?? get_current(duration_ns).data);
 
-      // Update min and max directly
-      if (baseTimestamp < minDate) minDate = baseTimestamp;
-      if (actualLockEnd > maxDate) maxDate = actualLockEnd;
+      // Skip locks that expired before the start date
+      if (dateStart === undefined || actualLockEnd > dateStart) { 
+      
+        // Update the end date to show the full range of the chart
+        if (actualLockEnd > dateEnd) dateEnd = actualLockEnd;
 
-      let y = ballots.length - index - 1; // Reverse order
+        const height = satoshisToCurrency(amount) ?? 0;
 
-      // Generate chart data points for this ballot
-      const points = [
-        { x: new Date(baseTimestamp), y},
-        { x: new Date(actualLockEnd), y},
-      ];
+        let y = 0;
+        if (toEnum(choice) === EYesNoChoice.No) {
+          y = height_no + height / 2;
+          height_no += height;
+        }
+        else {
+          y = height_yes - height / 2;
+          height_yes -= height;
+        }
+        
+        // Generate chart data points for this ballot
+        const points = [
+          { x: new Date(Math.max(dateStart, baseTimestamp)), y},
+          { x: new Date(actualLockEnd)                           , y},
+        ];
 
-      data.push({
-        id: index.toString(),
-        data: points,
-      });
+        chartData.push({
+          id: index.toString(),
+          data: points,
+        });
 
-      segments.push({
-        id: ballot_id,
-        start: points[0],
-        end: points[1],
-        percentage: ((initialLockEnd - baseTimestamp) / (actualLockEnd - baseTimestamp)) * 100,
-        label: formatSatoshis(amount) ?? "",
-      });
+        lockRects.push({
+          id: ballot_id,
+          start: points[0],
+          mid: { x: new Date(initialLockEnd), y },
+          end: points[1],
+          bottom: y - height / 2,
+          top: y + height / 2,
+          label: formatSatoshis(amount) ?? "",
+          choice: toEnum(choice),
+        });
+      }
+
     });
 
-    const nsDiff = (maxDate - minDate) * 1_000_000; // Nanoseconds difference
+    gridX = computeAdaptiveTicks(new Date(dateStart), new Date(dateEnd));
+    gridY = computeNiceGridLines(0, totalLocked).filter((tick) => tick <= totalLocked);
 
-    return {
-      data,
-      processedSegments: segments,
-      dateRange: {
-        minDate,
-        maxDate,
-        nsDiff,
-      },
-    };
-  }, [ballots, formatSatoshis]);
+    return { dateRange : { start: dateStart, end: dateEnd }, chartData, lockRects, gridX, gridY, totalLocked };
 
-  // Precompute width and ticks for all durations in CHART_CONFIGURATIONS
-  const chartConfigurationsMap = useMemo(() => {
-
-    const map = new Map<DurationUnit, { chartWidth: number; ticks: number[] }>();
-
-    if (containerSize === undefined) {
-      return map;
-    }
-
-    for (const [duration, config] of CHART_CONFIGURATIONS.entries()) {
-      if (isNotFiniteNorNaN(dateRange.minDate) || isNotFiniteNorNaN(dateRange.maxDate)) {
-        map.set(duration, { chartWidth: 0, ticks: [] });
-      } else {
-        const chartWidth = Math.max(
-          1,
-          dateRange.nsDiff / Number(toNs(1, duration))
-        ) * containerSize.width; // Adjusted width
-
-        const ticks = computeTicksMs(
-          msToNs(dateRange.maxDate - dateRange.minDate),
-          msToNs(dateRange.minDate),
-          config.tick
-        );
-
-        map.set(duration, { chartWidth, ticks });
-      }
-    }
-
-    return map;
-  }, [dateRange, containerSize]);
-  
-  type ChartConfiguration = {
-    chartWidth: number;
-    ticks: number[];
-  };
-
-  const [config, setConfig] = useState<ChartConfiguration | undefined>(undefined);
-
-  useEffect(() => {
-    setConfig(chartConfigurationsMap.get(duration));
-  },
-  [chartConfigurationsMap, duration]);
+  }, [ballots, formatSatoshis, info, ballotPreview, satoshisToCurrency, durationWindow]);
 
   const chartRef = useRef<HTMLDivElement>(null);
-
-//  useEffect(() => {
-//    const currentDate = new Date();
-//    const currentDateTimestamp = currentDate.getTime();
-//
-//    // Scroll center calculation
-//    const rangeStart = dateRange.minDate;
-//    const rangeEnd = dateRange.maxDate;
-//    const totalRange = rangeEnd - rangeStart;
-//
-//    // Calculate the position of the current date within the time range
-//    const relativePosition = (currentDateTimestamp - rangeStart) / totalRange;
-//
-//    // Calculate the scroll position to center the current date
-//    const scrollPosition = relativePosition * (chartWidth - containerSize); // Adjusted by the chart width and visible area
-//
-//    if (chartRef.current) {
-//      chartRef.current.scrollLeft = scrollPosition;
-//    }
-//  }, [dateRange, chartWidth, containerSize]);
 
   interface CustomLayerProps {
     xScale: (value: number | string | Date) => number; // Nivo scale function
@@ -167,79 +164,82 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
     return (
       <>
         {/* Render custom lines */}
-        {processedSegments.map((segment, index) => {
-          const { start, end } = segment;
+        { chartProperties?.lockRects.map((segment, index) => {
+          const { id, start, mid, end, bottom, top, choice } = segment;
+          
           const x1 = xScale(start.x);
-          const x2 = xScale(end.x);
+          const x2 = xScale(mid.x);
+          const x3 = xScale(end.x);
           const y1 = yScale(start.y);
-          const y2 = yScale(end.y);
+          const height = yScale(bottom) - yScale(top);
 
-          const ballot_id = String(segment.id);
+          let className = "";
+          if (selectable !== undefined) {
+            className = "fill-purple-700 hover:cursor-pointer";
+            if (selectable.selected === id) {
+              className += " stroke-2 stroke-purple-900 dark:stroke-purple-400";
+            } else {
+              className += " stroke-1 stroke-purple-800 dark:stroke-purple-500";
+            }
+          } else if (choice === EYesNoChoice.Yes) {
+            className = "fill-brand-true stroke-2 stroke-brand-true";
+          }
+          else if (choice === EYesNoChoice.No) {
+            className = "fill-brand-false stroke-2 stroke-brand-false";
+          }
 
-          const border_width = 2;
+          // Highlight the preview ballot
+          if (ballotPreview !== undefined && id === ballotPreview.new.YES_NO.ballot_id) {
+            className += " animate-pulse";
+          }
   
           return (
             <Fragment key={`segment-${index}`}>
-              {/* Border line */}
-              { ballot_id === selected && <line
-                key={`border-${index}`}
-                x1={x1-border_width}
-                x2={x2+border_width}
-                y1={y1}
-                y2={y2}
-                stroke={"rgb(168 85 247)"} // Border color
-                strokeWidth={20 + 2 * border_width} // Slightly larger than the main line
-                strokeLinejoin="round"
-                style={{
-                  zIndex: 0
-                }}
-              /> }
-
               {/* Main line */}
-              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id={`lineGradient-${index}`} gradientUnits="userSpaceOnUse" x1={x1} x2={x2} y1={y1} y2={y2}>
-                    <stop offset="0%" stopColor="rgb(126 34 206)" />
-                    <stop offset={segment.percentage.toFixed(2) + "%"} stopColor="rgb(126 34 206)" />
-                    <stop offset={segment.percentage.toFixed(2) + "%"} stopColor="rgb(126 34 206)" />
-                    <stop offset="100%" stopColor="#A21CAF">
-                      <animate
-                        attributeName="stop-color"
-                        values="#A21CAF;#E11D48;#A21CAF" // bg-fuchsia-700 & bg-rose-600
-                        dur="5s" 
-                        repeatCount="indefinite" 
-                      />
-                    </stop>
-                  </linearGradient>
-                </defs>
-                <line
-                  key={`line-${index}`}
-                  x1={x1}
-                  x2={x2}
-                  y1={y1}
-                  y2={y2}
-                  stroke={`url(#lineGradient-${index})`}
-                  strokeWidth={20}
-                  onClick={() => select_ballot(ballot_id)}
-                  cursor="pointer"
+                <rect 
+                  key={`rect-${index}`}
+                  x={x1}
+                  y={y1 - height / 2}
+                  width={x2 - x1}
+                  height={height}
+                  className={className}
+                  onClick={() =>{
+                    if (selectable) {
+                      selectable.select_ballot(id);
+                    }
+                  }}
                   style={{
-                    zIndex: 1
+                    zIndex: 0,
+                    fillOpacity: 0.8,
                   }}
                 />
-              </svg>
+                { (x3 - x2 > 0) && <rect 
+                  key={`rect-preview-${index}`}
+                  x={x2}
+                  y={y1 - height / 2}
+                  width={x3 - x2}
+                  height={height}
+                  className={className + " animate-pulse"}
+                  style={{
+                    zIndex: 0,
+                    fillOpacity: 0.8,
+                  }}
+                  />
+                }
             </Fragment>
           );
         })}
   
         {/* Render custom lock labels */}
-        {processedSegments.map((segment, index) => {
-          const { start, end } = segment;
-          const ballot_id = String(segment.id);
+        { chartProperties?.lockRects.map((segment, index) => {
+          const { id, start, end, bottom, top } = segment;
           const x1 = xScale(start.x);
           const x2 = xScale(end.x);
           const y = yScale(start.y);
+          const height = yScale(bottom) - yScale(top);
   
           return (
+            height < 16 ? <></> : // Skip rendering if height is too small
             <text
               key={`label-${index}`}
               x={x1 + (x2 - x1) / 2}
@@ -248,8 +248,12 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
               alignmentBaseline="middle"
               fontSize={12}
               fill="white"
-              onClick={() => select_ballot(ballot_id)}
-              cursor="pointer"
+              onClick={() =>{
+                if (selectable) {
+                  selectable.select_ballot(id);
+                }
+              }}
+              className={`${selectable? "hover:cursor-pointer": ""} ${selectable?.selected === id ? "font-semibold" : ""}`}
             >
               {segment.label}
             </text>
@@ -260,46 +264,50 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
   };
 
   return (
-    <div className="flex flex-col items-center space-y-2 w-full" ref={containerRef}>
-      { containerSize && config && <div
+    <div className="flex flex-col items-center space-y-2 w-full h-full" ref={containerRef}>
+      { containerRef && containerSize && <div
         ref={chartRef}
         style={{
-          width: `${containerSize}px`, // Dynamic width based on container
-          height: `${data.length * 40 + 100}px`, // Dynamic height based on data length
+          width: `${containerSize.width}px`,
+          height: `${containerSize.height}px`,
           overflowX: 'auto',
           overflowY: 'hidden',
         }}
       >
         <div
           style={{
-            width: `${config.chartWidth}px`, // Dynamic width based on data range
+            width: `${containerSize}px`,
             height: '100%',
           }}
         >
-          <ResponsiveLine
-            data={data}
+          { chartProperties && <ResponsiveLine
+            data={chartProperties.chartData}
             xScale={{
               type: 'time',
               precision: 'hour', // Somehow this is important
+              min: new Date(chartProperties.dateRange.start),
+              max: new Date(chartProperties.dateRange.end),
             }}
             yScale={{
               type: 'linear',
-              min: -0.5,
-              max: data.length - 0.5,
+              min: 0,
+              max: chartProperties.totalLocked,
             }}
-            animate={false}
-            enableGridY={false}
-            enableGridX={true}
-            gridXValues={config.ticks.map((tick) => new Date(tick))}
+            animate={true}
+            enableGridX={false}
+            enableGridY={true}
+            gridXValues={chartProperties.gridX.ticks.map((tick) => new Date(tick))}
+            gridYValues={chartProperties.gridY}
             axisBottom={{
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              tickValues: config.ticks,
+              tickValues: chartProperties.gridX.ticks,
               legend: '',
               legendPosition: 'middle',
               legendOffset: 64,
               renderTick: ({ x, y, value }) => (
+                isMobile ? <></> :
                 <g transform={`translate(${x},${y})`}>
                   <text
                     x={0}
@@ -308,50 +316,66 @@ const LockChart = ({ ballots, selected, select_ballot }: LockChartProps) => {
                     dominantBaseline="central"
                     style={{
                       fontSize: '12px',
-                      fill: theme === "dark" ? "#AAA" : "#666",
+                      fill: theme === "dark" ? TICK_TEXT_COLOR_DARK : TICK_TEXT_COLOR_LIGHT,
                     }}
                   >
-                    { CHART_CONFIGURATIONS.get(duration)!.format(new Date(value)) }
+                    { format(new Date(value), chartProperties.gridX.format) }
                   </text>
                 </g>
               ),
             }}
-            axisLeft={null}
+            axisLeft={{
+              tickSize: 5,
+              tickPadding: 10,
+              tickRotation: 0,
+              tickValues: isMobile ? [] : chartProperties.gridY,
+              legend: '',
+              legendPosition: 'middle',
+              legendOffset: 64,
+            }}
             enablePoints={false}
-            lineWidth={20}
-            margin={isMobile ? { top: 25, right: 25, bottom: 25, left: 25 } : { top: 50, right: 50, bottom: 50, left: 60 }}
+            lineWidth={1}
+            margin={{ top: 25, right: 25, bottom: 25, left: isMobile ? 25 : 60 }}
             markers={info ? [
               {
                 axis: 'x',
                 value: timeToDate(info.current_time).getTime(),
                 lineStyle: {
-                  stroke: theme === "dark" ? "yellow" : "black",
+                  stroke: theme === "dark" ? "yellow" : "orange",
                   strokeWidth: 1,
                   zIndex: 20,
                 },
-                legend: formatDate(timeToDate(info.current_time)),
-                legendOrientation: 'horizontal',
-                legendPosition: 'top',
-                textStyle: {
-                  fill: theme === "dark" ? "white" : "black",
-                  fontSize: 12,
-                }
               },
             ] : []}
             layers={[
               'grid',
               'axes',
-              'lines',
               customLayer, // Add custom layer
               'markers',
               'legends',
             ]}
-            theme={chartTheme(theme)}
-          />
+            /* somehow if charttheme is used here the colors of the ticks in Y is wrong */
+            theme={{
+              grid: {
+                line: {
+                  stroke: theme === "dark" ? TICK_TEXT_COLOR_DARK : TICK_TEXT_COLOR_LIGHT,
+                  strokeOpacity: 0.3,
+                }
+              },
+              axis: {
+                ticks: {
+                  text: {
+                    fontSize: '12px',
+                    fill: theme === "dark" ? TICK_TEXT_COLOR_DARK : TICK_TEXT_COLOR_LIGHT,
+                  },
+                },
+              },
+            }}
+          /> 
+          }
         </div>
       </div>
       }
-      <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.MONTH, DurationUnit.YEAR]}  />
     </div>
   );
 };

@@ -1,8 +1,8 @@
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import PutBallot from "./PutBallot";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
-import VoteChart from "./charts/VoteChart";
+import EvpChart from "./charts/EvpChart";
 import { BallotInfo } from "./types";
 import { add_ballot, compute_vote_details } from "../utils/conversions/votedetails";
 import { useNavigate } from "react-router-dom";
@@ -14,12 +14,11 @@ import BackArrowIcon from "./icons/BackArrowIcon";
 import { interpolate_now, map_timeline } from "../utils/timeline";
 import ConsensusChart from "./charts/ConsensusChart";
 import { protocolActor } from "../actors/ProtocolActor";
-import NewLockChart from "./charts/NewLockChart";
+import LockChart from "./charts/LockChart";
 import { useBallotPreview } from "./hooks/useBallotPreview";
 import { DurationUnit } from "../utils/conversions/durationUnit";
 import IntervalPicker from "./charts/IntervalPicker";
 import ChartToggle, { ChartType } from "./charts/ChartToggle";
-import { ThemeContext } from "./App";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -29,11 +28,10 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const navigate = useNavigate();
-  const { theme } = useContext(ThemeContext);
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
   const [duration, setDuration] = useState<DurationUnit | undefined>(DurationUnit.MONTH);
-  const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.EVP);
+  const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.Consensus);
 
   const { data: voteBallots } = protocolActor.useQueryCall({
     functionName: "get_vote_ballots",
@@ -109,13 +107,13 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
         <div className="flex flex-col space-y-2 items-center w-full">
           <div className={`w-full ${isMobile ? "h-[200px]" : "h-[300px]"}`}>
             { selectedChart === ChartType.EVP ?
-              ( voteDetails.total > 0 && <VoteChart vote={vote} ballot={ballot} durationWindow={duration} /> )
+              ( voteDetails.total > 0 && <EvpChart vote={vote} ballot={ballot} durationWindow={duration} /> )
               : selectedChart === ChartType.Consensus ?
               ( consensusTimeline !== undefined && liveDetails?.cursor !== undefined &&
-                <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} color={theme === "dark" ? "#ddd" : "#222"} durationWindow={duration}/> 
+                <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} durationWindow={duration}/> 
               ) 
               : selectedChart === ChartType.TVL ?
-              ( voteBallots !== undefined &&  <NewLockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} durationWindow={duration}/> )
+              ( voteBallots !== undefined &&  <LockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} durationWindow={duration}/> )
               : <></>
             }
           </div>

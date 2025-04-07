@@ -47,7 +47,7 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
   }, [duration_timelines]);
 
   return (
-    <div className="flex flex-col items-center space-y-1 w-full" ref={containerRef}>
+    <div className="flex flex-col items-center space-y-1 w-full h-full" ref={containerRef}>
       { containerSize && <div
         style={{
           width: `${containerSize.width}px`,
@@ -70,13 +70,13 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
           enableArea={fillArea}
           animate={false}
           enablePoints={false}
-          margin={ isMobile ? { top: 20, bottom: 50, right: 20, left: 20 } : { top: 20, bottom: 50, right: 50, left: 90 }}
+          margin={{ top: 25, right: 25, bottom: data.length > 1 ? 50 : 25, left: isMobile ? 25 : 60 }}
           colors={Array.from(duration_timelines.values()).map((serie) => serie.color)}
-          areaOpacity={0.7} // Adjust transparency of the area
+          areaOpacity={0.7}
           fill={
             fillArea
               ? Array.from(duration_timelines.keys()).map((seriesId) => ({
-                  match: { id: seriesId }, // This must match the actual series ID in your `data`
+                  match: { id: seriesId },
                   id: `gradient_${seriesId}`,
                 }))
               : undefined
@@ -84,35 +84,36 @@ const DurationChart = ({ duration_timelines, format_value, fillArea, y_min, y_ma
           defs={
             fillArea
               ? Array.from(duration_timelines.entries()).map(([seriesId, serie]) => ({
-                  id: `gradient_${seriesId}`, // Ensure IDs match
+                  id: `gradient_${seriesId}`,
                   type: "linearGradient",
                   colors: [
-                    { offset: 0, color: serie.color, opacity: 0.8 }, // Top gradient
-                    { offset: 100, color: serie.color, opacity: 0.2 }, // Bottom gradient
+                    { offset: 0, color: serie.color, opacity: 0.8 },
+                    { offset: 100, color: serie.color, opacity: 0.2 },
                   ],
                 }))
               : undefined
           }
           legends={duration_timelines.size < 2 ? [] : [
             {
-              anchor: "bottom", // Position at the bottom
-              direction: "row", // Display legends in a row
+              anchor: "bottom",
+              direction: "row",
               justify: false,
               translateX: 0,
-              translateY: 50, // Move below the chart
-              itemsSpacing: 10, // Space between legend items
+              translateY: 50,
+              itemsSpacing: 10,
               itemDirection: "left-to-right",
               itemWidth: 80,
               itemHeight: 20,
               itemOpacity: 1.0,
-              symbolSize: 12, // Size of color circle
-              symbolShape: "circle", // Can be "circle", "square", etc.
+              symbolSize: 12,
+              symbolShape: "circle",
             },
           ]}
           areaBlendMode="normal"
           axisBottom={{
             renderTick: ({ tickIndex, x, y, value }) => {
               return (
+                (isMobile && tickIndex % 2) ? <></> :
                 <g transform={`translate(${x},${y})`}>
                   <text
                     x={0}
