@@ -2,11 +2,10 @@ import Types "../Types";
 import Duration "../duration/Duration";
 
 import Option "mo:base/Option";
+import Array "mo:base/Array";
 
 module {
 
-    type VoteType = Types.VoteType;
-    type SVoteType = Types.SVoteType;
     type BallotType = Types.BallotType;
     type SBallotType = Types.SBallotType;
     type Vote<A, B> = Types.Vote<A, B>;
@@ -28,27 +27,16 @@ module {
     type SProtocolParameters = Types.SProtocolParameters;
     type ProtocolInfo = Types.ProtocolInfo;
     type SProtocolInfo = Types.SProtocolInfo;
+    type BallotPreview = Types.BallotPreview;
+    type SBallotPreview = Types.SBallotPreview;
 
     public func shareOpt<T, S>(opt: ?T, f: T -> S) : ?S {
         Option.map(opt, f);
     };
 
-    public func shareVoteType(vote_type: VoteType) : SVoteType {
-        switch(vote_type){
-            case(#YES_NO(vote)) { #YES_NO(shareVote(vote)); };
-        };
-    };
-
     public func shareBallotType(ballot: BallotType) : SBallotType {
         switch(ballot){
             case(#YES_NO(ballot)) { #YES_NO(shareBallot(ballot)); };
-        };
-    };
-
-    func shareVote<A, B>(vote: Vote<A, B>) : SVote<A, B> {
-        {
-            vote with 
-            aggregate = shareTimeline(vote.aggregate);
         };
     };
 
@@ -114,6 +102,13 @@ module {
             amount = shareTimeline(debt_info.amount);
             transferred = debt_info.transferred;
             transfers = debt_info.transfers;
+        };
+    };
+
+    public func shareBallotPreview(preview: BallotPreview) : SBallotPreview {
+        {
+            new = shareBallotType(preview.new);
+            previous = Array.map<BallotType, SBallotType>(preview.previous, shareBallotType);
         };
     };
 

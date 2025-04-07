@@ -51,7 +51,8 @@ module {
             };
             lock_register = {
                 var time_last_dispense = now;
-                total_amount = Timeline.initialize(now, 0);
+                total_locked = Timeline.initialize(now, 0);
+                locked_per_vote = Map.new<UUID, Nat>();
                 locks = BTree.init<Lock, Ballot<YesNoChoice>>(?BTREE_ORDER);
                 yield = {
                     rate = 0.1; // TODO: This parameter shall be variable and come from the lending/borrowing utilization rate

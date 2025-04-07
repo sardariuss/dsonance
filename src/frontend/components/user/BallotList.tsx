@@ -1,6 +1,5 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
-import LockChart from "../charts/LockChart";
 import { protocolActor } from "../../actors/ProtocolActor";
 import { useCurrencyContext } from "../CurrencyContext";
 import BitcoinIcon from "../icons/BitcoinIcon";
@@ -13,6 +12,9 @@ import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
 import { toNullable } from "@dfinity/utils";
 import AdaptiveInfiniteScroll from "../AdaptiveInfinitScroll";
+import IntervalPicker from "../charts/IntervalPicker";
+import { DurationUnit } from "../../utils/conversions/durationUnit";
+import LockChart from "../charts/LockChart";
 
 type BallotEntries = {
   ballots: SBallotType[];
@@ -32,6 +34,7 @@ const BallotList = () => {
   const [ballotEntries, setBallotEntries] = useState<BallotEntries>({ ballots: [], previous: undefined, hasMore: true });
   const [filterActive, setFilterActive] = useState(true);
   const limit = isMobile ? 8n : 10n;
+  const [duration, setDuration] = useState<DurationUnit | undefined>(DurationUnit.MONTH);
 
   if (identity === null || identity?.getPrincipal().isAnonymous()) {
     return <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full text-lg hover:cursor-pointer" onClick={() => login()}>
@@ -148,8 +151,20 @@ const BallotList = () => {
         }
       </div>
       { ballotEntries.ballots.length > 0 && 
-        <div className="flex w-full py-8 sm:py-6">
-          <LockChart ballots={ballotEntries.ballots} select_ballot={(id) => { setTriggerScroll(!triggerScroll); toggleBallot(id); }} selected={selectedBallotId}/>
+        <div className={`flex flex-col justify-between items-center w-full py-2 sm:py-6 w-full h-[300px] space-y-2`}>
+          <LockChart
+            ballots={ballotEntries.ballots.map(ballot => ballot.YES_NO)}
+            ballotPreview={undefined}
+            durationWindow={duration}
+            selectable={{
+              select_ballot: (id) => {
+                setTriggerScroll(!triggerScroll);
+                toggleBallot(id);
+              },
+              selected: selectedBallotId
+            }}
+          />
+          <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
         </div>
       }
       { ballotEntries.ballots.length > 0 && 

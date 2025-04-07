@@ -40,9 +40,10 @@ interface ChartCardProps {
   yMax?: number;
   setChartToggle: (toggleKey: CHART_TOGGLE | undefined) => void;
   chartToggle: CHART_TOGGLE | undefined;
+  isMobile: boolean;
 }
 
-const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, chartTimelines, formatValue, valueClassName, yMin, yMax, setChartToggle, chartToggle }) => (
+const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, chartTimelines, formatValue, valueClassName, yMin, yMax, setChartToggle, chartToggle, isMobile }) => (
   <div
     className="flex flex-col items-center justify-center space-y-5 w-full rounded-lg py-3 px-3 sm:px-6 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 hover:cursor-pointer"
     onClick={() => setChartToggle(chartToggle === toggleKey ? undefined : toggleKey)}
@@ -54,13 +55,15 @@ const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, c
       {chartToggle === toggleKey ? <ChevronUpIcon /> : <ChevronDownIcon />}
     </div>
     {chartToggle === toggleKey && (
-      <DurationChart
-        duration_timelines={chartTimelines}
-        format_value={formatValue}
-        fillArea={true}
-        y_min={yMin}
-        y_max={yMax}
-      />
+      <div className={`w-full ${isMobile ? "h-[200px]" : "h-[300px]"}`}>
+        <DurationChart
+          duration_timelines={chartTimelines}
+          format_value={formatValue}
+          fillArea={true}
+          y_min={yMin}
+          y_max={yMax}
+        />
+      </div>
     )}
   </div>
 );
@@ -69,9 +72,10 @@ interface BallotDetailsProps {
   ballot: SBallotType;
   now: bigint;
   contribution: STimeline_4 | undefined;
+  isMobile: boolean;
 }
 
-const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contribution }) => {
+const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contribution, isMobile }) => {
 
     if (!contribution) {
       return (
@@ -81,13 +85,13 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
       );
     }
 
-    const releaseTimestamp = ballot.YES_NO.timestamp + unwrapLock(ballot).duration_ns.current.data;
+    const releaseTimestamp = ballot.YES_NO.timestamp + unwrapLock(ballot.YES_NO).duration_ns.current.data;
 
     const [chartToggle, setChartToggle] = useState<CHART_TOGGLE | undefined>(undefined);
 
     const chartData = useMemo(() => {
 
-      let duration_diff = get_timeline_diff(unwrapLock(ballot).duration_ns);
+      let duration_diff = get_timeline_diff(unwrapLock(ballot.YES_NO).duration_ns);
       let consent_diff = get_timeline_diff(ballot.YES_NO.consent);
 
       // TODO: hack to avoid first value
@@ -158,7 +162,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
           value:
             releaseTimestamp > now
               ? formatDuration(releaseTimestamp - now)
-              : formatDuration(get_current(unwrapLock(ballot).duration_ns).data),
+              : formatDuration(get_current(unwrapLock(ballot.YES_NO).duration_ns).data),
           diff: duration_diff !== undefined ? `(+ ${formatDuration(duration_diff)})` : undefined,
           toggleKey: CHART_TOGGLE.DURATION,
           chartTimelines:
@@ -167,7 +171,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
                   [
                     "time_left",
                     {
-                      timeline: to_number_timeline(to_time_left(unwrapLock(ballot).duration_ns, now)),
+                      timeline: to_number_timeline(to_time_left(unwrapLock(ballot.YES_NO).duration_ns, now)),
                       color: CHART_COLORS.PURPLE,
                     },
                   ],
@@ -176,7 +180,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
                   [
                     "duration",
                     {
-                      timeline: to_number_timeline(unwrapLock(ballot).duration_ns),
+                      timeline: to_number_timeline(unwrapLock(ballot.YES_NO).duration_ns),
                       color: CHART_COLORS.PURPLE,
                     },
                   ],
@@ -190,13 +194,18 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
     return (
       <div className="flex flex-col justify-items-center w-full mt-2 space-y-1">
         {chartData.map((item, index) => (
-          <ChartCard key={index} {...item} chartToggle={chartToggle} setChartToggle={setChartToggle} />
+          <ChartCard key={index} {...item} chartToggle={chartToggle} setChartToggle={setChartToggle} isMobile={isMobile}/>
         ))}
       </div>
     );
 }
 
-const BallotView : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
+interface BallotViewProps {
+  ballot: SBallotType;
+  now: bigint;
+}
+
+const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const navigate = useNavigate();
@@ -210,7 +219,6 @@ const BallotView : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
   const { data: debtInfo, call: refreshDebtInfo } = protocolActor.useQueryCall({
     functionName: "get_debt_info",
     args: [ballot.YES_NO.ballot_id],
-    onSuccess: (b) => console.log("Debt info", b)
   });
 
   useEffect(() => {
@@ -269,7 +277,7 @@ const BallotView : React.FC<BallotDetailsProps> = ({ ballot, now }) => {
           <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
         </div>
       </div>
-      <BallotDetails ballot={ballot} now={now} contribution={actualDebtInfo?.amount}/>
+      <BallotDetails ballot={ballot} now={now} contribution={actualDebtInfo?.amount} isMobile={isMobile}/>
     </div>
     );
 }

@@ -311,7 +311,8 @@ module {
 
     public type LockRegister = {
         var time_last_dispense: Nat;
-        total_amount: Timeline<Nat>;
+        total_locked: Timeline<Nat>;
+        locked_per_vote: Map<UUID, Nat>;
         locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the BallotType or even a generic lock type instead
         yield: {
             rate: Float;

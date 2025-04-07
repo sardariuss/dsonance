@@ -19,6 +19,7 @@ import Debug                   "mo:base/Debug";
 import Buffer                  "mo:base/Buffer";
 import Iter                    "mo:base/Iter";
 import Result                  "mo:base/Result";
+import Array                   "mo:base/Array";
 
 module {
 
@@ -115,7 +116,7 @@ module {
             MapUtils.putInnerSet(vote_register.by_author, MapUtils.acchash, account, Map.thash, vote_id);
             
             // TODO: ideally it's not the controller's responsibility to share types
-            #ok(SharedConversions.shareVoteType(vote));
+            #ok(queries.shareVoteType(vote));
         };
 
         public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
@@ -136,15 +137,22 @@ module {
             let timestamp = clock.get_time();
             let from = { owner = caller; subaccount = from_subaccount; };
 
-            let ballot = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id = 0; timestamp; from; }});
+            let { new; previous; } = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id = 0; timestamp; from; }});
 
-            let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot);
-
+            // Refresh the lock durations
+            let yes_no_ballot = BallotUtils.unwrap_yes_no(new);
             lock_scheduler.refresh_lock_duration(yes_no_ballot, timestamp);
+            for (prev in Array.vals(previous)){
+                let b = BallotUtils.unwrap_yes_no(prev);
+                let lock = BallotUtils.unwrap_lock(b);
+                if (lock.release_date > yes_no_ballot.timestamp){
+                    lock_scheduler.refresh_lock_duration(b, timestamp);
+                };
+            };
 
             Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
 
-            #ok(ballot);
+            #ok({ new; previous; });
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {

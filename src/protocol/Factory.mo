@@ -82,6 +82,7 @@ module {
             ballot_register;
             dsn_debt_register = dsn.debt_register;
             clock;
+            lock_register;
         });
 
         let protocol_timer = ProtocolTimer.ProtocolTimer({

@@ -89,11 +89,28 @@ p {
   }
   .button-discrete{
     @apply
-      rounded
-      bg-slate-400 dark:bg-slate-600
+      rounded-full
+      bg-transparent
       focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-800 
       dark:hover:enabled:bg-slate-700 hover:enabled:bg-slate-300 disabled:bg-slate-500 dark:disabled:bg-slate-700
       font-medium text-center text-xs whitespace-nowrap
       inline-flex py-0.5 px-1
   }
+}
+
+@keyframes pulse-fill {
+  0%, 100% {
+    fill-opacity: 0.8; /* Or your desired max opacity, e.g., 0.8 */
+  }
+  50% {
+    fill-opacity: 0.5; /* Or your desired min opacity, e.g., 0.4 */
+  }
+}
+
+/* Optional: Scope it to your chart container */
+.pulse-area-true svg path[data-testid="area.True"] {
+  animation: pulse-fill 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.pulse-area-false svg path[data-testid="area.False"] {
+  animation: pulse-fill 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

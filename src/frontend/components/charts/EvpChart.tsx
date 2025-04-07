@@ -1,44 +1,62 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useMemo } from "react";
 import { STimeline_3, YesNoAggregate }                      from "@/declarations/protocol/protocol.did";
 import { SYesNoVote }                                       from "@/declarations/backend/backend.did";
 import { EYesNoChoice }                                     from "../../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump }                from "@nivo/bump";
 import { BallotInfo }                                       from "../types";
-import { DurationUnit, toNs }                               from "../../utils/conversions/durationUnit";
-import { CHART_CONFIGURATIONS, computeInterval }            from ".";
-import IntervalPicker                                       from "./IntervalPicker";
+import { DurationUnit, toNs }                                     from "../../utils/conversions/durationUnit";
+import { CHART_CONFIGURATIONS, chartTheme, computeInterval, DurationParameters } from ".";
 import { useCurrencyContext }                               from "../CurrencyContext";
 import { ThemeContext }                                     from "../App";
 import { useProtocolContext }                               from "../ProtocolContext";
 import { useMediaQuery }                                    from "react-responsive";
-import { MOBILE_MAX_WIDTH_QUERY }                           from "../../constants";
+import { BRAND_FALSE_COLOR, BRAND_TRUE_COLOR, MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from "../../constants";
+import { useContainerSize } from "../hooks/useContainerSize";
 
 // WATCHOUT: This component uses an IntractiveAreaBump chart which uses X as a category, not as a time value, hence it is 
 // up to the coder to make it so the interval between the time values are constant.
 
-interface Size {
-  width: number;
-  height: number;
-}
-
 interface ComputeChartPropsArgs {
   currentTime: bigint;
   computeDecay: (time: bigint) => number;
-  duration: DurationUnit;
+  durationWindow: DurationUnit | undefined;
   aggregate: STimeline_3;
 }
 
 type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: number; y: number;}[], color: string}>[];
-type ChartProperties = { chartData: ChartData, total: { maximum: number, current: number }, priceLevels: number[], dateTicks: number[] };
+type ChartProperties = { chartData: ChartData, total: { maximum: number, current: number }, priceLevels: number[], dateTicks: number[], dateFormat: (date: Date) => string; };
 
-const computeChartProps = ({ currentTime, computeDecay, duration, aggregate } : ComputeChartPropsArgs) : ChartProperties => {
+// TODO: this is very convoluted, we should try to simplify it
+const computeChartProps = ({ currentTime, computeDecay, durationWindow, aggregate } : ComputeChartPropsArgs) : ChartProperties => {
 
   let chartData : ChartData = [
-    { id: EYesNoChoice.Yes, data: [], color: "rgb(7 227 68)" },
-    { id: EYesNoChoice.No, data: [], color: "rgb(0 203 253)" },
+    { id: EYesNoChoice.Yes, data: [], color: BRAND_TRUE_COLOR },
+    { id: EYesNoChoice.No, data: [], color: BRAND_FALSE_COLOR },
   ];
 
-  const { dates, ticks } = computeInterval(currentTime, duration, computeDecay);
+  let durationParameters : DurationParameters | undefined = undefined;
+
+  if (durationWindow !== undefined) {
+    durationParameters = CHART_CONFIGURATIONS.get(durationWindow)!;
+  } else {
+    let start = aggregate.history.length > 0 ? aggregate.history[0].timestamp : aggregate.current.timestamp;
+    const duration = currentTime - start;
+    
+    let durationUnit = DurationUnit.YEAR;
+    if (duration <= toNs(1, DurationUnit.WEEK)){
+      durationUnit = DurationUnit.DAY;
+    } else if (duration <= toNs(1, DurationUnit.MONTH)) {
+      durationUnit = DurationUnit.WEEK;
+    } else if (duration <= toNs(1, DurationUnit.YEAR)) {
+      durationUnit = DurationUnit.MONTH;
+    }
+
+    const { sample, tick, format } = CHART_CONFIGURATIONS.get(durationUnit)!;
+    durationParameters = { duration, sample, tick, format };
+  }
+
+  let { dates } = computeInterval(currentTime, durationParameters.duration, durationParameters.sample, durationParameters.tick, computeDecay);
+  let ticks = dates.filter((_, index) => index % Math.floor(dates.length / 10) === 0).map((date) => date.date);
 
   let max = 0;
   let total = 0;
@@ -73,15 +91,12 @@ const computeChartProps = ({ currentTime, computeDecay, duration, aggregate } : 
     chartData[1].data.push({ x: date, y: noAggregate });
   });
 
-  console.log("Chart first decay: " + dates.at(0)?.decay);
-  console.log("Chart last decay: " + dates.at(dates.length - 1)?.decay);
-  console.log("Chart max: " + max);
-
   return {
     chartData,
     total: { maximum: max, current: total },
     priceLevels: computePriceLevels(0, max),
-    dateTicks: ticks
+    dateTicks: ticks,
+    dateFormat: durationParameters.format,
   }
 }
 
@@ -97,44 +112,21 @@ const computePriceLevels = (min: number, max: number) : number[] => {
   return levels;
 }
 
-interface VoteChartrops {
+interface EvpChartrops {
   vote: SYesNoVote;
   ballot: BallotInfo;
+  durationWindow: DurationUnit | undefined;
 }
 
-const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
+const EvpChart: React.FC<EvpChartrops> = ({ vote, ballot, durationWindow }) => {
 
   const { theme } = useContext(ThemeContext);
-  const [duration, setDuration] = useState<DurationUnit>(DurationUnit.WEEK);
   
-  const [containerSize, setContainerSize] = useState<Size | undefined>(undefined); // State to store the size of the div
-  const containerRef = useRef<HTMLDivElement>(null); // Ref for the div element
+  const { containerSize, containerRef } = useContainerSize();
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const AXIS_MARGIN = isMobile ? 20 : 30;
-
-  useEffect(() => {
-    // Function to update the size
-    const updateSize = () => {
-      if (containerRef.current) {
-        setContainerSize({ 
-          width: containerRef.current.offsetWidth - 20, // 20 px to make room for the slider bar if any
-          height: containerRef.current.offsetWidth * (isMobile ? 0.5 : 0.35)
-        });
-      }
-    };
-
-    // Set initial size
-    updateSize();
-
-    // Update size on window resize
-    window.addEventListener('resize', updateSize);
-
-    return () => {
-      window.removeEventListener('resize', updateSize);
-    };
-  }, []);
 
   const { formatSatoshis } = useCurrencyContext();
 
@@ -142,33 +134,18 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
      
   const voteData = useMemo<ChartProperties>(() => {
     if (!info || !parameters || !computeDecay) {
-      return ({ chartData: [], total: { current: 0, maximum: 0 }, priceLevels: [], dateTicks: [] });
+      return ({ chartData: [], total: { current: 0, maximum: 0 }, priceLevels: [], dateTicks: [], dateFormat: () => "" });
     }
     return computeChartProps({ 
       currentTime: info.current_time,
       computeDecay,
-      duration,
+      durationWindow,
       aggregate: vote.aggregate 
     });
   }, 
-  [info, parameters, computeDecay, duration]);
+  [info, parameters, computeDecay, durationWindow, vote.aggregate]);
 
-  useEffect(() => {
-    // Set the duration based on the current time
-    if (info){
-      let timeDifference = info.current_time - vote.aggregate.history[0].timestamp;
-      if (timeDifference < toNs(1, DurationUnit.WEEK)){
-        setDuration(DurationUnit.WEEK);
-      } else if (timeDifference < toNs(1, DurationUnit.MONTH)){
-        setDuration(DurationUnit.MONTH);
-      } else {
-        setDuration(DurationUnit.YEAR);
-      }
-    }
-  }
-  , [info]);
-
-  const { chartData, total, priceLevels, dateTicks } = useMemo<ChartProperties>(() => {
+  const { chartData, total, priceLevels, dateTicks, dateFormat } = useMemo<ChartProperties>(() => {
     const newTotal = { maximum : voteData.total.maximum, current: voteData.total.current + Number(ballot.amount) };
     return {
       chartData : voteData.chartData.slice().map((serie) => {
@@ -181,7 +158,8 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
       }),
       total: newTotal,
       priceLevels: computePriceLevels(0, Math.max(newTotal.maximum, newTotal.current)),
-      dateTicks: voteData.dateTicks
+      dateTicks: voteData.dateTicks,
+      dateFormat: voteData.dateFormat,
     };
   }, [voteData, ballot]);
 
@@ -206,12 +184,24 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
     return height * ratio;
   }
 
+  const pulseArea = useMemo(() => {
+    if (parameters !== undefined && ballot.amount > parameters.minimum_ballot_amount){
+      if (ballot.choice === EYesNoChoice.Yes){
+        return "pulse-area-true";
+      } else {
+        return "pulse-area-false";
+      }
+    }
+    return "";
+  }
+  , [ballot, parameters]);
+
   return (
-    <div className="flex flex-col items-center space-y-2 w-full" ref={containerRef}>
+    <div className={`flex flex-col items-center space-y-2 w-full h-full ${pulseArea}`} ref={containerRef}>
       { containerSize &&
       <div style={{ position: 'relative', width: `${containerSize.width}px`, height: `${containerSize.height}px`, zIndex: 10 }}>
         { /* TODO: fix opacity of price levels via a custom layer */ }
-        <div style={{ position: 'absolute', top: AXIS_MARGIN, right: 0, bottom: AXIS_MARGIN, left: 0, zIndex: 5 }} className="flex flex-col">
+        <div style={{ position: 'absolute', top: AXIS_MARGIN, right: 25, bottom: AXIS_MARGIN, left: isMobile ? 25 : 60, zIndex: 5 }} className="flex flex-col">
           <ul className="flex flex-col w-full" key={vote.vote_id}>
             {
               priceLevels.slice().reverse().map((price, index) => (
@@ -220,8 +210,14 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                     (index < (priceLevels.length - 1)) ? 
                     <div className={`flex flex-col w-full`} style={{ height: `${getHeightLine(priceLevels)}px` }}>
                       <div className="flex flex-row w-full items-end" style={{ position: 'relative' }}>
-                        { !isMobile && <div className="text-xs" style={{ position: 'absolute', left: -55, bottom: -7 }}>{ formatSatoshis(BigInt(price)) }</div> }
-                        <div className="flex w-full h-[2.0px] bg-slate-500 dark:bg-white" style={{ position: 'absolute', bottom: 0, opacity: 0.3 }}/>
+                        { !isMobile && 
+                          <div 
+                            className="text-xs" 
+                            style={{ position: 'absolute', left: -55, bottom: -7, color: theme === "dark" ? TICK_TEXT_COLOR_DARK : TICK_TEXT_COLOR_LIGHT }}>
+                            { formatSatoshis(BigInt(price)) }
+                          </div> 
+                        }
+                        <div className="flex w-full h-[1px] bg-slate-500 dark:bg-white" style={{ position: 'absolute', bottom: 0, opacity: 0.3 }}/>
                       </div>
                     </div> : <></>
                   }
@@ -241,12 +237,12 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
           xPadding={0} // Important to avoid "bump effects" in the chart (because AreaBump consider the x values as categories)
           align= "end"
           data={chartData}
-          margin={{ top: AXIS_MARGIN + marginTop(priceLevels, Math.max(total.maximum, total.current)), bottom: AXIS_MARGIN }}
+          margin={{ top: AXIS_MARGIN + marginTop(priceLevels, Math.max(total.maximum, total.current)),  right: 25, bottom: AXIS_MARGIN, left: isMobile ? 25 : 60 }}
           spacing={0}
           activeBorderOpacity={0.5}
           colors={(serie) => serie.color}
           borderColor={(serie) => serie.color}
-          fillOpacity={0.7}
+          fillOpacity={0.8}
           borderWidth={2}
           blendMode="normal"
           axisTop={null}
@@ -260,7 +256,7 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
             legendOffset: 0,
             renderTick: ({ tickIndex, x, y, value }) => {
               return (
-                (isMobile && tickIndex % 2) ? <></> :
+                (isMobile || tickIndex % 2) ? <></> :
                 <g transform={`translate(${x},${y})`}>
                   <text
                     x={0}
@@ -269,20 +265,20 @@ const VoteChart: React.FC<VoteChartrops> = ({ vote, ballot }) => {
                     dominantBaseline="central"
                     style={{
                       fontSize: '12px',
-                      fill: theme === "dark" ? "white" : "rgb(30 41 59)", // slate-800
+                      fill: theme === "dark" ? TICK_TEXT_COLOR_DARK : TICK_TEXT_COLOR_LIGHT,
                     }}
                   >
-                    { CHART_CONFIGURATIONS.get(duration)!.format(new Date(value)) }
+                    { dateFormat(new Date(value)) }
                   </text>
                 </g>
               )}
           }}
+          theme={chartTheme(theme)}
         />
       </div>
       }
-      <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
     </div>
   );
 }
 
-export default VoteChart;
+export default EvpChart;
