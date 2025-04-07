@@ -13,14 +13,13 @@ coverY: 0
 
 **Q3 2025**
 
+* **Limit Order Voting**: Allow users to set conditions where a ballot automatically locks if consent drops below a defined threshold.
 * **NFID Wallet Integration.**
 * **Official Platform Launch**: Transition from simulated beta to full release.
-* **Limit Order Voting**: Allow users to set conditions where a ballot automatically locks if consent drops below a defined threshold.
-* **Meta Voting**: enable the community to moderate votes through _meta votes_ which impact the visibility and rewards of _consensus votes_.
 
 **Q4 2025**
 
-* **SNS Decentralization Sale** – To decentralize the app and fund the next years of development.
+* **Meta Voting**: enable the community to moderate votes through _meta votes_ which impact the visibility and rewards of _consensus votes_.
 * **DSN Buyback & Burn.**
 * **Expand Wallet Support** with additional wallet providers.
 
