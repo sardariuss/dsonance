@@ -5,12 +5,10 @@ import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import EvpChart from "./charts/EvpChart";
 import { BallotInfo } from "./types";
 import { add_ballot, compute_vote_details } from "../utils/conversions/votedetails";
-import { useNavigate } from "react-router-dom";
 import { useProtocolContext } from "./ProtocolContext";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import VoteFigures, { VoteFiguresSkeleton } from "./VoteFigures";
-import BackArrowIcon from "./icons/BackArrowIcon";
 import { interpolate_now, map_timeline } from "../utils/timeline";
 import ConsensusChart from "./charts/ConsensusChart";
 import { protocolActor } from "../actors/ProtocolActor";
@@ -27,7 +25,6 @@ interface VoteViewProps {
 const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
-  const navigate = useNavigate();
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
   const [duration, setDuration] = useState<DurationUnit | undefined>(DurationUnit.MONTH);
@@ -87,37 +84,50 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
     resetVote();
   }, [vote]);
 
+  const thumbnail = useMemo(() => {
+    const byteArray = new Uint8Array(vote.info.thumbnail);
+    const blob = new Blob([byteArray]);
+    return URL.createObjectURL(blob);
+  }
+  , [vote]);
+
   return (
     <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>
-      <div className="w-full grid grid-cols-3 space-x-1 mb-3 items-center">
-        <div className="hover:cursor-pointer justify-self-start" onClick={() => navigate(-1)}>
-          <BackArrowIcon/>
+      {/* Top Row: Image and Vote Text */}
+      <div className="w-full flex flex-row items-center gap-4 mb-4">
+        {/* Placeholder Image */}
+        <img 
+          className="w-20 h-20 bg-contain bg-no-repeat bg-center rounded-md self-start"
+          src={thumbnail}
+        />
+        {/* Vote Text */}
+        <div className="flex-grow text-gray-800 dark:text-gray-200 font-medium text-lg">
+          {vote.info.text}
         </div>
-        <span className="text-xl font-semibold items-baseline justify-self-center">Vote</span>
-        <span className="grow">{/* spacer */}</span>
       </div>
-      <div className="w-full text-center mb-4 mx-auto">
-        { vote.info.text }
-      </div>
-      { voteDetails !== undefined ? 
+
+      {/* Vote Details */}
+      {voteDetails !== undefined ? 
         <VoteFigures timestamp={vote.date} voteDetails={voteDetails} ballot={ballot} tvl={vote.tvl} /> :
         <VoteFiguresSkeleton />
       }
-      { voteDetails !== undefined && vote.vote_id !== undefined ? 
+
+      {/* Charts and Ballot */}
+      {voteDetails !== undefined && vote.vote_id !== undefined ? 
         <div className="flex flex-col space-y-2 items-center w-full">
-          { voteBallots && voteBallots.length > 0 &&
+          {voteBallots && voteBallots.length > 0 &&
             <div className="w-full flex flex-col items-center justify-between space-y-2">
               <div className={`w-full ${isMobile ? "h-[200px]" : "h-[300px]"}`}>
-              { selectedChart === ChartType.EVP ?
-                ( voteDetails.total > 0 && <EvpChart vote={vote} ballot={ballot} durationWindow={duration} /> )
-                : selectedChart === ChartType.Consensus ?
-                ( consensusTimeline !== undefined && liveDetails?.cursor !== undefined &&
-                  <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} durationWindow={duration}/> 
-                ) 
-                : selectedChart === ChartType.TVL ?
-                ( voteBallots !== undefined &&  <LockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} durationWindow={duration}/> )
-                : <></>
-              }
+                {selectedChart === ChartType.EVP ?
+                  (voteDetails.total > 0 && <EvpChart vote={vote} ballot={ballot} durationWindow={duration} />)
+                  : selectedChart === ChartType.Consensus ?
+                  (consensusTimeline !== undefined && liveDetails?.cursor !== undefined &&
+                    <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} durationWindow={duration}/> 
+                  ) 
+                  : selectedChart === ChartType.TVL ?
+                  (voteBallots !== undefined && <LockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} durationWindow={duration}/>)
+                  : <></>
+                }
               </div>
               <div className="flex flex-row justify-between items-center w-full">
                 <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
@@ -151,26 +161,26 @@ export default VoteView;
 export const VoteViewSkeleton: React.FC = () => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
-  const navigate = useNavigate();
 
   return (
     <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>
-      <div className="w-full grid grid-cols-3 space-x-1 mb-3 items-center">
-        <div className="hover:cursor-pointer justify-self-start" onClick={() => navigate(-1)}>
-          <BackArrowIcon/>
-        </div>
-        <span className="text-xl font-semibold items-baseline justify-self-center">Vote</span>
-        <span className="grow">{/* spacer */}</span>
+      {/* Top Row: Placeholder Image and Vote Text */}
+      <div className="w-full flex items-center gap-4 mb-4">
+        <div className="w-20 h-20 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="flex-grow h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
       </div>
-      <div className="flex flex-col w-full space-y-2 mb-4">
-        <div className="w-full h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
-        <div className="w-full h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
-        <div className="w-1/2 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
-      </div>
+
+      {/* Vote Details Skeleton */}
       <VoteFiguresSkeleton />
+
+      {/* Charts and Ballot Skeleton */}
       <div className="flex flex-col space-y-2 items-center w-full">
-        <div className="w-full h-64 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
-        <div className="w-full h-32 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
+        <div className="w-full h-[200px] bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="flex flex-row justify-between items-center w-full">
+          <div className="w-1/3 h-8 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+          <div className="w-1/3 h-8 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+        </div>
+        <div className="w-full h-12 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
       </div>
     </div>
   );

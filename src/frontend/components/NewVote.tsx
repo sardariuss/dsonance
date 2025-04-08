@@ -1,6 +1,6 @@
-
 import { useAuth } from "@ic-reactor/react";
 import { backendActor } from "../actors/BackendActor";
+import pica from "pica";
 
 import { useState, useEffect } from "react";
 
@@ -18,6 +18,8 @@ function NewVote() {
   const { authenticated, login } = useAuth({});
   
   const [text, setText] = useState("");
+  const [thumbnail, setThumbnail] = useState<Uint8Array | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
   const { refreshBtcAllowance } = useAllowanceContext();
   const navigate = useNavigate();
@@ -41,9 +43,59 @@ function NewVote() {
     }
   });
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === "image/png") {
+      const image = new Image();
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        if (reader.result) {
+          image.src = reader.result as string;
+          setThumbnailPreview(reader.result as string); // Set preview
+        }
+      };
+
+      image.onload = async () => {
+        const canvas = document.createElement("canvas");
+        const offscreenCanvas = document.createElement("canvas");
+        const picaInstance = pica();
+
+        const { width, height } = image;
+        const scale = 96 / Math.min(width, height);
+        offscreenCanvas.width = Math.round(width * scale);
+        offscreenCanvas.height = Math.round(height * scale);
+
+        try {
+          await picaInstance.resize(image, offscreenCanvas);
+          const blob = await picaInstance.toBlob(offscreenCanvas, "image/png");
+          if (blob) {
+            const arrayBuffer = await blob.arrayBuffer();
+            const resizedThumbnail = new Uint8Array(arrayBuffer);
+            setThumbnail(resizedThumbnail);
+
+            // Update the preview with the resized image
+            const resizedPreviewUrl = URL.createObjectURL(blob);
+            setThumbnailPreview(resizedPreviewUrl);
+          }
+        } catch (error) {
+          console.error("Image resizing failed:", error);
+          alert("Failed to process the image.");
+        }
+      };
+
+      reader.readAsDataURL(file);
+    } else {
+      alert("Please select a valid PNG file.");
+    }
+  };
+
   const openVote = () => {
     if (authenticated) {
-      newVote( [{ text, id: uuidv4(), from_subaccount: [] }]);
+      if (thumbnail === null) {
+        throw new Error("Thumbnail is null");
+      };
+      newVote([{ text, id: uuidv4(), from_subaccount: [], thumbnail }]);
     } else {
       login();
     }
@@ -98,6 +150,33 @@ function NewVote() {
           data-placeholder={NEW_VOTE_PLACEHOLDER}
           contentEditable="true"
         />
+        <div className="flex flex-col gap-y-2">
+          <label htmlFor="thumbnail-upload" className="text-sm text-gray-600 dark:text-gray-400">
+            Upload Thumbnail (PNG only):
+          </label>
+          <label
+            htmlFor="thumbnail-upload"
+            className={`button-simple text-lg text-center cursor-pointer inline-block px-4 py-2 w-40`}
+          >
+            Choose File
+          </label>
+          <input
+            id="thumbnail-upload"
+            type="file"
+            accept="image/png"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          {thumbnailPreview && (
+            <div className="mt-4">
+              <img
+                className="w-20 h-20 bg-contain bg-no-repeat bg-center rounded-md"
+                src={thumbnailPreview}
+                alt="Thumbnail Preview"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <span className="grow">{/* spacer */}</span>
@@ -109,7 +188,7 @@ function NewVote() {
         </div>
         <button className={`button-simple text-lg`} 
                 onClick={openVote}
-                disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS}>
+                disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS || thumbnail === null}>
           Create vote
         </button>
       </div>

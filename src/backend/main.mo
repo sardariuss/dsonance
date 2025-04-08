@@ -18,6 +18,7 @@ shared({ caller = admin }) actor class Backend() = this {
     type VoteInfo = {
         text: Text;
         visible: Bool;
+        thumbnail: Blob;
     };
     type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate, YesNoChoice> and { info: VoteInfo };
     type Account = ProtocolTypes.Account;
@@ -31,6 +32,7 @@ shared({ caller = admin }) actor class Backend() = this {
 
     public shared({ caller }) func new_vote({
         text: Text;
+        thumbnail: Blob;
         id: UUID;
         from_subaccount: ?Blob;
     }) : async SNewVoteResult {
@@ -41,7 +43,7 @@ shared({ caller = admin }) actor class Backend() = this {
         Result.mapOk(new_result, func(vote_type: SVoteType) : SYesNoVote {
             switch(vote_type) {
                 case(#YES_NO(vote)) {
-                    let info = { text; visible = true; };
+                    let info = { text; thumbnail; visible = true; };
                     Map.set(_infos, Map.thash, vote.vote_id, info);
                     { vote with info; };
                 };
