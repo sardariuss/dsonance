@@ -7,7 +7,7 @@ interface VoteCardProps {
   tvl: bigint;
   voteDetails: VoteDetails;
   text: string;
-  thumbnail: number[] | Uint8Array<ArrayBufferLike>; // Add thumbnail prop
+  thumbnail: number[] | Uint8Array;
 }
 
 const VoteCard: React.FC<VoteCardProps> = ({ tvl, voteDetails, text, thumbnail }) => {
