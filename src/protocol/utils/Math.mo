@@ -1,6 +1,9 @@
 import Float "mo:base/Float";
+import Map "mo:map/Map";
 
 module {
+
+    type Iter<T> = Map.Iter<T>;
 
     public func logistic_regression({
         x: Float;
@@ -17,6 +20,6 @@ module {
         offset: Float;
     }) : Float {
         return (1 - offset) / -lambda * (Float.exp(-lambda * b) - Float.exp(-lambda * a)) + offset * (b - a);
-    }
+    };
     
 }

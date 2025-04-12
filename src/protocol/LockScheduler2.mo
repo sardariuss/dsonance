@@ -3,18 +3,20 @@ import Timer "mo:base/Timer";
 import BTree "mo:stableheapbtreemap/BTree";
 import Map "mo:map/Map";
 import Time "mo:base/Time";
-
 import Order "mo:base/Order";
 import Text "mo:base/Text";
 import Int "mo:base/Int";
 import Debug "mo:base/Debug";
+import Option "mo:base/Option";
 
+// TODO: use Clock instead of Time module
 module {
 
     type Lock = Types.Lock;
     type Map<K, V> = Map.Map<K, V>;
     type BTree<K, V> = BTree.BTree<K, V>;
     type Order = Order.Order;
+    type Iter<T> = Map.Iter<T>;
 
     let EXPIRED_LOCK_TIMER_DURATION = #seconds(2);
 
@@ -29,10 +31,34 @@ module {
     public class LockScheduler({
         btree: BTree<Lock, ()>;
         map: Map<Text, Lock>;
+        on_unlocked: Lock -> ();
     }) {
+
         var timer_id: ?Timer.TimerId = null;
 
-        private func refresh_unlock_timer() : async* () {
+        public func add(lock: Lock) : async*() {
+
+            if (has_lock(lock.id)) {
+                Debug.trap("The lock already exists");
+            };
+
+            add_lock(lock);
+            await* refresh_timer();
+        };
+
+        public func update(locks: Iter<Lock>) : async* () {
+
+            for (lock in locks){
+                // Update the lock only if it exists
+                Option.iterate(remove_lock(lock.id), func(_: Lock) {
+                    add_lock(lock);
+                });
+            };
+            
+            await* refresh_timer();
+        };
+
+        private func refresh_timer() : async* () {
             
             // Cancel the current timer if it exists
             switch (timer_id) {
@@ -63,38 +89,7 @@ module {
             };
         };
 
-        public func add(lock: Lock) : async*() {
-
-            // Check if there is already a lock with that ID
-            if (Map.has(map, Map.thash, lock.id)) {
-                Debug.trap("The lock already exists");
-            };
-
-            Map.set(map, Map.thash, lock.id, lock);
-            ignore BTree.insert(btree, compare_locks, lock, ());
-            
-            await* refresh_unlock_timer();
-        };
-
-        public func update(lock: Lock) : async* () {
-
-            // Remove the old lock
-            switch(Map.remove(map, Map.thash, lock.id)) {
-                case(null) { Debug.trap("The lock does not exist"); };
-                case(?old) {
-                    // @todo: should one assert (lock.release_date <= time)?
-                    ignore BTree.delete(btree, compare_locks, old);
-                };
-            };
-
-            // Add the new lock
-            Map.set(map, Map.thash, lock.id, lock);
-            ignore BTree.insert(btree, compare_locks, lock, ());
-
-            await* refresh_unlock_timer();
-        };
-
-        public func try_unlock() : async* (){
+        private func try_unlock() : async* (){
 
             let time = Int.abs(Time.now());
 
@@ -107,13 +102,40 @@ module {
                     case(?(lock, _)) {
                         
                         if (lock.release_date > time) { 
-                            await* refresh_unlock_timer(); 
+                            await* refresh_timer(); 
                             return;
                         };
 
-                        // Remove the lock
-                        ignore BTree.delete(btree, compare_locks, lock);
+                        ignore remove_lock(lock.id);
+                        on_unlocked(lock);
                     };
+                };
+            };
+        };
+
+        private func remove_lock(lock_id: Text) : ?Lock {
+
+            switch(Map.remove(map, Map.thash, lock_id)) {
+                case(null) { null; };
+                case(?old) {
+                    ignore BTree.delete(btree, compare_locks, old);
+                    ?old;
+                };
+            };
+        };
+
+        private func add_lock(lock: Lock) {
+
+            Map.set(map, Map.thash, lock.id, lock);
+            ignore BTree.insert(btree, compare_locks, lock, ());
+        };
+
+        private func has_lock(lock_id: Text) : Bool {
+
+            switch(Map.get(map, Map.thash, lock_id)){
+                case(null) { false; };
+                case(?lock) { 
+                    BTree.has(btree, compare_locks, lock);
                 };
             };
         };

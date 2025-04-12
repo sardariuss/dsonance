@@ -10,6 +10,7 @@ import SharedConversions       "shared/SharedConversions";
 import BallotUtils             "votes/BallotUtils";
 import VoteTypeController      "votes/VoteTypeController";
 import IdFormatter             "IdFormatter";
+import IterUtils               "utils/Iter";
 
 import Map                     "mo:map/Map";
 
@@ -42,6 +43,7 @@ module {
     type MintingInfo = Types.MintingInfo;
     type Timeline<T> = Types.Timeline<T>;
     type ProtocolInfo = Types.ProtocolInfo;
+    type YesNoBallot = Types.YesNoBallot;
 
     type WeightParams = {
         ballot: BallotType;
@@ -195,10 +197,10 @@ module {
             // Update the locks
             // TODO: fix the following limitation
             // Watchout, the new ballot shall be added first, otherwise the update will trap
-            lock_scheduler.add(yes_no_ballot, timestamp);
-            for (ballot in vote_type_controller.vote_ballots(vote_type)){
-                lock_scheduler.update(BallotUtils.unwrap_yes_no(ballot), timestamp);
-            };
+            await* lock_scheduler.add(
+                yes_no_ballot,
+                IterUtils.map<BallotType, YesNoBallot>(vote_type_controller.vote_ballots(vote_type), BallotUtils.unwrap_yes_no),
+                timestamp);
 
             // TODO: this is kind of a hack to have an up-to-date foresight and contribution, should be removed
             Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
