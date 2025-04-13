@@ -22,15 +22,9 @@ module {
             info;
         };
 
-        public func add_lend_amount({ amount: Nat; time: Nat; }) : LenderInfo {
+        public func update_tvl({ new_tvl: Nat; time: Nat; }) : LenderInfo {
             accumulate_yield(time);
-            info.tvl += amount;
-            info;
-        };
-
-        public func remove_lend_amount({ amount: Nat; time: Nat; }) : LenderInfo {
-            accumulate_yield(time);
-            info.tvl -= amount;
+            info.tvl := new_tvl;
             info;
         };
 

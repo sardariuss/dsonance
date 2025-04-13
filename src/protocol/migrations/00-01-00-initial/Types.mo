@@ -306,6 +306,7 @@ module {
 
     public type Lock = {
         release_date: Nat;
+        amount: Nat;
         id: UUID;
     };
 

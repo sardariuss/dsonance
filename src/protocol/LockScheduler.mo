@@ -56,7 +56,7 @@ module {
             });
             //await* lock_scheduler.update(locks); // @todo
 
-            let lender_info = lender.add_lend_amount({ amount = new.amount; time; });
+            let lender_info = lender.update_tvl({ new_tvl; time; });
             foresight_calculator.update_foresights(lender_info, time);
 
             // Update the total locked per vote
@@ -68,7 +68,7 @@ module {
 
             let ballot = get_ballot(removed.id);
 
-            let lender_info = lender.remove_lend_amount({ amount = ballot.amount; time; });
+            let lender_info = lender.update_tvl({ new_tvl; time; });
             foresight_calculator.update_foresights(lender_info, time);
 
             // Trigger the transfer of the original amount plus the reward
@@ -95,6 +95,7 @@ module {
                 case(?lock) {
                     { 
                         release_date = lock.release_date;
+                        amount = ballot.amount;
                         id = ballot.ballot_id; 
                     };
                 };
