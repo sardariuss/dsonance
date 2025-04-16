@@ -14,7 +14,6 @@ import Map "mo:map/Map";
 module {
 
     type UUID = Types.UUID;
-    type Lock = Types.Lock;
     type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
     type ProtocolParameters = Types.ProtocolParameters;
     type VoteType = Types.VoteType;
@@ -28,7 +27,8 @@ module {
     type Args = {
         admin: Principal;
         lock_scheduler: LockScheduler.LockScheduler;
-        parameters: ProtocolParameters and TimerParameters;
+        timer_parameters: TimerParameters;
+        protocol_parameters: ProtocolParameters;
         var time_last_mint: Nat;
         dsn_debt: DebtProcessor.DebtProcessor;
         votes: Map<UUID, VoteType>;
@@ -37,11 +37,11 @@ module {
 
     public class TokenMinter(args: Args) {
 
-        let { admin; lock_scheduler; dsn_debt; votes; parameters; get_ballot; } = args;
-        let protocol_timer = ProtocolTimer.ProtocolTimer({ admin; parameters; });
+        let { admin; lock_scheduler; dsn_debt; votes; protocol_parameters; timer_parameters; get_ballot; } = args;
+        let protocol_timer = ProtocolTimer.ProtocolTimer({ admin; timer_parameters; });
 
         public func set_minting_period_s({ caller: Principal; minting_period_s: Nat; }) : async* Result<(), Text> {
-            await* protocol_timer.set_interval({ caller; interval_s = minting_period_s; });
+            await* protocol_timer.set_timer({ caller; parameters = #RECURRING({ interval_s = minting_period_s; }); });
         };
 
         public func start_minting({ caller: Principal; }) : async* Result<(), Text> {
@@ -123,7 +123,7 @@ module {
                 case(?lock) { lock.release_date; };
             };
             
-            let { contribution_per_ns } = parameters;
+            let { contribution_per_ns } = protocol_parameters;
 
             let rate = (Float.fromInt(ballot.amount) / Float.fromInt(tvl)) * contribution_per_ns;
             let to_mint = rate * Float.fromInt(period);
@@ -131,12 +131,12 @@ module {
 
             {
                 ballot = { 
-                    to_mint = to_mint * ( 1.0 - parameters.author_share);
-                    pending = pending * ( 1.0 - parameters.author_share);
+                    to_mint = to_mint * ( 1.0 - protocol_parameters.author_share);
+                    pending = pending * ( 1.0 - protocol_parameters.author_share);
                 };
                 author = { 
-                    to_mint = to_mint * parameters.author_share;
-                    pending = pending * parameters.author_share;
+                    to_mint = to_mint * protocol_parameters.author_share;
+                    pending = pending * protocol_parameters.author_share;
                 };
             };
         };

@@ -285,7 +285,8 @@ module {
     };
 
     public type TimerParameters = {
-        var interval_s: Nat;
+        #SINGLE_SHOT: { duration_s: Nat };
+        #RECURRING: { interval_s: Nat; };
     };
 
     public type ClockInitArgs = {

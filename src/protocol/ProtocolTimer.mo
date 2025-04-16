@@ -6,24 +6,28 @@ import Principal "mo:base/Principal";
 
 module {
 
-    type TimerParameters = Types.TimerParameters;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    public class ProtocolTimer({
-        admin: Principal;
-        parameters: TimerParameters;
-    }) {
+    type TimerParameters = Types.TimerParameters;
 
+    type ProtocolTimerArgs = {
+        admin: Principal;
+        var parameters: TimerParameters;
+    };
+
+    public class ProtocolTimer(args: ProtocolTimerArgs) {
+
+        let { admin; } = args;
         var _id: ?Nat = null;
 
-        public func set_interval({ caller: Principal; interval_s: Nat; }) : async* Result<(), Text> {
+        public func set_timer({ caller: Principal; parameters: TimerParameters; }) : async* Result<(), Text> {
             if (not Principal.equal(caller, admin)) {
                 return #err("Only the admin can set the timer");
             };
             if (_id != null) {
-                return #err("Cannot set the timer duration while it is running");
+                return #err("Cannot set the timer type while it is running");
             };
-            parameters.interval_s := interval_s;
+            args.parameters := parameters;
             #ok;
         };
 
@@ -34,9 +38,19 @@ module {
             if (_id != null) {
                 return #err("The timer is already running");
             };
-            _id := ?Timer.recurringTimer<system>(#seconds(parameters.interval_s), func() : async () {
-                await* fn();
-            });
+            _id := switch(args.parameters) {
+                case(#SINGLE_SHOT({duration_s})) {
+                    ?Timer.setTimer<system>(#seconds(duration_s), func() : async () {
+                        await* fn();
+                        _id := null;
+                    });
+                };
+                case(#RECURRING({interval_s})) {
+                    ?Timer.recurringTimer<system>(#seconds(interval_s), func() : async () {
+                        await* fn();
+                    });
+                };
+            };
             #ok;
         };
 
