@@ -280,10 +280,6 @@ module {
         #NS: Nat;
     };
 
-    public type MintingInfo = {
-        amount_minted: Timeline<Nat>;
-    };
-
     public type TimerParameters = {
         #SINGLE_SHOT: { duration_s: Nat };
         #RECURRING: { interval_s: Nat; };
@@ -326,8 +322,36 @@ module {
         };
     };
 
+    public type LockSchedulerState = {
+        btree: BTree<Lock, ()>;
+        map: Map<Text, Lock>;
+        tvl: Timeline<Nat>;
+    };
+
+    public type YieldState = {
+        var tvl: Nat;
+        var apr: Float;
+        interest: {
+            var earned: Float;
+            var time_last_update: Nat;
+        };
+    };
+
+    public type MinterArgs = {
+        minting_period: Duration;
+        contribution_per_day: Nat;
+        author_share: Float;
+    };
+
+    public type MinterParameters = {
+        var minting_period: Duration;
+        var contribution_per_day: Nat;
+        var author_share: Float;
+        var time_last_mint: Nat;
+        amount_minted: Timeline<Nat>;
+    };
+
     public type ProtocolParameters = {
-        contribution_per_ns: Float;
         nominal_lock_duration: Duration;
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
@@ -335,8 +359,7 @@ module {
         age_coefficient: Float;
         max_age: Nat;
         author_fee: Nat;
-        author_share: Float;
-        timer: TimerParameters;
+        minter_parameters: MinterParameters;
         decay: {
             half_life: Duration;
             time_init: Nat;
@@ -360,8 +383,8 @@ module {
             ledger: Principal;
             fee: Nat;
         };
+        minter: MinterArgs;
         parameters: {
-            contribution_per_day: Nat;
             age_coefficient: Float;
             max_age: Duration;
             ballot_half_life: Duration;
@@ -370,8 +393,6 @@ module {
             dissent_steepness: Float;
             consent_steepness: Float;
             author_fee: Nat;
-            author_share: Float;
-            timer_interval_s: Nat;
             clock: ClockInitArgs;
         };
     };
@@ -384,6 +405,8 @@ module {
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
         lock_register: LockRegister;
+        lock_scheduler_state: LockSchedulerState;
+        yield_state: YieldState;
         btc: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
@@ -395,7 +418,6 @@ module {
             debt_register: DebtRegister;
         };
         parameters: ProtocolParameters;
-        minting_info: MintingInfo;
     };
   
 };

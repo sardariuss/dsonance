@@ -13,6 +13,7 @@ module {
     type DebtInfo             = Types.DebtInfo;
     type YesNoBallot          = Types.YesNoBallot;
     type LockInfo             = Types.LockInfo;
+    type Lock                 = Types.Lock;
     type Time                 = Int;
     
     // TODO: it would probably be clever to put the typed choice outside of the BallotInfo type
@@ -54,10 +55,23 @@ module {
         };
     };
 
-    public func unwrap_lock(ballot: YesNoBallot) : LockInfo {
+    public func unwrap_lock_info(ballot: YesNoBallot) : LockInfo {
         switch(ballot.lock){
             case(null) { Debug.trap("Lock not found"); };
             case(?lock) { lock; };
+        };
+    };
+
+    public func unwrap_lock(ballot: BallotType) : Lock {
+        switch(ballot){
+            case(#YES_NO(b)) { 
+                let lock_info = unwrap_lock_info(b);
+                { 
+                    release_date = lock_info.release_date;
+                    amount = b.amount;
+                    id = b.ballot_id; 
+                };
+            };
         };
     };
 

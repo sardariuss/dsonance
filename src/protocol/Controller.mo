@@ -1,7 +1,6 @@
 import Types                   "Types";
 import DebtProcessor           "DebtProcessor";
-import ProtocolTimer           "ProtocolTimer";
-import LockScheduler           "LockScheduler";
+import LockScheduler2          "LockScheduler2";
 import Queries                 "Queries";
 import MapUtils                "utils/Map";
 import Timeline                "utils/Timeline";
@@ -11,6 +10,7 @@ import BallotUtils             "votes/BallotUtils";
 import VoteTypeController      "votes/VoteTypeController";
 import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
+import TokenMinter             "TokenMinter";
 
 import Map                     "mo:map/Map";
 
@@ -20,7 +20,6 @@ import Debug                   "mo:base/Debug";
 import Buffer                  "mo:base/Buffer";
 import Iter                    "mo:base/Iter";
 import Result                  "mo:base/Result";
-import Array                   "mo:base/Array";
 
 module {
 
@@ -40,10 +39,11 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type Iter<T> = Iter.Iter<T>;
     type ProtocolParameters = Types.ProtocolParameters;
-    type MintingInfo = Types.MintingInfo;
     type Timeline<T> = Types.Timeline<T>;
     type ProtocolInfo = Types.ProtocolInfo;
     type YesNoBallot = Types.YesNoBallot;
+    type Lock = Types.Lock;
+    type Duration = Types.Duration;
 
     type WeightParams = {
         ballot: BallotType;
@@ -71,13 +71,12 @@ module {
         clock: Clock.Clock;
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
-        lock_scheduler: LockScheduler.LockScheduler;
+        lock_scheduler: LockScheduler2.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
         btc_debt: DebtProcessor.DebtProcessor;
         dsn_debt: DebtProcessor.DebtProcessor;
         queries: Queries.Queries;
-        protocol_timer: ProtocolTimer.ProtocolTimer;
-        minting_info: MintingInfo;
+        minter: TokenMinter.TokenMinter;
         parameters: ProtocolParameters;
     }){
 
@@ -141,18 +140,9 @@ module {
 
             let { new; previous; } = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id = 0; timestamp; from; }});
 
-            // Refresh the lock durations
-            let yes_no_ballot = BallotUtils.unwrap_yes_no(new);
-            lock_scheduler.refresh_lock_duration(yes_no_ballot, timestamp);
-            for (prev in Array.vals(previous)){
-                let b = BallotUtils.unwrap_yes_no(prev);
-                let lock = BallotUtils.unwrap_lock(b);
-                if (lock.release_date > yes_no_ballot.timestamp){
-                    lock_scheduler.refresh_lock_duration(b, timestamp);
-                };
-            };
-
-            Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
+            // @todo: Refresh the foresight
+            //let yes_no_ballot = BallotUtils.unwrap_yes_no(new);
+            //Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
 
             #ok({ new; previous; });
         };
@@ -192,18 +182,16 @@ module {
 
             let ballot_type = vote_type_controller.put_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id; timestamp; from; }});
 
-            let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot_type);
+            //let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot_type);
 
             // Update the locks
-            // TODO: fix the following limitation
-            // Watchout, the new ballot shall be added first, otherwise the update will trap
             await* lock_scheduler.add(
-                yes_no_ballot,
-                IterUtils.map<BallotType, YesNoBallot>(vote_type_controller.vote_ballots(vote_type), BallotUtils.unwrap_yes_no),
+                BallotUtils.unwrap_lock(ballot_type),
+                IterUtils.map<BallotType, Lock>(vote_type_controller.vote_ballots(vote_type), BallotUtils.unwrap_lock),
                 timestamp);
 
-            // TODO: this is kind of a hack to have an up-to-date foresight and contribution, should be removed
-            Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
+            // @todo: this is kind of a hack to have an up-to-date foresight and contribution, should be removed
+            //Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
 
             // Add the ballot to that account
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
@@ -215,7 +203,9 @@ module {
         public func run() : async* () {
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
-            lock_scheduler.try_unlock(time);
+            
+            // @todo : use minter
+            //lock_scheduler.try_unlock(time);
 
             let transfers = Buffer.Buffer<async* ()>(3);
 
@@ -235,16 +225,16 @@ module {
             clock;
         };
 
-        public func set_timer_interval({ caller: Principal; interval_s: Nat; }) : async* Result<(), Text> {
-            await* protocol_timer.set_interval({ caller; interval_s; fn = run;});
+        public func set_minting_period(minting_period: Duration) : async* () {
+            await* minter.set_minting_period(minting_period);
         };
 
-        public func start_timer({ caller: Principal; }) : async* Result<(), Text> {
-            await* protocol_timer.start_timer({ caller; fn = run; });
+        public func start_minting() : async* Result<(), Text> {
+            await* minter.start_minting();
         };
 
-        public func stop_timer({ caller: Principal }) : Result<(), Text> {
-            protocol_timer.stop_timer({ caller });
+        public func stop_minting() : Result<(), Text> {
+            minter.stop_minting();
         };
 
         public func get_parameters() : ProtocolParameters {
@@ -254,9 +244,8 @@ module {
         public func get_info() : ProtocolInfo {
             {
                 current_time = clock.get_time();
-                last_run = lock_scheduler.get_last_dispense();
-                btc_locked = lock_scheduler.get_total_locked();
-                dsn_minted = minting_info.amount_minted;
+                last_run = 0; // @todo: use minter instead
+                btc_locked = lock_scheduler.get_state().tvl;
             };
         };
 

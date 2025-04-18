@@ -52,7 +52,7 @@ module {
                                 if (filter_active) {
                                     switch(ballot_type){
                                         case(#YES_NO(ballot)) {
-                                            let lock = BallotUtils.unwrap_lock(ballot);
+                                            let lock = BallotUtils.unwrap_lock_info(ballot);
                                             if (lock.release_date > clock.get_time()){
                                                 buffer.add(SharedConversions.shareBallotType(ballot_type));
                                             };
@@ -90,7 +90,7 @@ module {
                             case(?ballot) {
                                 switch(ballot){
                                     case(#YES_NO(b)) {
-                                        let lock = BallotUtils.unwrap_lock(b);
+                                        let lock = BallotUtils.unwrap_lock_info(b);
                                         if (lock.release_date > timestamp){
                                             total += b.amount;
                                         };

@@ -46,7 +46,6 @@ module {
     public type DebtInfo           = Types.Current.DebtInfo;
     public type Transfer           = Types.Current.Transfer;
     public type TransferResult     = Types.Current.TransferResult;
-    public type MintingInfo        = Types.Current.MintingInfo;
     public type BallotType         = Types.Current.BallotType;
     public type BallotRegister     = Types.Current.BallotRegister;
     public type ProtocolParameters = Types.Current.ProtocolParameters;
@@ -55,6 +54,9 @@ module {
     public type Register<T>        = Types.Current.Register<T>;
     public type DebtRegister       = Types.Current.DebtRegister;
     public type DebtRecord         = Types.Current.DebtRecord;
+    public type MinterParameters   = Types.Current.MinterParameters;
+    public type LockSchedulerState = Types.Current.LockSchedulerState;
+    public type YieldState         = Types.Current.YieldState;
 
     // CANISTER ARGS
 
@@ -156,7 +158,6 @@ module {
         current_time: Nat;
         last_run: Nat;
         btc_locked: STimeline<Nat>;
-        dsn_minted: STimeline<Nat>;
     };
 
     public type SClockParameters = {
@@ -168,12 +169,15 @@ module {
         };
     };
 
-    public type STimerParameters = {
-        interval_s: Nat;
+    public type SMinterParameters = {
+        minting_period: Duration;
+        contribution_per_day: Nat;
+        author_share: Float;
+        time_last_mint: Nat;
+        amount_minted: STimeline<Nat>;
     };
 
     public type SProtocolParameters = {
-        contribution_per_ns: Float;
         age_coefficient: Float;
         max_age: Nat;
         nominal_lock_duration: Duration;
@@ -181,7 +185,7 @@ module {
         dissent_steepness: Float;
         consent_steepness: Float;
         author_fee: Nat;
-        timer: STimerParameters;
+        minter_parameters: SMinterParameters;
         decay: {
             half_life: Duration;
             time_init: Nat;
@@ -195,7 +199,11 @@ module {
         current_time: Nat;
         last_run: Nat;
         btc_locked: Timeline<Nat>;
-        dsn_minted: Timeline<Nat>;
+    };
+
+    public type LockEvent = {
+        #LOCK_ADDED: Lock;
+        #LOCK_REMOVED: Lock;
     };
 
     public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Nat;}) -> A;

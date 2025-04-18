@@ -1,13 +1,14 @@
 import Types "Types";
 import DebtProcessor "DebtProcessor";
-import LockScheduler "LockScheduler2";
-import ProtocolTimer "ProtocolTimer";
+import Duration "duration/Duration";
 
 import Debug "mo:base/Debug";
 import Float "mo:base/Float";
 import Time "mo:base/Time";
 import Int "mo:base/Int";
 import Result "mo:base/Result";
+import Timer "mo:base/Timer";
+import Iter "mo:base/Iter";
 
 import Map "mo:map/Map";
 
@@ -20,66 +21,83 @@ module {
     type YesNoVote = Types.YesNoVote;
     type DebtRecord = Types.DebtRecord;
     type TimerParameters = Types.TimerParameters;
-
+    type MinterParameters = Types.MinterParameters;
+    type Duration = Types.Duration;
+    
+    type Iter<T> = Iter.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    type Args = {
-        admin: Principal;
-        lock_scheduler: LockScheduler.LockScheduler;
-        timer_parameters: TimerParameters;
-        protocol_parameters: ProtocolParameters;
-        var time_last_mint: Nat;
+    public class TokenMinter({
+        parameters: MinterParameters;
         dsn_debt: DebtProcessor.DebtProcessor;
-        votes: Map<UUID, VoteType>;
-        get_ballot: (UUID) -> YesNoBallot;
-    };
+        get_tvl: () -> Nat;
+        get_locked_ballots: () -> Iter<(YesNoBallot, YesNoVote)>;
+    }) {
+        // @todo: update amount minted;
 
-    public class TokenMinter(args: Args) {
+        var timer_id: ?Timer.TimerId = null;
 
-        let { admin; lock_scheduler; dsn_debt; votes; protocol_parameters; timer_parameters; get_ballot; } = args;
-        let protocol_timer = ProtocolTimer.ProtocolTimer({ admin; timer_parameters; });
-
-        public func set_minting_period_s({ caller: Principal; minting_period_s: Nat; }) : async* Result<(), Text> {
-            await* protocol_timer.set_timer({ caller; parameters = #RECURRING({ interval_s = minting_period_s; }); });
+        public func set_minting_period(minting_period: Duration) : async* () {
+            ignore stop_minting();
+            parameters.minting_period := minting_period;
+            ignore (await* start_minting());
         };
 
-        public func start_minting({ caller: Principal; }) : async* Result<(), Text> {
-            await* protocol_timer.start_timer({ caller; fn = func() : async* () {
-                mint_period();
-            }});
+        public func start_minting() : async* Result<(), Text> {
+            switch(timer_id) {
+                case(null) {
+                    let interval_ns = Duration.toTime(parameters.minting_period);
+                    timer_id := ?Timer.recurringTimer<system>(#nanoseconds(interval_ns), func() : async () {
+                        await* mint();
+                    });
+                    #ok;
+                };
+                case(_) { 
+                    #err("Minting process is currently active"); 
+                };
+            }
         };
 
-        public func stop_minting({ caller: Principal }) : Result<(), Text> {
-            protocol_timer.stop_timer({ caller; })
+        public func stop_minting() : Result<(), Text> {
+            switch(timer_id) {
+                case(?id) { 
+                    Timer.cancelTimer(id);
+                    timer_id := null;
+                    #ok;
+                };
+                case(null) {
+                    #err("No minting process is currently active");
+                };
+            };
         };
 
         public func preview_contribution(ballot: YesNoBallot) : DebtRecord {
 
-            let mint_coupon = compute_contribution(ballot, 0).ballot;
+            let mint_coupon = compute_contribution(ballot, 0, get_tvl()).ballot;
             {
                 earned = mint_coupon.to_mint;
                 pending = mint_coupon.pending;
             };
         };
 
-        func mint_period() {
+        func mint() : async*() {
 
             let time = Int.abs(Time.now()); // TODO: use the clock module instead
 
-            let period = time - args.time_last_mint;
-
-            if (period < 0) {
-                Debug.trap("Cannot mint on a negative period");
+            let period = do {
+                let diff : Int = time - parameters.time_last_mint;
+                if (diff < 0) {
+                    Debug.trap("Cannot mint on a negative period");
+                };
+                Int.abs(diff);
             };
+            
+            let tvl = get_tvl();
 
-            let locks = lock_scheduler.get_locks();
-
-            for (lock in locks) {
-
-                let ballot = get_ballot(lock.id);
+            for ((ballot, vote) in get_locked_ballots()) {
                 
-                let contribution = compute_contribution(ballot, period);
+                let contribution = compute_contribution(ballot, period, tvl);
 
                 dsn_debt.increase_debt({ 
                     id = ballot.ballot_id;
@@ -88,8 +106,6 @@ module {
                     pending = contribution.ballot.pending;
                     time;
                 });
-                
-                let vote = get_vote({ vote_id = ballot.vote_id });
 
                 dsn_debt.increase_debt({ 
                     id = vote.vote_id;
@@ -98,10 +114,12 @@ module {
                     pending = contribution.author.pending;
                     time;
                 });
-            };
+            };    
 
             // Update the last mint time
-            args.time_last_mint := time;
+            parameters.time_last_mint := time;
+
+            await* dsn_debt.transfer_pending();
         };
 
         type MintCoupon = {
@@ -114,40 +132,25 @@ module {
             author: MintCoupon;
         };
 
-        func compute_contribution(ballot: YesNoBallot, period: Nat) : Contribution {
-            
-            let tvl = lock_scheduler.get_tvl();
+        func compute_contribution(ballot: YesNoBallot, period: Nat, tvl: Nat) : Contribution {
             
             let release_date = switch(ballot.lock){
                 case(null) { Debug.trap("The ballot does not have a lock"); };
                 case(?lock) { lock.release_date; };
             };
-            
-            let { contribution_per_ns } = protocol_parameters;
 
-            let rate = (Float.fromInt(ballot.amount) / Float.fromInt(tvl)) * contribution_per_ns;
+            let rate = (Float.fromInt(ballot.amount * parameters.contribution_per_day * Duration.NS_IN_DAY) / Float.fromInt(tvl));
             let to_mint = rate * Float.fromInt(period);
             let pending = rate * Float.fromInt(release_date - ballot.timestamp);
 
             {
                 ballot = { 
-                    to_mint = to_mint * ( 1.0 - protocol_parameters.author_share);
-                    pending = pending * ( 1.0 - protocol_parameters.author_share);
+                    to_mint = to_mint * ( 1.0 - parameters.author_share);
+                    pending = pending * ( 1.0 - parameters.author_share);
                 };
                 author = { 
-                    to_mint = to_mint * protocol_parameters.author_share;
-                    pending = pending * protocol_parameters.author_share;
-                };
-            };
-        };
-
-        func get_vote({ vote_id: UUID; }) : YesNoVote {
-            switch(Map.get(votes, Map.thash, vote_id)){
-                case(null) { Debug.trap("The vote does not exist"); };
-                case(?v) { 
-                    switch(v){
-                        case(#YES_NO(vote)) { vote; };
-                    };
+                    to_mint = to_mint * parameters.author_share;
+                    pending = pending * parameters.author_share;
                 };
             };
         };

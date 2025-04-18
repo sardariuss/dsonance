@@ -35,7 +35,6 @@ module {
     public class DebtProcessor({
         ledger: LedgerFacade.LedgerFacade;
         register: DebtRegister;
-        on_successful_transfer: ?(TransferCallback);
     }){
 
         public func increase_debt({ id: UUID; time: Nat; account: Account; amount: Float; pending: Float; }) {
@@ -131,14 +130,9 @@ module {
             debt_info.transfers := Array.append(debt_info.transfers, [transfer]);
             
             Result.iterate(transfer.result, func(_: TxIndex){
-
+                
                 // Update successfully transferred amount
                 debt_info.transferred += difference;
-
-                // Notify the callback if there is one
-                Option.iterate(on_successful_transfer, func(f: TransferCallback){
-                    f({ amount = difference; });
-                });
             });
         };
 

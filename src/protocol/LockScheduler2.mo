@@ -1,4 +1,6 @@
 import Types "Types";
+import Timeline "utils/Timeline";
+
 import Timer "mo:base/Timer";
 import BTree "mo:stableheapbtreemap/BTree";
 import Map "mo:map/Map";
@@ -18,6 +20,9 @@ module {
     type BTree<K, V> = BTree.BTree<K, V>;
     type Order = Order.Order;
     type Iter<T> = Map.Iter<T>;
+    type Timeline<T> = Types.Timeline<T>;
+    type LockEvent = Types.LockEvent;
+    type LockSchedulerState = Types.LockSchedulerState;
 
     let EXPIRED_LOCK_TIMER_DURATION = #seconds(2);
 
@@ -29,63 +34,53 @@ module {
         };
     };
 
-    type LockEvent = {
-        #LOCK_ADDED: Lock;
-        #LOCK_REMOVED: Lock;
-    };
-
-    type LockSchedulerArgs = {
-        btree: BTree<Lock, ()>;
-        map: Map<Text, Lock>;
-        on_change: { event: LockEvent; new_tvl: Nat; } -> ();
-        var tvl: Nat;
-    };
-
-    public class LockScheduler(args : LockSchedulerArgs) {
+    public class LockScheduler({
+        state: LockSchedulerState;
+        on_change: { event: LockEvent; new_tvl: Nat; time: Nat; } -> ();
+    }) {
 
         var timer_id: ?Timer.TimerId = null;
-        // TODO: need to start timer at the beginning or put a public function to do it
+        // @todo: need to start timer at the beginning or put a public function to do it
 
-        public func get_locks() : Iter<Lock> {
-            Map.vals(args.map);
+        public func get_state() : LockSchedulerState {
+            state;
         };
 
-        public func get_tvl() : Nat {
-            args.tvl;
-        };
+        public func add(new: Lock, previous: Iter<Lock>, time: Nat) : async*() {
 
-        public func add(lock: Lock) : async*() {
-
-            if (has_lock(lock.id)) {
+            // Add the new lock
+            if (has_lock(new.id)) {
                 Debug.trap("The lock already exists");
             };
+            add_lock(new);
 
-            add_lock(lock);
-            args.tvl += lock.amount;
-            args.on_change({
-                event = #LOCK_ADDED(lock);
-                new_tvl = args.tvl;
-            });
-            await* refresh_timer();
-        };
-
-        public func update(locks: Iter<Lock>) : async* () {
-
-            for (lock in locks){
+            // Update the previous locks
+            for (prev in previous){
                 // Update the lock only if it exists
-                Option.iterate(remove_lock(lock.id), func(old: Lock) {
+                Option.iterate(remove_lock(prev.id), func(old: Lock) {
                     // Assert that they have the same amount
-                    if (lock.amount != old.amount) {
+                    if (prev.amount != old.amount) {
                         Debug.trap("The locks don't have the same amount");
                     };
-                    add_lock(lock);
+                    add_lock(prev);
                 });
             };
-            
+
+            // Update the total locked value
+            let new_tvl = Timeline.current(state.tvl) + new.amount;
+            Timeline.insert(state.tvl, time, new_tvl);
+
+            on_change({
+                event = #LOCK_ADDED(new);
+                new_tvl;
+                time;
+            });
+
+            // Refresh the timer
             await* refresh_timer();
         };
 
-        private func refresh_timer() : async* () {
+        func refresh_timer() : async* () {
             
             // Cancel the current timer if it exists
             switch (timer_id) {
@@ -94,7 +89,7 @@ module {
             };
 
             // Set a new timer based on the earliest lock
-            switch (BTree.min(args.btree)) {
+            switch (BTree.min(state.btree)) {
                 case (null) { timer_id := null; }; // No locks, no timer needed
                 case (?(lock, _)) {
                     let now = Int.abs(Time.now());
@@ -116,12 +111,12 @@ module {
             };
         };
 
-        private func try_unlock() : async* (){
+        func try_unlock() : async* (){
 
             let time = Int.abs(Time.now());
 
             while (true) {
-                switch(BTree.min(args.btree)) {
+                switch(BTree.min(state.btree)) {
                     case(null) { 
                         timer_id := null; // No more locks, clear the timer
                         return; 
@@ -134,39 +129,51 @@ module {
                         };
 
                         ignore remove_lock(lock.id);
-                        args.tvl -= lock.amount;
-                        args.on_change({
+                        
+                        let new_tvl = do {
+                            let diff : Int = Timeline.current(state.tvl) - lock.amount;
+                            if (diff < 0) {
+                                Debug.trap("Total locked value cannot be negative");
+                            };
+                            Int.abs(diff);
+                        };
+                        
+                        // Update the total locked value
+                        Timeline.insert(state.tvl, time, new_tvl);
+                        
+                        on_change({
                             event = #LOCK_REMOVED(lock);
-                            new_tvl = args.tvl;
+                            new_tvl;
+                            time;
                         });
                     };
                 };
             };
         };
 
-        private func remove_lock(lock_id: Text) : ?Lock {
+        func remove_lock(lock_id: Text) : ?Lock {
 
-            switch(Map.remove(args.map, Map.thash, lock_id)) {
+            switch(Map.remove(state.map, Map.thash, lock_id)) {
                 case(null) { null; };
                 case(?old) {
-                    ignore BTree.delete(args.btree, compare_locks, old);
+                    ignore BTree.delete(state.btree, compare_locks, old);
                     ?old;
                 };
             };
         };
 
-        private func add_lock(lock: Lock) {
+        func add_lock(lock: Lock) {
 
-            Map.set(args.map, Map.thash, lock.id, lock);
-            ignore BTree.insert(args.btree, compare_locks, lock, ());
+            Map.set(state.map, Map.thash, lock.id, lock);
+            ignore BTree.insert(state.btree, compare_locks, lock, ());
         };
 
-        private func has_lock(lock_id: Text) : Bool {
+        func has_lock(lock_id: Text) : Bool {
 
-            switch(Map.get(args.map, Map.thash, lock_id)){
+            switch(Map.get(state.map, Map.thash, lock_id)){
                 case(null) { false; };
                 case(?lock) { 
-                    BTree.has(args.btree, compare_locks, lock);
+                    BTree.has(state.btree, compare_locks, lock);
                 };
             };
         };
