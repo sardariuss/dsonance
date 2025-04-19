@@ -55,11 +55,11 @@ module {
                 vote_id;
                 tx_id;
                 date;
-                last_mint = date;
                 origin;
                 aggregate = Timeline.initialize(date, empty_aggregate);
                 ballots = Set.new<UUID>();
                 author;
+                var tvl = 0;
             };
         };
 

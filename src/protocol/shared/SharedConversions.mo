@@ -29,6 +29,8 @@ module {
     type SProtocolInfo = Types.SProtocolInfo;
     type BallotPreview = Types.BallotPreview;
     type SBallotPreview = Types.SBallotPreview;
+    type VoteType = Types.VoteType;
+    type SVoteType = Types.SVoteType;
 
     public func shareOpt<T, S>(opt: ?T, f: T -> S) : ?S {
         Option.map(opt, f);
@@ -76,7 +78,6 @@ module {
 
     public func shareMinterParameters(minter_parameters: MinterParameters) : SMinterParameters {
         {
-            minting_period = minter_parameters.minting_period;
             contribution_per_day = minter_parameters.contribution_per_day;
             author_share = minter_parameters.author_share;
             time_last_mint = minter_parameters.time_last_mint;
@@ -114,6 +115,18 @@ module {
         {
             new = shareBallotType(preview.new);
             previous = Array.map<BallotType, SBallotType>(preview.previous, shareBallotType);
+        };
+    };
+
+    public func shareVoteType(vote: VoteType) : SVoteType {
+        switch(vote){
+            case(#YES_NO(v)) { 
+                #YES_NO({
+                    v with 
+                    aggregate = shareTimeline(v.aggregate);
+                    tvl = v.tvl;
+                });
+            };
         };
     };
 

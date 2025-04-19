@@ -212,6 +212,7 @@ module {
         aggregate: Timeline<A>;
         ballots: Set<UUID>;
         author: Account;
+        var tvl: Nat;
     };
 
     public type DebtRecord = {
@@ -281,8 +282,7 @@ module {
     };
 
     public type TimerParameters = {
-        #SINGLE_SHOT: { duration_s: Nat };
-        #RECURRING: { interval_s: Nat; };
+        var interval_s: Nat;
     };
 
     public type ClockInitArgs = {
@@ -307,21 +307,6 @@ module {
         id: UUID;
     };
 
-    public type LockRegister = {
-        var time_last_dispense: Nat;
-        total_locked: Timeline<Nat>;
-        locked_per_vote: Map<UUID, Nat>;
-        locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the BallotType or even a generic lock type instead
-        yield: {
-            rate: Float;
-            var cumulated: Float;
-            contributions: {
-                var sum_current: Float;
-                var sum_cumulated: Float;
-            };
-        };
-    };
-
     public type LockSchedulerState = {
         btree: BTree<Lock, ()>;
         map: Map<Text, Lock>;
@@ -338,17 +323,15 @@ module {
     };
 
     public type MinterArgs = {
-        minting_period: Duration;
         contribution_per_day: Nat;
         author_share: Float;
     };
 
     public type MinterParameters = {
-        var minting_period: Duration;
         var contribution_per_day: Nat;
         var author_share: Float;
         var time_last_mint: Nat;
-        amount_minted: Timeline<Nat>;
+        amount_minted: Timeline<Float>;
     };
 
     public type ProtocolParameters = {
@@ -360,6 +343,7 @@ module {
         max_age: Nat;
         author_fee: Nat;
         minter_parameters: MinterParameters;
+        timer: TimerParameters;
         decay: {
             half_life: Duration;
             time_init: Nat;
@@ -393,6 +377,7 @@ module {
             dissent_steepness: Float;
             consent_steepness: Float;
             author_fee: Nat;
+            timer_interval_s: Nat;
             clock: ClockInitArgs;
         };
     };
@@ -404,7 +389,6 @@ module {
     public type State = {
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
-        lock_register: LockRegister;
         lock_scheduler_state: LockSchedulerState;
         yield_state: YieldState;
         btc: {

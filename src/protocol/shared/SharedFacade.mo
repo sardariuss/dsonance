@@ -52,19 +52,16 @@ module {
             await* controller.run();
         };
 
-        public func set_minting_period(caller: Principal, minting_period: Duration) : async* () {
-            // @todo: limit to canister owner
-            await* controller.set_minting_period(minting_period);
+        public func set_timer_interval({ caller: Principal; interval_s: Nat; }) : async* Result<(), Text> {
+            await* controller.set_timer_interval({ caller; interval_s; });
         };
 
-        public func start_minting(caller: Principal, ) : async* Result<(), Text> {
-            // @todo: limit to canister owner
-            await* controller.start_minting();
+        public func start_timer({ caller: Principal; }) : async* Result<(), Text> {
+            await* controller.start_timer({ caller; });
         };
 
-        public func stop_minting(caller: Principal, ) : Result<(), Text> {
-            // @todo: limit to canister owner
-            controller.stop_minting();
+        public func stop_timer({ caller: Principal }) : Result<(), Text> {
+            controller.stop_timer({ caller; });
         };
 
         public func add_clock_offset(duration: Duration) : Result<(), Text> {

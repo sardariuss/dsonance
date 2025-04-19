@@ -48,20 +48,6 @@ module {
                 ballots = Map.new<UUID, BallotType>();
                 by_account = Map.new<Account, Set<UUID>>();
             };
-            lock_register = {
-                var time_last_dispense = now;
-                total_locked = Timeline.initialize(now, 0);
-                locked_per_vote = Map.new<UUID, Nat>();
-                locks = BTree.init<Lock, Ballot<YesNoChoice>>(?BTREE_ORDER);
-                yield = {
-                    rate = 0.1; // TODO: This parameter shall be variable and come from the lending/borrowing utilization rate
-                    var cumulated = 0;
-                    contributions = {
-                        var sum_current = 0;
-                        var sum_cumulated = 0;
-                    };
-                };
-            };
             btc = {
                 ledger : ICRC1 and ICRC2 = actor(Principal.toText(btc.ledger));
                 fee = btc.fee;
@@ -93,6 +79,9 @@ module {
             };
             parameters = { parameters with
                 max_age = Duration.toTime(parameters.max_age);
+                timer = {
+                    var interval_s = parameters.timer_interval_s;
+                };
                 decay = {
                     half_life = parameters.ballot_half_life;
                     time_init = now;
@@ -108,11 +97,10 @@ module {
                     };
                 };
                 minter_parameters = {
-                    var minting_period = minter.minting_period;
                     var contribution_per_day = minter.contribution_per_day;
                     var author_share = minter.author_share;
                     var time_last_mint = now; // @todo: shall be null instead
-                    amount_minted = Timeline.initialize<Nat>(now, 0);
+                    amount_minted = Timeline.initialize<Float>(now, 0);
                 };
             };
         });

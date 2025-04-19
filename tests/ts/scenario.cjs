@@ -181,7 +181,7 @@ async function callCanisterMethod() {
 
     // A random user opens up a new vote
     for (let i = 0; i < NUM_VOTES; i++) {
-        const args = { text: VOTES_TO_OPEN[i], id: uuidv4(), from_subaccount: [] };
+        const args = { text: VOTES_TO_OPEN[i], id: uuidv4(), thumbnail: new Uint8Array(), from_subaccount: [] };
         getRandomUserActor(userActors).backend.new_vote(args).then((_) => {
             console.log('New vote added');
         });

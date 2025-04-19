@@ -1,13 +1,12 @@
 import Types "Types";
 import DebtProcessor "DebtProcessor";
 import Duration "duration/Duration";
+import Timeline "utils/Timeline";
 
 import Debug "mo:base/Debug";
 import Float "mo:base/Float";
-import Time "mo:base/Time";
 import Int "mo:base/Int";
 import Result "mo:base/Result";
-import Timer "mo:base/Timer";
 import Iter "mo:base/Iter";
 
 import Map "mo:map/Map";
@@ -31,73 +30,42 @@ module {
     public class TokenMinter({
         parameters: MinterParameters;
         dsn_debt: DebtProcessor.DebtProcessor;
-        get_tvl: () -> Nat;
-        get_locked_ballots: () -> Iter<(YesNoBallot, YesNoVote)>;
     }) {
-        // @todo: update amount minted;
 
-        var timer_id: ?Timer.TimerId = null;
+        public func preview_contribution(ballot: YesNoBallot, tvl: Nat) : DebtRecord {
 
-        public func set_minting_period(minting_period: Duration) : async* () {
-            ignore stop_minting();
-            parameters.minting_period := minting_period;
-            ignore (await* start_minting());
-        };
-
-        public func start_minting() : async* Result<(), Text> {
-            switch(timer_id) {
-                case(null) {
-                    let interval_ns = Duration.toTime(parameters.minting_period);
-                    timer_id := ?Timer.recurringTimer<system>(#nanoseconds(interval_ns), func() : async () {
-                        await* mint();
-                    });
-                    #ok;
-                };
-                case(_) { 
-                    #err("Minting process is currently active"); 
-                };
-            }
-        };
-
-        public func stop_minting() : Result<(), Text> {
-            switch(timer_id) {
-                case(?id) { 
-                    Timer.cancelTimer(id);
-                    timer_id := null;
-                    #ok;
-                };
-                case(null) {
-                    #err("No minting process is currently active");
-                };
-            };
-        };
-
-        public func preview_contribution(ballot: YesNoBallot) : DebtRecord {
-
-            let mint_coupon = compute_contribution(ballot, 0, get_tvl()).ballot;
+            let mint_coupon = compute_contribution(ballot, 0, tvl + ballot.amount).ballot;
             {
                 earned = mint_coupon.to_mint;
                 pending = mint_coupon.pending;
             };
         };
 
-        func mint() : async*() {
-
-            let time = Int.abs(Time.now()); // TODO: use the clock module instead
+        public func mint({
+            time: Nat;
+            locked_ballots: Iter<(YesNoBallot, YesNoVote)>;
+            tvl: Nat;
+        }) {
 
             let period = do {
                 let diff : Int = time - parameters.time_last_mint;
                 if (diff < 0) {
                     Debug.trap("Cannot mint on a negative period");
                 };
+                if (diff == 0) {
+                    Debug.print("No time has passed since the last mint.");
+                    return;
+                };
                 Int.abs(diff);
             };
             
-            let tvl = get_tvl();
+            var total_period = 0.0;
 
-            for ((ballot, vote) in get_locked_ballots()) {
+            for ((ballot, vote) in locked_ballots) {
                 
                 let contribution = compute_contribution(ballot, period, tvl);
+
+                total_period += contribution.ballot.to_mint + contribution.author.to_mint;
 
                 dsn_debt.increase_debt({ 
                     id = ballot.ballot_id;
@@ -115,11 +83,10 @@ module {
                     time;
                 });
             };    
-
-            // Update the last mint time
+            
+            // Update the total amount minted and last mint time
+            Timeline.insert(parameters.amount_minted, time, Timeline.current(parameters.amount_minted) + total_period);
             parameters.time_last_mint := time;
-
-            await* dsn_debt.transfer_pending();
         };
 
         type MintCoupon = {

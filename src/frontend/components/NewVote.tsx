@@ -57,7 +57,7 @@ function NewVote() {
       };
 
       image.onload = async () => {
-        const canvas = document.createElement("canvas");
+        const canvas = document.createElement("canvas"); // @todo: useless ?
         const offscreenCanvas = document.createElement("canvas");
         const picaInstance = pica();
 

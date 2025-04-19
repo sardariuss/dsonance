@@ -1,13 +1,14 @@
 import Float "mo:base/Float";
 import Result "mo:base/Result";
-import Iter  "mo:base/Iter";
 
 import Types "migrations/Types";
+
+import Map "mo:map/Map";
 
 module {
 
     type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type Iter<T> = Iter.Iter<T>;
+    type Iter<T> = Map.Iter<T>;
 
     // MIGRATION TYPES
 
@@ -42,7 +43,6 @@ module {
     public type ClockParameters    = Types.Current.ClockParameters;
     public type UUID               = Types.Current.UUID;
     public type Lock               = Types.Current.Lock;
-    public type LockRegister       = Types.Current.LockRegister;
     public type DebtInfo           = Types.Current.DebtInfo;
     public type Transfer           = Types.Current.Transfer;
     public type TransferResult     = Types.Current.TransferResult;
@@ -100,6 +100,18 @@ module {
     public type FindBallotArgs = {
         vote_id: UUID;
         ballot_id: UUID;
+    };
+
+    public type LockState = {
+        locks: Iter<Lock>;
+        tvl: Nat;
+    };
+
+    public type OnLockChangeArgs = { 
+        time: Nat;
+        event: LockEvent;
+        previous_state: LockState;
+        new_state: LockState;
     };
 
     // SHARED TYPES
@@ -170,11 +182,10 @@ module {
     };
 
     public type SMinterParameters = {
-        minting_period: Duration;
         contribution_per_day: Nat;
         author_share: Float;
         time_last_mint: Nat;
-        amount_minted: STimeline<Nat>;
+        amount_minted: STimeline<Float>;
     };
 
     public type SProtocolParameters = {

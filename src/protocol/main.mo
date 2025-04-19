@@ -115,16 +115,16 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().set_clock_dilation_factor(dilation_factor);
     };
 
-    public shared({caller}) func set_minting_period(minting_period: Types.Duration) : async () {
-        await* getFacade().set_minting_period(caller, minting_period);
+    public shared({caller}) func set_timer_interval({ interval_s: Nat }) : async Result.Result<(), Text> {
+        await* getFacade().set_timer_interval({ caller; interval_s; });
     };
 
-    public shared({caller}) func start_minting() : async Result.Result<(), Text> {
-        await* getFacade().start_minting(caller);
+    public shared({caller}) func start_timer() : async Result.Result<(), Text> {
+        await* getFacade().start_timer({ caller; });
     };
 
-    public shared({caller}) func stop_minting() : async Result.Result<(), Text> {
-        getFacade().stop_minting(caller);
+    public shared({caller}) func stop_timer() : async Result.Result<(), Text> {
+        getFacade().stop_timer({ caller; });
     };
 
     public query func get_info() : async Types.SProtocolInfo {
