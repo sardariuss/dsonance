@@ -107,11 +107,15 @@ module {
         tvl: Nat;
     };
 
-    public type OnLockChangeArgs = { 
+    public type BeforeChangeArgs = { 
+        time: Nat;
+        state: LockState;
+    };
+
+    public type AfterChangeArgs = { 
         time: Nat;
         event: LockEvent;
-        previous_state: LockState;
-        new_state: LockState;
+        state: LockState;
     };
 
     // SHARED TYPES

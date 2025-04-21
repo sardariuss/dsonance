@@ -94,19 +94,20 @@ module {
         
         let lock_scheduler = LockScheduler.LockScheduler({
             state = lock_scheduler_state;
-            on_change = func({ event: LockEvent; time: Nat; previous_state: LockState; new_state: LockState; }){
-
-                Debug.print("On change"); // @todo
-
+            before_change = func({ time: Nat; state: LockState; }){
+                
                 // Mint the tokens until time
                 minter.mint({
                     time;
-                    locked_ballots = map_locks_to_pair(previous_state.locks, ballot_register.ballots, vote_register.votes);
-                    tvl = previous_state.tvl;
+                    locked_ballots = map_locks_to_pair(state.locks, ballot_register.ballots, vote_register.votes);
+                    tvl = state.tvl;
                 });
-
+            };
+            after_change = func({ time: Nat; event: LockEvent; state: LockState; }){
+                
                 // Update the overall tvl and yield
-                yielder.update_tvl({ new_tvl = new_state.tvl; time; });
+                yielder.update_tvl({ new_tvl = state.tvl; time; });
+                
                 // Update the ballots foresights
                 foresight_updater.update_foresights({ time; });
 

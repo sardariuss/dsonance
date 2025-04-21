@@ -7,7 +7,6 @@ import Debug "mo:base/Debug";
 import Float "mo:base/Float";
 import Int "mo:base/Int";
 import Result "mo:base/Result";
-import Iter "mo:base/Iter";
 
 import Map "mo:map/Map";
 
@@ -23,7 +22,7 @@ module {
     type MinterParameters = Types.MinterParameters;
     type Duration = Types.Duration;
     
-    type Iter<T> = Iter.Iter<T>;
+    type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 

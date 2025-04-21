@@ -8,51 +8,51 @@ for canister in ck_btc dsn_ledger protocol minter; do
   export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
 done
 
-## Parallel deployment for independent canisters
-#dfx deploy ck_btc --argument '(opt record {
-#  icrc1 = opt record {
-#    name              = opt "ckBTC";
-#    symbol            = opt "ckBTC";
-#    decimals          = 8;
-#    fee               = opt variant { Fixed = 10 };
-#    max_supply        = opt 2_100_000_000_000_000;
-#    min_burn_amount   = opt 1_000;
-#    initial_balances  = vec {};
-#    minting_account   = opt record { 
-#      owner = principal "'${MINTER_PRINCIPAL}'";
-#      subaccount = null; 
-#    };
-#    advanced_settings = null;
-#  };
-#  icrc2 = null;
-#  icrc3 = null;
-#  icrc4 = null;
-#})' &
-#dfx deploy dsn_ledger --argument '(opt record {
-#  icrc1 = opt record {
-#    name              = opt "Dsonance Coin";
-#    symbol            = opt "DSN";
-#    decimals          = 8;
-#    fee               = opt variant { Fixed = 1_000 };
-#    max_supply        = opt 100_000_000_000_000_000;
-#    min_burn_amount   = opt 1_000;
-#    initial_balances  = vec {
-#      record { 
-#        account = principal "'${PROTOCOL_PRINCIPAL}'";
-#        amount = 50_000_000_000_000_000;
-#      };
-#    };
-#    minting_account   = opt record { 
-#      owner = principal "'${MINTER_PRINCIPAL}'";
-#      subaccount = null; 
-#    };
-#    advanced_settings = null;
-#  };
-#  icrc2 = null;
-#  icrc3 = null;
-#  icrc4 = null;
-#})' &
-#wait
+# Parallel deployment for independent canisters
+dfx deploy ck_btc --argument '(opt record {
+  icrc1 = opt record {
+    name              = opt "ckBTC";
+    symbol            = opt "ckBTC";
+    decimals          = 8;
+    fee               = opt variant { Fixed = 10 };
+    max_supply        = opt 2_100_000_000_000_000;
+    min_burn_amount   = opt 1_000;
+    initial_balances  = vec {};
+    minting_account   = opt record { 
+      owner = principal "'${MINTER_PRINCIPAL}'";
+      subaccount = null; 
+    };
+    advanced_settings = null;
+  };
+  icrc2 = null;
+  icrc3 = null;
+  icrc4 = null;
+})' &
+dfx deploy dsn_ledger --argument '(opt record {
+  icrc1 = opt record {
+    name              = opt "Dsonance Coin";
+    symbol            = opt "DSN";
+    decimals          = 8;
+    fee               = opt variant { Fixed = 1_000 };
+    max_supply        = opt 100_000_000_000_000_000;
+    min_burn_amount   = opt 1_000;
+    initial_balances  = vec {
+      record { 
+        account = principal "'${PROTOCOL_PRINCIPAL}'";
+        amount = 50_000_000_000_000_000;
+      };
+    };
+    minting_account   = opt record { 
+      owner = principal "'${MINTER_PRINCIPAL}'";
+      subaccount = null; 
+    };
+    advanced_settings = null;
+  };
+  icrc2 = null;
+  icrc3 = null;
+  icrc4 = null;
+})' &
+wait
 
 # Deploy protocol with dependencies
 # Hundred million e8s contribution per day

@@ -21,7 +21,8 @@ module {
     type LockEvent = Types.LockEvent;
     type LockSchedulerState = Types.LockSchedulerState;
     type LockState = Types.LockState;
-    type OnLockChangeArgs = Types.OnLockChangeArgs;
+    type BeforeChangeArgs = Types.BeforeChangeArgs;
+    type AfterChangeArgs = Types.AfterChangeArgs;
 
     public func compare_locks(a: Lock, b: Lock) : Order {
         switch(Int.compare(a.release_date, b.release_date)){
@@ -33,12 +34,15 @@ module {
 
     public class LockScheduler({
         state: LockSchedulerState;
-        on_change: OnLockChangeArgs -> ();
+        before_change: BeforeChangeArgs -> ();
+        after_change: AfterChangeArgs -> ();
     }) {
 
         public func add(new: Lock, previous: Iter<Lock>, time: Nat) {
 
-            let previous_state = get_state();
+            try_unlock(time);
+
+            before_change({ time; state = get_state(); });
 
             // Add the new lock
             if (has_lock(new.id)) {
@@ -62,12 +66,7 @@ module {
             let new_tvl = Timeline.current(state.tvl) + new.amount;
             Timeline.insert(state.tvl, time, new_tvl);
 
-            on_change({
-                time;
-                event = #LOCK_ADDED(new);
-                previous_state;
-                new_state = get_state();
-            });
+            after_change({ time; event = #LOCK_ADDED(new); state = get_state();});
         };
 
         public func try_unlock(time: Nat) {
@@ -76,13 +75,11 @@ module {
                 switch(BTree.min(state.btree)) {
                     case(null) { return; };
                     case(?(lock, _)) {
-
-                        Debug.print("Loop tryunlock"); // @todo
                         
                         // Stop here if release date is greater than now
                         if (lock.release_date > time) { return; };
 
-                        let previous_state = get_state();
+                        before_change({ time = lock.release_date; state = get_state(); });
 
                         ignore remove_lock(lock.id);
                         
@@ -95,14 +92,9 @@ module {
                         };
                         
                         // Update the total locked value
-                        Timeline.insert(state.tvl, time, new_tvl);
+                        Timeline.insert(state.tvl, lock.release_date, new_tvl);
                         
-                        on_change({
-                            time = lock.release_date;
-                            event = #LOCK_REMOVED(lock);
-                            previous_state;
-                            new_state = get_state();
-                        });
+                        after_change({ time = lock.release_date; event = #LOCK_REMOVED(lock); state = get_state(); });
                     };
                 };
             };
