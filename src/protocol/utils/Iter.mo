@@ -69,4 +69,12 @@ module {
 
         return mapped_iter;
     };
+
+    public func fold_left<X, A>(iter: Iter<X>, base: A, combine: (A, X) -> A) : A {
+        var acc = base;
+        for (v in iter) {
+            acc := combine(acc, v);
+        };
+        acc;
+    };
 }

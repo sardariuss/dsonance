@@ -7,10 +7,7 @@ import Nat    "mo:base/Nat";
 module {
 
     type YesNoChoice = Types.YesNoChoice;
-    type AgeBonusParameters = {
-        max_age: Nat;
-        age_coefficient: Float;
-    };
+    type AgeBonusParameters = Types.AgeBonusParameters;
 
     public func compute_discernment({
         dissent: Float;

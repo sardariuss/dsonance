@@ -210,6 +210,11 @@ module {
 
     // CUSTOM TYPES
 
+    public type AgeBonusParameters = {
+        max_age: Nat;
+        age_coefficient: Float;
+    };
+
     public type ProtocolInfo = {
         current_time: Nat;
         last_run: Nat;

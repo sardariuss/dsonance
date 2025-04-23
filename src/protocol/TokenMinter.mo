@@ -26,6 +26,16 @@ module {
     type Map<K, V> = Map.Map<K, V>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
+    type MintCoupon = {
+        to_mint: Float;
+        pending: Float;
+    };
+
+    type Contribution = {
+        ballot: MintCoupon;
+        author: MintCoupon;
+    };
+
     public class TokenMinter({
         parameters: MinterParameters;
         dsn_debt: DebtProcessor.DebtProcessor;
@@ -86,16 +96,6 @@ module {
             // Update the total amount minted and last mint time
             Timeline.insert(parameters.amount_minted, time, Timeline.current(parameters.amount_minted) + total_period);
             parameters.time_last_mint := time;
-        };
-
-        type MintCoupon = {
-            to_mint: Float;
-            pending: Float;
-        };
-
-        type Contribution = {
-            ballot: MintCoupon;
-            author: MintCoupon;
         };
 
         func compute_contribution(ballot: YesNoBallot, period: Nat, tvl: Nat) : Contribution {

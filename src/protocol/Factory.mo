@@ -15,7 +15,6 @@ import DebtProcessor          "DebtProcessor";
 import TokenMinter            "TokenMinter"; 
 import IterUtils              "utils/Iter";
 import ForesightUpdater       "ForesightUpdater";
-import BallotUtils            "votes/BallotUtils";
 import Incentives             "votes/Incentives";
 import ProtocolTimer          "ProtocolTimer";
 
@@ -69,25 +68,11 @@ module {
         let yielder = Yielder.Yielder(yield_state);
 
         let foresight_updater = ForesightUpdater.ForesightUpdater({
-            ballots = Map.map(ballot_register.ballots, Map.thash, func(_: Text, b: BallotType) : YesNoBallot {
-                switch(b){
-                    case(#YES_NO(ballot)) { ballot };
-                };
-            });
-            compute_discernment = func(b: YesNoBallot) {
-                let lock = BallotUtils.unwrap_lock_info(b);
-                Incentives.compute_discernment({
-                    dissent = b.dissent;
-                    consent = Timeline.current(b.consent);
-                    lock_duration = lock.release_date - b.timestamp;
-                    parameters;
-                });
-            };
-            get_yield = func () : { earned: Float; apr: Float; tvl: Nat; } {
+            get_yield = func () : { earned: Float; apr: Float; time_last_update: Nat; } {
                 {
                     earned = yield_state.interest.earned;
                     apr = yield_state.apr;
-                    tvl = yield_state.tvl;
+                    time_last_update = yield_state.interest.time_last_update;
                 }
             };
         });
@@ -109,7 +94,7 @@ module {
                 yielder.update_tvl({ new_tvl = state.tvl; time; });
                 
                 // Update the ballots foresights
-                foresight_updater.update_foresights({ time; });
+                foresight_updater.update_foresights(map_ballots_to_foresight_items(ballot_register.ballots, parameters));
 
                 let { ballot; diff; } = switch(event){
                     case(#LOCK_ADDED({id; amount;})){
@@ -126,6 +111,9 @@ module {
                             pending = 0.0;
                             time;
                         });
+
+                        // TODO: yielder: remove reward from earned
+
                         { ballot; diff = -amount; };
                     };
                 };
@@ -209,6 +197,35 @@ module {
             let ballot = get_ballot(ballots, lock.id);
             let vote = get_vote(votes, ballot.vote_id);
             (ballot, vote);
+        });
+    };
+
+    func map_ballots_to_foresight_items(ballots: Map<UUID, BallotType>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {
+        IterUtils.map(Map.vals(ballots), func(ballot_type: BallotType) : ForesightUpdater.ForesightItem {
+            switch(ballot_type){
+                case(#YES_NO(b)) {     
+                    let release_date = switch(b.lock){
+                        case(null) { Debug.trap("The ballot does not have a lock"); };
+                        case(?lock) { lock.release_date; };
+                    };
+                    let discernment = Incentives.compute_discernment({
+                        dissent = b.dissent;
+                        consent = Timeline.current(b.consent);
+                        lock_duration = release_date - b.timestamp;
+                        parameters;
+                    });
+                    {
+                        timestamp = b.timestamp;
+                        amount = b.amount;
+                        release_date;
+                        discernment;
+                        consent = Timeline.current(b.consent);
+                        update_foresight = func(foresight: Types.Foresight, time: Nat) { 
+                            Timeline.insert(b.foresight, time, foresight);
+                        };
+                    };
+                };
+            };
         });
     };
 

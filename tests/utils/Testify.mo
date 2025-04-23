@@ -1,4 +1,4 @@
-import HotMap      "../../src/protocol/locks/HotMap";
+import Types       "../../src/protocol/Types";
 
 import Array       "mo:base/Array";
 import Debug       "mo:base/Debug";
@@ -11,9 +11,8 @@ import Prim        "mo:⛔";
 
 module {
 
-    type HotElem = HotMap.HotElem;
-
     type Result<Ok, Err> = Result.Result<Ok, Err>;
+    type Foresight = Types.Foresight;
 
     let FLOAT_EPSILON : Float = 1e-12;
 
@@ -270,16 +269,15 @@ module {
             };
         };
 
-        public let hot_elem = {
-            equal : Testify<HotElem> = {
-                toText = func (e : HotElem) : Text { 
+        public let foresight = {
+            equal : Testify<Foresight> = {
+                toText = func (e : Foresight) : Text { 
                     debug_show(e);
-                 };
-                compare = func (x : HotElem, y : HotElem) : Bool { 
-                    x.amount    == y.amount                            and 
-                    x.timestamp == y.timestamp                         and 
-                    Float.equalWithin(x.decay, y.decay, 1e-12)         and 
-                    Float.equalWithin(x.hotness, y.hotness, 1e-1);
+                };
+                compare = func (x : Foresight, y : Foresight) : Bool { 
+                    x.reward    == y.reward                                and 
+                    Float.equalWithin(x.apr.current, y.apr.current, 1e-12) and 
+                    Float.equalWithin(x.apr.potential, y.apr.potential, 1e-12);
                 };
             };
         };
