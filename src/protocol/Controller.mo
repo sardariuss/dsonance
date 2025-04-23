@@ -12,6 +12,7 @@ import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
 import TokenMinter             "TokenMinter";
 import ProtocolTimer           "ProtocolTimer";
+import Yielder                 "Yielder";
 
 import Map                     "mo:map/Map";
 
@@ -44,6 +45,7 @@ module {
     type YesNoVote = Types.YesNoVote;
     type Lock = Types.Lock;
     type Duration = Types.Duration;
+    type YieldState = Types.YieldState;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -81,6 +83,7 @@ module {
         queries: Queries.Queries;
         protocol_timer: ProtocolTimer.ProtocolTimer;
         minter: TokenMinter.TokenMinter;
+        yielder: Yielder.Yielder;
         parameters: ProtocolParameters;
     }){
 
@@ -258,6 +261,9 @@ module {
             };
         };
 
+        public func get_yield_state() : YieldState {
+            yielder.get_state();
+        };
 
         // TODO: remove duplicate (see Factory)
 

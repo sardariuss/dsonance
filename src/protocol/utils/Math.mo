@@ -21,5 +21,9 @@ module {
     }) : Float {
         return (1 - offset) / -lambda * (Float.exp(-lambda * b) - Float.exp(-lambda * a)) + offset * (b - a);
     };
+
+    public func percentageToRatio(percentage: Float) : Float {
+        return percentage / 100.0;
+    };
     
 }

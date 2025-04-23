@@ -31,6 +31,8 @@ module {
     type SBallotPreview = Types.SBallotPreview;
     type VoteType = Types.VoteType;
     type SVoteType = Types.SVoteType;
+    type YieldState = Types.YieldState;
+    type SYieldState = Types.SYieldState;
 
     public func shareOpt<T, S>(opt: ?T, f: T -> S) : ?S {
         Option.map(opt, f);
@@ -126,6 +128,17 @@ module {
                     aggregate = shareTimeline(v.aggregate);
                     tvl = v.tvl;
                 });
+            };
+        };
+    };
+
+    public func shareYieldState(yield_state: YieldState) : SYieldState {
+        {
+            tvl = yield_state.tvl;
+            apr = yield_state.apr;
+            interest = {
+                earned = yield_state.interest.earned;
+                time_last_update = yield_state.interest.time_last_update;
             };
         };
     };

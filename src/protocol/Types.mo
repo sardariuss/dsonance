@@ -120,6 +120,15 @@ module {
 
     // SHARED TYPES
 
+    public type SYieldState = {
+        tvl: Nat;
+        apr: Float;
+        interest: {
+            earned: Float;
+            time_last_update: Nat;
+        };
+    };
+
     public type SVoteType = {
         #YES_NO: SVote<YesNoAggregate, YesNoChoice>;
     };

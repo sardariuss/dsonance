@@ -33,6 +33,7 @@ module {
     type DebtRecord = Types.DebtRecord;
     type BallotPreview = Types.BallotPreview;
     type SBallotPreview = Types.SBallotPreview;
+    type SYieldState = Types.SYieldState;
 
     public class SharedFacade(controller: Controller.Controller) {
 
@@ -118,6 +119,10 @@ module {
 
         public func get_mined_by_author({ author: Account }) : DebtRecord {
             controller.get_queries().get_mined_by_author({author});
+        };
+
+        public func get_yield_state() : SYieldState {
+            SharedConversions.shareYieldState(controller.get_yield_state());
         };
         
     };

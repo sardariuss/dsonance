@@ -1,14 +1,19 @@
 import Types "Types";
 import Duration "duration/Duration";
+import Math "utils/Math";
 
-import Debug "mo:base/Debug";
 import Float "mo:base/Float";
+import Debug "mo:base/Debug";
 
 module {
 
     type YieldState = Types.YieldState;
 
     public class Yielder(state: YieldState) {
+
+        public func get_state() : YieldState {
+            state;
+        };
 
         public func update_apr({ new_apr: Float; time: Nat; }) {
             accumulate_yield(time);
@@ -20,15 +25,20 @@ module {
             state.tvl := new_tvl;
         };
 
+        public func remove_from_earned({to_remove: Nat; time: Nat; }) {
+            accumulate_yield(time);
+            let diff = state.interest.earned - Float.fromInt(to_remove);
+            if (diff < 0) {
+                Debug.trap("Cannot remove more than earned");
+            };
+            state.interest.earned := diff;
+        };
+
         func accumulate_yield(time: Nat) {
 
-            let period : Int = time - state.interest.time_last_update;
+            let annual_period = Duration.toAnnual(Duration.getDuration({ from = state.interest.time_last_update; to = time; }));
 
-            if (period < 0) {
-                Debug.trap("Cannot accumulate yield on a negative period");
-            };
-
-            state.interest.earned += (Float.fromInt(period) / Float.fromInt(Duration.NS_IN_YEAR)) * state.apr * 100.0 * Float.fromInt(state.tvl);
+            state.interest.earned += annual_period * Math.percentageToRatio(state.apr) * Float.fromInt(state.tvl);
             state.interest.time_last_update := time;
         };
 

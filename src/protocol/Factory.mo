@@ -90,7 +90,7 @@ module {
             };
             after_change = func({ time: Nat; event: LockEvent; state: LockState; }){
                 
-                // Update the overall tvl and yield
+                // Refresh the yield
                 yielder.update_tvl({ new_tvl = state.tvl; time; });
                 
                 // Update the ballots foresights
@@ -101,18 +101,24 @@ module {
                         { ballot = get_ballot(ballot_register.ballots, id); diff = amount; };
                     };
                     case(#LOCK_REMOVED({id; amount;})){
+                        
                         let ballot = get_ballot(ballot_register.ballots, id);
+                        let ballot_interest = Timeline.current(ballot.foresight).reward;
+
+                        // Refresh the yield
+                        yielder.remove_from_earned({ to_remove = ballot_interest; time; });
+
+                        // Update the ballots foresights
+                        foresight_updater.update_foresights(map_ballots_to_foresight_items(ballot_register.ballots, parameters));
                         
                         // Initiate the transfer of the locked BTC and yield
                         btc_debt.increase_debt({ 
                             id;
                             account = ballot.from;
-                            amount = Float.fromInt(ballot.amount + Timeline.current(ballot.foresight).reward);
+                            amount = Float.fromInt(ballot.amount + ballot_interest);
                             pending = 0.0;
                             time;
                         });
-
-                        // TODO: yielder: remove reward from earned
 
                         { ballot; diff = -amount; };
                     };
@@ -169,6 +175,7 @@ module {
             protocol_timer;
             minter;
             parameters;
+            yielder;
         });
     };
 
