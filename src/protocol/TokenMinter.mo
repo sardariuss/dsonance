@@ -43,7 +43,7 @@ module {
 
         public func preview_contribution(ballot: YesNoBallot, tvl: Nat) : DebtRecord {
 
-            let mint_coupon = compute_contribution(ballot, 0, tvl + ballot.amount).ballot;
+            let mint_coupon = compute_contribution({ballot; time = 0; period = 0; tvl = tvl + ballot.amount}).ballot;
             {
                 earned = mint_coupon.to_mint;
                 pending = mint_coupon.pending;
@@ -72,7 +72,7 @@ module {
 
             for ((ballot, vote) in locked_ballots) {
                 
-                let contribution = compute_contribution(ballot, period, tvl);
+                let contribution = compute_contribution({ballot; time; period; tvl});
 
                 total_period += contribution.ballot.to_mint + contribution.author.to_mint;
 
@@ -98,16 +98,16 @@ module {
             parameters.time_last_mint := time;
         };
 
-        func compute_contribution(ballot: YesNoBallot, period: Nat, tvl: Nat) : Contribution {
+        func compute_contribution({ballot: YesNoBallot; time: Nat; period: Nat; tvl: Nat; }) : Contribution {
             
             let release_date = switch(ballot.lock){
                 case(null) { Debug.trap("The ballot does not have a lock"); };
                 case(?lock) { lock.release_date; };
             };
 
-            let rate = (Float.fromInt(ballot.amount * parameters.contribution_per_day * Duration.NS_IN_DAY) / Float.fromInt(tvl));
+            let rate = (Float.fromInt(ballot.amount) / Float.fromInt(tvl)) * (Float.fromInt(parameters.contribution_per_day) / Float.fromInt(Duration.NS_IN_DAY));
             let to_mint = rate * Float.fromInt(period);
-            let pending = rate * Float.fromInt(release_date - ballot.timestamp);
+            let pending = rate * Float.fromInt(release_date - time);
 
             {
                 ballot = { 
