@@ -18,6 +18,12 @@ module {
         };
     };
 
+    type BorrowError = {
+        #InsufficientBorrowable: {
+            max_borrowable: Nat;
+        };
+    };
+
     type YieldState = {
         var total_supply: Nat; // Renamed from tvl
         var total_borrowed: Nat;     // Amount currently borrowed
@@ -37,47 +43,38 @@ module {
             state;
         };
 
-        // Function to calculate and return the available supply (liquidity)
-        public func get_available_supply() : Nat {
-            // Calculate available supply: total_supply - total_borrowed
-            // Ensure result is not negative (shouldn't happen with current logic, but safe check)
-            if (state.total_supply >= state.total_borrowed) {
-                state.total_supply - state.total_borrowed;
-            } else {
-                // This case indicates an inconsistency, as borrowing shouldn't exceed supply.
-                // Returning 0 is a safe default. Consider logging or trapping if this occurs.
-                // Debug.print("Warning: Total borrowed exceeds total supply in get_available_supply");
-                0;
-            };
+        public func get_available_supply() : Int {
+            state.total_supply - state.total_borrowed;
         };
 
-        // Renamed from update_tvl
         public func update_total_supply({ new_total_supply: Nat; time: Nat; }) {
             accrue_yield(time);
             state.total_supply := new_total_supply;
         };
 
-        // New function to update the borrowed amount
-        public func update_total_borrowed({ new_total_borrowed: Nat; time: Nat; }) {
+        public func borrow({ amount: Nat; time: Nat; }) : Result<(), BorrowError> {
+            
             accrue_yield(time);
 
-            // Calculate the maximum borrowable amount based on reserve factor
-            // borrowable = total_supply * (1 - reserve_factor)
-            let max_borrowable = do {
-                let max_borrowable_float = Float.fromInt(state.total_supply) * (1.0 - state.reserve_factor);
-                if (max_borrowable_float <= 0.0) {
-                    0;
-                } else {
-                    Int.abs(Float.toInt(max_borrowable_float));
-                };
+            let max_borrowable = get_max_borrowable();
+
+            if (amount > max_borrowable) {
+                return #err(#InsufficientBorrowable({ max_borrowable }));
             };
 
-            // Trap if new_total_borrowed exceeds max_borrowable
-            if (new_total_borrowed > max_borrowable) {
-                Debug.trap("Borrow amount exceeds reserve limit");
-            };
+            state.total_borrowed += amount;
+            #ok;
+        };
 
-            state.total_borrowed := new_total_borrowed;
+        public func get_max_borrowable() : Nat {
+            
+            let max_borrowable_float = (Float.fromInt(state.total_supply) * (1.0 - state.reserve_factor) - Float.fromInt(state.total_borrowed));
+
+            if (max_borrowable_float <= 0.0) {
+                0;
+            } else {
+                Int.abs(Float.toInt(max_borrowable_float));
+            };
         };
 
         public func claim_accrued_interest({ amount: Nat; time: Nat; }) : Result<(), ClaimInterestError> {
@@ -94,7 +91,6 @@ module {
             result;
         };
 
-        // Renamed from accumulate_yield
         func accrue_yield(time: Nat) {
             
             // If the time is before the last update
