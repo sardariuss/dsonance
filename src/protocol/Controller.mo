@@ -1,6 +1,5 @@
 import Types                   "Types";
 import DebtProcessor           "DebtProcessor";
-import ProtocolTimer           "ProtocolTimer";
 import LockScheduler           "LockScheduler";
 import Queries                 "Queries";
 import MapUtils                "utils/Map";
@@ -10,6 +9,10 @@ import SharedConversions       "shared/SharedConversions";
 import BallotUtils             "votes/BallotUtils";
 import VoteTypeController      "votes/VoteTypeController";
 import IdFormatter             "IdFormatter";
+import IterUtils               "utils/Iter";
+import TokenMinter             "TokenMinter";
+import ProtocolTimer           "ProtocolTimer";
+import Yielder                 "Yielder";
 
 import Map                     "mo:map/Map";
 
@@ -17,9 +20,7 @@ import Int                     "mo:base/Int";
 import Float                   "mo:base/Float";
 import Debug                   "mo:base/Debug";
 import Buffer                  "mo:base/Buffer";
-import Iter                    "mo:base/Iter";
 import Result                  "mo:base/Result";
-import Array                   "mo:base/Array";
 
 module {
 
@@ -37,11 +38,17 @@ module {
     type BallotRegister = Types.BallotRegister;
     type TimerParameters = Types.TimerParameters;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type Iter<T> = Iter.Iter<T>;
     type ProtocolParameters = Types.ProtocolParameters;
-    type MintingInfo = Types.MintingInfo;
     type Timeline<T> = Types.Timeline<T>;
     type ProtocolInfo = Types.ProtocolInfo;
+    type YesNoBallot = Types.YesNoBallot;
+    type YesNoVote = Types.YesNoVote;
+    type Lock = Types.Lock;
+    type Duration = Types.Duration;
+    type YieldState = Types.YieldState;
+
+    type Iter<T> = Map.Iter<T>;
+    type Map<K, V> = Map.Map<K, V>;
 
     type WeightParams = {
         ballot: BallotType;
@@ -75,7 +82,8 @@ module {
         dsn_debt: DebtProcessor.DebtProcessor;
         queries: Queries.Queries;
         protocol_timer: ProtocolTimer.ProtocolTimer;
-        minting_info: MintingInfo;
+        minter: TokenMinter.TokenMinter;
+        yielder: Yielder.Yielder;
         parameters: ProtocolParameters;
     }){
 
@@ -116,7 +124,7 @@ module {
             MapUtils.putInnerSet(vote_register.by_author, MapUtils.acchash, account, Map.thash, vote_id);
             
             // TODO: ideally it's not the controller's responsibility to share types
-            #ok(queries.shareVoteType(vote));
+            #ok(SharedConversions.shareVoteType(vote));
         };
 
         public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
@@ -139,18 +147,9 @@ module {
 
             let { new; previous; } = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id = 0; timestamp; from; }});
 
-            // Refresh the lock durations
-            let yes_no_ballot = BallotUtils.unwrap_yes_no(new);
-            lock_scheduler.refresh_lock_duration(yes_no_ballot, timestamp);
-            for (prev in Array.vals(previous)){
-                let b = BallotUtils.unwrap_yes_no(prev);
-                let lock = BallotUtils.unwrap_lock(b);
-                if (lock.release_date > yes_no_ballot.timestamp){
-                    lock_scheduler.refresh_lock_duration(b, timestamp);
-                };
-            };
-
-            Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
+            // @todo: Refresh the foresight
+            //let yes_no_ballot = BallotUtils.unwrap_yes_no(new);
+            //Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
 
             #ok({ new; previous; });
         };
@@ -190,18 +189,15 @@ module {
 
             let ballot_type = vote_type_controller.put_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id; timestamp; from; }});
 
-            let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot_type);
-
             // Update the locks
-            // TODO: fix the following limitation
-            // Watchout, the new ballot shall be added first, otherwise the update will trap
-            lock_scheduler.add(yes_no_ballot, timestamp);
-            for (ballot in vote_type_controller.vote_ballots(vote_type)){
-                lock_scheduler.update(BallotUtils.unwrap_yes_no(ballot), timestamp);
-            };
+            lock_scheduler.add(
+                BallotUtils.unwrap_lock(ballot_type),
+                IterUtils.map<BallotType, Lock>(vote_type_controller.vote_ballots(vote_type), BallotUtils.unwrap_lock),
+                timestamp);
 
-            // TODO: this is kind of a hack to have an up-to-date foresight and contribution, should be removed
-            Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
+            // @todo: this is kind of a hack to have an up-to-date foresight and contribution, should be removed
+            //let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot_type);
+            //Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
 
             // Add the ballot to that account
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
@@ -211,12 +207,20 @@ module {
         };
 
         public func run() : async* () {
+            
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
+            
             lock_scheduler.try_unlock(time);
+            let { locks; tvl; } = lock_scheduler.get_state();
+            minter.mint({
+                time;
+                locked_ballots = map_locks_to_pair(locks, ballot_register.ballots, vote_register.votes);
+                tvl;
+            });
 
-            let transfers = Buffer.Buffer<async* ()>(3);
-
+            let transfers = Buffer.Buffer<async* ()>(0);
+            
             transfers.add(btc_debt.transfer_pending());
             transfers.add(dsn_debt.transfer_pending());
 
@@ -252,10 +256,41 @@ module {
         public func get_info() : ProtocolInfo {
             {
                 current_time = clock.get_time();
-                last_run = lock_scheduler.get_last_dispense();
-                btc_locked = lock_scheduler.get_total_locked();
-                dsn_minted = minting_info.amount_minted;
+                last_run = 0; // @todo: use minter instead
+                btc_locked = Timeline.initialize<Nat>(0, 0); // @todo
             };
+        };
+
+        public func get_yield_state() : YieldState {
+            yielder.get_state();
+        };
+
+        // TODO: remove duplicate (see Factory)
+
+        func get_ballot(ballots: Map<UUID, BallotType>, id: UUID) : YesNoBallot {
+            switch(Map.get(ballots, Map.thash, id)) {
+                case(null) { Debug.trap("Ballot " #  debug_show(id) # " not found"); };
+                case(?#YES_NO(ballot)) {
+                    ballot;
+                };
+            };
+        };
+
+        func get_vote(votes: Map<UUID, VoteType>, id: UUID) : YesNoVote {
+            switch(Map.get(votes, Map.thash, id)) {
+                case(null) { Debug.trap("Vote " #  debug_show(id) # " not found"); };
+                case(?#YES_NO(vote)) {
+                    vote;
+                };
+            };
+        };
+
+        func map_locks_to_pair(locks: Iter<Lock>, ballots: Map<UUID, BallotType>, votes: Map<UUID, VoteType>) : Iter<(YesNoBallot, YesNoVote)> {
+            IterUtils.map<Lock, (YesNoBallot, YesNoVote)>(locks, func(lock: Lock) : (YesNoBallot, YesNoVote) {
+                let ballot = get_ballot(ballots, lock.id);
+                let vote = get_vote(votes, ballot.vote_id);
+                (ballot, vote);
+            });
         };
 
     };

@@ -16,5 +16,8 @@ _My views are changing as much as the world itself is changing. Your views shoul
 * Acelon font: https://www.fontspace.com/acelon-blur-font-f115699
 
 ## TODO
+ - The preview of the foresight and mining shall be fixed
+ - The foresight shall not be in the BallotType
  - DebtInfo is used for transfering ckBTC and DSN tokens. It shall only be used for DSN tokens, a new easier type shall be used instead for ckBTC.
  - The DebtProcessor shall be reworked so the transfer are done asynchronously by the user or at the finalization of the disbursement.
+ 

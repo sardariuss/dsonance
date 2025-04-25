@@ -135,6 +135,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_parameters();
     };
 
+    public query func get_yield_state() : async Types.SYieldState {
+        getFacade().get_yield_state();
+    };
+
     func getFacade() : SharedFacade.SharedFacade {
         switch(_facade){
             case (null) { Debug.trap("The facade is not initialized"); };

@@ -1,10 +1,12 @@
 import BallotAggregator   "BallotAggregator";
 import Types              "../Types";
 import Timeline           "../utils/Timeline";
-import HotMap             "../locks/HotMap";
+import LockInfoUpdater    "../locks/LockInfoUpdater";
 import Decay              "../duration/Decay";
+import IterUtils          "../utils/Iter";
 
 import Set                "mo:map/Set";
+import Map                "mo:map/Map";
 
 import Debug              "mo:base/Debug";
 import Iter               "mo:base/Iter";
@@ -18,7 +20,7 @@ module {
     type LockInfo = Types.LockInfo;
     type Foresight = Types.Foresight;
 
-    type Iter<T> = Iter.Iter<T>;
+    type Iter<T> = Map.Iter<T>;
 
     public type PutBallotArgs = {
         ballot_id: UUID;
@@ -37,7 +39,7 @@ module {
         empty_aggregate: A;
         ballot_aggregator: BallotAggregator.BallotAggregator<A, B>;
         decay_model: Decay.DecayModel;
-        hot_map: HotMap.HotMap;
+        lock_info_updater: LockInfoUpdater.LockInfoUpdater;
         get_ballot: UUID -> Ballot<B>;
         add_ballot: (UUID, Ballot<B>) -> ();
     }){
@@ -53,11 +55,11 @@ module {
                 vote_id;
                 tx_id;
                 date;
-                last_mint = date;
                 origin;
                 aggregate = Timeline.initialize(date, empty_aggregate);
                 ballots = Set.new<UUID>();
                 author;
+                var tvl = 0;
             };
         };
 
@@ -71,12 +73,12 @@ module {
             let { dissent; consent } = outcome.ballot;
 
             let ballot = init_ballot({vote_id; choice; args; dissent; consent; });
-            let ballots = Iter.toArray(vote_ballots_copy(vote)); // Copy the iterator to avoid mutation
-            hot_map.add_new({ iter = Iter.fromArray(ballots); elem = ballot; update_previous = true; });
+            let ballots_copy = vote_ballots_copy(vote);
+            lock_info_updater.add(ballot, ballots_copy, time);
 
             {
                 new = ballot;
-                previous = ballots;
+                previous = Iter.toArray(ballots_copy);
             };
         };
 
@@ -104,7 +106,7 @@ module {
 
             // Update the hotness
             let ballot = init_ballot({vote_id; choice; args; dissent; consent; });
-            hot_map.add_new({ iter = vote_ballots(vote); elem = ballot; update_previous = true; });
+            lock_info_updater.add(ballot, vote_ballots(vote), time);
 
             // Add the ballot
             add_ballot(ballot_id, ballot);
@@ -114,50 +116,29 @@ module {
         };
 
         public func vote_ballots(vote: Vote<A, B>) : Iter<Ballot<B>> {
-            let it = Set.keys(vote.ballots);
-            func next() : ?(Ballot<B>) {
-                label get_next while(true) {
-                    switch(it.next()){
-                        case(null) { break get_next; };
-                        case(?id) { 
-                            return ?get_ballot(id);
-                        };
-                    };
-                };
-                null;
-            };
-            return { next };
+            IterUtils.map(Set.keys(vote.ballots), get_ballot);
         };
 
         public func vote_ballots_copy(vote: Vote<A, B>) : Iter<Ballot<B>> {
-            let it = Set.keys(vote.ballots);
-            func next() : ?(Ballot<B>) {
-                label get_next while(true) {
-                    switch(it.next()){
-                        case(null) { break get_next; };
-                        case(?id) { 
-                            let ballot = get_ballot(id);
-                            return ?{
-                                ballot_id = ballot.ballot_id;
-                                vote_id = ballot.vote_id;
-                                timestamp = ballot.timestamp;
-                                choice = ballot.choice;
-                                amount = ballot.amount;
-                                dissent = ballot.dissent;
-                                consent = ballot.consent;
-                                foresight = ballot.foresight;
-                                tx_id = ballot.tx_id;
-                                from = ballot.from;
-                                decay = ballot.decay;
-                                var hotness = ballot.hotness;
-                                var lock = ballot.lock;
-                            };
-                        };
-                    };
+            let copy_ballot = func(ballot_id: UUID): Ballot<B> {
+                let ballot = get_ballot(ballot_id);
+                return {
+                    ballot_id = ballot.ballot_id;
+                    vote_id = ballot.vote_id;
+                    timestamp = ballot.timestamp;
+                    choice = ballot.choice;
+                    amount = ballot.amount;
+                    dissent = ballot.dissent;
+                    consent = ballot.consent;
+                    foresight = ballot.foresight;
+                    tx_id = ballot.tx_id;
+                    from = ballot.from;
+                    decay = ballot.decay;
+                    var hotness = ballot.hotness;
+                    var lock = ballot.lock;
                 };
-                null;
             };
-            return { next };
+            IterUtils.map(Set.keys(vote.ballots), copy_ballot);
         };
 
         func init_ballot({

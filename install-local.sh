@@ -72,8 +72,11 @@ dfx deploy protocol --argument '( variant {
       ledger  = principal "'${DSN_LEDGER_PRINCIPAL}'";
       fee = 10;
     };
-    parameters = record {
+    minter = record {
       contribution_per_day = 100_000_000_000;
+      author_share = 0.2;
+    };
+    parameters = record {
       age_coefficient = 0.25;
       max_age = variant { YEARS = 4 };
       ballot_half_life = variant { YEARS = 1 };
@@ -82,7 +85,6 @@ dfx deploy protocol --argument '( variant {
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
       author_fee = 5_000_000_000;
-      author_share = 0.2;
       timer_interval_s = 216;
       clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
     };

@@ -212,6 +212,7 @@ module {
         aggregate: Timeline<A>;
         ballots: Set<UUID>;
         author: Account;
+        var tvl: Nat;
     };
 
     public type DebtRecord = {
@@ -280,10 +281,6 @@ module {
         #NS: Nat;
     };
 
-    public type MintingInfo = {
-        amount_minted: Timeline<Nat>;
-    };
-
     public type TimerParameters = {
         var interval_s: Nat;
     };
@@ -306,26 +303,38 @@ module {
 
     public type Lock = {
         release_date: Nat;
+        amount: Nat;
         id: UUID;
     };
 
-    public type LockRegister = {
-        var time_last_dispense: Nat;
-        total_locked: Timeline<Nat>;
-        locked_per_vote: Map<UUID, Nat>;
-        locks: BTree<Lock, Ballot<YesNoChoice>>; // TODO: use the BallotType or even a generic lock type instead
-        yield: {
-            rate: Float;
-            var cumulated: Float;
-            contributions: {
-                var sum_current: Float;
-                var sum_cumulated: Float;
-            };
+    public type LockSchedulerState = {
+        btree: BTree<Lock, ()>;
+        map: Map<Text, Lock>;
+        tvl: Timeline<Nat>;
+    };
+
+    public type YieldState = {
+        var tvl: Nat;
+        var apr: Float;
+        interest: {
+            var earned: Float;
+            var time_last_update: Nat;
         };
     };
 
+    public type MinterArgs = {
+        contribution_per_day: Nat;
+        author_share: Float;
+    };
+
+    public type MinterParameters = {
+        var contribution_per_day: Nat;
+        var author_share: Float;
+        var time_last_mint: Nat;
+        amount_minted: Timeline<Float>;
+    };
+
     public type ProtocolParameters = {
-        contribution_per_ns: Float;
         nominal_lock_duration: Duration;
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
@@ -333,7 +342,7 @@ module {
         age_coefficient: Float;
         max_age: Nat;
         author_fee: Nat;
-        author_share: Float;
+        minter_parameters: MinterParameters;
         timer: TimerParameters;
         decay: {
             half_life: Duration;
@@ -358,8 +367,8 @@ module {
             ledger: Principal;
             fee: Nat;
         };
+        minter: MinterArgs;
         parameters: {
-            contribution_per_day: Nat;
             age_coefficient: Float;
             max_age: Duration;
             ballot_half_life: Duration;
@@ -368,7 +377,6 @@ module {
             dissent_steepness: Float;
             consent_steepness: Float;
             author_fee: Nat;
-            author_share: Float;
             timer_interval_s: Nat;
             clock: ClockInitArgs;
         };
@@ -381,7 +389,8 @@ module {
     public type State = {
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
-        lock_register: LockRegister;
+        lock_scheduler_state: LockSchedulerState;
+        yield_state: YieldState;
         btc: {
             ledger: ICRC1 and ICRC2;
             fee: Nat;
@@ -393,7 +402,6 @@ module {
             debt_register: DebtRegister;
         };
         parameters: ProtocolParameters;
-        minting_info: MintingInfo;
     };
   
 };

@@ -45,7 +45,7 @@ suite("LockScheduler", func(){
         Buffer.toArray(buffer);
     };
 
-    func unwrap_lock(lock: ?LockScheduler.Lock) : LockScheduler.Lock {
+    func unwrap_lock_info(lock: ?LockScheduler.Lock) : LockScheduler.Lock {
         switch(lock) {
             case (?l) { l; };
             case (null) { Debug.trap("Failed to unwrap lock"); };
@@ -126,7 +126,7 @@ suite("LockScheduler", func(){
 
         // Try to unlock till 19 minutes shall fail
         assert(try_repetitive_unlock(lock_scheduler, map, t0, t0 + 19).size() == 0);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 0)).lock_state, #LOCKED, equal_lock_state);
+        verify(unwrap_lock_info(Map.get(map, Map.nhash, 0)).lock_state, #LOCKED, equal_lock_state);
 
         // Tx1, at t=10s, lock 6 sats
         // -> Lock1 shall be locked for more than 30 minutes but less than 50 minutes
@@ -135,8 +135,8 @@ suite("LockScheduler", func(){
 
         var lock1 = lock_scheduler.new_lock({ map; id = 1; amount = 6; timestamp = t1; new = lock_passthrough; });
         assert(Map.size(map) == 2);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 0)).lock_state, #LOCKED, equal_lock_state);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 1)).lock_state, #LOCKED, equal_lock_state);
+        verify(unwrap_lock_info(Map.get(map, Map.nhash, 0)).lock_state, #LOCKED, equal_lock_state);
+        verify(unwrap_lock_info(Map.get(map, Map.nhash, 1)).lock_state, #LOCKED, equal_lock_state);
 
         // Test lock1
         verify<Lock>(
@@ -153,7 +153,7 @@ suite("LockScheduler", func(){
         verify(#NS(hotness_to_duration(lock1.hotness)), #MINUTES(50), inferior_duration);
 
         // Test lock0
-        lock0 := unwrap_lock(Map.get(map, Map.nhash, 0));
+        lock0 := unwrap_lock_info(Map.get(map, Map.nhash, 0));
         verify<Lock>(
             lock0, {
                 id = 0;
@@ -169,18 +169,18 @@ suite("LockScheduler", func(){
 
         // Try to unlock till the lock0's time_left is over shall fail
         assert(try_repetitive_unlock(lock_scheduler, map, t0, t0 + hotness_to_duration(lock0.hotness)).size() == 0);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 0)).lock_state, #LOCKED, equal_lock_state);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 1)).lock_state, #LOCKED, equal_lock_state);
+        verify(unwrap_lock_info(Map.get(map, Map.nhash, 0)).lock_state, #LOCKED, equal_lock_state);
+        verify(unwrap_lock_info(Map.get(map, Map.nhash, 1)).lock_state, #LOCKED, equal_lock_state);
 
         // Try to unlock after the lock0's time_left is over shall succeed
         assert(lock_scheduler.try_unlock({ map; time = t0 + hotness_to_duration(lock0.hotness) + 1; }).size() == 1);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 0)).lock_state, #REFUNDED, equal_lock_state);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 1)).lock_state, #LOCKED, equal_lock_state);
+        verify(unwrap_lock_info(Map.get(map, Map.nhash, 0)).lock_state, #REFUNDED, equal_lock_state);
+        verify(unwrap_lock_info(Map.get(map, Map.nhash, 1)).lock_state, #LOCKED, equal_lock_state);
 
         // Try to unlock after the lock1's time_left is over shall succeed
         assert(lock_scheduler.try_unlock({ map; time = t1 + hotness_to_duration(lock1.hotness) + 1; }).size() == 1);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 0)).lock_state, #REFUNDED, equal_lock_state);
-        verify(unwrap_lock(Map.get(map, Map.nhash, 1)).lock_state, #REFUNDED, equal_lock_state);
+        verify(unwrap_lock_info(Map.get(map, Map.nhash, 0)).lock_state, #REFUNDED, equal_lock_state);
+        verify(unwrap_lock_info(Map.get(map, Map.nhash, 1)).lock_state, #REFUNDED, equal_lock_state);
     });
     
 })

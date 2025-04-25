@@ -45,6 +45,14 @@ module {
         };
     };
 
+    public func fold_left<K, V, A>(map: Map<K, V>, base: A, combine: (A, V) -> A) : A {
+        var acc = base;
+        for (v in Map.vals(map)) {
+            acc := combine(acc, v);
+        };
+        acc;
+    };
+
     public func has2D<K1, K2, V>(map2D: Map2D<K1, K2, V>, k1_hash: HashUtils<K1>, k1: K1, k2_hash: HashUtils<K2>, k2: K2) : Bool {
         switch(Map.get(map2D, k1_hash, k1)){
             case(null) { false };

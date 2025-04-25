@@ -177,13 +177,21 @@ async function callCanisterMethod() {
             },
         }));
     }
-    await Promise.all(approvePromises);
+    await Promise.all(approvePromises).then(() => {
+        console.log('All approvals completed successfully');
+    }).catch((error) => {
+        console.error('Error during approvals:', error);
+    });
 
     // A random user opens up a new vote
     for (let i = 0; i < NUM_VOTES; i++) {
-        const args = { text: VOTES_TO_OPEN[i], id: uuidv4(), from_subaccount: [] };
-        getRandomUserActor(userActors).backend.new_vote(args).then((_) => {
-            console.log('New vote added');
+        const args = { text: VOTES_TO_OPEN[i], id: uuidv4(), thumbnail: new Uint8Array(), from_subaccount: [] };
+        getRandomUserActor(userActors).backend.new_vote(args).then((result) => {
+            if ('ok' in result) {
+                console.log('New vote added successfully');
+            } else {
+                console.error('Error adding new vote:', result.err);
+            }
         });
     }
 

@@ -1,6 +1,8 @@
 import Types "../Types";
 
 import Float "mo:base/Float";
+import Int "mo:base/Int";
+import Debug "mo:base/Debug";
 
 module {
 
@@ -23,7 +25,6 @@ module {
         };
     };
 
-
     public func fromTime(time: Nat) : Duration {
         let time_float = Float.fromInt(time);
         if (Float.rem(time_float,  Float.fromInt(NS_IN_YEAR)) == 0.0){
@@ -43,4 +44,23 @@ module {
         };
         return #NS(time);
     };
-}
+
+    public func toAnnual(duration: Duration) : Float {
+        switch(duration) {
+            case (#YEARS(years))     {  Float.fromInt(years);                                             };
+            case (#DAYS(days))       {  Float.fromInt(days)    / 365.25;                                  };
+            case (#HOURS(hours))     {  Float.fromInt(hours)   / (365.25 * 24);                           };
+            case (#MINUTES(minutes)) {  Float.fromInt(minutes) / (365.25 * 24 * 60);                      };
+            case (#SECONDS(seconds)) {  Float.fromInt(seconds) / (365.25 * 24 * 60 * 60);                 };
+            case (#NS(ns))           {  Float.fromInt(ns)      / (365.25 * 24 * 60 * 60 * 1_000_000_000); };
+        };
+    };
+
+    public func getDuration({ from: Nat; to: Nat; }) : Duration {
+        let diff : Int = to - from;
+        if (diff < 0) {
+            Debug.trap("Negative duration error");
+        };
+        #NS(Int.abs(diff));
+    };
+};

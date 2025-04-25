@@ -21,14 +21,18 @@ module {
     type SLockInfo = Types.SLockInfo;
     type ClockParameters = Types.ClockParameters;
     type SClockParameters = Types.SClockParameters;
-    type TimerParameters = Types.TimerParameters;
-    type STimerParameters = Types.STimerParameters;
+    type MinterParameters = Types.MinterParameters;
+    type SMinterParameters = Types.SMinterParameters;
     type ProtocolParameters = Types.ProtocolParameters;
     type SProtocolParameters = Types.SProtocolParameters;
     type ProtocolInfo = Types.ProtocolInfo;
     type SProtocolInfo = Types.SProtocolInfo;
     type BallotPreview = Types.BallotPreview;
     type SBallotPreview = Types.SBallotPreview;
+    type VoteType = Types.VoteType;
+    type SVoteType = Types.SVoteType;
+    type YieldState = Types.YieldState;
+    type SYieldState = Types.SYieldState;
 
     public func shareOpt<T, S>(opt: ?T, f: T -> S) : ?S {
         Option.map(opt, f);
@@ -74,8 +78,13 @@ module {
         };
     };
 
-    public func shareTimerParameters(timer_parameters: TimerParameters) : STimerParameters {
-        { interval_s = timer_parameters.interval_s; };
+    public func shareMinterParameters(minter_parameters: MinterParameters) : SMinterParameters {
+        {
+            contribution_per_day = minter_parameters.contribution_per_day;
+            author_share = minter_parameters.author_share;
+            time_last_mint = minter_parameters.time_last_mint;
+            amount_minted = shareTimeline(minter_parameters.amount_minted);
+        };
     };
 
     public func shareProtocolInfo(protocol_info: ProtocolInfo) : SProtocolInfo {
@@ -83,14 +92,13 @@ module {
             current_time = protocol_info.current_time;
             last_run = protocol_info.last_run;
             btc_locked = shareTimeline(protocol_info.btc_locked);
-            dsn_minted = shareTimeline(protocol_info.dsn_minted);
-        };
+        }
     };
 
     public func shareProtocolParameters(protocol_parameters: ProtocolParameters) : SProtocolParameters {
         {
             protocol_parameters with 
-            timer = shareTimerParameters(protocol_parameters.timer);
+            minter_parameters = shareMinterParameters(protocol_parameters.minter_parameters);
             clock = shareClockParameters(protocol_parameters.clock);
         };
     };
@@ -109,6 +117,29 @@ module {
         {
             new = shareBallotType(preview.new);
             previous = Array.map<BallotType, SBallotType>(preview.previous, shareBallotType);
+        };
+    };
+
+    public func shareVoteType(vote: VoteType) : SVoteType {
+        switch(vote){
+            case(#YES_NO(v)) { 
+                #YES_NO({
+                    v with 
+                    aggregate = shareTimeline(v.aggregate);
+                    tvl = v.tvl;
+                });
+            };
+        };
+    };
+
+    public func shareYieldState(yield_state: YieldState) : SYieldState {
+        {
+            tvl = yield_state.tvl;
+            apr = yield_state.apr;
+            interest = {
+                earned = yield_state.interest.earned;
+                time_last_update = yield_state.interest.time_last_update;
+            };
         };
     };
 

@@ -1,8 +1,10 @@
 import VoteController "VoteController";
 import Types          "../Types";
+import IterUtils      "../utils/Iter";
 
 import Iter           "mo:base/Iter";
 import Array          "mo:base/Array";
+import Map            "mo:map/Map";
 
 module {
 
@@ -17,7 +19,7 @@ module {
     type Account        = Types.Account;
     type BallotPreview  = Types.BallotPreview;
     
-    type Iter<T>        = Iter.Iter<T>;
+    type Iter<T>        = Map.Iter<T>;
 
     // TODO: put in Types.mo
     public type PutBallotArgs = VoteController.PutBallotArgs;
@@ -55,19 +57,9 @@ module {
         public func vote_ballots(vote_type: VoteType) : Iter<BallotType> {
             switch(vote_type){
                 case(#YES_NO(vote)) { 
-                    let it = yes_no_controller.vote_ballots(vote);
-                    func next() : ?(BallotType) {
-                        label get_next while(true) {
-                            switch(it.next()){
-                                case(null) { break get_next; };
-                                case(?ballot){
-                                    return ?#YES_NO(ballot);
-                                };
-                            };
-                        };
-                        null;
-                    };
-                    return { next };
+                    IterUtils.map(yes_no_controller.vote_ballots(vote), func (b: YesNoBallot) : BallotType {
+                        #YES_NO(b);
+                    });
                 };
             };
         };

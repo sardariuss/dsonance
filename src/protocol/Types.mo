@@ -1,13 +1,14 @@
 import Float "mo:base/Float";
 import Result "mo:base/Result";
-import Iter  "mo:base/Iter";
 
 import Types "migrations/Types";
+
+import Map "mo:map/Map";
 
 module {
 
     type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type Iter<T> = Iter.Iter<T>;
+    type Iter<T> = Map.Iter<T>;
 
     // MIGRATION TYPES
 
@@ -42,11 +43,9 @@ module {
     public type ClockParameters    = Types.Current.ClockParameters;
     public type UUID               = Types.Current.UUID;
     public type Lock               = Types.Current.Lock;
-    public type LockRegister       = Types.Current.LockRegister;
     public type DebtInfo           = Types.Current.DebtInfo;
     public type Transfer           = Types.Current.Transfer;
     public type TransferResult     = Types.Current.TransferResult;
-    public type MintingInfo        = Types.Current.MintingInfo;
     public type BallotType         = Types.Current.BallotType;
     public type BallotRegister     = Types.Current.BallotRegister;
     public type ProtocolParameters = Types.Current.ProtocolParameters;
@@ -55,6 +54,9 @@ module {
     public type Register<T>        = Types.Current.Register<T>;
     public type DebtRegister       = Types.Current.DebtRegister;
     public type DebtRecord         = Types.Current.DebtRecord;
+    public type MinterParameters   = Types.Current.MinterParameters;
+    public type LockSchedulerState = Types.Current.LockSchedulerState;
+    public type YieldState         = Types.Current.YieldState;
 
     // CANISTER ARGS
 
@@ -100,7 +102,32 @@ module {
         ballot_id: UUID;
     };
 
+    public type LockState = {
+        locks: Iter<Lock>;
+        tvl: Nat;
+    };
+
+    public type BeforeChangeArgs = { 
+        time: Nat;
+        state: LockState;
+    };
+
+    public type AfterChangeArgs = { 
+        time: Nat;
+        event: LockEvent;
+        state: LockState;
+    };
+
     // SHARED TYPES
+
+    public type SYieldState = {
+        tvl: Nat;
+        apr: Float;
+        interest: {
+            earned: Float;
+            time_last_update: Nat;
+        };
+    };
 
     public type SVoteType = {
         #YES_NO: SVote<YesNoAggregate, YesNoChoice>;
@@ -156,7 +183,6 @@ module {
         current_time: Nat;
         last_run: Nat;
         btc_locked: STimeline<Nat>;
-        dsn_minted: STimeline<Nat>;
     };
 
     public type SClockParameters = {
@@ -168,12 +194,14 @@ module {
         };
     };
 
-    public type STimerParameters = {
-        interval_s: Nat;
+    public type SMinterParameters = {
+        contribution_per_day: Nat;
+        author_share: Float;
+        time_last_mint: Nat;
+        amount_minted: STimeline<Float>;
     };
 
     public type SProtocolParameters = {
-        contribution_per_ns: Float;
         age_coefficient: Float;
         max_age: Nat;
         nominal_lock_duration: Duration;
@@ -181,7 +209,7 @@ module {
         dissent_steepness: Float;
         consent_steepness: Float;
         author_fee: Nat;
-        timer: STimerParameters;
+        minter_parameters: SMinterParameters;
         decay: {
             half_life: Duration;
             time_init: Nat;
@@ -191,11 +219,20 @@ module {
 
     // CUSTOM TYPES
 
+    public type AgeBonusParameters = {
+        max_age: Nat;
+        age_coefficient: Float;
+    };
+
     public type ProtocolInfo = {
         current_time: Nat;
         last_run: Nat;
         btc_locked: Timeline<Nat>;
-        dsn_minted: Timeline<Nat>;
+    };
+
+    public type LockEvent = {
+        #LOCK_ADDED: Lock;
+        #LOCK_REMOVED: Lock;
     };
 
     public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Nat;}) -> A;

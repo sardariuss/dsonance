@@ -12,7 +12,6 @@ import { useEffect, useMemo, useState } from "react";
 import ChevronUpIcon from "../icons/ChevronUpIcon";
 import ChevronDownIcon from "../icons/ChevronDownIcon";
 import { useMediaQuery } from "react-responsive";
-import BackArrowIcon from "../icons/BackArrowIcon";
 import { useNavigate } from "react-router-dom";
 import { backendActor } from "../../actors/BackendActor";
 import { fromNullable } from "@dfinity/utils";
@@ -20,7 +19,6 @@ import { toEnum } from "../../utils/conversions/yesnochoice";
 import { useCurrencyContext } from "../CurrencyContext";
 import ChoiceView from "../ChoiceView";
 import { protocolActor } from "../../actors/ProtocolActor";
-import icLogo from "../../assets/ic-logo.svg";
 
 enum CHART_TOGGLE {
     DURATION,
@@ -78,14 +76,6 @@ interface BallotDetailsProps {
 
 const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contribution, isMobile }) => {
 
-    if (!contribution) {
-      return (
-        <div className="w-full mt-3">
-          <div className="w-full h-12 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
-        </div>
-      );
-    }
-
     const releaseTimestamp = ballot.YES_NO.timestamp + unwrapLock(ballot.YES_NO).duration_ns.current.data;
 
     const [chartToggle, setChartToggle] = useState<CHART_TOGGLE | undefined>(undefined);
@@ -129,12 +119,12 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
         {
           title: "Mining earned:",
           value: formatBalanceE8s(
-            BigInt(Math.floor(contribution.current.data.earned)),
+            BigInt(Math.floor(contribution === undefined ? 0 : contribution.current.data.earned)),
             DSONANCE_COIN_SYMBOL,
             2
           ),
           toggleKey: CHART_TOGGLE.CONTRIBUTION,
-          chartTimelines: new Map([
+          chartTimelines: contribution === undefined ? new Map() : new Map([
             [
               "earned",
               { timeline: map_timeline_hack(contribution, (contribution) => contribution.earned), color: CHART_COLORS.BLUE },
@@ -295,8 +285,7 @@ export default BallotView;
 
 export const BallotViewSkeleton: React.FC = () => {
 
-  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY  });
-  const navigate = useNavigate();
+  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   return (
     <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>

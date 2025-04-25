@@ -3,7 +3,7 @@ import Incentives         "Incentives";
 import BallotAggregator   "BallotAggregator";
 import Types              "../Types";
 import Decay              "../duration/Decay";
-import HotMap             "../locks/HotMap";
+import LockInfoUpdater    "../locks/LockInfoUpdater";
 
 import Map                "mo:map/Map";
 
@@ -28,7 +28,7 @@ module {
         parameters: ProtocolParameters;
         ballot_register: BallotRegister;
         decay_model: Decay.DecayModel;
-        hot_map: HotMap.HotMap;
+        lock_info_updater: LockInfoUpdater.LockInfoUpdater;
     }) : VoteController<YesNoAggregate, YesNoChoice> {
 
         let ballot_aggregator = BallotAggregator.BallotAggregator<YesNoAggregate, YesNoChoice>({
@@ -69,7 +69,7 @@ module {
         VoteController.VoteController<YesNoAggregate, YesNoChoice>({
             empty_aggregate = { total_yes = 0; total_no = 0; current_yes = #DECAYED(0.0); current_no = #DECAYED(0.0); };
             ballot_aggregator;
-            hot_map;
+            lock_info_updater;
             decay_model;
             get_ballot = func(id: UUID) : YesNoBallot {
                 switch(Map.get(ballot_register.ballots, Map.thash, id)){

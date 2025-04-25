@@ -11,8 +11,10 @@ module {
         compute_duration_ns: Float -> Nat;
     };
 
-    type LockElem = {
+    type LockInput = {
+        id: Text;
         timestamp: Nat;
+        amount: Nat;
         var lock: ?Types.LockInfo;
     };
 
@@ -44,19 +46,20 @@ module {
             Int.abs(Float.toInt(Float.fromInt(nominal_duration_ns) * Float.pow(hotness, scale_factor)));
         };
 
-        public func update_lock_duration(elem: LockElem, hotness: Float, time: Nat) {
-            let duration = compute_duration_ns(hotness);
-            let release_date = elem.timestamp + duration;
-            switch(elem.lock) {
+        // Watchout, this functions updates the lock info in place.
+        public func update_lock_info(input: LockInput, hotness: Float, time: Nat) {
+            let new_duration_ns = compute_duration_ns(hotness);
+            let release_date = input.timestamp + new_duration_ns;
+            switch(input.lock) {
                 case(null) { 
-                    elem.lock := ?{
-                        duration_ns = Timeline.initialize(time, duration);
+                    input.lock := ?{
+                        duration_ns = Timeline.initialize(time, new_duration_ns);
                         var release_date = release_date;
                     };
                 };
                 case(?lock) {
                     if (release_date != lock.release_date) {
-                        Timeline.insert(lock.duration_ns, time, duration);
+                        Timeline.insert(lock.duration_ns, time, new_duration_ns);
                         lock.release_date := release_date;
                     };
                 };
