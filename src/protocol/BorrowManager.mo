@@ -29,6 +29,15 @@ module {
         var borrow_index: Float;
     };
 
+    type SBorrowPosition = {
+        account: Account;
+        collateral_tx: [TxIndex];
+        borrow_tx: [TxIndex];
+        collateral: Nat;
+        borrowed: Float;
+        borrow_index: Float;
+    };
+
     type LendingPoolState = {
         liquidity_threshold: Float; // e.g. 0.85 means 85%
         reserve_ratio: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
@@ -39,6 +48,18 @@ module {
         var borrow_index: Float; // growing value, starts at 1.0
         var supply_index: Float; // growing value, starts at 1.0
         var last_update_timestamp: Nat; // Timestamp in nanoseconds
+    };
+
+    type SLendingPoolState = {
+        liquidity_threshold: Float;
+        reserve_ratio: Float;
+        reserve_fee: Float;
+        total_supply: Nat;
+        total_collateral: Nat;
+        total_borrowed: Float;
+        borrow_index: Float;
+        supply_index: Float;
+        last_update_timestamp: Nat;
     };
 
     public class BorrowManager({
@@ -74,7 +95,20 @@ module {
             time: Nat
         }) : async* Result<(), Text> {
 
-            // @todo: need to verify if the borrow_amount will not make utilization greater than 1.0
+            // Refresh the indexes
+            refresh_indexes({time});
+
+            let utilization = switch(compute_utilization({
+                share_lending_pool(pool) with
+                total_borrowed = pool.total_borrowed + Float.fromInt(borrow_amount)
+            })) {
+                case(#err(err)) { return #err(err); };
+                case(#ok(value)) { value; };
+            };
+
+            if (utilization > 1.0) {
+                return #err("Utilization exceeds allowed limit");
+            };
 
             // Transfer the collateral from the user account
             let collateral_tx = switch(await* collateral_ledger.transfer_from({ from = account; amount = collateral_amount; })){
@@ -87,9 +121,6 @@ module {
                 case(#err(_)) { return #err("Failed to transfer borrow amount to the user account"); };
                 case(#ok(tx)) { tx; };
             };
-
-            // Refresh the indexes
-            refresh_indexes({time});
 
             switch(Map.get(borrow_positions, MapUtils.acchash, account)){
                 case(null){
@@ -107,7 +138,7 @@ module {
                     position.collateral_tx := Array.append(position.collateral_tx, [collateral_tx]);
                     position.borrow_tx := Array.append(position.borrow_tx, [borrow_tx]);
                     position.collateral += collateral_amount;
-                    position.borrowed := current_owed(position) + Float.fromInt(borrow_amount);
+                    position.borrowed := current_owed(share_position(position)) + Float.fromInt(borrow_amount);
                     position.borrow_index := pool.borrow_index;
                 };
             };
@@ -132,7 +163,7 @@ module {
             // Refresh the indexes
             refresh_indexes({time});
 
-            let owed = current_owed(position);
+            let owed = current_owed(share_position(position));
             let repaid_amount = Float.min(owed, Float.fromInt(amount));
 
             // Transfer the repayment from the user to the contract/pool
@@ -195,7 +226,7 @@ module {
             };
             
             // Determine position's health factor
-            if (health_factor(position) >= 1.0) {
+            if (health_factor(share_position(position)) >= 1.0) {
                 return #err("Position is still healthy");
             };
 
@@ -224,13 +255,13 @@ module {
             let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = pool.last_update_timestamp; to = time; }));
 
             // Calculate utilization ratio
-            let utilization = do {
-                if (pool.total_supply == 0) {
-                    // If total supply is 0, utilization is technically undefined or 0.
-                    0.0;
-                } else {
-                    (pool.total_borrowed * pool.borrow_index) / (Float.fromInt(pool.total_supply) * (1.0 - pool.reserve_ratio));
+            let utilization = switch(compute_utilization(share_lending_pool(pool))){
+                case(#err(err)) {
+                    Debug.print(err);
+                    // @todo: what else to do? update last_update_timestamp?
+                    return;
                 };
+                case(#ok(u)) { u; };
             };
 
             // Get the current borrow rate from the curve
@@ -244,14 +275,48 @@ module {
             pool.last_update_timestamp := time;
         };
 
-        func current_owed(position: BorrowPosition) : Float {
-            position.borrowed * (1.0 - pool.borrow_index / position.borrow_index);
+        func current_owed(position: SBorrowPosition) : Float {
+            position.borrowed * (pool.borrow_index / position.borrow_index);
         };
 
-        func health_factor(position: BorrowPosition) : Float {
+        func health_factor(position: SBorrowPosition) : Float {
             (Float.fromInt(position.collateral) * pool.liquidity_threshold) / current_owed(position);
         };
 
+    };
+
+    func compute_utilization(pool: SLendingPoolState) : Result<Float, Text> {
+         
+        if (pool.total_supply == 0) {
+            return #err("Total supply is zero, utilization is undefined");
+        };
+        
+        #ok((pool.total_borrowed * pool.borrow_index) / (Float.fromInt(pool.total_supply) * (1.0 - pool.reserve_ratio)));
+    };
+
+    func share_position(position: BorrowPosition) : SBorrowPosition {
+        {
+            account       = position.account;
+            collateral_tx = position.collateral_tx;
+            borrow_tx     = position.borrow_tx;
+            collateral    = position.collateral;
+            borrowed      = position.borrowed;
+            borrow_index  = position.borrow_index;
+        };
+    };
+
+    func share_lending_pool(pool: LendingPoolState) : SLendingPoolState {
+        {
+            liquidity_threshold   = pool.liquidity_threshold;
+            reserve_ratio         = pool.reserve_ratio;
+            reserve_fee           = pool.reserve_fee;
+            total_supply          = pool.total_supply;
+            total_collateral      = pool.total_collateral;
+            total_borrowed        = pool.total_borrowed;
+            borrow_index          = pool.borrow_index;
+            supply_index          = pool.supply_index;
+            last_update_timestamp = pool.last_update_timestamp;
+        }
     };
 
 };
