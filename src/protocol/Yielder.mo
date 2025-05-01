@@ -20,12 +20,16 @@ module {
 
     type BorrowError = {
         #InsufficientBorrowable: {
-            max_borrowable: Nat;
+            available_borrow_amount: Nat;
         };
     };
 
+    type RepayError = {
+        #RepayAmountExceedsBorrowed;
+    };
+
     type YieldState = {
-        var total_supply: Nat; // Renamed from tvl
+        var total_deposit: Nat; // Renamed from tvl
         var total_borrowed: Nat;     // Amount currently borrowed
         var reserve_factor: Float; // Portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%)
         interest: {
@@ -43,37 +47,50 @@ module {
             state;
         };
 
-        public func get_available_supply() : Int {
-            state.total_supply - state.total_borrowed;
+        public func get_available_liquidity() : Int {
+            state.total_deposit - state.total_borrowed;
         };
 
-        public func update_total_supply({ new_total_supply: Nat; time: Nat; }) {
+        public func update_total_deposit({ new_total_deposit: Nat; time: Nat; }) {
             accrue_yield(time);
-            state.total_supply := new_total_supply;
+            // TODO: Add check: Ensure new_total_deposit * (1 - reserve_factor) >= total_borrowed.
+            // If violated, either reject the update or trigger liquidation logic (future).
+            state.total_deposit := new_total_deposit;
         };
 
         public func borrow({ amount: Nat; time: Nat; }) : Result<(), BorrowError> {
             
             accrue_yield(time);
 
-            let max_borrowable = get_max_borrowable();
+            let available_borrow_amount = get_available_borrow_amount();
 
-            if (amount > max_borrowable) {
-                return #err(#InsufficientBorrowable({ max_borrowable }));
+            if (amount > available_borrow_amount) {
+                return #err(#InsufficientBorrowable({ available_borrow_amount }));
             };
 
             state.total_borrowed += amount;
             #ok;
         };
 
-        public func get_max_borrowable() : Nat {
-            
-            let max_borrowable_float = (Float.fromInt(state.total_supply) * (1.0 - state.reserve_factor) - Float.fromInt(state.total_borrowed));
+        public func repay({ amount: Nat; time: Nat; }) : Result<(), RepayError> {
+            accrue_yield(time);
 
-            if (max_borrowable_float <= 0.0) {
+            if (amount > state.total_borrowed) {
+                return #err(#RepayAmountExceedsBorrowed);
+            };
+
+            state.total_borrowed -= amount;
+            #ok;
+        };
+
+        public func get_available_borrow_amount() : Nat {
+            
+            let available_float = (Float.fromInt(state.total_deposit) * (1.0 - state.reserve_factor) - Float.fromInt(state.total_borrowed));
+
+            if (available_float <= 0.0) {
                 0;
             } else {
-                Int.abs(Float.toInt(max_borrowable_float));
+                Int.abs(Float.toInt(available_float));
             };
         };
 
@@ -100,12 +117,12 @@ module {
 
             // Calculate utilization ratio
             let utilization = do {
-                if (state.total_supply == 0) {
-                    // If total supply is 0, utilization is technically undefined or 0.
+                if (state.total_deposit == 0) {
+                    // If total deposit is 0, utilization is technically undefined or 0.
                     0.0;
                 } else {
                     // Ensure float division using state.total_borrowed
-                    Float.fromInt(state.total_borrowed) / Float.fromInt(state.total_supply);
+                    Float.fromInt(state.total_borrowed) / Float.fromInt(state.total_deposit);
                 };
             };
 
