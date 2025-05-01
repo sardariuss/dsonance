@@ -90,8 +90,8 @@ module {
 
         public func borrow({
             account: Account;
-            borrow_amount: Nat;
-            collateral_amount: Nat;
+            amount: Nat;
+            collateral: Nat;
             time: Nat
         }) : async* Result<(), Text> {
 
@@ -100,7 +100,7 @@ module {
 
             let utilization = switch(compute_utilization({
                 share_lending_pool(pool) with
-                total_borrowed = pool.total_borrowed + Float.fromInt(borrow_amount)
+                total_borrowed = pool.total_borrowed + Float.fromInt(amount)
             })) {
                 case(#err(err)) { return #err(err); };
                 case(#ok(value)) { value; };
@@ -110,14 +110,24 @@ module {
                 return #err("Utilization exceeds allowed limit");
             };
 
+            let position = {
+                collateral;
+                borrowed = Float.fromInt(amount);
+                borrow_index = pool.borrow_index;
+            };
+
+            if (health_factor(position) < 1.0) {
+                return #err("Borrowing would result in under-collateralized position.");
+            };
+
             // Transfer the collateral from the user account
-            let collateral_tx = switch(await* collateral_ledger.transfer_from({ from = account; amount = collateral_amount; })){
+            let collateral_tx = switch(await* collateral_ledger.transfer_from({ from = account; amount = collateral; })){
                 case(#err(_)) { return #err("Failed to transfer collateral from the user account"); };
                 case(#ok(tx)) { tx; };
             };
 
             // Transfer the borrow amount to the user account
-            let borrow_tx = switch((await* borrow_ledger.transfer({ to = account; amount = borrow_amount; })).result){
+            let borrow_tx = switch((await* borrow_ledger.transfer({ to = account; amount = amount; })).result){
                 case(#err(_)) { return #err("Failed to transfer borrow amount to the user account"); };
                 case(#ok(tx)) { tx; };
             };
@@ -128,8 +138,8 @@ module {
                         account;
                         var collateral_tx = [collateral_tx];
                         var borrow_tx = [borrow_tx];
-                        var collateral = collateral_amount;
-                        var borrowed = Float.fromInt(borrow_amount);
+                        var collateral = collateral;
+                        var borrowed = Float.fromInt(amount);
                         var borrow_index = pool.borrow_index;
                     });
                 };
@@ -137,14 +147,14 @@ module {
                     // Update the position
                     position.collateral_tx := Array.append(position.collateral_tx, [collateral_tx]);
                     position.borrow_tx := Array.append(position.borrow_tx, [borrow_tx]);
-                    position.collateral += collateral_amount;
-                    position.borrowed := current_owed(share_position(position)) + Float.fromInt(borrow_amount);
+                    position.collateral += collateral;
+                    position.borrowed := current_owed(share_position(position)) + Float.fromInt(amount);
                     position.borrow_index := pool.borrow_index;
                 };
             };
 
-            pool.total_borrowed += Float.fromInt(borrow_amount);
-            pool.total_collateral += collateral_amount;
+            pool.total_borrowed += Float.fromInt(amount);
+            pool.total_collateral += collateral;
 
             #ok;
         };
@@ -275,23 +285,35 @@ module {
             pool.last_update_timestamp := time;
         };
 
-        func current_owed(position: SBorrowPosition) : Float {
-            position.borrowed * (pool.borrow_index / position.borrow_index);
+        func current_owed({
+            borrowed: Float;
+            borrow_index: Float;
+        }) : Float {
+            borrowed * (pool.borrow_index / borrow_index);
         };
 
-        func health_factor(position: SBorrowPosition) : Float {
-            (Float.fromInt(position.collateral) * pool.liquidity_threshold) / current_owed(position);
+        func health_factor({
+            collateral: Nat;
+            borrowed: Float;
+            borrow_index: Float;
+        }) : Float {
+            (Float.fromInt(collateral) * pool.liquidity_threshold) / current_owed({borrowed; borrow_index;});
         };
 
     };
 
-    func compute_utilization(pool: SLendingPoolState) : Result<Float, Text> {
+    func compute_utilization({
+        total_supply: Nat;
+        total_borrowed: Float;
+        borrow_index: Float;
+        reserve_ratio: Float;
+    }) : Result<Float, Text> {
          
-        if (pool.total_supply == 0) {
+        if (total_supply == 0) {
             return #err("Total supply is zero, utilization is undefined");
         };
         
-        #ok((pool.total_borrowed * pool.borrow_index) / (Float.fromInt(pool.total_supply) * (1.0 - pool.reserve_ratio)));
+        #ok((total_borrowed * borrow_index) / (Float.fromInt(total_supply) * (1.0 - reserve_ratio)));
     };
 
     func share_position(position: BorrowPosition) : SBorrowPosition {
