@@ -1,4 +1,5 @@
 import Float "mo:base/Float";
+import Debug "mo:base/Debug";
 
 module {
 
@@ -10,7 +11,12 @@ module {
 
     public class InterestRateCurve(curve: [CurvePoint]) {
 
-        public func get_current_rate(utilization: Float) : Float {
+        public func get_apr(utilization: Float) : Float {
+
+            if (utilization < 0.0 or utilization > 1.0){
+                Debug.trap("Utilization must be between 0.0 and 1.0");
+            };
+
             // Ensure curve is sorted by utilization (caller responsibility or sort here)
             // Handle edge cases: empty curve, utilization outside defined range
             if (curve.size() == 0) { return 0.0; }; // Default rate if curve is empty

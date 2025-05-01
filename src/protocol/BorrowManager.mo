@@ -31,116 +31,89 @@ module {
 
     type LendingPoolState = {
         liquidity_threshold: Float; // e.g. 0.85 means 85%
-        reserve_factor: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%)
-        var total_deposit: Nat; // total deposits
+        reserve_ratio: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
+        reserve_fee: Float; // portion of the supply interest reserved as a fee for the protocol
+        var total_supply: Nat; // total supply
         var total_collateral: Nat; // total collateral
         var total_borrowed: Float; // total borrowed
         var borrow_index: Float; // growing value, starts at 1.0
+        var supply_index: Float; // growing value, starts at 1.0
         var last_update_timestamp: Nat; // Timestamp in nanoseconds
-        var accrued_interest: Float;
     };
 
     public class BorrowManager({
         borrow_ledger: LedgerFacade.LedgerFacade;
         collateral_ledger: LedgerFacade.LedgerFacade;
         pool: LendingPoolState;
-        interestRateCurve: InterestRateCurve.InterestRateCurve;
-        positions: Map.Map<Account, BorrowPosition>;
+        interest_rate_curve: InterestRateCurve.InterestRateCurve;
+        borrow_positions: Map.Map<Account, BorrowPosition>;
     }) {
 
-        func refresh_interest({ time: Nat; }) {
-
-            let elapsed : Int = time - pool.last_update_timestamp;
-
-            // If the time is before the last update
-            if (elapsed < 0) {
-                Debug.trap("Cannot update rate: time is before last update");
-            } else if (elapsed == 0) {
-                Debug.print("Rate is already up to date");
-                return;
-            };
-
-            // Calculate utilization ratio
-            let utilization = do {
-                if (pool.total_deposit == 0) {
-                    // If total deposit is 0, utilization is technically undefined or 0.
-                    0.0;
-                } else {
-                    pool.total_borrowed / Float.fromInt(pool.total_deposit);
-                };
-            };
-
-            // Clamp utilization between 0.0 and 1.0 as a safeguard
-            let clamped_utilization = Float.max(0.0, Float.min(1.0, utilization));
-
-            // Get the current interest rate from the curve
-            let current_rate_percent = interestRateCurve.get_current_rate(clamped_utilization);
-            let current_rate_ratio = Math.percentageToRatio(current_rate_percent); // Convert e.g. 5.0 to 0.05
-
-            // Calculate the time period in years
-            let annual_period = Duration.toAnnual(Duration.getDuration({ from = pool.last_update_timestamp; to = time; }));
-
-            pool.accrued_interest += pool.total_borrowed * current_rate_ratio * annual_period;
-            pool.borrow_index *= (1.0 + current_rate_ratio * annual_period);
-            pool.last_update_timestamp := time;
+        public func add_supply({ amount: Nat; time: Nat; }){
+            // Need to refresh the indexes before changing the total_supply, otherwise the wrong utilization will be computed on this period?
+            refresh_indexes({time});
+            pool.total_supply += amount;
         };
 
-        func refresh_borrow_position(position: BorrowPosition, time: Nat) {
-            refresh_interest({ time });
+        public func remove_supply({ amount: Nat; time: Nat; }){
+            if (amount > pool.total_supply) {
+                Debug.trap("The total supply is smaller than the amount requested to remove");
+            };
 
-            // Accrue position's current debt
-            let diff = position.borrowed * (1.0 - pool.borrow_index / position.borrow_index);
-            position.borrowed += diff;
-            position.borrow_index := pool.borrow_index;
+            // Need to refresh the indexes before changing the total_supply, otherwise the wrong utilization will be computed on this period?
+            refresh_indexes({time});
 
-            // Update the total_borrowed in the pool
-            pool.total_borrowed += diff;
+            // @todo: need to liquidate borrow positions if utilization gets greater than 0.0?
+            pool.total_supply -= amount;
         };
 
         public func borrow({
             account: Account;
-            borrowAmount: Nat;
-            collateralAmount: Nat;
+            borrow_amount: Nat;
+            collateral_amount: Nat;
             time: Nat
         }) : async* Result<(), Text> {
 
+            // @todo: need to verify if the borrow_amount will not make utilization greater than 1.0
+
             // Transfer the collateral from the user account
-            let collateral_tx = switch(await* collateral_ledger.transfer_from({ from = account; amount = collateralAmount; })){
+            let collateral_tx = switch(await* collateral_ledger.transfer_from({ from = account; amount = collateral_amount; })){
                 case(#err(_)) { return #err("Failed to transfer collateral from the user account"); };
                 case(#ok(tx)) { tx; };
             };
 
             // Transfer the borrow amount to the user account
-            let borrow_tx = switch((await* borrow_ledger.transfer({ to = account; amount = borrowAmount; })).result){
+            let borrow_tx = switch((await* borrow_ledger.transfer({ to = account; amount = borrow_amount; })).result){
                 case(#err(_)) { return #err("Failed to transfer borrow amount to the user account"); };
                 case(#ok(tx)) { tx; };
             };
 
-            switch(Map.get(positions, MapUtils.acchash, account)){
+            // Refresh the indexes
+            refresh_indexes({time});
+
+            switch(Map.get(borrow_positions, MapUtils.acchash, account)){
                 case(null){
-                    Map.set(positions, MapUtils.acchash, account, {
+                    Map.set(borrow_positions, MapUtils.acchash, account, {
                         account;
                         var collateral_tx = [collateral_tx];
                         var borrow_tx = [borrow_tx];
-                        var collateral = collateralAmount;
-                        var borrowed = Float.fromInt(borrowAmount);
+                        var collateral = collateral_amount;
+                        var borrowed = Float.fromInt(borrow_amount);
                         var borrow_index = pool.borrow_index;
                     });
                 };
                 case(?position){
-                    // Refresh the position
-                    refresh_borrow_position(position, time);
-
                     // Update the position
                     position.collateral_tx := Array.append(position.collateral_tx, [collateral_tx]);
                     position.borrow_tx := Array.append(position.borrow_tx, [borrow_tx]);
-                    position.collateral += collateralAmount;
-                    position.borrowed += Float.fromInt(borrowAmount);
+                    position.collateral += collateral_amount;
+                    position.borrowed := current_owed(position) + Float.fromInt(borrow_amount);
+                    position.borrow_index := pool.borrow_index;
                 };
             };
 
-            pool.total_borrowed += Float.fromInt(borrowAmount);
-            pool.total_collateral += collateralAmount;
+            pool.total_borrowed += Float.fromInt(borrow_amount);
+            pool.total_collateral += collateral_amount;
 
             #ok;
         };
@@ -151,51 +124,58 @@ module {
             time: Nat;
         }) : async* Result<(), Text> {
 
-            let position = switch (Map.get<Account, BorrowPosition>(positions, MapUtils.acchash, account)) {
+            let position = switch (Map.get<Account, BorrowPosition>(borrow_positions, MapUtils.acchash, account)) {
                 case (null) { return #err("Position not found"); };
                 case (?p) { p; };
             };
 
-            // Refresh the position
-            refresh_borrow_position(position, time);
+            // Refresh the indexes
+            refresh_indexes({time});
 
-            let actual_amount = Float.min(position.borrowed, Float.fromInt(amount));
+            let owed = current_owed(position);
+            let repaid_amount = Float.min(owed, Float.fromInt(amount));
 
             // Transfer the repayment from the user to the contract/pool
-            switch(await* borrow_ledger.transfer_from({ from = account; amount = Int.abs(Float.toInt(Float.ceil(actual_amount))); })){
+            switch(await* borrow_ledger.transfer_from({ from = account; amount = Int.abs(Float.toInt(Float.ceil(repaid_amount))); })){
                 case(#err(_)) { return #err("Transfer failed"); };
                 case(#ok(_)) {};
             };
-            position.borrowed := position.borrowed - actual_amount;
-            pool.total_borrowed -= actual_amount;
+            let repaid_fraction = repaid_amount / owed;
+            let delta = repaid_fraction * position.borrowed;
+            position.borrowed -= delta;
+            pool.total_borrowed -= delta;
 
-            await* reimburse_collateral({account});
+            // Reimburse collateral if the position is fully repaid
+            if (position.borrowed <= 0.0){
+                return await* reimburse_collateral({account});
+            };
+
+            #ok;
         };
 
         public func reimburse_collateral({
             account: Account;
         }) : async* Result<(), Text> {
 
-            let position = switch (Map.get<Account, BorrowPosition>(positions, MapUtils.acchash, account)) {
+            let position = switch (Map.get<Account, BorrowPosition>(borrow_positions, MapUtils.acchash, account)) {
                 case (null) { return #err("Position not found"); };
                 case (?p) { p; };
             };
 
             if (position.borrowed > 0.0){
-                return #err("Borrow amount must be greater than zero");
+                return #err("The borrow position is not fully repaid yet");
             };
                 
             // Transfer back the collateral
             switch((await* collateral_ledger.transfer({ to = account; amount = position.collateral; })).result){
                 case(#err(_)) { 
-                    // @todo: need a method to try reimburse collateral which transfer failed
                     return #err("Collateral reimbursement failed");
                 };
                 case(#ok(_)) {};
             };
 
             pool.total_collateral -= position.collateral;
-            Map.delete(positions, MapUtils.acchash, account);
+            Map.delete(borrow_positions, MapUtils.acchash, account);
 
             #ok;
         };
@@ -203,31 +183,73 @@ module {
         /// Liquidate a borrow position if its health factor is below 1.0.
         public func liquidate({ borrower: Account;  time: Nat; }) : async* Result<(), Text> {
 
-            let position = switch (Map.get<Account, BorrowPosition>(positions, MapUtils.acchash, borrower)) {
+            let position = switch (Map.get<Account, BorrowPosition>(borrow_positions, MapUtils.acchash, borrower)) {
                 case (null) { return #err("No borrow position found for borrower"); };
                 case (?p) { p; };
             };
 
-            // Refresh the position
-            refresh_borrow_position(position, time);
+            refresh_indexes({time});
 
             if (position.borrowed <= 0.0) {
-                return #err("Borrow amount must be greater than zero");
+                return #err("The borrow position has already been repaid");
             };
             
             // Determine position's health factor
-            let healthFactor = (Float.fromInt(position.collateral) * pool.liquidity_threshold) / position.borrowed;
-            if (healthFactor >= 1.0) {
+            if (health_factor(position) >= 1.0) {
                 return #err("Position is still healthy");
             };
 
             // @todo: Sell collateral
 
-            Map.delete(positions, MapUtils.acchash, borrower);
+            Map.delete(borrow_positions, MapUtils.acchash, borrower);
             pool.total_borrowed -= position.borrowed;
             pool.total_collateral -= position.collateral;
 
             #ok;
+        };
+
+        func refresh_indexes({ time: Nat; }) {
+
+            let elapsed_ns : Int = time - pool.last_update_timestamp;
+
+            // If the time is before the last update
+            if (elapsed_ns < 0) {
+                Debug.trap("Cannot update rate: time is before last update");
+            } else if (elapsed_ns == 0) {
+                Debug.print("Rate is already up to date");
+                return;
+            };
+
+            // Calculate the time period in years
+            let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = pool.last_update_timestamp; to = time; }));
+
+            // Calculate utilization ratio
+            let utilization = do {
+                if (pool.total_supply == 0) {
+                    // If total supply is 0, utilization is technically undefined or 0.
+                    0.0;
+                } else {
+                    (pool.total_borrowed * pool.borrow_index) / (Float.fromInt(pool.total_supply) * (1.0 - pool.reserve_ratio));
+                };
+            };
+
+            // Get the current borrow rate from the curve
+            let borrow_rate = Math.percentageToRatio(interest_rate_curve.get_apr(utilization));
+            pool.borrow_index *= (1.0 + borrow_rate * elapsed_annual);
+
+            // Get the current supply rate
+            let supply_rate = borrow_rate * utilization * (1.0 - pool.reserve_fee);
+            pool.supply_index *= (1.0 + supply_rate * elapsed_annual);
+
+            pool.last_update_timestamp := time;
+        };
+
+        func current_owed(position: BorrowPosition) : Float {
+            position.borrowed * (1.0 - pool.borrow_index / position.borrow_index);
+        };
+
+        func health_factor(position: BorrowPosition) : Float {
+            (Float.fromInt(position.collateral) * pool.liquidity_threshold) / current_owed(position);
         };
 
     };
