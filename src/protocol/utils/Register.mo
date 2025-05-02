@@ -44,6 +44,11 @@ module {
         Map.vals(register.map);
     };
 
+    // Function to iterate over all entries in the Register
+    public func entries<T>(register: Register<T>): Iter.Iter<(Nat, T)> {
+        Map.entries(register.map);
+    };
+
     // Function to check if an element exists in the Register
     public func has<T>(register: Register<T>, id: Nat): Bool {
         Map.has(register.map, Map.nhash, id);

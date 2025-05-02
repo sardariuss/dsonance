@@ -9,6 +9,7 @@ import Buffer "mo:base/Buffer";
 import Map "mo:map/Map";
 
 import MapUtils "utils/Map";
+import Register "utils/Register";
 import LedgerFacade "payement/LedgerFacade";
 import InterestRateCurve "InterestRateCurve";
 import Math "utils/Math";
@@ -19,15 +20,35 @@ module {
 
     type Account = Types.Account;
     type TxIndex = Types.TxIndex;
+    type Register<T> = Types.Register<T>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
+    type Transfer = Types.Transfer;
+    type Duration = Types.Duration;
 
     type BorrowPosition = {
+        timestamp: Nat;
         account: Account;
         var collateral_tx: [TxIndex];
         var borrow_tx: [TxIndex];
         var collateral: Nat;
         var borrowed: Float;
         var borrow_index: Float;
+    };
+
+    type SupplyPosition = {
+        account: Account;
+        var supplied: Nat;
+    };
+
+    type WithdrawEntry = {
+        account: Account;
+        supplied: Nat;
+        amount_due: Nat;
+        var state: {
+            #PENDING;
+            #TRIGGERED;
+            #COMPLETED;
+        };
     };
 
     type SBorrowPosition = {
@@ -40,7 +61,9 @@ module {
     };
 
     type LendingPoolState = {
+        max_borrow_duration: Duration;
         liquidity_threshold: Float; // e.g. 0.85 means 85%
+        // @todo: rename reserve_ratio into reserve_liquidity ?
         reserve_ratio: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
         reserve_fee: Float; // portion of the supply interest reserved as a fee for the protocol
         var total_supply: Nat; // total supply
@@ -52,6 +75,7 @@ module {
     };
 
     type SLendingPoolState = {
+        max_borrow_duration: Duration;
         liquidity_threshold: Float;
         reserve_ratio: Float;
         reserve_fee: Float;
@@ -69,24 +93,50 @@ module {
         pool: LendingPoolState;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
         borrow_positions: Map.Map<Account, BorrowPosition>;
+        supply_positions: Map.Map<Account, SupplyPosition>;
+        sell_collateral: (Nat) -> async*();
+        get_collateral_twap_usd: () -> Float;
+        get_supply_twap_usd: () -> Float;
+        withdraw_queue: Register<WithdrawEntry>;
     }) {
 
-        public func add_supply({ amount: Nat; time: Nat; }){
+        public func supply({ account: Account; amount: Nat; time: Nat; }){
             // Need to refresh the indexes before changing the total_supply, otherwise the wrong utilization will be computed on this period?
             refresh_indexes({time});
+
+            switch(Map.get(supply_positions, MapUtils.acchash, account)){
+                case(null) {
+                    Map.set(supply_positions, MapUtils.acchash, account, {
+                        account;
+                        var supplied = amount;
+                    });
+                };
+                case(?position) {
+                    position.supplied += amount;
+                };
+            };
+
             pool.total_supply += amount;
         };
 
-        public func remove_supply({ amount: Nat; time: Nat; }){
-            if (amount > pool.total_supply) {
-                Debug.trap("The total supply is smaller than the amount requested to remove");
+        /// This function access shall be restricted to the protocol only and called at the end of each lock
+        public func withdraw({ account: Account; time: Nat; amount_due: Nat; }) : Result<(), Text> {
+
+            let position = switch(Map.get(supply_positions, MapUtils.acchash, account)){
+                case(null) {
+                    return #err("Supply position not found");
+                };
+                case(?p) { p };
             };
 
             // Need to refresh the indexes before changing the total_supply, otherwise the wrong utilization will be computed on this period?
             refresh_indexes({time});
 
-            // @todo: need to liquidate borrow positions if utilization gets greater than 0.0?
-            pool.total_supply -= amount;
+            ignore Register.add<WithdrawEntry>(withdraw_queue, { account; supplied = position.supplied; amount_due; var state = #PENDING; });
+
+            Map.delete(supply_positions, MapUtils.acchash, account);
+            
+            #ok;
         };
 
         public func borrow({
@@ -99,13 +149,10 @@ module {
             // Refresh the indexes
             refresh_indexes({time});
 
-            let utilization = switch(compute_utilization({
+            let utilization = compute_utilization({
                 share_lending_pool(pool) with
                 total_borrowed = pool.total_borrowed + Float.fromInt(amount)
-            })) {
-                case(#err(err)) { return #err(err); };
-                case(#ok(value)) { value; };
-            };
+            });
 
             if (utilization > 1.0) {
                 return #err("Utilization exceeds allowed limit");
@@ -136,6 +183,7 @@ module {
             switch(Map.get(borrow_positions, MapUtils.acchash, account)){
                 case(null){
                     Map.set(borrow_positions, MapUtils.acchash, account, {
+                        timestamp = time;
                         account;
                         var collateral_tx = [collateral_tx];
                         var borrow_tx = [borrow_tx];
@@ -223,31 +271,108 @@ module {
         };
 
         /// Liquidate borrow positions if their health factor is below 1.0.
-        public func check_all_positions_and_liquidate({ time: Nat; }) {
+        /// This function access shall be restricted to the protocol only and called by a timer
+        public func check_all_positions_and_liquidate({ time: Nat; }) : async*() {
 
             refresh_indexes({time});
 
             let to_liquidate = Buffer.Buffer<BorrowPosition>(0);
+            var sum_borrowed = 0.0;
+            var sum_collateral = 0;
 
-            label loop_unhealthy for (position in Map.vals(borrow_positions)){
+            label liquidation_loop for (position in Map.vals(borrow_positions)){
 
                 if (position.borrowed <= 0.0) {
                     Debug.print("The borrow position has already been repaid");
-                    continue loop_unhealthy;
+                    continue liquidation_loop;
                 };
+
+                let unhealthy = health_factor(share_position(position)) <= 1.0;
+                let age : Int = (time - position.timestamp);
+                let too_old = age > Duration.toTime(pool.max_borrow_duration);
                 
                 // Determine position's health factor
-                if (health_factor(share_position(position)) <= 1.0) {
+                if (unhealthy or too_old){
                     to_liquidate.add(position);
+                    sum_borrowed += position.borrowed;
+                    sum_collateral += position.collateral;
                 };
             };
+
+            await* sell_collateral(sum_collateral);
+
+            pool.total_borrowed -= sum_borrowed;
+            pool.total_collateral -= sum_collateral;
             
+            // Finally delete the positions
             for (position in to_liquidate.vals()) {
-                // @todo: Sell collateral
                 Map.delete(borrow_positions, MapUtils.acchash, position.account);
-                pool.total_borrowed -= position.borrowed;
-                pool.total_collateral -= position.collateral;
             };
+        };
+
+        func available_liquidity() : Float {
+            Float.fromInt(pool.total_supply) - pool.total_borrowed;
+        };
+
+        type BeingWithdrawn = {
+            entry: WithdrawEntry;
+            transfer_call: async* (Transfer);
+        };
+
+        /// This function access shall be restricted to the protocol only and called by a timer
+        func process_withdraw_queue() : async* Result<(), Text> {
+
+            let transfers = Map.new<Nat, async* (Transfer)>();
+
+            label process_queue for ((id, entry) in Register.entries(withdraw_queue)){
+
+                // Ignore entries which had already been processed
+                if (entry.state != #PENDING){
+                    continue process_queue;
+                };
+
+                // Not enough liquidity to process the withdrawal
+                if (available_liquidity() < Float.fromInt(entry.amount_due)) {
+                    Debug.print("Not enough liquidity to process the withdrawal");
+                    break process_queue;
+                };
+
+                entry.state := #TRIGGERED;
+                Map.set(transfers, Map.nhash, id, collateral_ledger.transfer({ to = entry.account; amount = entry.amount_due; }));
+                pool.total_supply -= entry.supplied;
+            };
+
+            var result : Result<(), Text> = #ok;
+
+            for ((id, transfer) in Map.entries(transfers)){
+                switch((await* transfer).result){
+                    case(#ok(_)){
+                        
+                        // Tag the withdrawal as completed
+                        switch(Register.find(withdraw_queue, id)){
+                            case(null) {}; // Should never happen
+                            case(?entry){
+                                entry.state := #COMPLETED;
+                            };
+                        };
+                    };
+                    case(#err(_)){
+
+                        result := #err("At least one withdrawal transfer failed");
+                        
+                        // Revert the withdrawal to be processed later
+                        switch(Register.find(withdraw_queue, id)){
+                            case(null) {}; // Should never happen
+                            case(?entry){
+                                entry.state := #PENDING;
+                                pool.total_supply += entry.supplied;
+                            };
+                        };
+                    };
+                };
+            };
+
+            result;
         };
 
         func refresh_indexes({ time: Nat; }) {
@@ -266,14 +391,7 @@ module {
             let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = pool.last_update_timestamp; to = time; }));
 
             // Calculate utilization ratio
-            let utilization = switch(compute_utilization(share_lending_pool(pool))){
-                case(#err(err)) {
-                    Debug.print(err);
-                    // @todo: what else to do? update last_update_timestamp?
-                    return;
-                };
-                case(#ok(u)) { u; };
-            };
+            let utilization = compute_utilization(share_lending_pool(pool));
 
             // Get the current borrow rate from the curve
             let borrow_rate = Math.percentageToRatio(interest_rate_curve.get_apr(utilization));
@@ -298,7 +416,8 @@ module {
             borrowed: Float;
             borrow_index: Float;
         }) : Float {
-            (Float.fromInt(collateral) * pool.liquidity_threshold) / current_owed({borrowed; borrow_index;});
+            (Float.fromInt(collateral) * get_collateral_twap_usd() * pool.liquidity_threshold) / 
+            (current_owed({borrowed; borrow_index;}) * get_supply_twap_usd());
         };
 
     };
@@ -308,13 +427,18 @@ module {
         total_borrowed: Float;
         borrow_index: Float;
         reserve_ratio: Float;
-    }) : Result<Float, Text> {
+    }) : Float {
          
         if (total_supply == 0) {
-            return #err("Total supply is zero, utilization is undefined");
+            if (total_borrowed > 0) {
+                // Treat utilization as 100% to maximize borrow rate
+                return 1.0;
+            };
+            // No supply nor borrowed, consider that the utilization is null
+            return 0.0;
         };
         
-        #ok((total_borrowed * borrow_index) / (Float.fromInt(total_supply) * (1.0 - reserve_ratio)));
+        (total_borrowed * borrow_index) / (Float.fromInt(total_supply) * (1.0 - reserve_ratio));
     };
 
     func share_position(position: BorrowPosition) : SBorrowPosition {
@@ -330,6 +454,7 @@ module {
 
     func share_lending_pool(pool: LendingPoolState) : SLendingPoolState {
         {
+            max_borrow_duration   = pool.max_borrow_duration;
             liquidity_threshold   = pool.liquidity_threshold;
             reserve_ratio         = pool.reserve_ratio;
             reserve_fee           = pool.reserve_fee;
