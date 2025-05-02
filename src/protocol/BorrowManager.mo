@@ -4,6 +4,7 @@ import Float "mo:base/Float";
 import Nat "mo:base/Nat";
 import Array "mo:base/Array";
 import Debug "mo:base/Debug";
+import Buffer "mo:base/Buffer";
 
 import Map "mo:map/Map";
 
@@ -221,32 +222,32 @@ module {
             #ok;
         };
 
-        /// Liquidate a borrow position if its health factor is below 1.0.
-        public func liquidate({ borrower: Account;  time: Nat; }) : async* Result<(), Text> {
-
-            let position = switch (Map.get<Account, BorrowPosition>(borrow_positions, MapUtils.acchash, borrower)) {
-                case (null) { return #err("No borrow position found for borrower"); };
-                case (?p) { p; };
-            };
+        /// Liquidate borrow positions if their health factor is below 1.0.
+        public func check_all_positions_and_liquidate({ time: Nat; }) {
 
             refresh_indexes({time});
 
-            if (position.borrowed <= 0.0) {
-                return #err("The borrow position has already been repaid");
+            let to_liquidate = Buffer.Buffer<BorrowPosition>(0);
+
+            label loop_unhealthy for (position in Map.vals(borrow_positions)){
+
+                if (position.borrowed <= 0.0) {
+                    Debug.print("The borrow position has already been repaid");
+                    continue loop_unhealthy;
+                };
+                
+                // Determine position's health factor
+                if (health_factor(share_position(position)) <= 1.0) {
+                    to_liquidate.add(position);
+                };
             };
             
-            // Determine position's health factor
-            if (health_factor(share_position(position)) >= 1.0) {
-                return #err("Position is still healthy");
+            for (position in to_liquidate.vals()) {
+                // @todo: Sell collateral
+                Map.delete(borrow_positions, MapUtils.acchash, position.account);
+                pool.total_borrowed -= position.borrowed;
+                pool.total_collateral -= position.collateral;
             };
-
-            // @todo: Sell collateral
-
-            Map.delete(borrow_positions, MapUtils.acchash, borrower);
-            pool.total_borrowed -= position.borrowed;
-            pool.total_collateral -= position.collateral;
-
-            #ok;
         };
 
         func refresh_indexes({ time: Nat; }) {
