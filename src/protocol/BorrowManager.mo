@@ -60,12 +60,17 @@ module {
         borrow_index: Float;
     };
 
+    type QueriedBorrowPosition = {
+        position: SBorrowPosition;
+        debt: Float;
+        health: Float;
+    };
+
     type LendingPoolState = {
         max_borrow_duration: Duration;
-        liquidity_threshold: Float; // e.g. 0.85 means 85%
-        // @todo: rename reserve_ratio into reserve_liquidity ?
-        reserve_ratio: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
-        reserve_fee: Float; // portion of the supply interest reserved as a fee for the protocol
+        collateral_ratio: Float; // e.g. 0.85 means 85%
+        reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
+        protocol_fee: Float; // portion of the supply interest reserved as a fee for the protocol
         var total_supply: Nat; // total supply
         var total_collateral: Nat; // total collateral
         var total_borrowed: Float; // total borrowed
@@ -76,15 +81,20 @@ module {
 
     type SLendingPoolState = {
         max_borrow_duration: Duration;
-        liquidity_threshold: Float;
-        reserve_ratio: Float;
-        reserve_fee: Float;
+        collateral_ratio: Float;
+        reserve_liquidity: Float;
+        protocol_fee: Float;
         total_supply: Nat;
         total_collateral: Nat;
         total_borrowed: Float;
         borrow_index: Float;
         supply_index: Float;
         last_update_timestamp: Nat;
+    };
+
+    type TwapQueries = {
+        get_collateral_twap_usd: () -> Float;
+        get_supply_twap_usd: () -> Float;
     };
 
     public class BorrowManager({
@@ -95,8 +105,7 @@ module {
         borrow_positions: Map.Map<Account, BorrowPosition>;
         supply_positions: Map.Map<Account, SupplyPosition>;
         sell_collateral: (Nat) -> async*();
-        get_collateral_twap_usd: () -> Float;
-        get_supply_twap_usd: () -> Float;
+        twap_queries: TwapQueries;
         withdraw_queue: Register<WithdrawEntry>;
     }) {
 
@@ -150,8 +159,10 @@ module {
             refresh_indexes({time});
 
             let utilization = compute_utilization({
-                share_lending_pool(pool) with
-                total_borrowed = pool.total_borrowed + Float.fromInt(amount)
+                pool = { 
+                    share_pool(pool) with
+                    total_borrowed = pool.total_borrowed + Float.fromInt(amount)
+                };
             });
 
             if (utilization > 1.0) {
@@ -164,7 +175,7 @@ module {
                 borrow_index = pool.borrow_index;
             };
 
-            if (health_factor(position) < 1.0) {
+            if (health_factor({ pool = share_pool(pool); position; twap_queries; }) < 1.0) {
                 return #err("Borrowing would result in under-collateralized position.");
             };
 
@@ -197,7 +208,7 @@ module {
                     position.collateral_tx := Array.append(position.collateral_tx, [collateral_tx]);
                     position.borrow_tx := Array.append(position.borrow_tx, [borrow_tx]);
                     position.collateral += collateral;
-                    position.borrowed := current_owed(share_position(position)) + Float.fromInt(amount);
+                    position.borrowed := current_owed({ pool = share_pool(pool); position = share_position(position); }) + Float.fromInt(amount);
                     position.borrow_index := pool.borrow_index;
                 };
             };
@@ -222,7 +233,7 @@ module {
             // Refresh the indexes
             refresh_indexes({time});
 
-            let owed = current_owed(share_position(position));
+            let owed = current_owed({ pool = share_pool(pool); position = share_position(position); });
             let repaid_amount = Float.min(owed, Float.fromInt(amount));
 
             // Transfer the repayment from the user to the contract/pool
@@ -287,12 +298,11 @@ module {
                     continue liquidation_loop;
                 };
 
-                let unhealthy = health_factor(share_position(position)) <= 1.0;
+                let health = health_factor({ pool = share_pool(pool); position = share_position(position); twap_queries; });
                 let age : Int = (time - position.timestamp);
-                let too_old = age > Duration.toTime(pool.max_borrow_duration);
                 
-                // Determine position's health factor
-                if (unhealthy or too_old){
+                // Liquidate if the health factor is below 1.0 or the position is too old
+                if (health <= 1.0 or age >= Duration.toTime(pool.max_borrow_duration)){
                     to_liquidate.add(position);
                     sum_borrowed += position.borrowed;
                     sum_collateral += position.collateral;
@@ -310,17 +320,8 @@ module {
             };
         };
 
-        func available_liquidity() : Float {
-            Float.fromInt(pool.total_supply) - pool.total_borrowed;
-        };
-
-        type BeingWithdrawn = {
-            entry: WithdrawEntry;
-            transfer_call: async* (Transfer);
-        };
-
         /// This function access shall be restricted to the protocol only and called by a timer
-        func process_withdraw_queue() : async* Result<(), Text> {
+        public func process_withdraw_queue() : async* Result<(), Text> {
 
             let transfers = Map.new<Nat, async* (Transfer)>();
 
@@ -332,7 +333,7 @@ module {
                 };
 
                 // Not enough liquidity to process the withdrawal
-                if (available_liquidity() < Float.fromInt(entry.amount_due)) {
+                if (available_liquidity({ pool = share_pool(pool); }) < Float.fromInt(entry.amount_due)) {
                     Debug.print("Not enough liquidity to process the withdrawal");
                     break process_queue;
                 };
@@ -375,59 +376,110 @@ module {
             result;
         };
 
+        public func get_borrow_position({ account: Account }) : ?QueriedBorrowPosition {
+
+            switch (Map.get(borrow_positions, MapUtils.acchash, account)){
+                case(null) { null; };
+                case(?p) {
+                    let position = share_position(p);
+                    let spool = share_pool(pool);
+                    ?{
+                        position;
+                        health = health_factor({ pool = spool; position; twap_queries; });
+                        debt = current_owed({ pool = spool; position });
+                    };
+                }
+            }
+        };
+
         func refresh_indexes({ time: Nat; }) {
+
+            let { borrow_index; supply_index; } = compute_indexes({ time ;});
+           
+            pool.borrow_index := borrow_index;
+            pool.supply_index := supply_index;
+
+            pool.last_update_timestamp := time;
+        };
+
+        type Indexes = {
+            borrow_index: Float;
+            supply_index: Float;
+        };
+
+        func compute_indexes({ time: Nat; }) : Indexes {
 
             let elapsed_ns : Int = time - pool.last_update_timestamp;
 
             // If the time is before the last update
             if (elapsed_ns < 0) {
-                Debug.trap("Cannot update rate: time is before last update");
+                Debug.trap("Cannot update rates: time is before last update");
             } else if (elapsed_ns == 0) {
-                Debug.print("Rate is already up to date");
-                return;
+                Debug.print("Rates are already up to date");
+                return {
+                    borrow_index = pool.borrow_index;
+                    supply_index = pool.supply_index;
+                };
             };
 
             // Calculate the time period in years
             let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = pool.last_update_timestamp; to = time; }));
 
             // Calculate utilization ratio
-            let utilization = compute_utilization(share_lending_pool(pool));
+            let utilization = compute_utilization(share_pool(pool));
 
             // Get the current borrow rate from the curve
             let borrow_rate = Math.percentageToRatio(interest_rate_curve.get_apr(utilization));
-            pool.borrow_index *= (1.0 + borrow_rate * elapsed_annual);
-
+            
             // Get the current supply rate
-            let supply_rate = borrow_rate * utilization * (1.0 - pool.reserve_fee);
-            pool.supply_index *= (1.0 + supply_rate * elapsed_annual);
+            let supply_rate = borrow_rate * utilization * (1.0 - pool.protocol_fee);
 
-            pool.last_update_timestamp := time;
-        };
-
-        func current_owed({
-            borrowed: Float;
-            borrow_index: Float;
-        }) : Float {
-            borrowed * (pool.borrow_index / borrow_index);
-        };
-
-        func health_factor({
-            collateral: Nat;
-            borrowed: Float;
-            borrow_index: Float;
-        }) : Float {
-            (Float.fromInt(collateral) * get_collateral_twap_usd() * pool.liquidity_threshold) / 
-            (current_owed({borrowed; borrow_index;}) * get_supply_twap_usd());
+            {
+                borrow_index = pool.borrow_index * (1.0 + borrow_rate * elapsed_annual);
+                supply_index = pool.supply_index * (1.0 + supply_rate * elapsed_annual);
+            };
         };
 
     };
 
-    func compute_utilization({
-        total_supply: Nat;
-        total_borrowed: Float;
-        borrow_index: Float;
-        reserve_ratio: Float;
+    func available_liquidity({
+        pool: SLendingPoolState
     }) : Float {
+        Float.fromInt(pool.total_supply) - pool.total_borrowed;
+    };
+
+    func current_owed({
+        pool: SLendingPoolState;
+        position: {
+            borrowed: Float;
+            borrow_index: Float;
+        };
+    }) : Float {
+        position.borrowed * (pool.borrow_index / position.borrow_index);
+    };
+
+    func health_factor({
+        pool: SLendingPoolState;
+        twap_queries: TwapQueries;
+        position: {
+            collateral: Nat;
+            borrowed: Float;
+            borrow_index: Float;
+        };
+    }) : Float {
+
+        let collateral_twap_usd = twap_queries.get_collateral_twap_usd();
+        let supply_twap_usd = twap_queries.get_supply_twap_usd();
+
+        (Float.fromInt(position.collateral) * collateral_twap_usd * pool.collateral_ratio) / 
+        (current_owed({pool; position;}) * supply_twap_usd);
+    };
+
+    func compute_utilization({
+        pool: SLendingPoolState;
+    }) : Float {
+
+        let { total_supply; total_borrowed; borrow_index; reserve_liquidity; } = pool;
          
         if (total_supply == 0) {
             if (total_borrowed > 0) {
@@ -438,7 +490,7 @@ module {
             return 0.0;
         };
         
-        (total_borrowed * borrow_index) / (Float.fromInt(total_supply) * (1.0 - reserve_ratio));
+        (total_borrowed * borrow_index) / (Float.fromInt(total_supply) * (1.0 - reserve_liquidity));
     };
 
     func share_position(position: BorrowPosition) : SBorrowPosition {
@@ -452,12 +504,12 @@ module {
         };
     };
 
-    func share_lending_pool(pool: LendingPoolState) : SLendingPoolState {
+    func share_pool(pool: LendingPoolState) : SLendingPoolState {
         {
             max_borrow_duration   = pool.max_borrow_duration;
-            liquidity_threshold   = pool.liquidity_threshold;
-            reserve_ratio         = pool.reserve_ratio;
-            reserve_fee           = pool.reserve_fee;
+            collateral_ratio      = pool.collateral_ratio;
+            reserve_liquidity     = pool.reserve_liquidity;
+            protocol_fee          = pool.protocol_fee;
             total_supply          = pool.total_supply;
             total_collateral      = pool.total_collateral;
             total_borrowed        = pool.total_borrowed;
