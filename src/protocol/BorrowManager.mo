@@ -30,7 +30,7 @@ module {
         account: Account;
         var collateral_tx: [TxIndex];
         var borrow_tx: [TxIndex];
-        var collateral: Nat;
+        var collateral: Float;
         var borrowed: Float;
         var borrow_index: Float;
     };
@@ -56,7 +56,7 @@ module {
         account: Account;
         collateral_tx: [TxIndex];
         borrow_tx: [TxIndex];
-        collateral: Nat;
+        collateral: Float;
         borrowed: Float;
         borrow_index: Float;
     };
@@ -68,13 +68,18 @@ module {
         borrow_time_ratio: Float;
     };
 
+    // @todo: think about possible rounding errors and cast between int and float
     public class BorrowManager({
         borrow_ledger: LedgerFacade.LedgerFacade;
         collateral_ledger: LedgerFacade.LedgerFacade;
         pool: LendingPool;
         borrow_positions: Map.Map<Account, BorrowPosition>;
         supply_positions: Map.Map<Account, SupplyPosition>;
-        sell_collateral: (Nat) -> async*(); // @todo: need to take into account slippage
+        sell_collateral: ({
+            amount: Nat;
+            max_slippage: Float; // e.g., 0.05 for 5%
+        }) -> async* Result<{ sold_amount: Nat }, Text>;
+        max_slippage: Float;
         withdraw_queue: Register<WithdrawEntry>;
     }) {
 
@@ -145,7 +150,7 @@ module {
             };
 
             let position = {
-                collateral;
+                collateral = Float.fromInt(collateral);
                 borrowed = Float.fromInt(amount);
                 borrow_index = pool_copy._state().borrow_index;
             };
@@ -174,7 +179,7 @@ module {
                         account;
                         var collateral_tx = [collateral_tx];
                         var borrow_tx = [borrow_tx];
-                        var collateral = collateral;
+                        var collateral = Float.fromInt(collateral);
                         var borrowed = Float.fromInt(amount);
                         var borrow_index = pool._state().borrow_index;
                     });
@@ -183,14 +188,14 @@ module {
                     // Update the position
                     position.collateral_tx := Array.append(position.collateral_tx, [collateral_tx]);
                     position.borrow_tx := Array.append(position.borrow_tx, [borrow_tx]);
-                    position.collateral += collateral;
+                    position.collateral += Float.fromInt(collateral);
                     position.borrowed := pool.current_owed({ position = share_position(position); }) + Float.fromInt(amount);
                     position.borrow_index := pool._state().borrow_index;
                 };
             };
 
             pool._state().total_borrowed += Float.fromInt(amount);
-            pool._state().total_collateral += collateral;
+            pool._state().total_collateral += Float.fromInt(collateral);
 
             #ok;
         };
@@ -244,7 +249,7 @@ module {
             };
                 
             // Transfer back the collateral
-            switch((await* collateral_ledger.transfer({ to = account; amount = position.collateral; })).result){
+            switch((await* collateral_ledger.transfer({ to = account; amount = Int.abs(Float.toInt(position.collateral)); })).result){
                 case(#err(_)) { 
                     return #err("Collateral reimbursement failed");
                 };
@@ -259,13 +264,17 @@ module {
 
         /// Liquidate borrow positions if their health factor is below 1.0.
         /// @todo: this function access shall be restricted to the protocol only and called by a timer
-        public func check_all_positions_and_liquidate({ time: Nat; }) : async*() {
+        public func check_all_positions_and_liquidate({ 
+            time: Nat;
+            collateral_twap_usd: Float;
+            supply_twap_usd: Float;
+        }) : async*() {
 
             pool.accrue_interests_and_update_rates({ time; });
 
             let to_liquidate = Buffer.Buffer<BorrowPosition>(0);
             var sum_borrowed = 0.0;
-            var sum_collateral = 0;
+            var sum_collateral = 0.0;
 
             label liquidation_loop for (p in Map.vals(borrow_positions)){
 
@@ -287,15 +296,40 @@ module {
                 };
             };
 
-            await* sell_collateral(sum_collateral);
+            // Ceil the collateral to be sure to sell enough
+            let colleteral_to_sell = Int.abs(Float.toInt(Float.ceil(sum_collateral)));
 
-            pool._state().total_borrowed -= sum_borrowed;
-            pool._state().total_collateral -= sum_collateral;
-            
-            // Finally delete the positions
-            for (position in to_liquidate.vals()) {
-                Map.delete(borrow_positions, MapUtils.acchash, position.account);
+            let collateral_sold = switch(await* sell_collateral({ amount = colleteral_to_sell; max_slippage; })){
+                case(#err(_)) { 
+                    Debug.print("Collateral sale failed");
+                    return; 
+                };
+                case(#ok({ sold_amount; })) { sold_amount; };
             };
+
+            let ratio_sold = Float.fromInt(collateral_sold) / Float.fromInt(colleteral_to_sell);
+
+            pool._state().total_borrowed -= ratio_sold * sum_borrowed;
+            pool._state().total_collateral -= ratio_sold * sum_collateral;
+            
+            // Update the positions
+            for (position in to_liquidate.vals()) {
+                if (ratio_sold == 1.0) {
+                    // Delete the positions if all the collateral has been sold
+                    Map.delete(borrow_positions, MapUtils.acchash, position.account);
+                } else {
+                    // Update the borrowed and collateral amounts
+                    position.borrowed *= (1 - ratio_sold);
+                    position.collateral *= (1 - ratio_sold); 
+                };
+            };
+
+            let proceeds_in_usd = Float.fromInt(collateral_sold) * collateral_twap_usd;
+            let debt_in_usd = sum_borrowed * ratio_sold * supply_twap_usd;
+            if (proceeds_in_usd < debt_in_usd) {
+                Debug.print("⚠️ Bad debt: liquidation proceeds insufficient");
+            };
+
         };
 
         /// This function access shall be restricted to the protocol only and called by a timer
@@ -389,7 +423,7 @@ module {
         var total_supply: Nat; // total supply
         var supply_rate: Float; // supply percentage rate (ratio)
         var supply_accrued_interests: Float; // accrued supply interests
-        var total_collateral: Nat; // total collateral
+        var total_collateral: Float; // total collateral
         var total_borrowed: Float; // total borrowed
         var borrow_index: Float; // growing value, starts at 1.0
         var last_update_timestamp: Nat; // timestamp in nanoseconds
@@ -502,7 +536,7 @@ module {
 
         public func ltv({
             position: {
-                collateral: Nat;
+                collateral: Float;
                 borrowed: Float;
                 borrow_index: Float;
             };
@@ -511,13 +545,13 @@ module {
             let collateral_twap_usd = twap_queries.get_collateral_twap_usd();
             let supply_twap_usd = twap_queries.get_supply_twap_usd();
 
-            (Float.fromInt(position.collateral) * collateral_twap_usd) / 
+            (position.collateral * collateral_twap_usd) / 
             (current_owed({ position }) * supply_twap_usd);
         };
 
         public func is_valid_ltv({
             position: {
-                collateral: Nat;
+                collateral: Float;
                 borrowed: Float;
                 borrow_index: Float;
             };
@@ -528,7 +562,7 @@ module {
 
         public func health_factor({
             position: {
-                collateral: Nat;
+                collateral: Float;
                 borrowed: Float;
                 borrow_index: Float;
             };
@@ -538,7 +572,7 @@ module {
 
         public func is_healthy({
             position: {
-                collateral: Nat;
+                collateral: Float;
                 borrowed: Float;
                 borrow_index: Float;
             };
