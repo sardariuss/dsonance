@@ -1,4 +1,5 @@
 import Map "mo:map/Map";
+import Debug "mo:base/Debug";
 
 module {
 
@@ -69,6 +70,120 @@ module {
 
         return mapped_iter;
     };
+
+    public func filter<X>(original_iter: Iter<X>, acceptEntry: X -> Bool) : Iter<X> {
+
+        let initialize = func(iter: Iter<X>) {
+            if (iter.started()){
+                Debug.trap("Iter is already started!");
+            };
+
+            // Initialize the iterator on the first accepted element
+            while (true) {
+                switch (iter.current()) {
+                    case (?x) { if (acceptEntry(x)) { return; }; };
+                    case (null) { return; };
+                };
+                ignore iter.moveNext();
+            };
+        };
+
+        initialize(original_iter);
+
+        let filtered_iter : Iter<X> = {
+
+            prev = func(): ?X {
+                while (true) {
+                    switch (original_iter.prev()) {
+                        case (?x) { if (acceptEntry(x)){ return ?x; }; };
+                        case (null) { return null; };
+                    };
+                };
+                null; // Somehow required by the compilator
+            };
+
+            next = func(): ?X {
+                while (true) {
+                    switch (original_iter.next()) {
+                        case (?x) { if (acceptEntry(x)) { return ?x; } };
+                        case (null) { return null; };
+                    };
+                };
+                null; // Somehow required by the compilator
+            };
+
+            peekPrev = func(): ?X {
+                while (true) {
+                    switch (original_iter.peekPrev()) {
+                        case (?x) { if (acceptEntry(x)) { return ?x; } };
+                        case (null) { return null; };
+                    };
+                };
+                null; // Somehow required by the compilator
+            };
+
+            peekNext = func(): ?X {
+                switch (original_iter.peekNext()) {
+                    case (?x) { if (acceptEntry(x)) { return ?x; } };
+                    case (null) { return null; };
+                };
+                null; // Somehow required by the compilator
+            };
+
+            current = func(): ?X {
+                original_iter.current();
+            };
+
+            started = func(): Bool {
+                switch(filtered_iter.peekPrev()){
+                    case(null) { false; };
+                    case(_) { true; };
+                };
+            };
+
+            finished = func(): Bool {
+                switch(filtered_iter.peekNext()){
+                    case(null) { true; };
+                    case(_) { false; };
+                };
+            };
+
+            movePrev = func(): Iter<X> {
+                label move_loop while(true) {
+                    ignore original_iter.movePrev();
+                    switch(original_iter.current()){
+                        case (?x) { if (acceptEntry(x)) { break move_loop; }; };
+                        case(null) { break move_loop; };
+                    };
+                };
+                filtered_iter;
+            };
+
+            moveNext = func(): Iter<X> {
+                label move_loop while(true) {
+                    ignore original_iter.moveNext();
+                    switch(original_iter.current()){
+                        case (?x) { if (acceptEntry(x)) { break move_loop; }; };
+                        case(null) { break move_loop; };
+                    };
+                };
+                filtered_iter;
+            };
+
+            reset = func(): Iter<X> {
+                ignore original_iter.reset();
+
+                // Initialize the iterator on the first accepted element
+                initialize(original_iter);
+
+                filtered_iter;
+            };
+
+        };
+
+        return filtered_iter;
+    };
+
 
     public func fold_left<X, A>(iter: Iter<X>, base: A, combine: (A, X) -> A) : A {
         var acc = base;

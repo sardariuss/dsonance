@@ -25,6 +25,11 @@ module {
     type Transfer = Types.Transfer;
     type Duration = Types.Duration;
 
+    type DebtEntry = { 
+        timestamp: Nat;
+        amount: Float;
+    };
+
     type BorrowPosition = {
         timestamp: Nat;
         account: Account;
@@ -43,7 +48,7 @@ module {
     type WithdrawEntry = {
         account: Account;
         supplied: Nat;
-        interest: Nat;
+        due: Nat;
         var state: {
             #PENDING;
             #TRIGGERED;
@@ -68,19 +73,25 @@ module {
         borrow_time_ratio: Float;
     };
 
+    type SellCollateralQuery = ({
+        amount: Nat;
+        max_slippage: Float;
+    }) -> async* Result<{ sold_amount: Nat }, Text>;
+
     // @todo: think about possible rounding errors and cast between int and float
     public class BorrowManager({
-        borrow_ledger: LedgerFacade.LedgerFacade;
+        asset_ledger: LedgerFacade.LedgerFacade;
         collateral_ledger: LedgerFacade.LedgerFacade;
         pool: LendingPool;
         borrow_positions: Map.Map<Account, BorrowPosition>;
         supply_positions: Map.Map<Account, SupplyPosition>;
-        sell_collateral: ({
-            amount: Nat;
-            max_slippage: Float; // e.g., 0.05 for 5%
-        }) -> async* Result<{ sold_amount: Nat }, Text>;
+        sell_collateral: SellCollateralQuery;
         max_slippage: Float;
         withdraw_queue: Register<WithdrawEntry>;
+        asset_accounting: {
+            var reserve: Float;
+            var unsolved_debts: [DebtEntry];
+        };
     }) {
 
         public func supply({ account: Account; amount: Nat; time: Nat; }){
@@ -103,7 +114,11 @@ module {
         };
 
         /// This function access shall be restricted to the protocol only and called at the end of each lock
-        public func withdraw({ account: Account; time: Nat; interest: Nat; }) : Result<(), Text> {
+        public func withdraw({ account: Account; time: Nat; interest_share: Float; }) : Result<(), Text> {
+
+            if (not Math.is_normalized(interest_share)) {
+                return #err("Invalid interest share");
+            };
 
             let position = switch(Map.get(supply_positions, MapUtils.acchash, account)){
                 case(null) {
@@ -115,14 +130,22 @@ module {
             // Need to refresh the indexes before changing the total_supply, otherwise the wrong utilization will be computed on this period?
             pool.accrue_interests_and_update_rates({ time; });
 
-            if (Float.fromInt(interest) > pool._state().supply_accrued_interests) {
-                return #err("Interest exceeds accrued interests");
+            let interest_amount = interest_share * get_available_interests();
+            let due = Float.fromInt(position.supplied) + interest_amount;
+
+            // @todo: verify
+            // In case the (negative) interests surpass the original amount supplied, remove it right away?
+            if (due <= 0.0){
+                Debug.print("Exceptional case: negative interests amount are greater than supply of the position");
+                pool._state().supply_accrued_interests += Float.fromInt(position.supplied);
+                pool._state().total_supply -= position.supplied;
+                return #ok;
             };
 
             // Remove from the accrued interests
-            pool._state().supply_accrued_interests -= Float.fromInt(interest);
+            pool._state().supply_accrued_interests -= interest_amount;
 
-            ignore Register.add<WithdrawEntry>(withdraw_queue, { account; supplied = position.supplied; interest; var state = #PENDING; });
+            ignore Register.add<WithdrawEntry>(withdraw_queue, { account; supplied = position.supplied; due = Int.abs(Float.toInt(Float.floor(due))); var state = #PENDING; });
 
             Map.delete(supply_positions, MapUtils.acchash, account);
             
@@ -167,7 +190,7 @@ module {
             };
 
             // Transfer the borrow amount to the user account
-            let borrow_tx = switch((await* borrow_ledger.transfer({ to = account; amount = amount; })).result){
+            let borrow_tx = switch((await* asset_ledger.transfer({ to = account; amount = amount; })).result){
                 case(#err(_)) { return #err("Failed to transfer borrow amount to the user account"); };
                 case(#ok(tx)) { tx; };
             };
@@ -218,7 +241,7 @@ module {
             let repaid_amount = Float.min(owed, Float.fromInt(amount));
 
             // Transfer the repayment from the user to the contract/pool
-            switch(await* borrow_ledger.transfer_from({ from = account; amount = Int.abs(Float.toInt(Float.ceil(repaid_amount))); })){
+            switch(await* asset_ledger.transfer_from({ from = account; amount = Int.abs(Float.toInt(Float.ceil(repaid_amount))); })){
                 case(#err(_)) { return #err("Transfer failed"); };
                 case(#ok(_)) {};
             };
@@ -266,8 +289,7 @@ module {
         /// @todo: this function access shall be restricted to the protocol only and called by a timer
         public func check_all_positions_and_liquidate({ 
             time: Nat;
-            collateral_twap_usd: Float;
-            supply_twap_usd: Float;
+            collateral_spot_in_asset: () -> Float;
         }) : async*() {
 
             pool.accrue_interests_and_update_rates({ time; });
@@ -324,12 +346,35 @@ module {
                 };
             };
 
-            let proceeds_in_usd = Float.fromInt(collateral_sold) * collateral_twap_usd;
-            let debt_in_usd = sum_borrowed * ratio_sold * supply_twap_usd;
-            if (proceeds_in_usd < debt_in_usd) {
+            let value_sold = Float.fromInt(collateral_sold) * collateral_spot_in_asset();
+            let value_debt = sum_borrowed * ratio_sold;
+
+            let difference = value_sold - value_debt;
+
+            // @todo: need to take protocol fees
+
+            if (difference >= 0.0) {
+                asset_accounting.reserve += difference;
+            } else {
                 Debug.print("⚠️ Bad debt: liquidation proceeds insufficient");
+                asset_accounting.unsolved_debts := Array.append(asset_accounting.unsolved_debts, [{ timestamp = time; amount = difference; }]);
+            };
+        };
+
+        // @todo: should be available to the protocol only
+        public func solve_debts_with_reserve() {
+
+            let debts_left = Buffer.Buffer<DebtEntry>(0);
+
+            for(debt in Array.vals(asset_accounting.unsolved_debts)){
+                if (debt.amount < asset_accounting.reserve) {
+                    asset_accounting.reserve -= debt.amount;
+                } else {
+                    debts_left.add(debt);
+                };
             };
 
+            asset_accounting.unsolved_debts := Buffer.toArray(debts_left);
         };
 
         /// This function access shall be restricted to the protocol only and called by a timer
@@ -344,16 +389,14 @@ module {
                     continue process_queue;
                 };
 
-                let entry_due = entry.supplied + entry.interest;
-
                 // Not enough liquidity to process the withdrawal
-                if (pool.available_liquidity() < Float.fromInt(entry_due)) {
+                if (pool.available_liquidity() < Float.fromInt(entry.due)) {
                     Debug.print("Not enough liquidity to process the withdrawal");
                     break process_queue;
                 };
 
                 entry.state := #TRIGGERED;
-                Map.set(transfers, Map.nhash, id, collateral_ledger.transfer({ to = entry.account; amount = entry_due; }));
+                Map.set(transfers, Map.nhash, id, collateral_ledger.transfer({ to = entry.account; amount = entry.due; }));
                 pool._state().total_supply -= entry.supplied;
             };
 
@@ -411,6 +454,12 @@ module {
             };
         };
 
+        public func get_available_interests() : Float {
+            pool._state().supply_accrued_interests - Array.foldLeft<DebtEntry, Float>(asset_accounting.unsolved_debts, 0.0, func (acc: Float, debt: DebtEntry) {
+                acc + debt.amount;
+            });
+        };
+
     };
 
     type LendingPoolState = {
@@ -429,15 +478,15 @@ module {
         var last_update_timestamp: Nat; // timestamp in nanoseconds
     };
 
-    type TwapQueries = {
-        get_collateral_twap_usd: () -> Float;
-        get_supply_twap_usd: () -> Float;
+    type CollateralPriceQueries = {
+        twap_in_asset: () -> Float;
+        spot_in_asset: () -> Float;
     };
 
     public class LendingPool({
         state: LendingPoolState;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
-        twap_queries: TwapQueries;
+        collateral_price: CollateralPriceQueries;
     }){
 
         // Verify state is valid
@@ -471,7 +520,7 @@ module {
                     var supply_accrued_interests = state.supply_accrued_interests;
                 };
                 interest_rate_curve;
-                twap_queries;
+                collateral_price;
             });
         };
 
@@ -508,7 +557,7 @@ module {
             let utilization = compute_utilization();
 
             // Get the current borrow rate from the curve
-            let borrow_rate = Math.percentageToRatio(interest_rate_curve.get_apr(utilization));
+            let borrow_rate = Math.percentage_to_ratio(interest_rate_curve.get_apr(utilization));
             state.borrow_index *= (1.0 + borrow_rate * elapsed_annual);
             
             // Accrue the supply interests
@@ -542,11 +591,8 @@ module {
             };
         }) : Float {
 
-            let collateral_twap_usd = twap_queries.get_collateral_twap_usd();
-            let supply_twap_usd = twap_queries.get_supply_twap_usd();
-
-            (position.collateral * collateral_twap_usd) / 
-            (current_owed({ position }) * supply_twap_usd);
+            (position.collateral * collateral_price.twap_in_asset()) / 
+            (current_owed({ position }));
         };
 
         public func is_valid_ltv({

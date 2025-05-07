@@ -234,7 +234,7 @@ module {
     };
 
     public type Foresight = {
-        reward: Nat;
+        reward: Int;
         apr: {
             current: Float;
             potential: Float;

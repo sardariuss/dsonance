@@ -131,7 +131,7 @@ module {
 
             // Get the current interest rate from the curve
             let current_rate_percent = interest_rate_curve.get_current_rate(clamped_utilization);
-            let current_rate_ratio = Math.percentageToRatio(current_rate_percent); // Convert e.g. 5.0 to 0.05
+            let current_rate_ratio = Math.percentage_to_ratio(current_rate_percent); // Convert e.g. 5.0 to 0.05
 
             // Calculate the time period in years
             let annual_period = Duration.toAnnual(Duration.getDuration({ from = state.interest.time_last_update; to = time; }));
