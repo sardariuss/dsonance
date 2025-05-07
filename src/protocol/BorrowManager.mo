@@ -94,6 +94,7 @@ module {
         };
     }) {
 
+        // @todo: transfer_from + add_supply_position
         public func supply({ account: Account; amount: Nat; time: Nat; }){
             // Need to refresh the indexes before changing the total_supply, otherwise the wrong utilization will be computed on this period?
             pool.accrue_interests_and_update_rates({ time; });
@@ -258,7 +259,7 @@ module {
             #ok;
         };
 
-        public func reimburse_collateral({
+        func reimburse_collateral({
             account: Account;
         }) : async* Result<(), Text> {
 
@@ -331,6 +332,9 @@ module {
 
             let ratio_sold = Float.fromInt(collateral_sold) / Float.fromInt(colleteral_to_sell);
 
+            // @todo: the total borrowed shall take the slippage into account because otherwise the 
+            // available total liquidity computation will be wrong (not reflect the amount actually available)
+
             pool._state().total_borrowed -= ratio_sold * sum_borrowed;
             pool._state().total_collateral -= ratio_sold * sum_collateral;
             
@@ -356,7 +360,7 @@ module {
             if (difference >= 0.0) {
                 asset_accounting.reserve += difference;
             } else {
-                Debug.print("⚠️ Bad debt: liquidation proceeds insufficient");
+                Debug.print("⚠️ Bad debt: liquidation proceeds are insufficient");
                 asset_accounting.unsolved_debts := Array.append(asset_accounting.unsolved_debts, [{ timestamp = time; amount = difference; }]);
             };
         };
