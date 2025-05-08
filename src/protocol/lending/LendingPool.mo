@@ -25,19 +25,15 @@ module {
     type Transfer = Types.Transfer;
     type Duration = Types.Duration;
 
-    type BorrowPosition = {
-        timestamp: Nat;
-        account: Account;
-        collateral_tx: [TxIndex];
-        borrow_tx: [TxIndex];
-        collateral: Float;
-        borrowed: Float;
-        borrow_index: Float;
-    };
+    type SupplyPosition = SupplyRegistry.SupplyPosition;
+    type BorrowPosition = BorrowRegistry.BorrowPosition;
+    type BorrowInput = BorrowRegistry.BorrowInput;
 
-    type SupplyPosition = {
-        account: Account;
-        supplied: Nat;
+    type QueriedBorrowPosition = {
+        position: BorrowPosition;
+        debt: Float;
+        health: Float;
+        borrow_time_ratio: Float;
     };
 
     type LendingPoolState = {
@@ -75,29 +71,38 @@ module {
             Debug.trap("Liquidation penalty should be equal to {1.0 - liquidation_threshold}");
         };
 
-        // Merge if there is already a position for that account
-        public func add_supply(position: SupplyPosition){
-            // add in total_supply
+        public func add_supply({ position: SupplyPosition; interests: Float; }) : SupplyPosition {
+            state.supply_accrued_interests += interests;
+            supply_registry.add_supply(position);
         };
 
-        // total: for withdraw, partial: for repay
-        public func slash_supply({ account: Account; amount: Nat; time: Nat; }){
-            // harder because removal from total_supply is delayed due to process_queue
+        public func slash_supply({ account: Account; amount: Nat; interests: Float; }) : ?SupplyPosition {
+            state.supply_accrued_interests -= interests;
+            supply_registry.slash_supply({ account; amount; });
         };
 
-        // Merge if there is already a position for that account
-        public func add_borrow(position: BorrowPosition) {
-            //pool._state().total_borrowed += Float.fromInt(amount);
-            //pool._state().total_collateral += Float.fromInt(collateral);
+        public func get_supply_position({ account: Account; }) : ?SupplyPosition {
+            supply_registry.get_position({account});
         };
 
-        // if borrowed = position.borrowed, full removal, else just update the collateral
-        public func slash_borrow({ account: Account; slash_borrow: Float; slash_collateral: Float; }){
-            //position.borrowed -= slash_borrow;
-            //position.collateral -= slash_collateral;
-            //pool._state().total_collateral -= slash_borrow;
-            //pool._state().total_borrowed -= slash_collateral;
-            // remove if required
+        public func add_borrow({ input: BorrowInput; current_index: Float; }) : BorrowPosition {
+            borrow_registry.add_borrow({ input; current_index });
+        };
+
+        public func slash_borrow({ account: Account; borrow_amount: Float; collateral_amount: Float; }) : ?BorrowPosition {
+            borrow_registry.slash_borrow({ account; borrow_amount; collateral_amount });
+        };
+
+        public func get_borrow_position({ account: Account; }) : ?BorrowPosition {
+            borrow_registry.get_position({ account });
+        };
+
+        public func get_borrow_positions() : Map.Iter<BorrowPosition> {
+            borrow_registry.get_positions();
+        };
+
+        public func get_borrow_index() : Float {
+            state.borrow_index;
         };
 
         /// Accrues interest for the past period and updates supply/borrow rates.
@@ -130,7 +135,7 @@ module {
             let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.last_update_timestamp; to = time; }));
 
             // Calculate utilization ratio
-            let utilization = compute_utilization();
+            let utilization = current_utilization();
 
             // Get the current borrow rate from the curve
             let borrow_rate = Math.percentage_to_ratio(interest_rate_curve.get_apr(utilization));
@@ -221,10 +226,27 @@ module {
             borrow_time_ratio({ position; time; }) < 1.0;
         };
 
-        public func compute_utilization() : Float {
+        public func current_utilization() : Float {
+            
+            compute_utilization({ 
+                total_supplied = supply_registry.get_total_supplied();
+                total_borrowed = borrow_registry.get_total_borrowed();
+            });
+        };
 
-            let total_supplied = supply_registry.get_total_supplied();
-            let total_borrowed = borrow_registry.get_total_borrowed();
+        public func preview_utilization({
+            borrow_to_add: Float;
+        }) : Float {
+            compute_utilization({ 
+                total_supplied = supply_registry.get_total_supplied();
+                total_borrowed = borrow_registry.get_total_borrowed() + borrow_to_add;
+            });
+        };
+
+        public func compute_utilization({
+            total_supplied: Nat;
+            total_borrowed: Float;
+        }) : Float {
             
             if (total_supplied == 0) {
                 if (total_borrowed > 0) {
@@ -236,6 +258,29 @@ module {
             };
             
             (total_borrowed * state.borrow_index) / (Float.fromInt(total_supplied) * (1.0 - state.reserve_liquidity));
+        };
+
+        public func get_supply_accrued_interests() : Float {
+            state.supply_accrued_interests;
+        };
+
+        public func query_borrow_position({ account: Account; time: Nat; }) : ?QueriedBorrowPosition {
+
+            switch (borrow_registry.get_position({ account })){
+                case(null) { null; };
+                case(?position) {
+                    
+                    // @todo: will compilation fail if used in a query?
+                    accrue_interests_and_update_rates({ time; });
+
+                    ?{
+                        position;
+                        health = health_factor({ position; });
+                        borrow_time_ratio = borrow_time_ratio({ position; time; });
+                        debt = current_owed({ position });
+                    };
+                };
+            };
         };
     };
 

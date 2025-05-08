@@ -53,6 +53,14 @@ module {
             register.total_collateral;
         };
 
+        public func get_position({ account: Account; }) : ?BorrowPosition {
+            Map.get(register.map, MapUtils.acchash, account);
+        };
+
+        public func get_positions() : Map.Iter<BorrowPosition> {
+            Map.vals(register.map);
+        };
+
         // Merge if there is already a position for that account
         public func add_borrow({
             input: BorrowInput;
@@ -107,15 +115,16 @@ module {
                 Debug.trap("Insufficient collateral to slash");
             };
 
-            register.total_borrowed -= borrow_amount;
-            register.total_collateral -= collateral_amount;
-
             if (borrow_diff == 0){
                 Debug.print("Borrow slashed completely");
+                register.total_borrowed -= position.borrowed;
+                register.total_collateral -= position.collateral;
                 Map.delete(register.map, MapUtils.acchash, account);
                 return null;
             };
             
+            register.total_borrowed -= borrow_amount;
+            register.total_collateral -= collateral_amount;
             let updated_position = { position with borrowed = borrow_diff; collateral = collateral_diff; };
             Map.set(register.map, MapUtils.acchash, account, updated_position);
             ?updated_position;

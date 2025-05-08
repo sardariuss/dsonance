@@ -27,6 +27,10 @@ module {
             register.total_supplied;
         };
 
+        public func get_position({ account: Account; }) : ?SupplyPosition {
+            Map.get(register.map, MapUtils.acchash, account);
+        };
+
         // Merge if there is already a position for that account
         public func add_supply(position: SupplyPosition) : SupplyPosition {
             
