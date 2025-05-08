@@ -195,7 +195,7 @@ module {
             let owed = lending_pool.current_owed({ position; });
             let repaid_amount = Float.min(owed, Float.fromInt(amount));
 
-            // Transfer the repayment from the user to the contract/pool
+            // Transfer the repayment from the user
             switch(await* asset_ledger.transfer_from({ from = account; amount = Int.abs(Float.toInt(Float.ceil(repaid_amount))); })){
                 case(#err(_)) { return #err("Transfer failed"); };
                 case(#ok(_)) {};

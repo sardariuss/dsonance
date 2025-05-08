@@ -2,13 +2,10 @@ import Result "mo:base/Result";
 import Int "mo:base/Int";
 import Float "mo:base/Float";
 import Nat "mo:base/Nat";
-import Array "mo:base/Array";
 import Debug "mo:base/Debug";
-import Buffer "mo:base/Buffer";
 
 import Map "mo:map/Map";
 
-import MapUtils "../utils/Map";
 import InterestRateCurve "../InterestRateCurve";
 import Math "../utils/Math";
 import Types "../Types";

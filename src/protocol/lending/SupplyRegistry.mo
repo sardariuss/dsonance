@@ -1,24 +1,49 @@
-import Int "mo:base/Int";
 import Nat "mo:base/Nat";
 import Debug "mo:base/Debug";
+import Result "mo:base/Result";
+import Float "mo:base/Float";
 
 import Map "mo:map/Map";
+import Set "mo:map/Set";
 
-import MapUtils "../utils/Map";
 import Types "../Types";
 
 module {
 
     type Account = Types.Account;
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    public type SupplyPosition = {
+    public type SupplyInput = {
+        id: Text;
         account: Account;
         supplied: Nat;
     };
 
+    public type SupplyPosition = SupplyInput and {
+        supply_state: SupplyState;
+    };
+
+    public type SupplyState = {
+        #LOCKED;
+        #UNLOCKED: Withdrawal;
+    };
+
+    public type Withdrawal = {
+        interest: Float;
+        withdrawal_state: WithdrawalState;
+    };
+
+    public type WithdrawalState = {
+        #QUEUED;
+        #TRANSFERRING;
+        #ERROR: Text;
+        #SUCCESS;
+    };
+
     public type SupplyRegister = {
         var total_supplied: Nat;
-        map: Map.Map<Account, SupplyPosition>; 
+        positions: Map.Map<Text, SupplyPosition>;
+        withdrawal_queue: Set.Set<Text>;
     };
 
     public class SupplyRegistry(register: SupplyRegister){
@@ -27,52 +52,62 @@ module {
             register.total_supplied;
         };
 
-        public func get_position({ account: Account; }) : ?SupplyPosition {
-            Map.get(register.map, MapUtils.acchash, account);
+        public func get_position({ id: Text }) : ?SupplyPosition {
+            Map.get(register.positions, Map.thash, id);
         };
 
-        // Merge if there is already a position for that account
-        public func add_supply(position: SupplyPosition) : SupplyPosition {
+        public func add_position(input: SupplyInput) {
+
+            if (Map.has(register.positions, Map.thash, input.id)){
+                Debug.trap("The map already has a position with the ID " # debug_show(input.id));
+            };
+        
+            Map.set(register.positions, Map.thash, input.id, { input with supply_state = #LOCKED; });
+            register.total_supplied += input.supplied;
+        };
+
+        public func update_unlocked({ id: Text; withdrawal_state: WithdrawalState; }){
             
-            let updated_position = switch(Map.get(register.map, MapUtils.acchash, position.account)){
-                case(null) { position; };
-                case(?old) {
-                    { old with supplied = old.supplied + position.supplied };
+            let position = switch(Map.get(register.positions, Map.thash, id)){
+                case(null) { Debug.trap("The map does not have a position with the ID " # debug_show(id)); };
+                case(?p) { p; };
+            };
+            
+            let supply_state = switch(position.supply_state){
+                case(#LOCKED) { Debug.trap("Cannot update withdrawal state, the position is locked"); };
+                case(#UNLOCKED( { interest; })) {
+                    #UNLOCKED({ interest; withdrawal_state; });
                 };
             };
-            register.total_supplied += position.supplied;
-            Map.set(register.map, MapUtils.acchash, position.account, updated_position);
-            updated_position;
+            
+            Map.set(register.positions, Map.thash, id, { position with supply_state; } );
+
+            // Add or remove to the queue
+            switch(withdrawal_state){
+                case(#QUEUED)       { Set.add(register.withdrawal_queue,    Set.thash, id); };
+                case(#TRANSFERRING) { Set.delete(register.withdrawal_queue, Set.thash, id); };
+                case(#ERROR(_))     { Set.add(register.withdrawal_queue,    Set.thash, id); }; // In order to add it back, this design prevents reentry
+                case(#SUCCESS)      { register.total_supplied -= position.supplied; }; // Don't forget to update the total supplied on success!
+            };
         };
 
-        // Traps if the slash amount is greater than the position supply
-        // Remove the position if the slash amount is equal to the position supply
-        // Return the updated position otherwise
-        public func slash_supply({ account: Account; amount: Nat; }) : ?SupplyPosition {
-            
-            let position = switch(Map.get(register.map, MapUtils.acchash, account)){
-                case(null) { Debug.trap("No position to slash"); };
-                case(?old) { old; };
-            };
-
-            let supply_diff : Int = position.supplied - amount;
-
-            if (supply_diff < 0) {
-                Debug.trap("Insufficient supply to slash");
-            };
-
-            register.total_supplied -= amount;
-
-            if (supply_diff == 0){
-                Debug.print("Supply slashed completely");
-                Map.delete(register.map, MapUtils.acchash, account);
-                return null;
-            };
-            
-            let updated_position = { position with supplied = Int.abs(supply_diff); };
-            Map.set(register.map, MapUtils.acchash, account, updated_position);
-            ?updated_position;
-        };
+//        public func withdraw_position({ id: Text; interest: Float; }) {
+//            
+//            let position = switch(Map.remove(register.positions, Map.thash, id)){
+//                case(null) { Debug.trap("The map does not have a position with the ID " # debug_show(id)); };
+//                case(?p) { p; };
+//            };
+//
+//            // In case the (negative) interest surpass the original amount supplied, no need to transfer
+//            if (interest < 0.0 and interest < (-1.0 * Float.fromInt(position.supplied))){
+//                Map.set(register.positions, Map.thash, id, { position with state = #UNLOCKED({ interest; withdrawal = #SUCCESS; }) });
+//                register.total_supplied -= position.supplied;
+//                return;
+//            };
+//
+//            Map.set(register.positions, Map.thash, id, { position with state = #UNLOCKED({ interest; withdrawal = #QUEUED; }) });
+//            Set.add(register.withdrawal_queue, Set.thash, id);
+//        };
     };
 
 };
