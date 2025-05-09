@@ -23,6 +23,7 @@ module {
     type Duration = Types.Duration;
 
     type SupplyPosition = SupplyRegistry.SupplyPosition;
+    type SupplyInput = SupplyRegistry.SupplyInput;
     type BorrowPosition = BorrowRegistry.BorrowPosition;
     type BorrowInput = BorrowRegistry.BorrowInput;
 
@@ -68,7 +69,7 @@ module {
             Debug.trap("Liquidation penalty should be equal to {1.0 - liquidation_threshold}");
         };
 
-        public func add_supply({ position: SupplyPosition; interests: Float; }) : SupplyPosition {
+        public func add_supply(position: SupplyPosition) {
             state.supply_accrued_interests += interests;
             supply_registry.add_supply(position);
         };

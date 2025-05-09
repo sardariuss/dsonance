@@ -57,6 +57,7 @@ module {
     public type MinterParameters   = Types.Current.MinterParameters;
     public type LockSchedulerState = Types.Current.LockSchedulerState;
     public type YieldState         = Types.Current.YieldState;
+    public type TransferError      = Types.Current.TransferError;
 
     // CANISTER ARGS
 

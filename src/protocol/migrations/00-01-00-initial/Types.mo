@@ -269,7 +269,11 @@ module {
 
     public type TransferResult = {
         #ok: TxIndex;
-        #err: Icrc1TransferError or { #Trapped : { error_code: Error.ErrorCode; }};
+        #err: TransferError;
+    };
+
+    public type TransferError = Icrc1TransferError or { 
+        #Trapped : { error_code: Error.ErrorCode; }
     };
 
     public type Duration = {
