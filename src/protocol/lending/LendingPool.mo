@@ -27,17 +27,7 @@ module {
     type BorrowPosition = BorrowRegistry.BorrowPosition;
     type BorrowInput = BorrowRegistry.BorrowInput;
 
-    type QueriedBorrowPosition = {
-        position: BorrowPosition;
-        debt: Float;
-        health: Float;
-        borrow_time_ratio: Float;
-    };
-
     type LendingPoolState = {
-        max_borrow_duration: Duration; // the maximum duration a borrow position can last before it gets liquidated
-        max_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
-        liquidation_threshold: Float; // ratio, between 0 and 1, e.g. 0.85
         liquidation_penalty: Float; // ratio, between 0 and 1, e.g. 0.10
         reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
         protocol_fee: Float; // portion of the supply interest reserved as a fee for the protocol
@@ -60,35 +50,59 @@ module {
         collateral_price: CollateralPriceQueries;
     }){
 
-        // Verify state is valid
-        if (state.max_ltv > state.liquidation_threshold){
-            Debug.trap("Max LTV exceeds liquidation threshold");
-        }; 
-        if (state.liquidation_penalty != (1.0 - state.liquidation_threshold)){
-            // The current liquidation mechanism liquidates all the collateral
-            Debug.trap("Liquidation penalty should be equal to {1.0 - liquidation_threshold}");
+        public func get_supplied({ id: Text; }) : ?SupplyPosition {
+            supply_registry.get_position({ id });
         };
 
-        public func add_supply(position: SupplyPosition) {
-            state.supply_accrued_interests += interests;
-            supply_registry.add_supply(position);
+        public func supply({ input: SupplyInput; time: Nat; }) : async* Result<(), Text> {
+
+            accrue_interests_and_update_rates({time}); // Required to accrue interests before the supply changed (@todo: use obs instead)
+            
+            await* supply_registry.add_position(input);
         };
 
-        public func slash_supply({ account: Account; amount: Nat; interests: Float; }) : ?SupplyPosition {
-            state.supply_accrued_interests -= interests;
-            supply_registry.slash_supply({ account; amount; });
+        public func withdraw({ id: Text; interest_share: Float; time: Nat; }) : Result<(), Text> {
+
+            if (not Math.is_normalized(interest_share)) {
+                return #err("Invalid interest share");
+            };
+
+            let position = switch(supply_registry.get_position({ id })){
+                case(null) { return #err("Position with id " # debug_show(id) # " not found")};
+                case(?p) { p; };
+            };
+
+            let interest_amount = interest_share * get_supply_accrued_interests( { time; }); // @todo: need to take account of unsolved debts!
+
+            // Make sure the total due is positif (if ever the interest are negative and greater in value than the amount supplied)
+            let due = Float.max(0, Float.fromInt(position.supplied) + interest_amount);
+
+            // Remove from interests right away, once withdrawal is triggered the protocol makes it so the position 
+            // stops to accumulate interests, even if stuck in the withdrawal queue! It is a design choice.
+            state.supply_accrued_interests -= due;
+            
+            supply_registry.remove_position({ id; due = Int.abs(Float.toInt(due)); }); // @todo: use obs to call update_index on total_supplied changed!
         };
 
-        public func get_supply_position({ account: Account; }) : ?SupplyPosition {
-            supply_registry.get_position({account});
+        public func borrow({ input: BorrowInput; }) : async* Result<BorrowPosition, Text> {
+
+            // Verify the utilization does not exceed the allowed limit
+            let utilization = preview_utilization({ borrow_to_add = input.borrowed; });
+            if (utilization > 1.0) {
+                return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
+            };
+
+            await* borrow_registry.add_borrow({ input; });
+
+            // @todo: add a revert borrow position if one of the condition (utilization or LTV) is not true anymore
         };
 
-        public func add_borrow({ input: BorrowInput; current_index: Float; }) : BorrowPosition {
-            borrow_registry.add_borrow({ input; current_index });
+        public func repay({ account: Account; amount: Nat; time: Nat; }) : async* Result<(), Text> {
+            await* borrow_registry.repay({ account; amount; time; });
         };
 
-        public func slash_borrow({ account: Account; borrow_amount: Float; collateral_amount: Float; }) : ?BorrowPosition {
-            borrow_registry.slash_borrow({ account; borrow_amount; collateral_amount });
+        public func withdraw_collateral({ account: Account; amount: Nat; time: Nat }) : async* Result<(), Text> {
+            await* borrow_registry.withdraw_collateral({ account; amount; time; });
         };
 
         public func get_borrow_position({ account: Account; }) : ?BorrowPosition {
@@ -97,10 +111,6 @@ module {
 
         public func get_borrow_positions() : Map.Iter<BorrowPosition> {
             borrow_registry.get_positions();
-        };
-
-        public func get_borrow_index() : Float {
-            state.borrow_index;
         };
 
         /// Accrues interest for the past period and updates supply/borrow rates.
@@ -153,77 +163,6 @@ module {
             Float.fromInt(supply_registry.get_total_supplied()) - borrow_registry.get_total_borrowed();
         };
 
-        public func current_owed({
-            position: {
-                borrowed: Float;
-                borrow_index: Float;
-            }
-        }) : Float {
-            position.borrowed * (state.borrow_index / position.borrow_index);
-        };
-
-        public func ltv({
-            position: {
-                collateral: Float;
-                borrowed: Float;
-                borrow_index: Float;
-            };
-        }) : Float {
-
-            (position.collateral * collateral_price.twap_in_asset()) / 
-            (current_owed({ position }));
-        };
-
-        public func is_valid_ltv({
-            position: {
-                collateral: Float;
-                borrowed: Float;
-                borrow_index: Float;
-            };
-        }) : Bool {
-
-            ltv({ position; }) < state.max_ltv;
-        };
-
-        public func health_factor({
-            position: {
-                collateral: Float;
-                borrowed: Float;
-                borrow_index: Float;
-            };
-        }) : Float {
-            state.liquidation_threshold / ltv({position});
-        };
-
-        public func is_healthy({
-            position: {
-                collateral: Float;
-                borrowed: Float;
-                borrow_index: Float;
-            };
-        }) : Bool {
-            
-            health_factor({position}) > 1.0;
-        };
-
-        public func borrow_time_ratio({
-            position: {
-                timestamp: Nat;
-            };
-            time: Nat;
-        }) : Float {
-            Float.fromInt(time - position.timestamp) / Float.fromInt(Duration.toTime(state.max_borrow_duration));
-        };
-
-        public func is_within_borrow_duration({
-            position: {
-                timestamp: Nat;
-            };
-            time: Nat;
-        }) : Bool {
-            borrow_time_ratio({ position; time; }) < 1.0;
-        };
-
         public func current_utilization() : Float {
             
             compute_utilization({ 
@@ -258,28 +197,11 @@ module {
             (total_borrowed * state.borrow_index) / (Float.fromInt(total_supplied) * (1.0 - state.reserve_liquidity));
         };
 
-        public func get_supply_accrued_interests() : Float {
+        public func get_supply_accrued_interests({ time: Nat; }) : Float {
+            accrue_interests_and_update_rates({ time; });
             state.supply_accrued_interests;
         };
 
-        public func query_borrow_position({ account: Account; time: Nat; }) : ?QueriedBorrowPosition {
-
-            switch (borrow_registry.get_position({ account })){
-                case(null) { null; };
-                case(?position) {
-                    
-                    // @todo: will compilation fail if used in a query?
-                    accrue_interests_and_update_rates({ time; });
-
-                    ?{
-                        position;
-                        health = health_factor({ position; });
-                        borrow_time_ratio = borrow_time_ratio({ position; time; });
-                        debt = current_owed({ position });
-                    };
-                };
-            };
-        };
     };
 
 };

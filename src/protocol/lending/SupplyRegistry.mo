@@ -18,20 +18,17 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type Transfer = Types.Transfer;
     type TransferError = Types.TransferError;
+    type TxIndex = Types.TxIndex;
 
     public type SupplyInput = {
         id: Text;
+        timestamp: Nat;
         account: Account;
         supplied: Nat;
     };
 
     public type SupplyPosition = SupplyInput and {
-        withdrawned: ?Withdrawal;
-    };
-
-    public type SupplyState = {
-        #LOCKED;
-        #UNLOCKED: Withdrawal;
+        tx: TxIndex;
     };
 
     public type Withdrawal = {
@@ -40,7 +37,7 @@ module {
         supplied: Nat;
         due: Nat;
         var transferred: Nat;
-        var tx_errors: [TransferError]; // @todo: need to limit the number of errors
+        var transfers: [Transfer]; // @todo: need to limit the number of transfers
     };
 
     public type SupplyRegister = {
@@ -51,7 +48,9 @@ module {
         withdraw_queue: Set.Set<Text>;
     };
 
-    // @todo: need functions to retry if transfer failed and queries.
+    // @todo: need functions to retry if transfer failed.
+    // @todo: need queries to retrieve the transfers and withdrawals (union of the two maps)
+    // @todo: function to delete withdrawals that are too old
     public class SupplyRegistry(register: SupplyRegister){
 
         var awaiting_transfer = false;
@@ -69,27 +68,27 @@ module {
             let { id; account; supplied; } = input;
 
             if (Map.has(register.positions, Map.thash, id)){
-                Debug.trap("The map already has a position with the ID " # debug_show(id));
+                return #err("The map already has a position with the ID " # debug_show(id));
             };
 
-            switch(await* register.ledger.transfer_from({ from = account; amount = supplied; })){
+            let tx = switch(await* register.ledger.transfer_from({ from = account; amount = supplied; })) {
                 case(#err(_)) { return #err("Transfer failed"); };
-                case(#ok(_)) {};
+                case(#ok(tx_index)) { tx_index; };
             };
 
             // TODO: small risk here that a user call add_position twice in parallel, two transfer succeed,
             // and only position is set
-        
-            Map.set(register.positions, Map.thash, id, { input with withdrawned = null; });
+
+            Map.set(register.positions, Map.thash, id, { input with tx; });
             register.total_supplied += supplied;
 
             #ok;
         };
 
-        public func withdraw_position({ id: Text; due: Nat; }){
+        public func remove_position({ id: Text; due: Nat; }) : Result<(), Text> {
             
             let position = switch(Map.get(register.positions, Map.thash, id)){
-                case(null) { Debug.trap("The map does not have a position with the ID " # debug_show(id)); };
+                case(null) { return #err("The map does not have a position with the ID " # debug_show(id)); };
                 case(?p) { p; };
             };
 
@@ -99,15 +98,17 @@ module {
                 supplied = position.supplied;
                 due;
                 var transferred = 0;
-                var tx_errors = [];
+                var transfers = [];
             };
 
             Map.set(register.withdrawals, Map.thash, id, withdrawal);
 
-            // Add to the queue only if there is an amount due
+            // Add to the queue only if there is an amount due, otherwise remove the position right away
             if (due > 0) {
                 Set.add(register.withdraw_queue, Set.thash, id);
             };
+
+            #ok;
         };
 
         public func process_withdraw_queue({ available_liquidity: Nat; }) : async* Result<[Transfer], Text> {
@@ -163,6 +164,9 @@ module {
 
             let transfer = await* register.ledger.transfer({ to = withdrawal.account; amount; });
 
+            // Add the transfer
+            withdrawal.transfers := Array.append(withdrawal.transfers, [transfer]);
+
             switch(transfer.result){
                 case(#ok(_)){
 
@@ -177,10 +181,7 @@ module {
                         Set.delete(register.withdraw_queue, Set.thash, withdrawal.id);
                     };
                 };
-                case(#err(err)){
-
-                    // Add the error
-                    withdrawal.tx_errors := Array.append(withdrawal.tx_errors, [err]);
+                case(#err(_)){
 
                     // Remove from the queue to avoid potentially blocking other transfers
                     Set.delete(register.withdraw_queue, Set.thash, withdrawal.id);
@@ -190,15 +191,15 @@ module {
             transfer;
         };
 
-        func compute_supplied_removed(withdrawal: Withdrawal) : Nat {
-            let ratio_removed = Float.fromInt(withdrawal.transferred) / Float.fromInt(withdrawal.due);
-            let supplied_removed = Float.toInt(ratio_removed * Float.fromInt(withdrawal.supplied));
-            if (supplied_removed < 0){
-                Debug.trap("Logic error: supply removed shall never be negative");
-            };
-            Int.abs(supplied_removed);
-        };
+    };
 
+    func compute_supplied_removed(withdrawal: Withdrawal) : Nat {
+        let ratio_removed = Float.fromInt(withdrawal.transferred) / Float.fromInt(withdrawal.due);
+        let supplied_removed = Float.toInt(ratio_removed * Float.fromInt(withdrawal.supplied));
+        if (supplied_removed < 0){
+            Debug.trap("Logic error: supply removed shall never be negative");
+        };
+        Int.abs(supplied_removed);
     };
 
 };
