@@ -16,43 +16,41 @@ module {
     type TxIndex = Types.TxIndex;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    public type BorrowInput = {
-        timestamp: Nat;
-        account: Account;
-        collateral: Float;
-        borrowed: Float;
-    };
-
     public type BorrowPosition = {
-        timestamp: Nat;
         account: Account;
-        collateral_tx: [TxIndex];
-        borrow_tx: [TxIndex];
-        collateral: Float;
-        borrowed: Float;
-        borrow_index: Float;
-        repay_tx: [TxIndex]; // @todo: need to limit the number of transfers
-        reimburse_tx: [TxIndex]; // @todo: need to limit the number of transfers
+        collateral: {
+            amount: Float;
+            supplied_tx: [TxIndex];
+            reimbursed_tx: [TxIndex];
+        };
+        borrowed: ?{
+            timestamp: Nat;
+            index: Float;
+            amount: Float;
+            borrowed_tx: [TxIndex];
+            repaid_tx: [TxIndex];
+        };
     };
 
     type QueriedBorrowPosition = {
         position: BorrowPosition;
         owed: Float;
         health: Float;
-        borrow_duration_ns: Nat;
+        //borrow_duration_ns: Nat;
     };
 
     // @todo: function to delete positions repaid that are too old
     // @todo: function to transfer the collateral to the user account based on the health factor
     public type BorrowRegister = {
-        var total_borrowed: Float;
-        var total_collateral: Float;
+        var total_borrowed: Float; // @todo: why not Nat?
+        var total_collateral: Float; // @todo: why not Nat?
         map: Map.Map<Account, BorrowPosition>; 
     };
 
     public class BorrowRegistry({
         register: BorrowRegister;
-        ledger: LedgerFacade.LedgerFacade;
+        supply_ledger: LedgerFacade.LedgerFacade;
+        collateral_ledger: LedgerFacade.LedgerFacade;
         borrow_positionner: BorrowPositionner.BorrowPositionner;
     }){
 
@@ -72,89 +70,141 @@ module {
             Map.vals(register.map);
         };
 
-        // Merge if there is already a position for that account
-        public func add_borrow({
-            input: BorrowInput;
-        }) : async* Result<BorrowPosition, Text> {
-
-            let { timestamp; account; collateral; borrowed; } = input;
-
-            let position = borrow_positionner.new_borrow_position({
-                input = input;
-                collateral_tx = [];
-                borrow_tx = [];
-            });
-
-            // Verify the position's LTV
-            if (not borrow_positionner.is_valid_ltv({ position; time = timestamp; })) {
-                return #err("LTV ratio is above current allowed maximum");
-            };
+        public func supply_collateral({
+            account: Account;
+            amount: Nat;
+        }) : async* Result<(), Text> {
 
             // Transfer the collateral from the user account
-            let collateral_tx = switch(await* ledger.transfer_from({ from = account; amount = Int.abs(Float.toInt(collateral)); })){ // @todo: type check
+            let tx = switch(await* collateral_ledger.transfer_from({ from = account; amount; })){
                 case(#err(_)) { return #err("Failed to transfer collateral from the user account"); };
                 case(#ok(tx)) { tx; };
             };
 
-            // Transfer the borrow amount to the user account
-            let borrow_tx = switch((await* ledger.transfer({ to = account; amount = Int.abs(Float.toInt(borrowed)); })).result){ // @todo: type check
-                case(#err(_)) { return #err("Failed to transfer borrow amount to the user account"); };
-                case(#ok(tx)) { tx; };
-            };
+            // Create or update the borrow position
+            let position = borrow_positionner.add_collateral({
+                position = Map.get(register.map, MapUtils.acchash, account);
+                account;
+                amount;
+                tx;
+            });
+            Map.set(register.map, MapUtils.acchash, account, position);
 
-            // @todo: need to revert the collateral transfer if the borrow transfer fails
-            
-            let updated_position = switch(Map.get(register.map, MapUtils.acchash, account)){
-                case(null) {
-                    {
-                        position with
-                        collateral_tx = [collateral_tx];
-                        borrow_tx     = [borrow_tx];
-                    };
-                };
-                case(?prev) { 
-                    {
-                        prev with
-                        timestamp     = timestamp;
-                        collateral_tx = Array.append(prev.collateral_tx, [collateral_tx]);
-                        borrow_tx     = Array.append(prev.borrow_tx, [borrow_tx]);
-                        collateral    = prev.collateral + collateral;
-                        borrowed      = borrow_positionner.compute_owed({ position = prev; time = timestamp; }) + borrowed;
-                        borrow_index  = borrow_positionner.get_borrow_index({ time = timestamp; });
-                    };
-                };
-            };
-            Map.set(register.map, MapUtils.acchash, account, updated_position);
-            register.total_borrowed += borrowed;
-            register.total_collateral += collateral;
-            #ok(updated_position);
+            // Update the total collateral
+            register.total_collateral += Float.fromInt(amount);
+
+            #ok;
         };
 
-        // Traps if the slash amount is greater than the position borrow
-        // Remove the position if the slash amount is equal to the position borrow
-        // Return the updated position otherwise
-        public func repay({ account: Account; amount: Nat; time: Nat; }) : async* Result<(), Text> {
-            
+        public func withdraw_collateral({
+            account: Account;
+            amount: Nat;
+            time: Nat;
+        }) : async* Result<(), Text> {
+
             let position = switch(Map.get(register.map, MapUtils.acchash, account)){
-                case(null) { return #err("No position to slash"); };
+                case(null) { return #err("No position to withdraw from"); };
                 case(?p) { p; };
             };
 
             // Sanity check
-            if (position.borrowed <= 0) {
-                return #err("The position has already been fully repaid");
+            if (position.collateral.amount < Float.fromInt(amount)) {
+                return #err("The position has not enough collateral to withdraw");
             };
 
-            let owed = Float.ceil(borrow_positionner.compute_owed({ position; time; })); // @todo: check if take the ceiling makes sense
+            // Check if the position will be healthy after removing the collateral
+            let preview = borrow_positionner.remove_collateral({
+                position;
+                amount;
+                tx = 0; // Dummy tx, not used
+            });
+            if (not borrow_positionner.is_healthy({ position = preview; time; })) {
+                return #err("Cannot withdraw specified collateral amount, position gets unhealthy");
+            };
+
+            // Transfer the collateral to the user account
+            let tx = switch((await* collateral_ledger.transfer({ to = account; amount; })).result){
+                case(#err(_)) { return #err("Failed to transfer the collateral to the user account"); };
+                case(#ok(tx)) { tx; };
+            };
+
+            // Update the borrow position
+            let update = borrow_positionner.remove_collateral({
+                position;
+                amount;
+                tx;
+            });
+            Map.set(register.map, MapUtils.acchash, account, update);
+
+            // Update the total collateral
+            register.total_collateral -= Float.fromInt(amount);
+
+            #ok;
+        };
+
+        public func borrow({
+            account: Account;
+            amount: Nat;
+            timestamp: Nat;
+        }) : async* Result<(), Text> {
+            
+            let position = switch(Map.get(register.map, MapUtils.acchash, account)){
+                case(null) { return #err("No collateral position found for account"); };
+                case(?p) { p; };
+            };
+
+            // Check if the position does not reach the maximum LTV ratio
+            let preview = borrow_positionner.add_borrow({
+                position;
+                timestamp;
+                amount = Float.fromInt(amount);
+                tx = 0; // Dummy tx, not used
+            });
+            if (not borrow_positionner.is_inferior_max_ltv({ position = preview; time = timestamp; })) {
+                return #err("LTV ratio is above current allowed maximum");
+            };
+
+            // Transfer the borrow amount to the user account
+            let tx = switch((await* supply_ledger.transfer({ to = account; amount; })).result){
+                case(#err(_)) { return #err("Failed to transfer borrow amount to the user account"); };
+                case(#ok(tx)) { tx; };
+            };
+
+            // Update the borrow position
+            let update = borrow_positionner.add_borrow({
+                position;
+                timestamp;
+                amount = Float.fromInt(amount);
+                tx;
+            });
+            Map.set(register.map, MapUtils.acchash, account, update);
+
+            // Update the total borrowed amount
+            register.total_borrowed += Float.fromInt(amount);
+
+            #ok;
+        };
+
+        public func repay({
+            account: Account;
+            amount: Nat;
+            time: Nat;
+        }) : async* Result<(), Text> {
+            
+            let position = switch(Map.get(register.map, MapUtils.acchash, account)){
+                case(null) { return #err("No position to repay"); };
+                case(?p) { p; };
+            };
+
+            let owed = Float.ceil(borrow_positionner.compute_owed({ position; time; }));
             let repay_amount = Float.min(owed, Float.fromInt(amount));
 
             // Transfer the repayment from the user
-            let repay_tx = switch(await* ledger.transfer_from({ from = account; amount = Int.abs(Float.toInt(repay_amount)); })){
+            let repay_tx = switch(await* supply_ledger.transfer_from({ from = account; amount = Int.abs(Float.toInt(repay_amount)); })){
                 case(#err(_)) { return #err("Transfer failed"); };
                 case(#ok(tx)) { tx; };
             };
 
-            // @todo: the fraction might not be accurate because what is owed will have changed after awaiting the transfer
             let repaid_fraction = repay_amount / owed;
             let difference = repaid_fraction * position.borrowed;
 
@@ -163,48 +213,6 @@ module {
                 repay_tx = Array.append(position.repay_tx, [repay_tx]);
             });
             register.total_borrowed -= difference;
-
-            if (difference == position.borrowed) {
-                return await* reimburse_collateral({ account; });
-            };
-
-            #ok;
-        };
-
-        public func withdraw_collateral({ account: Account; amount: Nat; time: Nat }) : async* Result<(), Text> {
-
-            let position = switch(Map.get(register.map, MapUtils.acchash, account)){
-                case(null) { return #err("No position to withdraw from"); };
-                case(?p) { p; };
-            };
-
-            if (position.collateral <= 0) {
-                return #err("The position has no collateral to withdraw");
-            };
-
-            let is_healthy = position.borrowed <= 0 or borrow_positionner.is_healthy({
-                position = {
-                    position with
-                    collateral = position.collateral - Float.fromInt(amount);
-                };
-                time;
-            });
-
-            if (not is_healthy) {
-                return #err("Cannot withdraw specified collateral amount, position gets unhealthy");
-            };
-
-            // Transfer the collateral back to the user
-            let reimburse_tx = switch((await* ledger.transfer({ to = account; amount = Int.abs(Float.toInt(position.collateral)); })).result){
-                case(#err(_)) { return #err("Failed to transfer collateral back to the user account"); };
-                case(#ok(tx)) { tx; };
-            };
-
-            Map.set(register.map, MapUtils.acchash, account, { position with 
-                collateral = position.collateral - Float.fromInt(amount);
-                reimburse_tx = Array.append(position.reimburse_tx, [reimburse_tx]);
-            });
-            register.total_collateral -= Float.fromInt(amount);
 
             #ok;
         };
@@ -217,7 +225,7 @@ module {
                     ?{
                         position;
                         health = borrow_positionner.compute_health_factor({ position; time; });
-                        borrow_duration_ns = borrow_positionner.borrow_duration_ns({ position; time; });
+                        //borrow_duration_ns = borrow_positionner.borrow_duration_ns({ position; time; });
                         owed = borrow_positionner.compute_owed({ position; time; });
                     };
                 };
@@ -226,43 +234,10 @@ module {
 
         public func get_liquidable_positions({ time: Nat; }) : Map.Iter<BorrowPosition> {
             let filtered_map = Map.filter<Account, BorrowPosition>(register.map, MapUtils.acchash, func (account: Account, position: BorrowPosition) : Bool {
-                // Skip if the position is already repaid
-                if (position.borrowed <= 0.0){
-                    return false;
-                };
-                // Take unhealthy or out of borrow duration positions
-                not (borrow_positionner.is_healthy({ position; time; }) and borrow_positionner.is_valid_borrow_duration({ position; time; }));
+                // Take unhealthy positions with positive borrowed amount
+                position.borrowed > 0.0 and (not borrow_positionner.is_healthy({ position; time; }));
             });
             Map.vals(filtered_map);
-        };
-
-        func reimburse_collateral({ account: Account; }) : async* Result<(), Text> {
-            
-            let position = switch(Map.get(register.map, MapUtils.acchash, account)){
-                case(null) { return #err("No position to reimburse"); };
-                case(?p) { p; };
-            };
-
-            if (position.collateral <= 0) {
-                return #err("The position has no collateral to reimburse");
-            };
-            if (position.borrowed > 0) {
-                return #err("The position has an outstanding borrow");
-            };
-
-            // Transfer the collateral back to the user
-            let reimburse_tx = switch((await* ledger.transfer({ to = account; amount = Int.abs(Float.toInt(position.collateral)); })).result){
-                case(#err(_)) { return #err("Failed to transfer collateral back to the user account"); };
-                case(#ok(tx)) { tx; };
-            };
-
-            Map.set(register.map, MapUtils.acchash, account, { position with 
-                collateral = 0.0;
-                reimburse_tx = Array.append(position.reimburse_tx, [reimburse_tx]);
-            });
-            register.total_collateral -= position.collateral;
-
-            #ok;
         };
 
     };

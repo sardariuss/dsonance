@@ -1,6 +1,8 @@
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 import Float "mo:base/Float";
+import Array "mo:base/Array";
+import Option "mo:base/Option";
 
 import Types "../Types";
 import Duration "../duration/Duration";
@@ -11,25 +13,31 @@ module {
     type Account = Types.Account;
     type TxIndex = Types.TxIndex;
 
-    public type BorrowInput = {
+    type Collateral = {
+        amount: Float;
+        supplied_tx: [TxIndex];
+        reimbursed_tx: [TxIndex];
+    };
+
+    type Borrowed = {
         timestamp: Nat;
+        index: Float;
+        amount: Float;
+        borrowed_tx: [TxIndex];
+        repaid_tx: [TxIndex];
+    };
+
+    public type BorrowPosition = {
         account: Account;
-        collateral: Float;
-        borrowed: Float;
+        collateral: Collateral;
+        borrowed: ?Borrowed;
     };
 
-    type BorrowPosition = BorrowInput and {
-        collateral_tx: [TxIndex];
-        borrow_tx: [TxIndex];
-        borrow_index: Float;
-        repay_tx: [TxIndex];
-        reimburse_tx: [TxIndex];
-    };
-
+    // @todo: check how to handle position duration when collateral is added
     public class BorrowPositionner({
         get_borrow_index: ({ time: Nat; }) -> Float;
         get_collateral_spot_in_asset: ({ time: Nat; }) -> Float;
-        max_borrow_duration: Duration; // the maximum duration a borrow position can last before it gets liquidated
+        //max_borrow_duration: Duration; // the maximum duration a borrow position can last before it gets liquidated
         max_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
         liquidation_threshold: Float; // ratio, between 0 and 1, e.g. 0.85
     }){
@@ -38,106 +46,159 @@ module {
             Debug.trap("Max LTV exceeds liquidation threshold");
         }; 
 
-        public func new_borrow_position({
-            input: BorrowInput;
-            collateral_tx: [TxIndex];
-            borrow_tx: [TxIndex];
+        public func add_collateral({
+            position: ?BorrowPosition;
+            account: Account;
+            amount: Nat;
+            tx: TxIndex;
         }) : BorrowPosition {
-            {
-                input with
-                collateral_tx;
-                borrow_tx;
-                borrow_index = get_borrow_index({ time = input.timestamp; });
-                repay_tx = [];
-                reimburse_tx = [];
+            switch(position){
+                case(null) {
+                    {
+                        account;
+                        collateral = {
+                            amount = Float.fromInt(amount);
+                            supplied_tx = [tx];
+                            reimbursed_tx = [];
+                        };
+                        borrowed = null;
+                    };
+                };
+                case(?previous) {
+                    if (previous.account != account) {
+                        Debug.trap("BorrowPositionner: position account does not match input account");
+                    };
+                    let collateral = { previous.collateral with 
+                        amount = previous.collateral.amount + Float.fromInt(amount);
+                        supplied_tx = Array.append(previous.collateral.supplied_tx, [tx]);
+                    };
+                    { previous with collateral };
+                };
             };
         };
 
-        public func get_borrow_index({
-            time: Nat;
-        }) : Float {
-            get_borrow_index({ time; });
+        public func remove_collateral({
+            position: BorrowPosition;
+            amount: Nat;
+            tx: TxIndex;
+        }) : BorrowPosition {
+
+            // Assumes the removed collateral amount does not lower the health factor more than 1.0
+
+            if (position.collateral.amount < Float.fromInt(amount)) {
+                Debug.trap("BorrowPositionner: not enough collateral to remove");
+            };
+
+            let collateral = { position.collateral with 
+                amount = position.collateral.amount - Float.fromInt(amount);
+                reimbursed_tx = Array.append(position.collateral.reimbursed_tx, [tx]);
+            };
+            { position with collateral };
+        };
+                
+        public func add_borrow({
+            position: BorrowPosition;
+            timestamp: Nat;
+            amount: Float;
+            tx: TxIndex;
+        }) : BorrowPosition {
+            let borrowed = ?(switch(position.borrowed){
+                case(null) {
+                    {
+                        timestamp;
+                        index = get_borrow_index({ time = timestamp; });
+                        amount;
+                        borrowed_tx = [tx];
+                        repaid_tx = [];
+                    };
+                };
+                case(?previous_borrowed) {
+                    {   
+                        previous_borrowed with 
+                        timestamp;
+                        index = get_borrow_index({ time = timestamp; });
+                        amount = compute_owed({ borrowed = previous_borrowed; time = timestamp; }) + amount;
+                        borrowed_tx = Array.append(previous_borrowed.borrowed_tx, [tx]);
+                    };
+                };
+            });
+            { position with borrowed };
+        };
+
+        public func remove_borrow({
+            position: BorrowPosition;
+            timestamp: Nat;
+            amount: Float;
+            tx: TxIndex;
+        }) : BorrowPosition {
+
+            // Assumes the removed borrow amount does not lower the health factor more than 1.0
+            let borrowed = switch(position.borrowed){
+                case(null) { Debug.trap("BorrowPositionner: no borrow to remove"); };
+                case(?b) { b; };
+            };
+                
+            if (borrowed.amount < amount) {
+                Debug.trap("BorrowPositionner: not enough borrowed amount to remove");
+            };
+
+            { 
+                position with borrowed = ?{ 
+                    borrowed with 
+                    timestamp;
+                    index = get_borrow_index({ time = timestamp; });
+                    amount = compute_owed({ borrowed; time = timestamp; }) - amount;
+                    repaid_tx = Array.append(borrowed.repaid_tx, [tx]);
+                };
+            };
         };
 
         public func compute_owed({
-            position: {
-                borrowed: Float;
-                borrow_index: Float;
-            };
+            borrowed: Borrowed;
             time: Nat;
         }) : Float {
-            position.borrowed * (get_borrow_index({ time; }) / position.borrow_index);
+            borrowed.amount * (get_borrow_index({ time; }) / borrowed.index);
         };
 
         public func compute_health_factor({
-            position: {
-                collateral: Float;
-                borrowed: Float;
-                borrow_index: Float;
-            };
+            position: BorrowPosition;
             time: Nat;
         }) : Float {
             liquidation_threshold / compute_ltv({ position; time; });
         };
 
         public func is_healthy({
-            position: {
-                collateral: Float;
-                borrowed: Float;
-                borrow_index: Float;
-            };
+            position: BorrowPosition;
             time: Nat;
         }) : Bool {
-
             compute_health_factor({ position; time; }) > 1.0;
         };
 
         public func compute_ltv({
-            position: {
-                collateral: Float;
-                borrowed: Float;
-                borrow_index: Float;
-            };
+            position: BorrowPosition;
             time: Nat;
         }) : Float {
-            compute_owed({ position; time; }) /
-            (position.collateral * get_collateral_spot_in_asset({ time; }));
+            let borrowed = Option.get(position.borrowed, empty_borrowed()); // @todo: check if no side effects
+            compute_owed({ borrowed; time; }) / (position.collateral.amount * get_collateral_spot_in_asset({ time; }));
         };
 
-        public func is_valid_ltv({
-            position: {
-                collateral: Float;
-                borrowed: Float;
-                borrow_index: Float;
-            };
+        public func is_inferior_max_ltv({
+            position: BorrowPosition;
             time: Nat;
         }) : Bool {
-
             compute_ltv({ position; time; }) < max_ltv;
         };
 
-        public func borrow_duration_ns({
-            position: {
-                timestamp: Nat;
-            };
-            time: Nat;
-        }) : Nat {
-            if (position.timestamp > time) {
-                Debug.trap("BorrowPositionner: position timestamp is greater than current time");
-            };
-            time - position.timestamp;
-        };
+    };
 
-        public func is_valid_borrow_duration({
-            position: {
-                timestamp: Nat;
-            };
-            time: Nat;
-        }) : Bool {
-            let ratio = Float.fromInt(borrow_duration_ns({ position; time; })) / Float.fromInt(Duration.toTime(max_borrow_duration));
-            ratio < 1.0;
+    func empty_borrowed() : Borrowed {
+        {
+            timestamp = 0;
+            index = 0.0;
+            amount = 0.0;
+            borrowed_tx = [];
+            repaid_tx = [];
         };
-
     };
 
 };
