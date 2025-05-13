@@ -182,7 +182,7 @@ module {
                 return #err("The position has no collateral to withdraw");
             };
 
-            let is_healthy = borrow_positionner.is_healthy({
+            let is_healthy = position.borrowed <= 0 or borrow_positionner.is_healthy({
                 position = {
                     position with
                     collateral = position.collateral - Float.fromInt(amount);
@@ -207,6 +207,33 @@ module {
             register.total_collateral -= Float.fromInt(amount);
 
             #ok;
+        };
+
+        public func query_borrow_position({ account: Account; time: Nat; }) : ?QueriedBorrowPosition {
+
+            switch (Map.get(register.map, MapUtils.acchash, account)){
+                case(null) { null; };
+                case(?position) {
+                    ?{
+                        position;
+                        health = borrow_positionner.compute_health_factor({ position; time; });
+                        borrow_duration_ns = borrow_positionner.borrow_duration_ns({ position; time; });
+                        owed = borrow_positionner.compute_owed({ position; time; });
+                    };
+                };
+            };
+        };
+
+        public func get_liquidable_positions({ time: Nat; }) : Map.Iter<BorrowPosition> {
+            let filtered_map = Map.filter<Account, BorrowPosition>(register.map, MapUtils.acchash, func (account: Account, position: BorrowPosition) : Bool {
+                // Skip if the position is already repaid
+                if (position.borrowed <= 0.0){
+                    return false;
+                };
+                // Take unhealthy or out of borrow duration positions
+                not (borrow_positionner.is_healthy({ position; time; }) and borrow_positionner.is_valid_borrow_duration({ position; time; }));
+            });
+            Map.vals(filtered_map);
         };
 
         func reimburse_collateral({ account: Account; }) : async* Result<(), Text> {
@@ -236,21 +263,6 @@ module {
             register.total_collateral -= position.collateral;
 
             #ok;
-        };
-
-        public func query_borrow_position({ account: Account; time: Nat; }) : ?QueriedBorrowPosition {
-
-            switch (Map.get(register.map, MapUtils.acchash, account)){
-                case(null) { null; };
-                case(?position) {
-                    ?{
-                        position;
-                        health = borrow_positionner.compute_health_factor({ position; time; });
-                        borrow_duration_ns = borrow_positionner.borrow_duration_ns({ position; time; });
-                        owed = borrow_positionner.compute_owed({ position; time; });
-                    };
-                };
-            };
         };
 
     };

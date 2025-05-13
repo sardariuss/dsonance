@@ -28,7 +28,7 @@ module {
 
     public class BorrowPositionner({
         get_borrow_index: ({ time: Nat; }) -> Float;
-        get_collateral_price: ({ time: Nat; }) -> Float;
+        get_collateral_spot_in_asset: ({ time: Nat; }) -> Float;
         max_borrow_duration: Duration; // the maximum duration a borrow position can last before it gets liquidated
         max_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
         liquidation_threshold: Float; // ratio, between 0 and 1, e.g. 0.85
@@ -100,9 +100,8 @@ module {
             };
             time: Nat;
         }) : Float {
-
-            (position.collateral * get_collateral_price({ time; })) /
-            (compute_owed({ position; time; }));
+            compute_owed({ position; time; }) /
+            (position.collateral * get_collateral_spot_in_asset({ time; }));
         };
 
         public func is_valid_ltv({
