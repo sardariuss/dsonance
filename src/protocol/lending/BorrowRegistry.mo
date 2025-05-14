@@ -15,9 +15,9 @@ module {
     type TxIndex = Types.TxIndex;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type Index = Index.Index;
-    type RepaymentArgs = BorrowPositionner.RepaymentArgs;
-
-    type BorrowPosition = BorrowPositionner.BorrowPosition;
+    
+    public type RepaymentArgs = BorrowPositionner.RepaymentArgs;
+    public type BorrowPosition = BorrowPositionner.BorrowPosition;
 
     type QueriedBorrowPosition = {
         position: BorrowPosition;
@@ -84,7 +84,7 @@ module {
         public func withdraw_collateral({
             account: Account;
             amount: Nat;
-            time: Nat;
+            index: Index;
         }) : async* Result<(), Text> {
 
             let position = switch(Map.get(register.map, MapUtils.acchash, account)){
@@ -93,7 +93,7 @@ module {
             };
 
             // Remove the collateral from the borrow position
-            var update = switch(borrow_positionner.withdraw_collateral({ position; amount; time; })){
+            var update = switch(borrow_positionner.withdraw_collateral({ position; amount; index; })){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
@@ -185,24 +185,24 @@ module {
             #ok;
         };
 
-        public func query_borrow_position({ account: Account; time: Nat; }) : ?QueriedBorrowPosition {
+        public func query_borrow_position({ account: Account; index: Index; }) : ?QueriedBorrowPosition {
 
             switch (Map.get(register.map, MapUtils.acchash, account)){
                 case(null) { null; };
                 case(?position) {
                     ?{
                         position;
-                        health = borrow_positionner.compute_health_factor({ position; time; });
-                        //borrow_duration_ns = borrow_positionner.borrow_duration_ns({ position; time; });
+                        health = borrow_positionner.compute_health_factor({ position; index; });
+                        //borrow_duration_ns = borrow_positionner.borrow_duration_ns({ position; index; });
                         owed = 0.0; // @todo: compute the owed amount
                     };
                 };
             };
         };
 
-        public func get_liquidable_positions({ time: Nat; }) : Map.Iter<BorrowPosition> {
+        public func get_liquidable_positions({ index: Index; }) : Map.Iter<BorrowPosition> {
             let filtered_map = Map.filter<Account, BorrowPosition>(register.map, MapUtils.acchash, func (account: Account, position: BorrowPosition) : Bool {
-                not borrow_positionner.is_healthy({ position; time; });
+                not borrow_positionner.is_healthy({ position; index; });
             });
             Map.vals(filtered_map);
         };

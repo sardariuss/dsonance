@@ -15,6 +15,7 @@ import Duration "../duration/Duration";
 import BorrowRegistry "BorrowRegistry";
 import SupplyRegistry "SupplyRegistry";
 import IterUtils "../utils/Iter";
+import Index "Index";
 
 module {
 
@@ -28,7 +29,8 @@ module {
     type SupplyPosition = SupplyRegistry.SupplyPosition;
     type SupplyInput = SupplyRegistry.SupplyInput;
     type BorrowPosition = BorrowRegistry.BorrowPosition;
-    type BorrowInput = BorrowRegistry.BorrowInput;
+    type RepaymentArgs = BorrowRegistry.RepaymentArgs;
+    type Index = Index.Index;
 
     type LendingPoolState = {
         liquidation_penalty: Float; // ratio, between 0 and 1, e.g. 0.10
@@ -36,8 +38,7 @@ module {
         protocol_fee: Float; // portion of the supply interest reserved as a fee for the protocol
         var supply_rate: Float; // supply percentage rate (ratio)
         var supply_accrued_interests: Float; // accrued supply interests
-        var borrow_index: Float; // growing value, starts at 1.0
-        var last_update_timestamp: Nat; // timestamp in nanoseconds
+        var borrow_index: Index; // growing value, starts at 1.0
     };
 
 //    type SellCollateralQuery = ({
@@ -76,7 +77,7 @@ module {
 
         public func supply({ input: SupplyInput; time: Nat; }) : async* Result<(), Text> {
 
-            accrue_interests_and_update_rates({time}); // Required to accrue interests before the supply changed (@todo: use obs instead)
+            ignore accrue_interests_and_update_rates({time}); // Required to accrue interests before the supply changed (@todo: use obs instead)
             
             await* supply_registry.add_position(input);
         };
@@ -104,25 +105,48 @@ module {
             supply_registry.remove_position({ id; due = Int.abs(Float.toInt(due)); }); // @todo: use obs to call update_index on total_supplied changed!
         };
 
-        public func borrow({ input: BorrowInput; }) : async* Result<BorrowPosition, Text> {
+        public func supply_collateral({ 
+            account: Account;
+            amount: Nat;
+        }) : async* Result<(), Text> {
+            await* borrow_registry.supply_collateral({ account; amount; });
+        };
+
+        public func withdraw_collateral({ 
+            account: Account;
+            amount: Nat;
+            time: Nat;
+        }) : async* Result<(), Text> {
+
+            let index = accrue_interests_and_update_rates({ time; }); // Required to accrue interests before the supply changed (@todo: use obs instead)
+
+            await* borrow_registry.withdraw_collateral({ account; amount; index });
+        };
+
+        public func borrow({ 
+            account: Account;
+            amount: Nat;
+            time: Nat;
+        }) : async* Result<(), Text> {
 
             // Verify the utilization does not exceed the allowed limit
-            let utilization = preview_utilization({ borrow_to_add = input.borrowed; });
+            let utilization = preview_utilization({ borrow_to_add = Float.fromInt(amount); });
             if (utilization > 1.0) {
                 return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
             };
 
-            await* borrow_registry.add_borrow({ input; });
+            let index = accrue_interests_and_update_rates({time}); // Required to accrue interests before the supply changed (@todo: use obs instead)
 
-            // @todo: add a revert borrow position if one of the condition (utilization or LTV) is not true anymore
+            await* borrow_registry.borrow({ account; amount; index; });
+
+            // @todo: should work as withdraw_supply, i.e. with a queue to make sure the utilization does not exceed the limit and there is enough liquidity
         };
 
-        public func repay_borrow({ account: Account; amount: Nat; time: Nat; }) : async* Result<(), Text> {
-            await* borrow_registry.repay({ account; amount; time; });
-        };
+        public func repay_borrow({ account: Account; args: RepaymentArgs; time: Nat; }) : async* Result<(), Text> {
 
-        public func withdraw_collateral({ account: Account; amount: Nat; time: Nat }) : async* Result<(), Text> {
-            await* borrow_registry.withdraw_collateral({ account; amount; time; });
+            let index = accrue_interests_and_update_rates({time});
+
+            await* borrow_registry.repay({ account; args; index; });
         };
 
         public func get_borrow_position({ account: Account; }) : ?BorrowPosition {
@@ -217,27 +241,30 @@ module {
         /// This model ensures consistency and avoids forward-looking rate assumptions.
         func accrue_interests_and_update_rates({ 
             time: Nat;
-        }) {
+        }) : Index.Index {
 
-            let elapsed_ns : Int = time - state.last_update_timestamp;
+            let elapsed_ns : Int = time - state.borrow_index.timestamp;
 
             // If the time is before the last update
             if (elapsed_ns < 0) {
                 Debug.trap("Cannot update rates: time is before last update");
             } else if (elapsed_ns == 0) {
                 Debug.print("Rates are already up to date");
-                return;
+                return state.borrow_index;
             };
 
             // Calculate the time period in years
-            let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.last_update_timestamp; to = time; }));
+            let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.borrow_index.timestamp; to = time; }));
 
             // Calculate utilization ratio
             let utilization = current_utilization();
 
             // Get the current borrow rate from the curve
             let borrow_rate = Math.percentage_to_ratio(interest_rate_curve.get_apr(utilization));
-            state.borrow_index *= (1.0 + borrow_rate * elapsed_annual);
+            state.borrow_index := {
+                timestamp = time;
+                value = state.borrow_index.value * (1.0 + borrow_rate * elapsed_annual);
+            };
             
             // Accrue the supply interests
             state.supply_accrued_interests += Float.fromInt(supply_registry.get_total_supplied()) * state.supply_rate * elapsed_annual;
@@ -246,11 +273,11 @@ module {
             state.supply_rate := borrow_rate * utilization * (1.0 - state.protocol_fee);
             
             // Refresh update timestamp
-            state.last_update_timestamp := time;
+            state.borrow_index;
         };
 
         func get_available_interests({ time: Nat; }) : Float {
-            accrue_interests_and_update_rates({ time; });
+            ignore accrue_interests_and_update_rates({ time; });
             state.supply_accrued_interests - Array.foldLeft<DebtEntry, Float>(asset_accounting.unsolved_debts, 0.0, func (acc: Float, debt: DebtEntry) {
                 acc + debt.amount;
             });
@@ -291,7 +318,7 @@ module {
                 return 0.0;
             };
             
-            (total_borrowed * state.borrow_index) / (Float.fromInt(total_supplied) * (1.0 - state.reserve_liquidity));
+            (total_borrowed * state.borrow_index.value) / (Float.fromInt(total_supplied) * (1.0 - state.reserve_liquidity));
         };
 
     };

@@ -84,7 +84,7 @@ module {
 
         public func withdraw_collateral({
             position: BorrowPosition;
-            time: Nat;
+            index: Index;
             amount: Nat;
         }) : Result<BorrowPosition, Text> {
 
@@ -96,7 +96,7 @@ module {
             let updated_position = { position with collateral; };
 
             // Check the withdrawal does not lower the health factor more than 1.0
-            if (not is_healthy({ position = updated_position; time; })) {
+            if (not is_healthy({ position = updated_position; index; })) {
                 return #err("BorrowPositionner: withdrawal would lower health factor below 1.0");
             };
 
@@ -124,7 +124,7 @@ module {
             let update = { position with borrow = ?borrow; };
 
             // Check the borrow does not exceed the maximum LTV
-            if (not is_inferior_max_ltv({ position = update; time = index.timestamp; })) {
+            if (not is_inferior_max_ltv({ position = update; index; })) {
                 return #err("LTV ratio is above current allowed maximum");
             };
 
@@ -168,34 +168,34 @@ module {
 
         public func compute_health_factor({
             position: BorrowPosition;
-            time: Nat;
+            index: Index;
         }) : Float {
-            liquidation_threshold / compute_ltv({ position; time; });
+            liquidation_threshold / compute_ltv({ position; index; });
         };
 
         public func is_healthy({
             position: BorrowPosition;
-            time: Nat;
+            index: Index;
         }) : Bool {
-            compute_health_factor({ position; time; }) > 1.0;
+            compute_health_factor({ position; index; }) > 1.0;
         };
 
         public func compute_ltv({
             position: BorrowPosition;
-            time: Nat;
+            index: Index;
         }) : Float {
             let accrued_amount = switch(position.borrow){
                 case(null) { 0.0; }; // @todo: check if no side effect
-                case(?b) { b.owed.accrued_amount; };
+                case(?b) { Owed.accrue_interests(b.owed, index).accrued_amount; };
             };
-            accrued_amount / (Float.fromInt(position.collateral.amount) * get_collateral_spot_in_asset({ time; }));
+            accrued_amount / (Float.fromInt(position.collateral.amount) * get_collateral_spot_in_asset({ time = index.timestamp; }));
         };
 
         public func is_inferior_max_ltv({
             position: BorrowPosition;
-            time: Nat;
+            index: Index;
         }) : Bool {
-            compute_ltv({ position; time; }) < max_ltv;
+            compute_ltv({ position; index; }) < max_ltv;
         };
 
     };
