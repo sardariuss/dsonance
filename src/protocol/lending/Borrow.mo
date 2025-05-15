@@ -15,12 +15,12 @@ module {
     public type Borrow = {
         // original borrowed, unaffected by index growth
         // used to scale linearly based on repayment proportion
-        raw_amount: Float; 
+        raw_amount: Float;
         owed: Owed;
     };
 
     public func is_valid(borrow: Borrow) : Bool {
-        borrow.raw_amount > 0.0 and borrow.owed.accrued_amount > 0.0;
+        borrow.raw_amount > 0.0 and Owed.is_valid(borrow.owed);
     };
 
     public func new(amount: Nat, index: Index) : Borrow {
@@ -69,50 +69,5 @@ module {
             owed = update_owed;
         });
     };
-
-// @todo: remove
-//    type RepaymentArgs  = {
-//        #PARTIAL: Nat;
-//        #FULL;
-//    };
-//
-//    type Repayment = {
-//        repaid_amount: Nat;
-//        borrow: ?Borrow;
-//    };
-//
-//    public func repay(borrow: Borrow, index: Index, args: RepaymentArgs) : Result<Repayment, Text> {
-//
-//        if (not is_valid(borrow)) {
-//            return #err("Borrow.repay error: Invalid borrow");
-//        };
-//
-//        let owed = Owed.accrue_interests(borrow.owed, index);
-//
-//        let repayement = switch(args){
-//            case(#PARTIAL(amount)) {
-//                let update_owed = switch(Owed.sub(borrow.owed, Owed.new(amount, index))){
-//                    case(#err(err)) { return #err(err); };
-//                    case(#ok(o)) { o; };
-//                };
-//                let ratio_subbed = update_owed.accrued_amount / owed.accrued_amount;
-//                {
-//                    repaid_amount = amount;
-//                    borrow = ?{
-//                        raw_amount = (1 - ratio_subbed) * borrow.raw_amount; // Subtract the ratio of the borrowed amount
-//                        owed = update_owed;
-//                    };
-//                };
-//            };
-//            case(#FULL) {
-//                {
-//                    repaid_amount = Int.abs(Float.toInt(Float.ceil(owed.accrued_amount)));
-//                    borrow = null;
-//                };
-//            };
-//        };
-//
-//        #ok(repayement);
-//    };
     
 };

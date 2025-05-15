@@ -29,8 +29,8 @@ module {
     // @todo: function to delete positions repaid that are too old
     // @todo: function to transfer the collateral to the user account based on the health factor
     public type BorrowRegister = {
-        var total_borrowed: Float; // @todo: why not Nat?
-        var total_collateral: Float; // @todo: why not Nat?
+        var total_collateral: Nat;
+        var total_borrowed: Float;
         map: Map.Map<Account, BorrowPosition>; 
     };
 
@@ -41,11 +41,11 @@ module {
         borrow_positionner: BorrowPositionner.BorrowPositionner;
     }){
 
-        public func get_total_borrowed(): Float{
+        public func get_total_borrowed(): Float {
             register.total_borrowed;
         };
 
-        public func get_total_collateral(): Float{
+        public func get_total_collateral(): Nat {
             register.total_collateral;
         };
 
@@ -76,7 +76,7 @@ module {
             Map.set(register.map, MapUtils.acchash, account, update);
 
             // Update the total collateral
-            register.total_collateral += Float.fromInt(amount);
+            register.total_collateral += amount;
 
             #ok;
         };
@@ -108,7 +108,7 @@ module {
             Map.set(register.map, MapUtils.acchash, account, update);
 
             // Update the total collateral
-            register.total_collateral -= Float.fromInt(amount);
+            register.total_collateral -= amount;
 
             #ok;
         };

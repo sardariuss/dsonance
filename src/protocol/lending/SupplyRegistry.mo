@@ -103,7 +103,7 @@ module {
 
             Map.set(register.withdrawals, Map.thash, id, withdrawal);
 
-            // Add to the queue only if there is an amount due, otherwise remove the position right away
+            // Add to the queue only if there is an amount due
             if (due > 0) {
                 Set.add(register.withdraw_queue, Set.thash, id);
             };

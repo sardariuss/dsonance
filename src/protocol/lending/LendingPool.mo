@@ -30,7 +30,6 @@ module {
     type SupplyInput = SupplyRegistry.SupplyInput;
     type BorrowPosition = BorrowRegistry.BorrowPosition;
     type RepaymentArgs = BorrowRegistry.RepaymentArgs;
-    type Index = Index.Index;
 
     type LendingPoolState = {
         liquidation_penalty: Float; // ratio, between 0 and 1, e.g. 0.10
@@ -38,7 +37,9 @@ module {
         protocol_fee: Float; // portion of the supply interest reserved as a fee for the protocol
         var supply_rate: Float; // supply percentage rate (ratio)
         var supply_accrued_interests: Float; // accrued supply interests
-        var borrow_index: Index; // growing value, starts at 1.0
+        var borrow_index: Float; // growing value, starts at 1.0
+        var supply_index: Float; // growing value, starts at 1.0
+        var last_update_timestamp: Nat; // last time the rates were updated
     };
 
 //    type SellCollateralQuery = ({
@@ -77,7 +78,7 @@ module {
 
         public func supply({ input: SupplyInput; time: Nat; }) : async* Result<(), Text> {
 
-            ignore accrue_interests_and_update_rates({time}); // Required to accrue interests before the supply changed (@todo: use obs instead)
+            accrue_interests_and_update_rates({time}); // Required to accrue interests before the supply changed (@todo: use obs instead)
             
             await* supply_registry.add_position(input);
         };
@@ -117,10 +118,7 @@ module {
             amount: Nat;
             time: Nat;
         }) : async* Result<(), Text> {
-
-            let index = accrue_interests_and_update_rates({ time; }); // Required to accrue interests before the supply changed (@todo: use obs instead)
-
-            await* borrow_registry.withdraw_collateral({ account; amount; index });
+            await* borrow_registry.withdraw_collateral({ account; amount; index = get_borrow_index({ time }); });
         };
 
         public func borrow({ 
@@ -129,24 +127,24 @@ module {
             time: Nat;
         }) : async* Result<(), Text> {
 
+            // @todo: should add to a map of <Account, Nat> the amount borrowed to prevent
+            // borrowing more than utilization allows (or liquidity?)
+
             // Verify the utilization does not exceed the allowed limit
             let utilization = preview_utilization({ borrow_to_add = Float.fromInt(amount); });
             if (utilization > 1.0) {
                 return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
             };
 
-            let index = accrue_interests_and_update_rates({time}); // Required to accrue interests before the supply changed (@todo: use obs instead)
-
-            await* borrow_registry.borrow({ account; amount; index; });
-
-            // @todo: should work as withdraw_supply, i.e. with a queue to make sure the utilization does not exceed the limit and there is enough liquidity
+            await* borrow_registry.borrow({ account; amount; index = get_borrow_index({ time }); });
         };
 
-        public func repay_borrow({ account: Account; args: RepaymentArgs; time: Nat; }) : async* Result<(), Text> {
-
-            let index = accrue_interests_and_update_rates({time});
-
-            await* borrow_registry.repay({ account; args; index; });
+        public func repay_borrow({
+            account: Account;
+            args: RepaymentArgs;
+            time: Nat;
+        }) : async* Result<(), Text> {
+            await* borrow_registry.repay({ account; args; index = get_borrow_index({ time }); });
         };
 
         public func get_borrow_position({ account: Account; }) : ?BorrowPosition {
@@ -162,54 +160,55 @@ module {
             collateral: Float;
         };
 
-        /// Liquidate borrow positions if their health factor is below 1.0.
-        /// @todo: this function access shall be restricted to the protocol only and called by a timer
-        public func check_all_positions_and_liquidate({ 
-            time: Nat;
-            collateral_spot_in_asset: () -> Float;
-        }) : async*() {
-
-            let liquidable_positions = borrow_registry.get_liquidable_positions({ time; });
-
-            let to_liquidate = IterUtils.fold_left(liquidable_positions, { borrowed = 0.0; collateral = 0.0; }, func (acc: TotalToLiquidate, position: BorrowPosition): TotalToLiquidate {
-                {
-                    borrowed = acc.borrowed + position.borrowed;
-                    collateral = acc.collateral + position.collateral;
-                };
-            });
-
-            // Ceil the collateral to be sure to sell enough
-            let collateral_to_sell = Int.abs(Float.toInt(Float.ceil(to_liquidate.collateral)));
-
-            await* sell_collateral({ amount = collateral_to_sell; });
-
-            // @todo: the total borrowed shall take the slippage into account because otherwise the
-            // available total liquidity computation will be wrong (i.e. not reflect the amount actually available)
-            //let ratio_sold = Float.fromInt(collateral_sold) / Float.fromInt(collateral_to_sell);
-            
-            // Update the positions
-            for (position in liquidable_positions.reset()) {
-                ignore lending_pool.slash_borrow({ 
-                    account = position.account;
-                    borrow_amount = position.borrowed * ratio_sold;
-                    collateral_amount = position.collateral * ratio_sold;
-                });
-            };
-
-            let value_sold = Float.fromInt(collateral_sold) * collateral_spot_in_asset();
-            let value_debt = to_liquidate.borrowed * ratio_sold;
-
-            let difference = value_sold - value_debt;
-
-            // @todo: need to take protocol fees
-
-            if (difference >= 0.0) {
-                asset_accounting.reserve += difference;
-            } else {
-                Debug.print("⚠️ Bad debt: liquidation proceeds are insufficient");
-                asset_accounting.unsolved_debts := Array.append(asset_accounting.unsolved_debts, [{ timestamp = time; amount = difference; }]);
-            };
-        };
+// @todo: fix partial liquidation, or use full liquidation for now
+//        /// Liquidate borrow positions if their health factor is below 1.0.
+//        /// @todo: this function access shall be restricted to the protocol only and called by a timer
+//        public func check_all_positions_and_liquidate({ 
+//            time: Nat;
+//            collateral_spot_in_asset: () -> Float;
+//        }) : async*() {
+//
+//            let liquidable_positions = borrow_registry.get_liquidable_positions({ time; });
+//
+//            let to_liquidate = IterUtils.fold_left(liquidable_positions, { borrowed = 0.0; collateral = 0.0; }, func (acc: TotalToLiquidate, position: BorrowPosition): TotalToLiquidate {
+//                {
+//                    borrowed = acc.borrowed + position.borrowed;
+//                    collateral = acc.collateral + position.collateral;
+//                };
+//            });
+//
+//            // Ceil the collateral to be sure to sell enough
+//            let collateral_to_sell = Int.abs(Float.toInt(Float.ceil(to_liquidate.collateral)));
+//
+//            await* sell_collateral({ amount = collateral_to_sell; });
+//
+//            // @todo: the total borrowed shall take the slippage into account because otherwise the
+//            // available total liquidity computation will be wrong (i.e. not reflect the amount actually available)
+//            //let ratio_sold = Float.fromInt(collateral_sold) / Float.fromInt(collateral_to_sell);
+//            
+//            // Update the positions
+//            for (position in liquidable_positions.reset()) {
+//                ignore lending_pool.slash_borrow({ 
+//                    account = position.account;
+//                    borrow_amount = position.borrowed * ratio_sold;
+//                    collateral_amount = position.collateral * ratio_sold;
+//                });
+//            };
+//
+//            let value_sold = Float.fromInt(collateral_sold) * collateral_spot_in_asset();
+//            let value_debt = to_liquidate.borrowed * ratio_sold;
+//
+//            let difference = value_sold - value_debt;
+//
+//            // @todo: need to take protocol fees
+//
+//            if (difference >= 0.0) {
+//                asset_accounting.reserve += difference;
+//            } else {
+//                Debug.print("⚠️ Bad debt: liquidation proceeds are insufficient");
+//                asset_accounting.unsolved_debts := Array.append(asset_accounting.unsolved_debts, [{ timestamp = time; amount = difference; }]);
+//            };
+//        };
 
         // @todo: should be available to the protocol only
         public func solve_debts_with_reserve() {
@@ -241,54 +240,64 @@ module {
         /// This model ensures consistency and avoids forward-looking rate assumptions.
         func accrue_interests_and_update_rates({ 
             time: Nat;
-        }) : Index.Index {
+        }) {
 
-            let elapsed_ns : Int = time - state.borrow_index.timestamp;
+            let elapsed_ns : Int = time - state.last_update_timestamp;
 
             // If the time is before the last update
             if (elapsed_ns < 0) {
                 Debug.trap("Cannot update rates: time is before last update");
             } else if (elapsed_ns == 0) {
                 Debug.print("Rates are already up to date");
-                return state.borrow_index;
+                return;
             };
 
             // Calculate the time period in years
-            let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.borrow_index.timestamp; to = time; }));
+            let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.last_update_timestamp; to = time; }));
 
             // Calculate utilization ratio
             let utilization = current_utilization();
 
-            // Get the current borrow rate from the curve
+            // Get the current rates from the curve
             let borrow_rate = Math.percentage_to_ratio(interest_rate_curve.get_apr(utilization));
-            state.borrow_index := {
-                timestamp = time;
-                value = state.borrow_index.value * (1.0 + borrow_rate * elapsed_annual);
-            };
+            state.supply_rate := borrow_rate * utilization * (1.0 - state.protocol_fee);
+
+            // Update the indexes
+            state.borrow_index := state.borrow_index * (1.0 + borrow_rate * elapsed_annual);
+            state.supply_index := state.supply_index * (1.0 + state.supply_rate * elapsed_annual);
             
             // Accrue the supply interests
             state.supply_accrued_interests += Float.fromInt(supply_registry.get_total_supplied()) * state.supply_rate * elapsed_annual;
-
-            // Update the supply rate
-            state.supply_rate := borrow_rate * utilization * (1.0 - state.protocol_fee);
             
             // Refresh update timestamp
-            state.borrow_index;
+            state.last_update_timestamp := time;
+        };
+
+        func get_borrow_index({ time: Nat; }) : Index.Index {
+            accrue_interests_and_update_rates({ time });
+            {
+                value = state.borrow_index;
+                timestamp = time;
+            };
         };
 
         func get_available_interests({ time: Nat; }) : Float {
-            ignore accrue_interests_and_update_rates({ time; });
+            accrue_interests_and_update_rates({ time; });
             state.supply_accrued_interests - Array.foldLeft<DebtEntry, Float>(asset_accounting.unsolved_debts, 0.0, func (acc: Float, debt: DebtEntry) {
                 acc + debt.amount;
             });
         };
 
+        // @todo: should use the total with accrued interests!
         func get_available_liquidity() : Float {
             Float.fromInt(supply_registry.get_total_supplied()) - borrow_registry.get_total_borrowed();
         };
 
+        func get_virtual_available(): Float {
+            Float.fromInt(supply_registry.get_total_supplied()) * state.supply_index - borrow_registry.get_total_borrowed() * state.borrow_index;
+        };
+
         func current_utilization() : Float {
-            
             compute_utilization({ 
                 total_supplied = supply_registry.get_total_supplied();
                 total_borrowed = borrow_registry.get_total_borrowed();
@@ -318,7 +327,7 @@ module {
                 return 0.0;
             };
             
-            (total_borrowed * state.borrow_index.value) / (Float.fromInt(total_supplied) * (1.0 - state.reserve_liquidity));
+            (total_borrowed * state.borrow_index) / (Float.fromInt(total_supplied) * (1.0 - state.reserve_liquidity));
         };
 
     };

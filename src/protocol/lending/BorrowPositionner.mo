@@ -109,19 +109,20 @@ module {
             amount: Nat;
         }) : Result<BorrowPosition, Text> {
 
-            var borrow = Borrow.new(amount, index);
+            // Create a new borrow object
+            let borrow = Borrow.new(amount, index);
 
+            // Add to the previous borrowed amount if any
             let sum_result = switch(position.borrow){
                 case(null) { #ok(borrow); };
                 case(?b) { Borrow.sum(b, borrow); };
             };
-
-            borrow := switch(sum_result){
+            
+            // Update the borrow position
+            let update = switch(sum_result){
                 case(#err(err)) { return #err(err); };
-                case(#ok(b)) { b; };
+                case(#ok(b)) { { position with borrow = ?b; }; };
             };
-
-            let update = { position with borrow = ?borrow; };
 
             // Check the borrow does not exceed the maximum LTV
             if (not is_inferior_max_ltv({ position = update; index; })) {

@@ -14,6 +14,10 @@ module {
         accrued_amount: Float;
     };
 
+    public func is_valid(owed: Owed) : Bool {
+        owed.accrued_amount > 0.0 and Index.is_valid(owed.index);
+    };
+
     public func new(amount: Nat, index: Index) : Owed {
         {
             index;
@@ -34,6 +38,14 @@ module {
 
     public func sum(augend: Owed, addend: Owed) : Result<Owed, Text> {
 
+        if (not is_valid(augend)) {
+            return #err("Owed sum error: Invalid augend");
+        };
+
+        if (not is_valid(addend)) {
+            return #err("Owed sum error: Invalid addend");
+        };
+
         if(not Index.less_or_equal(augend.index, addend.index)) {
             return #err("Owed sum error: Index of augend is greater than index of addend");
         };
@@ -47,6 +59,14 @@ module {
     };
 
     public func sub(minuend: Owed, subtrahend: Owed) : Result<Owed, Text> {
+
+        if (not is_valid(minuend)) {
+            return #err("Owed sub error: Invalid minuend");
+        };
+
+        if (not is_valid(subtrahend)) {
+            return #err("Owed sub error: Invalid subtrahend");
+        };
 
         if (not Index.less_or_equal(minuend.index, subtrahend.index)) {
             return #err("Owed sub error: index of minuend is greater than index of subtrahend");
