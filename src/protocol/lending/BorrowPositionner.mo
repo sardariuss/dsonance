@@ -3,6 +3,7 @@ import Nat "mo:base/Nat";
 import Float "mo:base/Float";
 import Array "mo:base/Array";
 import Result "mo:base/Result";
+import Option "mo:base/Option";
 
 import Types "../Types";
 import Borrow "Borrow";
@@ -29,7 +30,7 @@ module {
     public type RepaymentInfo = {
         amount: Nat;
         raw_difference: Float;
-        borrow: ?Borrow;
+        remaining: ?Borrow;
     };
 
     type Tx = {
@@ -143,28 +144,26 @@ module {
                 case(?b) { b; };
             };
 
-            let repayment = switch(args){
-                case(#PARTIAL(amount)) { 
-                    let remaining = switch(Borrow.slash(borrow, Owed.new(amount, index))){
-                        case(#err(err)) { return #err(err); };
-                        case(#ok(b)) { b; };
-                    };
-                    {
-                        amount;
-                        raw_difference = borrow.raw_amount - remaining.raw_amount;
-                        borrow = ?remaining; 
-                    };
-                };
-                case(#FULL) {
-                    {   
-                        amount = Owed.owed_amount(borrow.owed, index);
-                        raw_difference = borrow.raw_amount;
-                        borrow = null; 
-                    };
-                };
+            let amount = switch(args){
+                case(#PARTIAL(amount)) { amount; };
+                case(#FULL) { Owed.owed_amount(borrow.owed, index); };
             };
 
-            #ok(repayment);
+            let remaining = switch(Borrow.slash(borrow, Owed.new(amount, index))){
+                case(#err(err)) { return #err(err); };
+                case(#ok(b)) { b; };
+            };
+
+            let raw_difference = switch(remaining){
+                case(null) { borrow.raw_amount; };
+                case(?remain) { borrow.raw_amount - remain.raw_amount; };
+            };
+
+            #ok({
+                amount;
+                raw_difference;
+                remaining;
+            });
         };
 
         public func compute_health_factor({

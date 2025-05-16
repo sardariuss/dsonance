@@ -7,6 +7,8 @@ import Bool "mo:base/Bool";
 
 module {
 
+    let EPSILON = 0.00001; // @todo: why not 1.0 ?
+
     type Index = Index.Index;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
@@ -15,7 +17,7 @@ module {
     public type Borrow = {
         // original borrowed, unaffected by index growth
         // used to scale linearly based on repayment proportion
-        raw_amount: Float;
+        raw_amount: Float; 
         owed: Owed;
     };
 
@@ -51,7 +53,7 @@ module {
         });
     };
 
-    public func slash(borrow: Borrow, owed: Owed) : Result<Borrow, Text> {
+    public func slash(borrow: Borrow, owed: Owed) : Result<?Borrow, Text> {
 
         if (not is_valid(borrow)) {
             return #err("Borrow.repay error: Invalid borrow");
@@ -61,11 +63,21 @@ module {
             case(#err(err)) { return #err(err); };
             case(#ok(o)) { o; };
         };
+
+        if (owed.accrued_amount <= EPSILON) {
+            return #err("Borrow.repay error: Repayment owed.accrued_amount too small");
+        };
+
+        // Compute the raw amount left after slashing
+        let remaining_ratio = update_owed.accrued_amount / owed.accrued_amount;
+        let raw_amount = (1 - remaining_ratio) * borrow.raw_amount;
+
+        if (raw_amount < EPSILON) {
+            return #ok(null); // Borrow is fully repaid
+        };
         
-        let ratio_subbed = update_owed.accrued_amount / owed.accrued_amount;
-        
-        #ok({
-            raw_amount = (1 - ratio_subbed) * borrow.raw_amount; // Subtract the ratio of the borrowed amount
+        #ok(?{
+            raw_amount;
             owed = update_owed;
         });
     };

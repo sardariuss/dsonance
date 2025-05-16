@@ -156,7 +156,7 @@ module {
                 case(?p) { p; };
             };
 
-            let { amount; borrow; raw_difference; } = switch(borrow_positionner.repay_supply({ position; index; args; })){
+            let { amount; remaining; raw_difference; } = switch(borrow_positionner.repay_supply({ position; index; args; })){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
@@ -167,18 +167,10 @@ module {
                 case(#ok(tx)) { tx; };
             };
 
-            switch(borrow){
-                case(null) {
-                    // Remove the borrow position
-                    Map.delete(register.map, MapUtils.acchash, account);
-                };
-                case(?b) {
-                    // Update the borrow position
-                    var update = { position with borrow = ?b; };
-                    update := BorrowPositionner.add_tx({ position = update; tx = #SUPPLY_REPAID(tx); });
-                    Map.set(register.map, MapUtils.acchash, account, update);
-                };
-            };
+            // Update the borrow position
+            var update = { position with borrow = remaining; };
+            update := BorrowPositionner.add_tx({ position = update; tx = #SUPPLY_REPAID(tx); });
+            Map.set(register.map, MapUtils.acchash, account, update);
 
             register.total_borrowed -= raw_difference;
 
