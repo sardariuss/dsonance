@@ -1,13 +1,11 @@
 import Float "mo:base/Float";
 import Debug "mo:base/Debug";
 
+import LendingTypes "Types";
+
 module {
 
-    // A point on the interest rate curve
-    public type CurvePoint = {
-        utilization: Float; // Utilization ratio (0.0 to 1.0)
-        percentage_rate: Float; // Annual Percentage Rate (APR) at this utilization (e.g., 5.0 for 5%)
-    };
+    type CurvePoint = LendingTypes.CurvePoint;
 
     public class InterestRateCurve(curve: [CurvePoint]) {
 

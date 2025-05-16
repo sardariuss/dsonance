@@ -1,4 +1,5 @@
 import Index "Index";
+import LendingTypes "Types";
 
 import Result "mo:base/Result";
 import Float "mo:base/Float";
@@ -6,13 +7,10 @@ import Int "mo:base/Int";
 
 module {
 
-    type Index = Index.Index;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    public type Owed = {
-        index: Index;
-        accrued_amount: Float;
-    };
+    type Index = LendingTypes.Index;
+    type Owed = LendingTypes.Owed;
 
     public func is_valid(owed: Owed) : Bool {
         owed.accrued_amount > 0.0 and Index.is_valid(owed.index);

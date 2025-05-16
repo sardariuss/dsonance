@@ -11,6 +11,7 @@ import Set "mo:map/Set";
 
 import Types "../Types";
 import LedgerFacade "../payement/LedgerFacade";
+import LendingTypes "Types";
 
 module {
 
@@ -20,38 +21,19 @@ module {
     type TransferError = Types.TransferError;
     type TxIndex = Types.TxIndex;
 
-    public type SupplyInput = {
-        id: Text;
-        timestamp: Nat;
-        account: Account;
-        supplied: Nat;
-    };
-
-    public type SupplyPosition = SupplyInput and {
-        tx: TxIndex;
-    };
-
-    public type Withdrawal = {
-        id: Text;
-        account: Account;
-        supplied: Nat;
-        due: Nat;
-        var transferred: Nat;
-        var transfers: [Transfer]; // @todo: need to limit the number of transfers
-    };
-
-    public type SupplyRegister = {
-        var total_supplied: Nat;
-        ledger: LedgerFacade.LedgerFacade;
-        positions: Map.Map<Text, SupplyPosition>;
-        withdrawals: Map.Map<Text, Withdrawal>;
-        withdraw_queue: Set.Set<Text>;
-    };
+    type SupplyInput    = LendingTypes.SupplyInput;
+    type SupplyPosition = LendingTypes.SupplyPosition;
+    type Withdrawal     = LendingTypes.Withdrawal;
+    type SupplyRegister = LendingTypes.SupplyRegister;
 
     // @todo: need functions to retry if transfer failed.
     // @todo: need queries to retrieve the transfers and withdrawals (union of the two maps)
     // @todo: function to delete withdrawals that are too old
-    public class SupplyRegistry(register: SupplyRegister){
+    public class SupplyRegistry({
+        register: SupplyRegister;
+        ledger: LedgerFacade.LedgerFacade;
+        add_to_supply_balance: Int -> ();
+    }){
 
         var awaiting_transfer = false;
 
@@ -71,7 +53,7 @@ module {
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
-            let tx = switch(await* register.ledger.transfer_from({ from = account; amount = supplied; })) {
+            let tx = switch(await* ledger.transfer_from({ from = account; amount = supplied; })) {
                 case(#err(_)) { return #err("Transfer failed"); };
                 case(#ok(tx_index)) { tx_index; };
             };
@@ -81,6 +63,7 @@ module {
 
             Map.set(register.positions, Map.thash, id, { input with tx; });
             register.total_supplied += supplied;
+            add_to_supply_balance(supplied);
 
             #ok;
         };
@@ -162,7 +145,7 @@ module {
 
         func transfer({ withdrawal: Withdrawal; amount: Nat; }) : async* Transfer {
 
-            let transfer = await* register.ledger.transfer({ to = withdrawal.account; amount; });
+            let transfer = await* ledger.transfer({ to = withdrawal.account; amount; });
 
             // Add the transfer
             withdrawal.transfers := Array.append(withdrawal.transfers, [transfer]);
@@ -174,7 +157,14 @@ module {
                     withdrawal.transferred += amount;
                     let after_removed = compute_supplied_removed(withdrawal);
                     
+                    // Careful here, the amount to be removed from the total supplied
+                    // shall not be the amount transferred, but deduce from
+                    // the ratio of the amount transferred over the amount due
+                    // (see function compute_supplied_removed)
                     register.total_supplied -= (after_removed - before_removed); // To avoid cumulative drift
+
+                    // The actual transferred amount shall be removed from the balance
+                    add_to_supply_balance(-amount);
 
                     // Delete from the queue if all due has been transferred
                     if (withdrawal.transferred >= withdrawal.due) {

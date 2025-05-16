@@ -8,37 +8,28 @@ import MapUtils "../utils/Map";
 import LedgerFacade "../payement/LedgerFacade";
 import BorrowPositionner "BorrowPositionner";
 import Index "Index";
+import LendingTypes "Types";
 
 module {
 
     type Account = Types.Account;
     type TxIndex = Types.TxIndex;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type Index = Index.Index;
     
-    public type RepaymentArgs = BorrowPositionner.RepaymentArgs;
-    public type BorrowPosition = BorrowPositionner.BorrowPosition;
-
-    type QueriedBorrowPosition = {
-        position: BorrowPosition;
-        owed: Float;
-        health: Float;
-        //borrow_duration_ns: Nat;
-    };
+    type RepaymentArgs         = LendingTypes.RepaymentArgs;
+    type BorrowPosition        = LendingTypes.BorrowPosition;
+    type QueriedBorrowPosition = LendingTypes.QueriedBorrowPosition;
+    type Index                 = LendingTypes.Index;
+    type BorrowRegister        = LendingTypes.BorrowRegister;
 
     // @todo: function to delete positions repaid that are too old
     // @todo: function to transfer the collateral to the user account based on the health factor
-    public type BorrowRegister = {
-        var total_collateral: Nat;
-        var total_borrowed: Float;
-        map: Map.Map<Account, BorrowPosition>; 
-    };
-
     public class BorrowRegistry({
         register: BorrowRegister;
         supply_ledger: LedgerFacade.LedgerFacade;
         collateral_ledger: LedgerFacade.LedgerFacade;
         borrow_positionner: BorrowPositionner.BorrowPositionner;
+        add_to_supply_balance: Int -> ();
     }){
 
         public func get_total_borrowed(): Float {
@@ -141,6 +132,7 @@ module {
 
             // Update the total borrowed amount
             register.total_borrowed += Float.fromInt(amount);
+            add_to_supply_balance(-amount);
 
             #ok;
         };
@@ -173,6 +165,8 @@ module {
             Map.set(register.map, MapUtils.acchash, account, update);
 
             register.total_borrowed -= raw_difference;
+            
+            add_to_supply_balance(amount);
 
             #ok;
         };

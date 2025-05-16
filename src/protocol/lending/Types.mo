@@ -1,0 +1,212 @@
+import Error "mo:base/Error";
+import Map "mo:map/Map";
+import Set "mo:map/Set";
+
+// @todo: Find a way to import the types from the protocol to avoid copy pasting
+module {
+
+   // ------------------------------ From ICRC1 ------------------------------
+
+    public type Account = {
+        owner : Principal;
+        subaccount : ?Subaccount;
+    };
+
+    public type Subaccount = Blob;
+
+    public type SupportedStandard = {
+        name : Text;
+        url : Text;
+    };
+
+    public type Value = { #Nat : Nat; #Int : Int; #Blob : Blob; #Text : Text; #Array : [Value]; #Map: [(Text, Value)] };
+
+    public type Balance = Nat;
+
+    public type Timestamp = Nat64;
+
+    public type TimeError = {
+        #TooOld;
+        #CreatedInFuture : { ledger_time : Timestamp };
+    };
+
+    public type TxIndex = Nat;
+
+    public type Icrc1TransferError = TimeError or {
+        #BadFee : { expected_fee : Balance };
+        #BadBurn : { min_burn_amount : Balance };
+        #InsufficientFunds : { balance : Balance };
+        #Duplicate : { duplicate_of : TxIndex };
+        #TemporarilyUnavailable;
+        #GenericError : { error_code : Nat; message : Text };
+    };
+    
+    public type Icrc1TransferResult = {
+        #Ok : TxIndex;
+        #Err : Icrc1TransferError;
+    };
+
+    public type Icrc1TransferArgs = {
+        from_subaccount : ?Subaccount;
+        to : Account;
+        amount : Balance;
+        fee : ?Balance;
+        memo : ?Blob;
+
+        /// The time at which the transaction was created.
+        /// If this is set, the canister will check for duplicate transactions and reject them.
+        created_at_time : ?Nat64;
+    };
+
+    // ------------------------------ FROM PROTOCOL ------------------------------
+
+    public type Transfer = {
+        args: Icrc1TransferArgs;
+        result: TransferResult;
+    };
+
+    public type TransferResult = {
+        #ok: TxIndex;
+        #err: TransferError;
+    };
+
+    public type TransferError = Icrc1TransferError or { 
+        #Trapped : { error_code: Error.ErrorCode; }
+    };
+
+    // ------------------------------ ACTUAL MODULE TYPES ------------------------------
+
+    public type LendingPoolState = {
+        var parameters: LendingPoolParameters;
+        var supply_rate: Float; // supply percentage rate (ratio)
+        var supply_accrued_interests: Float; // accrued supply interests
+        var borrow_index: Float; // growing value, starts at 1.0
+        var supply_index: Float; // growing value, starts at 1.0
+        var last_update_timestamp: Nat; // last time the rates were updated
+    };
+
+    public type LendingPoolParameters = {
+        liquidation_penalty: Float; // ratio, between 0 and 1, e.g. 0.10
+        reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
+        protocol_fee: Float; // portion of the supply interest reserved as a fee for the protocol
+        max_slippage: Float;
+    };
+
+    public type BorrowParameters = {
+        max_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
+        liquidation_threshold: Float; // ratio, between 0 and 1, e.g. 0.85
+        //max_borrow_duration: Duration; // the maximum duration a borrow position can last before it gets liquidated
+    };
+
+    public type Parameters = LendingPoolParameters and BorrowParameters and {
+        interest_rate_curve: [CurvePoint];
+    };
+
+    // @todo: Take care of the slippage
+    public type SellCollateralQuery = ({
+        amount: Nat;
+    }) -> async* ();
+
+    public type DebtEntry = { 
+        timestamp: Nat;
+        amount: Float;
+    };
+
+    public type AssetAccounting = {
+        var reserve: Float; // amount of asset reserved for unsolved debts
+        var unsolved_debts: [DebtEntry]; // debts that are not solved yet
+    };
+
+    public type Collateral = {
+        amount: Nat;
+    };
+
+    public type Owed = {
+        index: Index;
+        accrued_amount: Float;
+    };
+
+    public type Borrow = {
+        // original borrowed, unaffected by index growth
+        // used to scale linearly based on repayment proportion
+        raw_amount: Float; 
+        owed: Owed;
+    };
+
+    public type RepaymentArgs  = {
+        #PARTIAL: Nat;
+        #FULL;
+    };
+
+    public type RepaymentInfo = {
+        amount: Nat;
+        raw_difference: Float;
+        remaining: ?Borrow;
+    };
+
+    public type BorrowPositionTx = {
+        #COLLATERAL_PROVIDED: TxIndex;
+        #COLLATERAL_WITHDRAWNED: TxIndex;
+        #SUPPLY_BORROWED: TxIndex;
+        #SUPPLY_REPAID: TxIndex;
+    };
+
+    public type BorrowPosition = {
+        account: Account;
+        collateral: Collateral;
+        borrow: ?Borrow;
+        tx: [BorrowPositionTx];
+    };
+
+    public type QueriedBorrowPosition = {
+        position: BorrowPosition;
+        owed: Float;
+        health: Float;
+        //borrow_duration_ns: Nat;
+    };
+
+    public type Index = {
+        timestamp: Nat;
+        value: Float;
+    };
+
+    public type SupplyInput = {
+        id: Text;
+        timestamp: Nat;
+        account: Account;
+        supplied: Nat;
+    };
+
+    public type SupplyPosition = SupplyInput and {
+        tx: TxIndex;
+    };
+
+    public type Withdrawal = {
+        id: Text;
+        account: Account;
+        supplied: Nat;
+        due: Nat;
+        var transferred: Nat;
+        var transfers: [Transfer]; // @todo: need to limit the number of transfers
+    };
+
+    public type BorrowRegister = {
+        var total_collateral: Nat;
+        var total_borrowed: Float;
+        map: Map.Map<Account, BorrowPosition>; 
+    };
+
+    public type SupplyRegister = {
+        var total_supplied: Nat;
+        positions: Map.Map<Text, SupplyPosition>;
+        withdrawals: Map.Map<Text, Withdrawal>;
+        withdraw_queue: Set.Set<Text>;
+    };
+
+    // A point on the interest rate curve
+    public type CurvePoint = {
+        utilization: Float; // Utilization ratio (0.0 to 1.0)
+        percentage_rate: Float; // Annual Percentage Rate (APR) at this utilization (e.g., 5.0 for 5%)
+    };
+
+};

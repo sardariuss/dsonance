@@ -8,13 +8,14 @@ import Array "mo:base/Array";
 
 import Map "mo:map/Map";
 
-import InterestRateCurve "../InterestRateCurve";
+import InterestRateCurve "InterestRateCurve";
 import Math "../utils/Math";
 import Types "../Types";
 import Duration "../duration/Duration";
 import BorrowRegistry "BorrowRegistry";
 import SupplyRegistry "SupplyRegistry";
 import IterUtils "../utils/Iter";
+import LendingTypes "Types";
 import Index "Index";
 
 module {
@@ -26,50 +27,25 @@ module {
     type Transfer = Types.Transfer;
     type Duration = Types.Duration;
 
-    type SupplyPosition = SupplyRegistry.SupplyPosition;
-    type SupplyInput = SupplyRegistry.SupplyInput;
-    type BorrowPosition = BorrowRegistry.BorrowPosition;
-    type RepaymentArgs = BorrowRegistry.RepaymentArgs;
-
-    type LendingPoolState = {
-        liquidation_penalty: Float; // ratio, between 0 and 1, e.g. 0.10
-        reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
-        protocol_fee: Float; // portion of the supply interest reserved as a fee for the protocol
-        var supply_rate: Float; // supply percentage rate (ratio)
-        var supply_accrued_interests: Float; // accrued supply interests
-        var borrow_index: Float; // growing value, starts at 1.0
-        var supply_index: Float; // growing value, starts at 1.0
-        var last_update_timestamp: Nat; // last time the rates were updated
-    };
-
-//    type SellCollateralQuery = ({
-//        amount: Nat;
-//        max_slippage: Float;
-//    }) -> async* Result<{ sold_amount: Nat }, Text>;
-
-    // @todo: Take care of the slippage
-    type SellCollateralQuery = ({
-        amount: Nat;
-    }) -> async* ();
-
-    type DebtEntry = { 
-        timestamp: Nat;
-        amount: Float;
-    };
-
-    type AssetAccounting = {
-        var reserve: Float; // amount of asset reserved for unsolved debts
-        var unsolved_debts: [DebtEntry]; // debts that are not solved yet
-    };
+    type SupplyPosition      = LendingTypes.SupplyPosition;
+    type SupplyInput         = LendingTypes.SupplyInput;
+    type BorrowPosition      = LendingTypes.BorrowPosition;
+    type RepaymentArgs       = LendingTypes.RepaymentArgs;
+    type LendingPoolState    = LendingTypes.LendingPoolState;
+    type SellCollateralQuery = LendingTypes.SellCollateralQuery;
+    type DebtEntry           = LendingTypes.DebtEntry;
+    type AssetAccounting     = LendingTypes.AssetAccounting;
+    type Index               = LendingTypes.Index;
+    type LendingPoolParameters = LendingTypes.LendingPoolParameters;
 
     public class LendingPool({
+        parameters: LendingPoolParameters;
         state: LendingPoolState;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         supply_registry: SupplyRegistry.SupplyRegistry;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
-        sell_collateral: SellCollateralQuery;
-        asset_accounting: AssetAccounting;
-        max_slippage: Float;
+        //sell_collateral: SellCollateralQuery;
+        //asset_accounting: AssetAccounting;
     }){
 
         public func get_supplied({ id: Text; }) : ?SupplyPosition {
@@ -211,20 +187,20 @@ module {
 //        };
 
         // @todo: should be available to the protocol only
-        public func solve_debts_with_reserve() {
-
-            let debts_left = Buffer.Buffer<DebtEntry>(0);
-
-            for(debt in Array.vals(asset_accounting.unsolved_debts)){
-                if (debt.amount < asset_accounting.reserve) {
-                    asset_accounting.reserve -= debt.amount;
-                } else {
-                    debts_left.add(debt);
-                };
-            };
-
-            asset_accounting.unsolved_debts := Buffer.toArray(debts_left);
-        };
+//        public func solve_debts_with_reserve() {
+//
+//            let debts_left = Buffer.Buffer<DebtEntry>(0);
+//
+//            for(debt in Array.vals(asset_accounting.unsolved_debts)){
+//                if (debt.amount < asset_accounting.reserve) {
+//                    asset_accounting.reserve -= debt.amount;
+//                } else {
+//                    debts_left.add(debt);
+//                };
+//            };
+//
+//            asset_accounting.unsolved_debts := Buffer.toArray(debts_left);
+//        };
 
         /// Accrues interest for the past period and updates supply/borrow rates.
         ///
@@ -260,7 +236,7 @@ module {
 
             // Get the current rates from the curve
             let borrow_rate = Math.percentage_to_ratio(interest_rate_curve.get_apr(utilization));
-            state.supply_rate := borrow_rate * utilization * (1.0 - state.protocol_fee);
+            state.supply_rate := borrow_rate * utilization * (1.0 - parameters.protocol_fee);
 
             // Update the indexes
             state.borrow_index := state.borrow_index * (1.0 + borrow_rate * elapsed_annual);
@@ -273,7 +249,7 @@ module {
             state.last_update_timestamp := time;
         };
 
-        func get_borrow_index({ time: Nat; }) : Index.Index {
+        func get_borrow_index({ time: Nat; }) : Index {
             accrue_interests_and_update_rates({ time });
             {
                 value = state.borrow_index;
@@ -283,9 +259,11 @@ module {
 
         func get_available_interests({ time: Nat; }) : Float {
             accrue_interests_and_update_rates({ time; });
-            state.supply_accrued_interests - Array.foldLeft<DebtEntry, Float>(asset_accounting.unsolved_debts, 0.0, func (acc: Float, debt: DebtEntry) {
-                acc + debt.amount;
-            });
+            state.supply_accrued_interests;
+            // @todo: uncomment when using unsolved debts
+            //state.supply_accrued_interests - Array.foldLeft<DebtEntry, Float>(asset_accounting.unsolved_debts, 0.0, func (acc: Float, debt: DebtEntry) {
+                //acc + debt.amount;
+            //});
         };
 
         // @todo: should use the total with accrued interests!
@@ -327,7 +305,7 @@ module {
                 return 0.0;
             };
             
-            (total_borrowed * state.borrow_index) / (Float.fromInt(total_supplied) * (1.0 - state.reserve_liquidity));
+            (total_borrowed * state.borrow_index) / (Float.fromInt(total_supplied) * (1.0 - parameters.reserve_liquidity));
         };
 
     };

@@ -1,5 +1,6 @@
 import Index "Index";
 import Owed "Owed";
+import LendingTypes "Types";
 
 import Result "mo:base/Result";
 import Float "mo:base/Float";
@@ -9,17 +10,11 @@ module {
 
     let EPSILON = 0.00001; // @todo: why not 1.0 ?
 
-    type Index = Index.Index;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    type Owed = Owed.Owed;
-
-    public type Borrow = {
-        // original borrowed, unaffected by index growth
-        // used to scale linearly based on repayment proportion
-        raw_amount: Float; 
-        owed: Owed;
-    };
+    type Index = LendingTypes.Index;
+    type Owed = LendingTypes.Owed;
+    type Borrow = LendingTypes.Borrow;
 
     public func is_valid(borrow: Borrow) : Bool {
         borrow.raw_amount > 0.0 and Owed.is_valid(borrow.owed);

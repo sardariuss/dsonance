@@ -1,13 +1,13 @@
 import Result "mo:base/Result";
 import Int "mo:base/Int";
 
+import LendingTypes "Types";
+
 module {
 
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    public type Collateral = {
-        amount: Nat;
-    };
+    type Collateral = LendingTypes.Collateral;
 
     public func is_valid(collateral: Collateral) : Bool {
         collateral.amount > 0;

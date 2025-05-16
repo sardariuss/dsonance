@@ -1,10 +1,8 @@
+import LendingTypes "Types";
 
 module {
 
-    public type Index = {
-        timestamp: Nat;
-        value: Float;
-    };
+    type Index = LendingTypes.Index;
 
     public func less_or_equal(a: Index, b: Index) : Bool {
         a.timestamp <= b.timestamp and a.value <= b.value;

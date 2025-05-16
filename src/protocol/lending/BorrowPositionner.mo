@@ -1,61 +1,39 @@
-import Debug "mo:base/Debug";
-import Nat "mo:base/Nat";
-import Float "mo:base/Float";
 import Array "mo:base/Array";
+import Debug "mo:base/Debug";
+import Float "mo:base/Float";
+import Nat "mo:base/Nat";
 import Result "mo:base/Result";
-import Option "mo:base/Option";
 
 import Types "../Types";
 import Borrow "Borrow";
 import Collateral "Collateral";
 import Index "Index";
 import Owed "Owed";
+import LendingTypes "Types";
 
 module {
 
     type Duration = Types.Duration;
     type Account = Types.Account;
     type TxIndex = Types.TxIndex;
-    type Index = Index.Index;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    type Collateral = Collateral.Collateral;
-    type Borrow = Borrow.Borrow;
-
-    public type RepaymentArgs  = {
-        #PARTIAL: Nat;
-        #FULL;
-    };
-
-    public type RepaymentInfo = {
-        amount: Nat;
-        raw_difference: Float;
-        remaining: ?Borrow;
-    };
-
-    type Tx = {
-        #COLLATERAL_PROVIDED: TxIndex;
-        #COLLATERAL_WITHDRAWNED: TxIndex;
-        #SUPPLY_BORROWED: TxIndex;
-        #SUPPLY_REPAID: TxIndex;
-    };
-
-    public type BorrowPosition = {
-        account: Account;
-        collateral: Collateral;
-        borrow: ?Borrow;
-        tx: [Tx];
-    };
+    type Index            = LendingTypes.Index;
+    type Collateral       = LendingTypes.Collateral;
+    type Borrow           = LendingTypes.Borrow;
+    type RepaymentArgs    = LendingTypes.RepaymentArgs;
+    type RepaymentInfo    = LendingTypes.RepaymentInfo;
+    type BorrowPositionTx = LendingTypes.BorrowPositionTx;
+    type BorrowPosition   = LendingTypes.BorrowPosition;
+    type BorrowParameters = LendingTypes.BorrowParameters;
 
     // @todo: check how to handle position duration when collateral is added
     public class BorrowPositionner({
         get_collateral_spot_in_asset: ({ time: Nat; }) -> Float;
-        //max_borrow_duration: Duration; // the maximum duration a borrow position can last before it gets liquidated
-        max_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
-        liquidation_threshold: Float; // ratio, between 0 and 1, e.g. 0.85
+        parameters: BorrowParameters;
     }){
 
-        if (max_ltv > liquidation_threshold){
+        if (parameters.max_ltv > parameters.liquidation_threshold){
             Debug.trap("Max LTV exceeds liquidation threshold");
         };
 
@@ -170,7 +148,7 @@ module {
             position: BorrowPosition;
             index: Index;
         }) : Float {
-            liquidation_threshold / compute_ltv({ position; index; });
+            parameters.liquidation_threshold / compute_ltv({ position; index; });
         };
 
         public func is_healthy({
@@ -195,14 +173,14 @@ module {
             position: BorrowPosition;
             index: Index;
         }) : Bool {
-            compute_ltv({ position; index; }) < max_ltv;
+            compute_ltv({ position; index; }) < parameters.max_ltv;
         };
 
     };
 
     public func add_tx({
         position: BorrowPosition;
-        tx: Tx;
+        tx: BorrowPositionTx;
     }) : BorrowPosition {
         { position with tx = Array.append(position.tx, [tx]); };
     };
