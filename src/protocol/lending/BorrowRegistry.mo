@@ -9,6 +9,7 @@ import LedgerFacade "../payement/LedgerFacade";
 import BorrowPositionner "BorrowPositionner";
 import Index "Index";
 import LendingTypes "Types";
+import Indexer "Indexer";
 
 module {
 
@@ -29,23 +30,19 @@ module {
         supply_ledger: LedgerFacade.LedgerFacade;
         collateral_ledger: LedgerFacade.LedgerFacade;
         borrow_positionner: BorrowPositionner.BorrowPositionner;
-        add_to_supply_balance: Int -> ();
+        indexer: Indexer.Indexer;
     }){
 
-        public func get_total_borrowed(): Float {
-            register.total_borrowed;
-        };
-
-        public func get_total_collateral(): Nat {
-            register.total_collateral;
+        public func get_collateral_balance(): Nat {
+            register.collateral_balance;
         };
 
         public func get_position({ account: Account; }) : ?BorrowPosition {
-            Map.get(register.map, MapUtils.acchash, account);
+            Map.get(register.borrow_positions, MapUtils.acchash, account);
         };
 
         public func get_positions() : Map.Iter<BorrowPosition> {
-            Map.vals(register.map);
+            Map.vals(register.borrow_positions);
         };
 
         public func supply_collateral({
@@ -59,15 +56,15 @@ module {
                 case(#ok(tx)) { tx; };
             };
 
-            let position =  Map.get(register.map, MapUtils.acchash, account);
+            let position =  Map.get(register.borrow_positions, MapUtils.acchash, account);
 
             // Create or update the borrow position
             var update = borrow_positionner.provide_collateral({ position; account; amount; });
             update := BorrowPositionner.add_tx({ position = update; tx = #COLLATERAL_PROVIDED(tx); });
-            Map.set(register.map, MapUtils.acchash, account, update);
+            Map.set(register.borrow_positions, MapUtils.acchash, account, update);
 
             // Update the total collateral
-            register.total_collateral += amount;
+            register.collateral_balance += amount;
 
             #ok;
         };
@@ -78,7 +75,7 @@ module {
             index: Index;
         }) : async* Result<(), Text> {
 
-            let position = switch(Map.get(register.map, MapUtils.acchash, account)){
+            let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
                 case(null) { return #err("No position found for account " # debug_show(account)); };
                 case(?p) { p; };
             };
@@ -96,10 +93,10 @@ module {
             };
 
             update := BorrowPositionner.add_tx({ position = update; tx = #COLLATERAL_WITHDRAWNED(tx); });
-            Map.set(register.map, MapUtils.acchash, account, update);
+            Map.set(register.borrow_positions, MapUtils.acchash, account, update);
 
             // Update the total collateral
-            register.total_collateral -= amount;
+            register.collateral_balance -= amount;
 
             #ok;
         };
@@ -107,13 +104,29 @@ module {
         public func borrow({
             account: Account;
             amount: Nat;
-            index: Index;
+            time: Nat;
         }) : async* Result<(), Text> {
+
+            // @todo: should add to a map of <Account, Nat> the amount borrowed to prevent
+            // borrowing more than utilization allows (or liquidity?)
+
+            // Verify the utilization does not exceed the allowed limit
+            //let utilization = indexer.compute_utilization({ borrow_to_add = Float.fromInt(amount); });
+            //if (utilization > 1.0) {
+                //return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
+            //};
+
+            let supply_balance = supply_ledger.get_balance();
+            if (supply_balance < amount){
+                return #err("Available liquidity " # debug_show(supply_balance) # " is less than the requested amount " # debug_show(amount));
+            };
             
-            let position = switch(Map.get(register.map, MapUtils.acchash, account)){
+            let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
                 case(null) { return #err("No position found for account " # debug_show(account)); };
                 case(?p) { p; };
             };
+
+            let index = indexer.get_borrow_index({ time });
 
             var update = switch(borrow_positionner.borrow_supply({ position; index; amount; })){
                 case(#err(err)) { return #err(err); };
@@ -128,11 +141,11 @@ module {
 
             // Update the borrow position
             update := BorrowPositionner.add_tx({ position = update; tx = #SUPPLY_BORROWED(tx); });
-            Map.set(register.map, MapUtils.acchash, account, update);
+            Map.set(register.borrow_positions, MapUtils.acchash, account, update);
+            indexer.add_raw_borrow({ time; amount; });
 
-            // Update the total borrowed amount
-            register.total_borrowed += Float.fromInt(amount);
-            add_to_supply_balance(-amount);
+            // Update the total supply balance
+            register.supply_balance -= amount;
 
             #ok;
         };
@@ -140,13 +153,15 @@ module {
         public func repay({
             account: Account;
             args: RepaymentArgs;
-            index: Index;
+            time: Nat;
         }) : async* Result<(), Text> {
             
-            let position = switch(Map.get(register.map, MapUtils.acchash, account)){
+            let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
                 case(null) { return #err("No position found for account " # debug_show(account)); };
                 case(?p) { p; };
             };
+
+            let index = indexer.get_borrow_index({ time });
 
             let { amount; remaining; raw_difference; } = switch(borrow_positionner.repay_supply({ position; index; args; })){
                 case(#err(err)) { return #err(err); };
@@ -162,18 +177,18 @@ module {
             // Update the borrow position
             var update = { position with borrow = remaining; };
             update := BorrowPositionner.add_tx({ position = update; tx = #SUPPLY_REPAID(tx); });
-            Map.set(register.map, MapUtils.acchash, account, update);
+            Map.set(register.borrow_positions, MapUtils.acchash, account, update);
+            indexer.remove_raw_borrow({ time; amount = raw_difference });
 
-            register.total_borrowed -= raw_difference;
-            
-            add_to_supply_balance(amount);
+            // Update the total supply balance
+            register.supply_balance += amount;
 
             #ok;
         };
 
         public func query_borrow_position({ account: Account; index: Index; }) : ?QueriedBorrowPosition {
 
-            switch (Map.get(register.map, MapUtils.acchash, account)){
+            switch (Map.get(register.borrow_positions, MapUtils.acchash, account)){
                 case(null) { null; };
                 case(?position) {
                     ?{
@@ -187,7 +202,7 @@ module {
         };
 
         public func get_liquidable_positions({ index: Index; }) : Map.Iter<BorrowPosition> {
-            let filtered_map = Map.filter<Account, BorrowPosition>(register.map, MapUtils.acchash, func (account: Account, position: BorrowPosition) : Bool {
+            let filtered_map = Map.filter<Account, BorrowPosition>(register.borrow_positions, MapUtils.acchash, func (account: Account, position: BorrowPosition) : Bool {
                 not borrow_positionner.is_healthy({ position; index; });
             });
             Map.vals(filtered_map);

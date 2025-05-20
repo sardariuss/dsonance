@@ -77,12 +77,13 @@ module {
     // ------------------------------ ACTUAL MODULE TYPES ------------------------------
 
     public type LendingPoolState = {
-        var parameters: LendingPoolParameters;
         var supply_rate: Float; // supply percentage rate (ratio)
         var supply_accrued_interests: Float; // accrued supply interests
         var borrow_index: Float; // growing value, starts at 1.0
         var supply_index: Float; // growing value, starts at 1.0
         var last_update_timestamp: Nat; // last time the rates were updated
+        var supply_balance: Int; // total amount of asset supplied
+        var collateral_balance: Int; // total amount of asset collateralized
     };
 
     public type LendingPoolParameters = {
@@ -191,17 +192,29 @@ module {
     };
 
     public type BorrowRegister = {
-        var total_collateral: Nat;
-        var total_borrowed: Float;
-        map: Map.Map<Account, BorrowPosition>; 
+        var supply_balance: Nat;
+        var collateral_balance: Nat;
+        borrow_positions: Map.Map<Account, BorrowPosition>;
     };
 
     public type SupplyRegister = {
-        var total_supplied: Nat;
-        positions: Map.Map<Text, SupplyPosition>;
+        var supply_balance: Nat;
+        supply_positions: Map.Map<Text, SupplyPosition>;
         withdrawals: Map.Map<Text, Withdrawal>;
         withdraw_queue: Set.Set<Text>;
     };
+
+    public type IndexerState = {
+        var raw_supplied: Nat;
+        var raw_borrowed: Float;
+        var supply_rate: Float; // supply percentage rate (ratio)
+        var supply_accrued_interests: Float; // accrued supply interests
+        var borrow_index: Float; // growing value, starts at 1.0
+        var supply_index: Float; // growing value, starts at 1.0
+        var last_update_timestamp: Nat; // last time the rates were updated
+    };
+
+    public type LendingPoolRegister = BorrowRegister and SupplyRegister;
 
     // A point on the interest rate curve
     public type CurvePoint = {

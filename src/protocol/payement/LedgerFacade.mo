@@ -1,14 +1,15 @@
-import Types      "../Types";
+import Types         "../Types";
+import PayementTypes "Types";
 
-import Int        "mo:base/Int";
-import Principal  "mo:base/Principal";
-import Result     "mo:base/Result";
-import Error      "mo:base/Error";
-import Time       "mo:base/Time";
-import Nat64      "mo:base/Nat64";
+import Int           "mo:base/Int";
+import Principal     "mo:base/Principal";
+import Result        "mo:base/Result";
+import Error         "mo:base/Error";
+import Time          "mo:base/Time";
+import Nat64         "mo:base/Nat64";
 
-import ICRC1      "mo:icrc1-mo/ICRC1/service";
-import ICRC2      "mo:icrc2-mo/ICRC2/service";
+import ICRC1         "mo:icrc1-mo/ICRC1/service";
+import ICRC2         "mo:icrc2-mo/ICRC2/service";
 
 module {
 
@@ -16,7 +17,6 @@ module {
     type Account = ICRC1.Account;
     type TxIndex = ICRC1.TxIndex;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type ErrorCode = Error.ErrorCode;
     type Transfer = Types.Transfer;
     type TransferFromError = ICRC2.TransferFromError;
     
@@ -25,6 +25,12 @@ module {
         ledger: ICRC1.service and ICRC2.service;
         fee: Nat;
     }){
+
+        var total_supply = 0;
+
+        public func get_total_supply() : Nat {
+            total_supply;
+        };
 
         public func transfer_from({
             from: Account;
@@ -50,7 +56,10 @@ module {
             // @todo: can this trap ?
             switch(await ledger.icrc2_transfer_from(args)){
                 case(#Err(error)){ #err(error); };
-                case(#Ok(tx_id)){ #ok(tx_id); };
+                case(#Ok(tx_id)){ 
+                    total_supply += amount;
+                    #ok(tx_id); 
+                };
             };
         };
 
@@ -71,8 +80,13 @@ module {
             // Perform the transfer
             let result = try {
                 switch(await ledger.icrc1_transfer(args)){
-                    case(#Ok(tx_id)){ #ok(tx_id); };
-                    case(#Err(error)){ #err(error); };
+                    case(#Ok(tx_id)){ 
+                        total_supply -= amount;
+                        #ok(tx_id); 
+                    };
+                    case(#Err(error)){ 
+                        #err(error); 
+                    };
                 };
             } catch(err) {
                 #err(#Trapped{ error_code = Error.code(err); });

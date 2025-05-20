@@ -82,6 +82,13 @@ module {
     /// https://github.com/dfinity/motoko/blob/master/src/protocol/prelude/prelude.mo
     public module Testify {
 
+        public let void = {
+            equal : Testify<()> = {
+                toText = func (v : ()) : Text { "()" };
+                compare = func (x : (), y : ()) : Bool { true };
+            };
+        };
+
         public let bool = {
             equal : Testify<Bool> = {
                 toText = func (t : Bool) : Text { if (t) { "true" } else { "false" } };

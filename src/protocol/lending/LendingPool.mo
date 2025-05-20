@@ -48,17 +48,6 @@ module {
         //asset_accounting: AssetAccounting;
     }){
 
-        public func get_supplied({ id: Text; }) : ?SupplyPosition {
-            supply_registry.get_position({ id });
-        };
-
-        public func supply({ input: SupplyInput; time: Nat; }) : async* Result<(), Text> {
-
-            accrue_interests_and_update_rates({time}); // Required to accrue interests before the supply changed (@todo: use obs instead)
-            
-            await* supply_registry.add_position(input);
-        };
-
         public func withdraw_supply({ id: Text; interest_share: Float; time: Nat; }) : Result<(), Text> {
 
             if (not Math.is_normalized(interest_share)) {
@@ -80,55 +69,6 @@ module {
             state.supply_accrued_interests -= due;
             
             supply_registry.remove_position({ id; due = Int.abs(Float.toInt(due)); }); // @todo: use obs to call update_index on total_supplied changed!
-        };
-
-        public func supply_collateral({ 
-            account: Account;
-            amount: Nat;
-        }) : async* Result<(), Text> {
-            await* borrow_registry.supply_collateral({ account; amount; });
-        };
-
-        public func withdraw_collateral({ 
-            account: Account;
-            amount: Nat;
-            time: Nat;
-        }) : async* Result<(), Text> {
-            await* borrow_registry.withdraw_collateral({ account; amount; index = get_borrow_index({ time }); });
-        };
-
-        public func borrow({ 
-            account: Account;
-            amount: Nat;
-            time: Nat;
-        }) : async* Result<(), Text> {
-
-            // @todo: should add to a map of <Account, Nat> the amount borrowed to prevent
-            // borrowing more than utilization allows (or liquidity?)
-
-            // Verify the utilization does not exceed the allowed limit
-            let utilization = preview_utilization({ borrow_to_add = Float.fromInt(amount); });
-            if (utilization > 1.0) {
-                return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
-            };
-
-            await* borrow_registry.borrow({ account; amount; index = get_borrow_index({ time }); });
-        };
-
-        public func repay_borrow({
-            account: Account;
-            args: RepaymentArgs;
-            time: Nat;
-        }) : async* Result<(), Text> {
-            await* borrow_registry.repay({ account; args; index = get_borrow_index({ time }); });
-        };
-
-        public func get_borrow_position({ account: Account; }) : ?BorrowPosition {
-            borrow_registry.get_position({ account });
-        };
-
-        public func get_borrow_positions() : Map.Iter<BorrowPosition> {
-            borrow_registry.get_positions();
         };
 
         type TotalToLiquidate = {
@@ -202,62 +142,15 @@ module {
 //            asset_accounting.unsolved_debts := Buffer.toArray(debts_left);
 //        };
 
-        /// Accrues interest for the past period and updates supply/borrow rates.
-        ///
-        /// This function should be called at the boundary between two periods, with `time`
-        /// being the current timestamp. It finalizes interest accrued over the period
-        /// [last_update_timestamp, time] using the supply and borrow rates from the beginning
-        /// of that interval.
-        ///
-        /// Assumptions:
-        /// - Supply interest for a given period is always calculated using the rate at the *start* of the period.
-        /// - `supply_rate` and `last_update_timestamp` are updated together and should never be stale relative to one another.
-        ///
-        /// This model ensures consistency and avoids forward-looking rate assumptions.
-        func accrue_interests_and_update_rates({ 
-            time: Nat;
-        }) {
-
-            let elapsed_ns : Int = time - state.last_update_timestamp;
-
-            // If the time is before the last update
-            if (elapsed_ns < 0) {
-                Debug.trap("Cannot update rates: time is before last update");
-            } else if (elapsed_ns == 0) {
-                Debug.print("Rates are already up to date");
-                return;
-            };
-
-            // Calculate the time period in years
-            let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.last_update_timestamp; to = time; }));
-
-            // Calculate utilization ratio
-            let utilization = current_utilization();
-
-            // Get the current rates from the curve
-            let borrow_rate = Math.percentage_to_ratio(interest_rate_curve.get_apr(utilization));
-            state.supply_rate := borrow_rate * utilization * (1.0 - parameters.protocol_fee);
-
-            // Update the indexes
-            state.borrow_index := state.borrow_index * (1.0 + borrow_rate * elapsed_annual);
-            state.supply_index := state.supply_index * (1.0 + state.supply_rate * elapsed_annual);
-            
-            // Accrue the supply interests
-            state.supply_accrued_interests += Float.fromInt(supply_registry.get_total_supplied()) * state.supply_rate * elapsed_annual;
-            
-            // Refresh update timestamp
-            state.last_update_timestamp := time;
+        public func take_interest_share({ time: Nat; interest_share: Float; position_amount: Nat; }) : Float {
+            accrue_interests_and_update_rates({ time; });
+            // If the interest share is negative, we want to make sure we don't take more than the amount supplied
+            let interests_amount = Float.max(-Float.fromInt(position_amount), state.supply_accrued_interests * interest_share);
+            state.supply_accrued_interests -= interests_amount;
+            interests_amount;
         };
 
-        func get_borrow_index({ time: Nat; }) : Index {
-            accrue_interests_and_update_rates({ time });
-            {
-                value = state.borrow_index;
-                timestamp = time;
-            };
-        };
-
-        func get_available_interests({ time: Nat; }) : Float {
+        public func get_available_interests({ time: Nat; }) : Float {
             accrue_interests_and_update_rates({ time; });
             state.supply_accrued_interests;
             // @todo: uncomment when using unsolved debts
@@ -266,46 +159,9 @@ module {
             //});
         };
 
-        // @todo: should use the total with accrued interests!
-        func get_available_liquidity() : Float {
-            Float.fromInt(supply_registry.get_total_supplied()) - borrow_registry.get_total_borrowed();
-        };
-
-        func get_virtual_available(): Float {
+        public func get_virtual_available({ time: Nat }): Float {
+            accrue_interests_and_update_rates({ time; });
             Float.fromInt(supply_registry.get_total_supplied()) * state.supply_index - borrow_registry.get_total_borrowed() * state.borrow_index;
-        };
-
-        func current_utilization() : Float {
-            compute_utilization({ 
-                total_supplied = supply_registry.get_total_supplied();
-                total_borrowed = borrow_registry.get_total_borrowed();
-            });
-        };
-
-        func preview_utilization({
-            borrow_to_add: Float;
-        }) : Float {
-            compute_utilization({ 
-                total_supplied = supply_registry.get_total_supplied();
-                total_borrowed = borrow_registry.get_total_borrowed() + borrow_to_add;
-            });
-        };
-
-        func compute_utilization({
-            total_supplied: Nat;
-            total_borrowed: Float;
-        }) : Float {
-            
-            if (total_supplied == 0) {
-                if (total_borrowed > 0) {
-                    // Treat utilization as 100% to maximize borrow rate
-                    return 1.0;
-                };
-                // No supply nor borrowed, consider that the utilization is null
-                return 0.0;
-            };
-            
-            (total_borrowed * state.borrow_index) / (Float.fromInt(total_supplied) * (1.0 - parameters.reserve_liquidity));
         };
 
     };

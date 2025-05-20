@@ -12,6 +12,7 @@ import Set "mo:map/Set";
 import Types "../Types";
 import LedgerFacade "../payement/LedgerFacade";
 import LendingTypes "Types";
+import Indexer "Indexer";
 
 module {
 
@@ -30,26 +31,22 @@ module {
     // @todo: need queries to retrieve the transfers and withdrawals (union of the two maps)
     // @todo: function to delete withdrawals that are too old
     public class SupplyRegistry({
+        indexer: Indexer.Indexer;
         register: SupplyRegister;
         ledger: LedgerFacade.LedgerFacade;
-        add_to_supply_balance: Int -> ();
     }){
 
         var awaiting_transfer = false;
 
-        public func get_total_supplied() : Nat {
-            register.total_supplied;
-        };
-
         public func get_position({ id: Text }) : ?SupplyPosition {
-            Map.get(register.positions, Map.thash, id);
+            Map.get(register.supply_positions, Map.thash, id);
         };
 
         public func add_position(input: SupplyInput) : async* Result<(), Text> {
 
-            let { id; account; supplied; } = input;
+            let { id; account; supplied; timestamp; } = input;
 
-            if (Map.has(register.positions, Map.thash, id)){
+            if (Map.has(register.supply_positions, Map.thash, id)){
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
@@ -61,20 +58,26 @@ module {
             // TODO: small risk here that a user call add_position twice in parallel, two transfer succeed,
             // and only position is set
 
-            Map.set(register.positions, Map.thash, id, { input with tx; });
-            register.total_supplied += supplied;
-            add_to_supply_balance(supplied);
+            Map.set(register.supply_positions, Map.thash, id, { input with tx; });
+            indexer.add_raw_supplied({ time = timestamp; amount = supplied; });
+            
+            register.supply_balance += supplied;
 
             #ok;
         };
 
-        public func remove_position({ id: Text; due: Nat; }) : Result<(), Text> {
+        public func remove_position({ id: Text; due: Nat; time: Nat; }) : Result<(), Text> {
             
-            let position = switch(Map.get(register.positions, Map.thash, id)){
+            let position = switch(Map.get(register.supply_positions, Map.thash, id)){
                 case(null) { return #err("The map does not have a position with the ID " # debug_show(id)); };
                 case(?p) { p; };
             };
 
+            // Remove from supply positions
+            Map.delete(register.supply_positions, Map.thash, id);
+            indexer.remove_raw_supplied({ time; amount = position.supplied; });
+
+            // Create a withdrawal
             let withdrawal : Withdrawal = { 
                 id = position.id;
                 account = position.account;
@@ -83,9 +86,8 @@ module {
                 var transferred = 0;
                 var transfers = [];
             };
-
+            
             Map.set(register.withdrawals, Map.thash, id, withdrawal);
-
             // Add to the queue only if there is an amount due
             if (due > 0) {
                 Set.add(register.withdraw_queue, Set.thash, id);
@@ -153,23 +155,14 @@ module {
             switch(transfer.result){
                 case(#ok(_)){
 
-                    let before_removed = compute_supplied_removed(withdrawal);
                     withdrawal.transferred += amount;
-                    let after_removed = compute_supplied_removed(withdrawal);
-                    
-                    // Careful here, the amount to be removed from the total supplied
-                    // shall not be the amount transferred, but deduce from
-                    // the ratio of the amount transferred over the amount due
-                    // (see function compute_supplied_removed)
-                    register.total_supplied -= (after_removed - before_removed); // To avoid cumulative drift
-
-                    // The actual transferred amount shall be removed from the balance
-                    add_to_supply_balance(-amount);
 
                     // Delete from the queue if all due has been transferred
                     if (withdrawal.transferred >= withdrawal.due) {
                         Set.delete(register.withdraw_queue, Set.thash, withdrawal.id);
                     };
+
+                    register.supply_balance -= amount;
                 };
                 case(#err(_)){
 
@@ -183,13 +176,14 @@ module {
 
     };
 
-    func compute_supplied_removed(withdrawal: Withdrawal) : Nat {
-        let ratio_removed = Float.fromInt(withdrawal.transferred) / Float.fromInt(withdrawal.due);
-        let supplied_removed = Float.toInt(ratio_removed * Float.fromInt(withdrawal.supplied));
-        if (supplied_removed < 0){
-            Debug.trap("Logic error: supply removed shall never be negative");
-        };
-        Int.abs(supplied_removed);
-    };
+    // @todo: remove
+//    func compute_raw_withdrawn(withdrawal: Withdrawal) : Float {
+//        let ratio_removed = Float.fromInt(withdrawal.transferred) / Float.fromInt(withdrawal.due);
+//        let raw_withdrawn = ratio_removed * Float.fromInt(withdrawal.supplied);
+//        if (raw_withdrawn < 0.0){
+//            Debug.trap("Logic error: supply removed shall never be negative");
+//        };
+//        raw_withdrawn;
+//    };
 
 };

@@ -4,28 +4,23 @@ import BorrowPositionner "BorrowPositionner";
 import BorrowRegistry "BorrowRegistry";
 import SupplyRegistry "SupplyRegistry";
 import InterestRateCurve "InterestRateCurve";
-
-import LedgerFacade "../payement/LedgerFacade";
+import PayementTypes "../payement/Types";
 
 module {
 
     type LendingPoolState = LendingTypes.LendingPoolState;
-    type BorrowRegister = LendingTypes.BorrowRegister;
-    type SupplyRegister = LendingTypes.SupplyRegister;
+    type LendingPoolRegister = LendingTypes.LendingPoolRegister;
     type Parameters = LendingTypes.Parameters;
+    type ILedgerFacade = PayementTypes.ILedgerFacade;
 
     public func build({
         parameters: Parameters;
         state: LendingPoolState;
-        borrow_register: BorrowRegister;
-        supply_register: SupplyRegister;
-        supply_ledger: LedgerFacade.LedgerFacade;
-        collateral_ledger: LedgerFacade.LedgerFacade;
+        register: LendingPoolRegister;
+        supply_ledger: ILedgerFacade;
+        collateral_ledger: ILedgerFacade;
+        get_collateral_spot_in_asset: ({ time: Nat; }) -> Float;
     }) : LendingPool.LendingPool {
-
-        // @todo: fix
-        let get_collateral_spot_in_asset = func({ time: Nat; }) : Float { 0.0; };
-        let add_to_supply_balance = func(_ : Int) : () {};
 
         let borrow_positionner = BorrowPositionner.BorrowPositionner({
             parameters;
@@ -33,17 +28,15 @@ module {
         });
 
         let supply_registry = SupplyRegistry.SupplyRegistry({
-            register = supply_register;
+            register;
             ledger = supply_ledger;
-            add_to_supply_balance;
         });
 
         let borrow_registry = BorrowRegistry.BorrowRegistry({
-            register = borrow_register;
+            register;
             supply_ledger;
             collateral_ledger;
             borrow_positionner;
-            add_to_supply_balance;
         });
         
         let interest_rate_curve = InterestRateCurve.InterestRateCurve(
