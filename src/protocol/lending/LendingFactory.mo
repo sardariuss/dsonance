@@ -1,55 +1,75 @@
-import LendingPool "LendingPool";
 import LendingTypes "Types";
 import BorrowPositionner "BorrowPositionner";
 import BorrowRegistry "BorrowRegistry";
 import SupplyRegistry "SupplyRegistry";
 import InterestRateCurve "InterestRateCurve";
+import WithdrawalQueue "WithdrawalQueue";
+import Indexer "Indexer";
 import PayementTypes "../payement/Types";
+import Clock "../utils/Clock";
 
 module {
 
-    type LendingPoolState = LendingTypes.LendingPoolState;
+    type IndexerState = LendingTypes.IndexerState;
     type LendingPoolRegister = LendingTypes.LendingPoolRegister;
     type Parameters = LendingTypes.Parameters;
     type ILedgerFacade = PayementTypes.ILedgerFacade;
 
     public func build({
         parameters: Parameters;
-        state: LendingPoolState;
+        state: IndexerState;
         register: LendingPoolRegister;
         supply_ledger: ILedgerFacade;
         collateral_ledger: ILedgerFacade;
         get_collateral_spot_in_asset: ({ time: Nat; }) -> Float;
-    }) : LendingPool.LendingPool {
+        clock: Clock.IClock;
+    }) : {
+        indexer: Indexer.Indexer;
+        supply_registry: SupplyRegistry.SupplyRegistry;
+        borrow_registry: BorrowRegistry.BorrowRegistry;
+        withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
+    } {
 
-        let borrow_positionner = BorrowPositionner.BorrowPositionner({
+        let indexer = Indexer.Indexer({
+            clock;
             parameters;
-            get_collateral_spot_in_asset;
+            state;
+            interest_rate_curve = InterestRateCurve.InterestRateCurve(
+                parameters.interest_rate_curve
+            );
         });
 
-        let supply_registry = SupplyRegistry.SupplyRegistry({
+        let withdrawal_queue = WithdrawalQueue.WithdrawalQueue({
+            indexer;
             register;
             ledger = supply_ledger;
         });
 
-        let borrow_registry = BorrowRegistry.BorrowRegistry({
+        let supply_registry = SupplyRegistry.SupplyRegistry({
+            indexer;
             register;
+            withdrawal_queue;
+            ledger = supply_ledger;
+        });
+
+        let borrow_registry = BorrowRegistry.BorrowRegistry({
+            indexer;
+            register;
+            supply_withdrawals = withdrawal_queue;
             supply_ledger;
             collateral_ledger;
-            borrow_positionner;
+            borrow_positionner = BorrowPositionner.BorrowPositionner({
+                parameters;
+                get_collateral_spot_in_asset;
+            });
         });
-        
-        let interest_rate_curve = InterestRateCurve.InterestRateCurve(
-            parameters.interest_rate_curve
-        );
 
-        LendingPool.LendingPool({
-            parameters;
-            state;
-            borrow_registry;
+        {
+            indexer;
             supply_registry;
-            interest_rate_curve;
-        });
+            borrow_registry;
+            withdrawal_queue;
+        };
     };
 
 };

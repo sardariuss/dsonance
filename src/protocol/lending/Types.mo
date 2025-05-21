@@ -200,6 +200,9 @@ module {
     public type SupplyRegister = {
         var supply_balance: Nat;
         supply_positions: Map.Map<Text, SupplyPosition>;
+    };
+
+    public type WithdrawalRegister = {
         withdrawals: Map.Map<Text, Withdrawal>;
         withdraw_queue: Set.Set<Text>;
     };
@@ -214,7 +217,7 @@ module {
         var last_update_timestamp: Nat; // last time the rates were updated
     };
 
-    public type LendingPoolRegister = BorrowRegister and SupplyRegister;
+    public type LendingPoolRegister = BorrowRegister and SupplyRegister and WithdrawalRegister;
 
     // A point on the interest rate curve
     public type CurvePoint = {

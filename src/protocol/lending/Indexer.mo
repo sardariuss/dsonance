@@ -2,6 +2,7 @@ import Int "mo:base/Int";
 import Float "mo:base/Float";
 import Nat "mo:base/Nat";
 import Debug "mo:base/Debug";
+import Result "mo:base/Result";
 
 import InterestRateCurve "InterestRateCurve";
 import Math "../utils/Math";
@@ -9,10 +10,12 @@ import Types "../Types";
 import Duration "../duration/Duration";
 import LendingTypes "Types";
 import Index "Index";
+import Clock "../utils/Clock";
 
 module {
 
     type Duration = Types.Duration;
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     type Index                 = LendingTypes.Index;
     type LendingPoolParameters = LendingTypes.LendingPoolParameters;
@@ -22,43 +25,66 @@ module {
         parameters: LendingPoolParameters;
         state: IndexerState;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
+        clock: Clock.IClock;
     }){
 
-        public func add_raw_supplied({ time: Nat; amount: Nat; }) {
-            update_index({ time }); // @todo: not sure if before of after? or just accumulate the interests before?
+        public func add_raw_supplied({ amount: Nat; }) {
+            update_index(); // @todo: not sure if before of after? or just accumulate the interests before?
             state.raw_supplied += amount;
         };
 
-        public func remove_raw_supplied({ time: Nat; amount: Nat; }) {
-            update_index({ time });
+        public func remove_raw_supplied({ amount: Nat; }) {
+            update_index();
             if (amount > state.raw_supplied){
                 Debug.trap("Cannot remove more than total supplied")
             };
             state.raw_supplied -= amount;
         };
 
-        public func add_raw_borrow({ time: Nat; amount: Nat; }) {
-            update_index({ time });
+        public func add_raw_borrow({ amount: Nat; }) {
+            update_index();
             state.raw_borrowed += Float.fromInt(amount);
         };
 
-        public func remove_raw_borrow({ time: Nat; amount: Float; }) {
-            update_index({ time });
+        public func remove_raw_borrow({ amount: Float; }) {
+            update_index();
             if (amount > state.raw_borrowed){
                 Debug.trap("Cannot remove more than total borrowed")
             };
             state.raw_borrowed -= amount;
         };
 
-        public func get_borrow_index({ time: Nat; }) : Index {
-            update_index({ time });
+        public func get_borrow_index() : Index {
+            update_index();
             {
                 value = state.borrow_index;
-                timestamp = time;
+                timestamp = state.last_update_timestamp;
             };
         };
 
-        public func compute_utilization() : Float {
+        public func split_supply_interests({ share: Float; minimum: Int; }) : Result<Int, Text> {
+            // Make sure the share is normalized
+            if (not Math.is_normalized(share)) {
+                return #err("Invalid interest share");
+            };
+            // Make sure the interests is above the minimum
+            let interests_amount = Float.toInt(Float.max(Float.fromInt(minimum), get_supply_interests() * share));
+            // Remove the interests from the total
+            state.supply_accrued_interests -= Float.fromInt(interests_amount);
+            // Return the amount
+            #ok(interests_amount);
+        };
+
+        public func get_supply_interests() : Float {
+            update_index();
+            state.supply_accrued_interests;
+            // @todo: uncomment when using unsolved debts
+            //state.supply_accrued_interests - Array.foldLeft<DebtEntry, Float>(asset_accounting.unsolved_debts, 0.0, func (acc: Float, debt: DebtEntry) {
+                //acc + debt.amount;
+            //});
+        };
+
+        func compute_utilization() : Float {
             
             if (state.raw_supplied == 0) {
                 if (state.raw_borrowed > 0) {
@@ -84,8 +110,9 @@ module {
         /// - `supply_rate` and `last_update_timestamp` are updated together and should never be stale relative to one another.
         ///
         /// This model ensures consistency and avoids forward-looking rate assumptions.
-        func update_index({ time: Nat }) {
+        func update_index() {
 
+            let time = clock.get_time();
             let elapsed_ns : Int = time - state.last_update_timestamp;
 
             // If the time is before the last update

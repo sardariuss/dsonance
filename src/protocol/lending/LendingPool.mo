@@ -48,29 +48,6 @@ module {
         //asset_accounting: AssetAccounting;
     }){
 
-        public func withdraw_supply({ id: Text; interest_share: Float; time: Nat; }) : Result<(), Text> {
-
-            if (not Math.is_normalized(interest_share)) {
-                return #err("Invalid interest share");
-            };
-
-            let position = switch(supply_registry.get_position({ id })){
-                case(null) { return #err("Position with id " # debug_show(id) # " not found")};
-                case(?p) { p; };
-            };
-
-            let interest_amount = interest_share * get_available_interests( { time; });
-
-            // Make sure the total due is positif (if ever the interest are negative and greater in value than the amount supplied)
-            let due = Float.max(0, Float.fromInt(position.supplied) + interest_amount);
-
-            // Remove from interests right away, once withdrawal is triggered the protocol makes it so the position 
-            // stops to accumulate interests, even if stuck in the withdrawal queue! It is a design choice.
-            state.supply_accrued_interests -= due;
-            
-            supply_registry.remove_position({ id; due = Int.abs(Float.toInt(due)); }); // @todo: use obs to call update_index on total_supplied changed!
-        };
-
         type TotalToLiquidate = {
             borrowed: Float;
             collateral: Float;
@@ -142,27 +119,7 @@ module {
 //            asset_accounting.unsolved_debts := Buffer.toArray(debts_left);
 //        };
 
-        public func take_interest_share({ time: Nat; interest_share: Float; position_amount: Nat; }) : Float {
-            accrue_interests_and_update_rates({ time; });
-            // If the interest share is negative, we want to make sure we don't take more than the amount supplied
-            let interests_amount = Float.max(-Float.fromInt(position_amount), state.supply_accrued_interests * interest_share);
-            state.supply_accrued_interests -= interests_amount;
-            interests_amount;
-        };
-
-        public func get_available_interests({ time: Nat; }) : Float {
-            accrue_interests_and_update_rates({ time; });
-            state.supply_accrued_interests;
-            // @todo: uncomment when using unsolved debts
-            //state.supply_accrued_interests - Array.foldLeft<DebtEntry, Float>(asset_accounting.unsolved_debts, 0.0, func (acc: Float, debt: DebtEntry) {
-                //acc + debt.amount;
-            //});
-        };
-
-        public func get_virtual_available({ time: Nat }): Float {
-            accrue_interests_and_update_rates({ time; });
-            Float.fromInt(supply_registry.get_total_supplied()) * state.supply_index - borrow_registry.get_total_borrowed() * state.borrow_index;
-        };
+    
 
     };
 

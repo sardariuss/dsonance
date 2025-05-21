@@ -21,15 +21,16 @@ module {
     type TransferFromError = ICRC2.TransferFromError;
     
     public class LedgerFacade({
-        provider: Principal;
+        provider: Principal; // @todo: should be a full account
         ledger: ICRC1.service and ICRC2.service;
         fee: Nat;
     }){
 
-        var total_supply = 0;
+        // @todo: should be checked at initialization
+        var balance = 0;
 
-        public func get_total_supply() : Nat {
-            total_supply;
+        public func get_balance() : Nat {
+            balance;
         };
 
         public func transfer_from({
@@ -57,7 +58,7 @@ module {
             switch(await ledger.icrc2_transfer_from(args)){
                 case(#Err(error)){ #err(error); };
                 case(#Ok(tx_id)){ 
-                    total_supply += amount;
+                    balance += amount;
                     #ok(tx_id); 
                 };
             };
@@ -81,7 +82,7 @@ module {
             let result = try {
                 switch(await ledger.icrc1_transfer(args)){
                     case(#Ok(tx_id)){ 
-                        total_supply -= amount;
+                        balance -= amount;
                         #ok(tx_id); 
                     };
                     case(#Err(error)){ 

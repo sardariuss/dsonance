@@ -1,7 +1,6 @@
 import Nat "mo:base/Nat";
 import Map "mo:map/Map";
 import Result "mo:base/Result";
-import Float "mo:base/Float";
 
 import Types "../Types";
 import MapUtils "../utils/Map";
@@ -10,6 +9,7 @@ import BorrowPositionner "BorrowPositionner";
 import Index "Index";
 import LendingTypes "Types";
 import Indexer "Indexer";
+import WithdrawalQueue "WithdrawalQueue";
 
 module {
 
@@ -31,6 +31,7 @@ module {
         collateral_ledger: LedgerFacade.LedgerFacade;
         borrow_positionner: BorrowPositionner.BorrowPositionner;
         indexer: Indexer.Indexer;
+        supply_withdrawals: WithdrawalQueue.WithdrawalQueue;
     }){
 
         public func get_collateral_balance(): Nat {
@@ -104,7 +105,6 @@ module {
         public func borrow({
             account: Account;
             amount: Nat;
-            time: Nat;
         }) : async* Result<(), Text> {
 
             // @todo: should add to a map of <Account, Nat> the amount borrowed to prevent
@@ -126,12 +126,20 @@ module {
                 case(?p) { p; };
             };
 
-            let index = indexer.get_borrow_index({ time });
+            let index = indexer.get_borrow_index();
 
             var update = switch(borrow_positionner.borrow_supply({ position; index; amount; })){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
+            
+            // Capture the borrow index before initiating the transfer.
+            // Note: There may be a slight time drift (~1–2 seconds) between capturing the index
+            // and updating the user's position, due to the await on the transfer.
+            // This means the position will be recorded with a slightly stale index.
+            // In practice, this has negligible impact on accuracy since the interest accrued
+            // over a few seconds is minimal. This tradeoff is acceptable to preserve
+            // consistency in how interest is calculated and avoid retroactive index shifts.
             
             // Transfer the borrow amount to the user account
             let tx = switch((await* supply_ledger.transfer({ to = account; amount; })).result){
@@ -142,7 +150,7 @@ module {
             // Update the borrow position
             update := BorrowPositionner.add_tx({ position = update; tx = #SUPPLY_BORROWED(tx); });
             Map.set(register.borrow_positions, MapUtils.acchash, account, update);
-            indexer.add_raw_borrow({ time; amount; });
+            indexer.add_raw_borrow({ amount; });
 
             // Update the total supply balance
             register.supply_balance -= amount;
@@ -153,7 +161,6 @@ module {
         public func repay({
             account: Account;
             args: RepaymentArgs;
-            time: Nat;
         }) : async* Result<(), Text> {
             
             let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
@@ -161,7 +168,7 @@ module {
                 case(?p) { p; };
             };
 
-            let index = indexer.get_borrow_index({ time });
+            let index = indexer.get_borrow_index();
 
             let { amount; remaining; raw_difference; } = switch(borrow_positionner.repay_supply({ position; index; args; })){
                 case(#err(err)) { return #err(err); };
@@ -178,10 +185,13 @@ module {
             var update = { position with borrow = remaining; };
             update := BorrowPositionner.add_tx({ position = update; tx = #SUPPLY_REPAID(tx); });
             Map.set(register.borrow_positions, MapUtils.acchash, account, update);
-            indexer.remove_raw_borrow({ time; amount = raw_difference });
+            indexer.remove_raw_borrow({ amount = raw_difference });
 
             // Update the total supply balance
             register.supply_balance += amount;
+
+            // Once a position is repaid, it might allow the unlock withdrawal of supply
+            ignore supply_withdrawals.process_pending_withdrawals();
 
             #ok;
         };
