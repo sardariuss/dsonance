@@ -27,6 +27,7 @@ module {
 
     public type ILedgerFacade = {
         get_balance() : Nat;
+        add_balance(Nat) : ();
         transfer_from(TransferFromArgs) : async* TransferFromResult;
         transfer(TransferArgs) : async* Transfer;
     };

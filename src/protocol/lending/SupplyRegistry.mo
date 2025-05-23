@@ -56,8 +56,6 @@ module {
 
             Map.set(register.supply_positions, Map.thash, id, { input with tx; });
             indexer.add_raw_supplied({ amount = supplied; });
-            
-            register.supply_balance += supplied;
 
             #ok;
         };

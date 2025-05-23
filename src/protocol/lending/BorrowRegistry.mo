@@ -1,15 +1,21 @@
 import Nat "mo:base/Nat";
 import Map "mo:map/Map";
 import Result "mo:base/Result";
+import Debug "mo:base/Debug";
+import Int "mo:base/Int";
+import Float "mo:base/Float";
+import Option "mo:base/Option";
 
 import Types "../Types";
 import MapUtils "../utils/Map";
+import IterUtils "../utils/Iter";
 import LedgerFacade "../payement/LedgerFacade";
 import BorrowPositionner "BorrowPositionner";
 import Index "Index";
 import LendingTypes "Types";
 import Indexer "Indexer";
 import WithdrawalQueue "WithdrawalQueue";
+import Utilization "Utilization";
 
 module {
 
@@ -22,6 +28,12 @@ module {
     type QueriedBorrowPosition = LendingTypes.QueriedBorrowPosition;
     type Index                 = LendingTypes.Index;
     type BorrowRegister        = LendingTypes.BorrowRegister;
+    type Borrow                = LendingTypes.Borrow;
+    type ILiquidityPool        = LendingTypes.ILiquidityPool;
+    type TotalToLiquidate = {
+        raw_borrowed: Float;
+        collateral: Nat;
+    };
 
     // @todo: function to delete positions repaid that are too old
     // @todo: function to transfer the collateral to the user account based on the health factor
@@ -32,6 +44,7 @@ module {
         borrow_positionner: BorrowPositionner.BorrowPositionner;
         indexer: Indexer.Indexer;
         supply_withdrawals: WithdrawalQueue.WithdrawalQueue;
+        liquidity_pool: ILiquidityPool;
     }){
 
         public func get_collateral_balance(): Nat {
@@ -107,14 +120,14 @@ module {
             amount: Nat;
         }) : async* Result<(), Text> {
 
-            // @todo: should add to a map of <Account, Nat> the amount borrowed to prevent
-            // borrowing more than utilization allows (or liquidity?)
+            // @todo: should add to a map of <Account, Nat> the amount concurrent borrows that could 
+            // increase the utilization ratio more than 1.0
 
             // Verify the utilization does not exceed the allowed limit
-            //let utilization = indexer.compute_utilization({ borrow_to_add = Float.fromInt(amount); });
-            //if (utilization > 1.0) {
-                //return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
-            //};
+            let utilization = indexer.compute_utilization(Utilization.add_raw_borrow(indexer.get_state().utilization, amount));
+            if (utilization.ratio > 1.0) {
+                return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
+            };
 
             let supply_balance = supply_ledger.get_balance();
             if (supply_balance < amount){
@@ -126,7 +139,7 @@ module {
                 case(?p) { p; };
             };
 
-            let index = indexer.get_borrow_index();
+            let index = indexer.get_state().borrow_index;
 
             var update = switch(borrow_positionner.borrow_supply({ position; index; amount; })){
                 case(#err(err)) { return #err(err); };
@@ -152,9 +165,6 @@ module {
             Map.set(register.borrow_positions, MapUtils.acchash, account, update);
             indexer.add_raw_borrow({ amount; });
 
-            // Update the total supply balance
-            register.supply_balance -= amount;
-
             #ok;
         };
 
@@ -168,7 +178,7 @@ module {
                 case(?p) { p; };
             };
 
-            let index = indexer.get_borrow_index();
+            let index = indexer.get_state().borrow_index;
 
             let { amount; remaining; raw_difference; } = switch(borrow_positionner.repay_supply({ position; index; args; })){
                 case(#err(err)) { return #err(err); };
@@ -187,13 +197,70 @@ module {
             Map.set(register.borrow_positions, MapUtils.acchash, account, update);
             indexer.remove_raw_borrow({ amount = raw_difference });
 
-            // Update the total supply balance
-            register.supply_balance += amount;
-
             // Once a position is repaid, it might allow the unlock withdrawal of supply
             ignore supply_withdrawals.process_pending_withdrawals();
 
             #ok;
+        };
+
+        // @todo: fix partial liquidation, or use full liquidation for now
+        /// Liquidate borrow positions if their health factor is below 1.0.
+        /// @todo: this function access shall be restricted to the protocol only and called by a timer
+        public func check_all_positions_and_liquidate() : async*() {
+
+            let liquidable_positions = get_liquidable_positions();
+
+            let to_liquidate = IterUtils.fold_left(liquidable_positions, { raw_borrowed = 0.0; collateral = 0; }, func (sum: TotalToLiquidate, position: BorrowPosition): TotalToLiquidate {
+                {
+                    raw_borrowed = sum.raw_borrowed + Option.getMapped(position.borrow, func(borrow: Borrow) : Float { borrow.raw_amount; }, 0.0);
+                    collateral = sum.collateral + position.collateral.amount;
+                };
+            });
+
+            let supply_bought = liquidity_pool.swap_collateral({ amount = to_liquidate.collateral; });
+
+            supply_ledger.add_balance(supply_bought);
+            register.collateral_balance -= to_liquidate.collateral;
+            indexer.remove_raw_borrow({ amount = to_liquidate.raw_borrowed });
+
+            for (position in liquidable_positions.reset()) {
+
+                Map.set(register.borrow_positions, MapUtils.acchash, position.account, { position with 
+                    collateral = { amount = 0; }; 
+                    borrow = null;
+                });
+            };
+
+            // Once positions are liquidated, it might allow the unlock withdrawal of supply
+            ignore supply_withdrawals.process_pending_withdrawals();
+
+            // @todo: the total borrowed shall take the slippage into account because otherwise the
+            // available total liquidity computation will be wrong (i.e. not reflect the amount actually available)
+            //let ratio_sold = Float.fromInt(collateral_sold) / Float.fromInt(collateral_to_sell);
+            
+//            // Update the positions
+//            for (position in liquidable_positions.reset()) {
+//
+//                ignore lending_pool.slash_borrow({ 
+//                    account = position.account;
+//                    borrow_amount = position.borrowed * ratio_sold;
+//                    collateral_amount = position.collateral * ratio_sold;
+//                });
+//            };
+//
+//            let value_sold = Float.fromInt(collateral_sold) * collateral_spot_in_asset();
+//            let value_debt = to_liquidate.borrowed * ratio_sold;
+//
+//            let difference = value_sold - value_debt;
+//
+//            // @todo: need to take protocol fees
+//
+//            if (difference >= 0.0) {
+//                asset_accounting.reserve += difference;
+//            } else {
+//                Debug.print("⚠️ Bad debt: liquidation proceeds are insufficient");
+//                asset_accounting.unsolved_debts := Array.append(asset_accounting.unsolved_debts, [{ timestamp = time; amount = difference; }]);
+//            };
         };
 
         public func query_borrow_position({ account: Account; index: Index; }) : ?QueriedBorrowPosition {
@@ -211,7 +278,8 @@ module {
             };
         };
 
-        public func get_liquidable_positions({ index: Index; }) : Map.Iter<BorrowPosition> {
+        public func get_liquidable_positions() : Map.Iter<BorrowPosition> {
+            let index = indexer.get_state().borrow_index;
             let filtered_map = Map.filter<Account, BorrowPosition>(register.borrow_positions, MapUtils.acchash, func (account: Account, position: BorrowPosition) : Bool {
                 not borrow_positionner.is_healthy({ position; index; });
             });

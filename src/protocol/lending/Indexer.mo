@@ -9,8 +9,8 @@ import Math "../utils/Math";
 import Types "../Types";
 import Duration "../duration/Duration";
 import LendingTypes "Types";
-import Index "Index";
 import Clock "../utils/Clock";
+import Utilization "Utilization";
 
 module {
 
@@ -20,6 +20,8 @@ module {
     type Index                 = LendingTypes.Index;
     type LendingPoolParameters = LendingTypes.LendingPoolParameters;
     type IndexerState          = LendingTypes.IndexerState;
+    type SIndexerState         = LendingTypes.SIndexerState;
+    type Utilization           = LendingTypes.Utilization;
 
     public class Indexer({
         parameters: LendingPoolParameters;
@@ -28,41 +30,36 @@ module {
         clock: Clock.IClock;
     }){
 
+        public func get_state() : SIndexerState {
+            update_state({ utilization = state.utilization });
+            {
+                utilization = state.utilization;
+                supply_index = { value = state.supply_index; timestamp = state.last_update_timestamp };
+                borrow_index = { value = state.borrow_index; timestamp = state.last_update_timestamp };
+                last_update_timestamp = state.last_update_timestamp;
+                supply_rate = state.supply_rate;
+                supply_accrued_interests = state.supply_accrued_interests;
+            };
+        };
+
         public func add_raw_supplied({ amount: Nat; }) {
-            update_index(); // @todo: not sure if before of after? or just accumulate the interests before?
-            state.raw_supplied += amount;
+            update_state({ utilization = compute_utilization(Utilization.add_raw_supplied(state.utilization, amount)); });
         };
 
         public func remove_raw_supplied({ amount: Nat; }) {
-            update_index();
-            if (amount > state.raw_supplied){
-                Debug.trap("Cannot remove more than total supplied")
-            };
-            state.raw_supplied -= amount;
+            update_state({ utilization = compute_utilization(Utilization.remove_raw_supplied(state.utilization, amount)); });
         };
 
         public func add_raw_borrow({ amount: Nat; }) {
-            update_index();
-            state.raw_borrowed += Float.fromInt(amount);
+            update_state({ utilization = compute_utilization(Utilization.add_raw_borrow(state.utilization, amount)); });
         };
 
         public func remove_raw_borrow({ amount: Float; }) {
-            update_index();
-            if (amount > state.raw_borrowed){
-                Debug.trap("Cannot remove more than total borrowed")
-            };
-            state.raw_borrowed -= amount;
-        };
-
-        public func get_borrow_index() : Index {
-            update_index();
-            {
-                value = state.borrow_index;
-                timestamp = state.last_update_timestamp;
-            };
+            update_state({ utilization = compute_utilization(Utilization.remove_raw_borrow(state.utilization, amount)); });
         };
 
         public func split_supply_interests({ share: Float; minimum: Int; }) : Result<Int, Text> {
+            update_state({ utilization = state.utilization });
             // Make sure the share is normalized
             if (not Math.is_normalized(share)) {
                 return #err("Invalid interest share");
@@ -76,7 +73,7 @@ module {
         };
 
         public func get_supply_interests() : Float {
-            update_index();
+            update_state({ utilization = state.utilization });
             state.supply_accrued_interests;
             // @todo: uncomment when using unsolved debts
             //state.supply_accrued_interests - Array.foldLeft<DebtEntry, Float>(asset_accounting.unsolved_debts, 0.0, func (acc: Float, debt: DebtEntry) {
@@ -84,10 +81,26 @@ module {
             //});
         };
 
-        func compute_utilization() : Float {
-            
-            if (state.raw_supplied == 0) {
-                if (state.raw_borrowed > 0) {
+        public func compute_utilization({
+            raw_supplied: Nat;
+            raw_borrowed: Float;
+        }) : Utilization {
+            {
+                ratio = compute_utilization_ratio({ raw_supplied; raw_borrowed; });
+                raw_supplied;
+                raw_borrowed;
+            };
+        };
+
+        func compute_utilization_ratio({
+            raw_supplied: Nat;
+            raw_borrowed: Float;
+        }) : Float {
+
+            // @todo: what if raw_borrowed is negative?
+
+            if (raw_supplied == 0) {
+                if (raw_borrowed > 0) {
                     // Treat utilization as 100% to maximize borrow rate
                     return 1.0;
                 };
@@ -95,7 +108,7 @@ module {
                 return 0.0;
             };
             
-            state.raw_borrowed / (Float.fromInt(state.raw_supplied) * (1.0 - parameters.reserve_liquidity));
+            raw_borrowed / (Float.fromInt(raw_supplied) * (1.0 - parameters.reserve_liquidity));
         };
 
         /// Accrues interest for the past period and updates supply/borrow rates.
@@ -110,7 +123,7 @@ module {
         /// - `supply_rate` and `last_update_timestamp` are updated together and should never be stale relative to one another.
         ///
         /// This model ensures consistency and avoids forward-looking rate assumptions.
-        func update_index() {
+        func update_state({ utilization: Utilization }) {
 
             let time = clock.get_time();
             let elapsed_ns : Int = time - state.last_update_timestamp;
@@ -123,8 +136,8 @@ module {
                 return;
             };
 
-            // @todo: should the total borrowed be taken into account? what if it is not null?
-            if (state.raw_supplied <= 0) {
+            // @todo: not sure about that!
+            if (state.utilization.raw_supplied <= 0) {
                 Debug.print("No supply, no need to update rates");
                 state.last_update_timestamp := time;
                 return;
@@ -133,19 +146,19 @@ module {
             // Calculate the time period in years
             let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.last_update_timestamp; to = time; }));
 
-            // Calculate utilization ratio
-            let utilization = compute_utilization();
+            // Accrue the supply interests up to this date, need to be done before updating anything else!
+            state.supply_accrued_interests += Float.fromInt(utilization.raw_supplied) * state.supply_rate * elapsed_annual;
+
+            // Update the utilization
+            state.utilization := utilization;
 
             // Get the current rates from the curve
-            let borrow_rate = Math.percentage_to_ratio(interest_rate_curve.get_apr(utilization));
-            state.supply_rate := borrow_rate * utilization * (1.0 - parameters.protocol_fee);
+            let borrow_rate = Math.percentage_to_ratio(interest_rate_curve.get_apr(state.utilization.ratio));
+            state.supply_rate := borrow_rate * state.utilization.ratio * (1.0 - parameters.protocol_fee);
 
             // Update the indexes
             state.borrow_index := state.borrow_index * (1.0 + borrow_rate * elapsed_annual);
             state.supply_index := state.supply_index * (1.0 + state.supply_rate * elapsed_annual);
-            
-            // Accrue the supply interests
-            state.supply_accrued_interests += Float.fromInt(state.raw_supplied) * state.supply_rate * elapsed_annual;
             
             // Refresh update timestamp
             state.last_update_timestamp := time;

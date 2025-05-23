@@ -13,6 +13,7 @@ module {
     type IndexerState = LendingTypes.IndexerState;
     type LendingPoolRegister = LendingTypes.LendingPoolRegister;
     type Parameters = LendingTypes.Parameters;
+    type ILiquidityPool = LendingTypes.ILiquidityPool;
     type ILedgerFacade = PayementTypes.ILedgerFacade;
 
     public func build({
@@ -21,7 +22,7 @@ module {
         register: LendingPoolRegister;
         supply_ledger: ILedgerFacade;
         collateral_ledger: ILedgerFacade;
-        get_collateral_spot_in_asset: ({ time: Nat; }) -> Float;
+        liquidity_pool: ILiquidityPool;
         clock: Clock.IClock;
     }) : {
         indexer: Indexer.Indexer;
@@ -58,9 +59,10 @@ module {
             supply_withdrawals = withdrawal_queue;
             supply_ledger;
             collateral_ledger;
+            liquidity_pool;
             borrow_positionner = BorrowPositionner.BorrowPositionner({
                 parameters;
-                get_collateral_spot_in_asset;
+                liquidity_pool;
             });
         });
 

@@ -192,13 +192,11 @@ module {
     };
 
     public type BorrowRegister = {
-        var supply_balance: Nat;
         var collateral_balance: Nat;
         borrow_positions: Map.Map<Account, BorrowPosition>;
     };
 
     public type SupplyRegister = {
-        var supply_balance: Nat;
         supply_positions: Map.Map<Text, SupplyPosition>;
     };
 
@@ -207,14 +205,28 @@ module {
         withdraw_queue: Set.Set<Text>;
     };
 
+    public type Utilization = {
+        raw_supplied: Nat;
+        raw_borrowed: Float;
+        ratio: Float; // Utilization ratio (0.0 to 1.0)
+    };
+
     public type IndexerState = {
-        var raw_supplied: Nat;
-        var raw_borrowed: Float;
+        var utilization: Utilization;
         var supply_rate: Float; // supply percentage rate (ratio)
         var supply_accrued_interests: Float; // accrued supply interests
         var borrow_index: Float; // growing value, starts at 1.0
         var supply_index: Float; // growing value, starts at 1.0
         var last_update_timestamp: Nat; // last time the rates were updated
+    };
+
+    public type SIndexerState = {
+        utilization: Utilization;
+        supply_rate: Float;
+        supply_accrued_interests: Float;
+        borrow_index: Index;
+        supply_index: Index;
+        last_update_timestamp: Nat;
     };
 
     public type LendingPoolRegister = BorrowRegister and SupplyRegister and WithdrawalRegister;
@@ -223,6 +235,11 @@ module {
     public type CurvePoint = {
         utilization: Float; // Utilization ratio (0.0 to 1.0)
         percentage_rate: Float; // Annual Percentage Rate (APR) at this utilization (e.g., 5.0 for 5%)
+    };
+
+    public type ILiquidityPool = {
+        get_collateral_spot_in_asset: ({ time: Nat; }) -> Nat;
+        swap_collateral: ({ amount: Nat; }) -> Nat;
     };
 
 };

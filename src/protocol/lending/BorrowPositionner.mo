@@ -26,10 +26,11 @@ module {
     type BorrowPositionTx = LendingTypes.BorrowPositionTx;
     type BorrowPosition   = LendingTypes.BorrowPosition;
     type BorrowParameters = LendingTypes.BorrowParameters;
+    type ILiquidityPool   = LendingTypes.ILiquidityPool;
 
     // @todo: check how to handle position duration when collateral is added
     public class BorrowPositionner({
-        get_collateral_spot_in_asset: ({ time: Nat; }) -> Float;
+        liquidity_pool: ILiquidityPool;
         parameters: BorrowParameters;
     }){
 
@@ -166,7 +167,7 @@ module {
                 case(null) { 0.0; }; // @todo: check if no side effect
                 case(?b) { Owed.accrue_interests(b.owed, index).accrued_amount; };
             };
-            accrued_amount / (Float.fromInt(position.collateral.amount) * get_collateral_spot_in_asset({ time = index.timestamp; }));
+            accrued_amount / (Float.fromInt(position.collateral.amount * liquidity_pool.get_collateral_spot_in_asset({ time = index.timestamp; })));
         };
 
         public func is_inferior_max_ltv({

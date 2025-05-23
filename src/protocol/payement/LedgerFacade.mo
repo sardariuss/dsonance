@@ -24,13 +24,17 @@ module {
         provider: Principal; // @todo: should be a full account
         ledger: ICRC1.service and ICRC2.service;
         fee: Nat;
-    }){
+    }) : PayementTypes.ILedgerFacade {
 
         // @todo: should be checked at initialization
         var balance = 0;
 
         public func get_balance() : Nat {
             balance;
+        };
+
+        public func add_balance(amount: Nat) {
+            balance += amount;
         };
 
         public func transfer_from({

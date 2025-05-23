@@ -2,6 +2,7 @@ import LendingFactory "../../src/protocol/lending/LendingFactory";
 import PayementTypes "../../src/protocol/payement/Types";
 import LendingTypes "../../src/protocol/lending/Types";
 import LedgerFacadeMock "../mocks/LedgerFacadeMock";
+import LiquidityPoolMock "../mocks/LiquidityPoolMock";
 import Duration "../../src/protocol/duration/Duration";
 
 import { test; suite; } "mo:test/async";
@@ -92,7 +93,7 @@ await suite("LendingPool", func(): async() {
 
         let get_collateral_spot_in_asset = func({ time: Nat; }) : Float { 1.0; };
         
-        let lending_pool = LendingFactory.build({
+        let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             parameters;
             state;
             borrow_register;
@@ -112,7 +113,7 @@ await suite("LendingPool", func(): async() {
         time := Duration.toTime(#DAYS(1));
 
         // Lender supplies some assets
-        let supply_1_result = await* lending_pool.supply({
+        let supply_1_result = await* supply_registry.add_position({
             id = "supply1";
             timestamp = time;
             account = lender;
