@@ -46,7 +46,7 @@ module {
             update_state({ utilization = compute_utilization(Utilization.add_raw_supplied(state.utilization, amount)); });
         };
 
-        public func remove_raw_supplied({ amount: Nat; }) {
+        public func remove_raw_supplied({ amount: Float; }) {
             update_state({ utilization = compute_utilization(Utilization.remove_raw_supplied(state.utilization, amount)); });
         };
 
@@ -82,7 +82,7 @@ module {
         };
 
         public func compute_utilization({
-            raw_supplied: Nat;
+            raw_supplied: Float;
             raw_borrowed: Float;
         }) : Utilization {
             {
@@ -93,22 +93,23 @@ module {
         };
 
         func compute_utilization_ratio({
-            raw_supplied: Nat;
+            raw_supplied: Float;
             raw_borrowed: Float;
         }) : Float {
 
-            // @todo: what if raw_borrowed is negative?
+            if (raw_supplied < 0.0) {
+                Debug.trap("Logic error: raw supplied cannot be negative");
+            };
+            if (raw_borrowed < 0.0) {
+                Debug.trap("Logic error: raw borrowed cannot be negative");
+            };
 
-            if (raw_supplied == 0) {
-                if (raw_borrowed > 0) {
-                    // Treat utilization as 100% to maximize borrow rate
-                    return 1.0;
-                };
-                // No supply nor borrowed, consider that the utilization is null
-                return 0.0;
+            let available = raw_supplied * (1.0 - parameters.reserve_liquidity);
+            if (available == 0) {
+                return if (raw_borrowed > 0) { 1.0 } else { 0.0 };
             };
             
-            raw_borrowed / (Float.fromInt(raw_supplied) * (1.0 - parameters.reserve_liquidity));
+            Float.min(1.0, raw_borrowed / available);
         };
 
         /// Accrues interest for the past period and updates supply/borrow rates.
@@ -132,14 +133,9 @@ module {
             if (elapsed_ns < 0) {
                 Debug.trap("Cannot update rates: time is before last update");
             } else if (elapsed_ns == 0) {
+                // Sill Update the utilization
+                state.utilization := utilization;
                 Debug.print("Rates are already up to date");
-                return;
-            };
-
-            // @todo: not sure about that!
-            if (state.utilization.raw_supplied <= 0) {
-                Debug.print("No supply, no need to update rates");
-                state.last_update_timestamp := time;
                 return;
             };
 
@@ -147,7 +143,7 @@ module {
             let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.last_update_timestamp; to = time; }));
 
             // Accrue the supply interests up to this date, need to be done before updating anything else!
-            state.supply_accrued_interests += Float.fromInt(utilization.raw_supplied) * state.supply_rate * elapsed_annual;
+            state.supply_accrued_interests += utilization.raw_supplied * state.supply_rate * elapsed_annual;
 
             // Update the utilization
             state.utilization := utilization;

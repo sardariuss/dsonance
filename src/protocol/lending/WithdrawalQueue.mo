@@ -55,7 +55,7 @@ module {
                 Set.add(register.withdraw_queue, Set.thash, id);
             } else {
                 // If not, no transfer to be done, so we can remove the supplied amount right away!
-                indexer.remove_raw_supplied({ amount = supplied; });
+                indexer.remove_raw_supplied({ amount = Float.fromInt(supplied); });
             };
         };
 
@@ -142,13 +142,13 @@ module {
 
     };
 
-    func compute_raw_withdrawn(withdrawal: Withdrawal) : Nat {
+    func compute_raw_withdrawn(withdrawal: Withdrawal) : Float {
         let ratio_removed = Float.fromInt(withdrawal.transferred) / Float.fromInt(withdrawal.due);
-        let raw_withdrawn = Float.toInt(ratio_removed * Float.fromInt(withdrawal.supplied));
-        if (raw_withdrawn < 0){
+        let raw_withdrawn = ratio_removed * Float.fromInt(withdrawal.supplied);
+        if (raw_withdrawn < 0.0){
             Debug.trap("Logic error: supply removed shall never be negative");
         };
-        Int.abs(raw_withdrawn);
+        raw_withdrawn;
     };
 
 };

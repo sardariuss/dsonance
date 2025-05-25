@@ -1,7 +1,6 @@
 module {
 
     public type Times = {
-        #once;
         #times: Nat;
         #repeatedly;
     };

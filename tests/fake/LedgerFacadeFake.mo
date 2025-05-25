@@ -25,7 +25,7 @@ module {
 
         public func transfer(args: TransferArgs) : async* Transfer {
             if (args.amount > balance) {
-                Debug.trap("Not enough balance to transfer " # debug_show(args.amount) " to " # debug_show(args.to));
+                Debug.trap("Not enough balance to transfer " # debug_show(args.amount) # " to " # debug_show(args.to));
             };
             balance -= args.amount;
             { 

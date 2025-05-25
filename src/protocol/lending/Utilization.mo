@@ -9,16 +9,16 @@ module {
     type Utilization = LendingTypes.Utilization;
 
     public func add_raw_supplied(utilization: Utilization, amount: Nat) : Utilization {
-        let raw_supplied = utilization.raw_supplied + amount;
+        let raw_supplied = utilization.raw_supplied + Float.fromInt(amount);
         { utilization with raw_supplied; };
     };
 
-    public func remove_raw_supplied(utilization: Utilization, amount: Nat) : Utilization {
-        let raw_supplied : Int = utilization.raw_supplied - amount;
-        if (raw_supplied < 0){
+    public func remove_raw_supplied(utilization: Utilization, amount: Float) : Utilization {
+        let raw_supplied = utilization.raw_supplied - amount;
+        if (raw_supplied < 0.0){
             Debug.trap("Cannot remove more than total supplied");
         };
-        { utilization with raw_supplied = Int.abs(raw_supplied); };
+        { utilization with raw_supplied; };
     };
 
     public func add_raw_borrow(utilization: Utilization, amount: Nat) : Utilization {
@@ -27,7 +27,7 @@ module {
     };
 
     public func remove_raw_borrow(utilization: Utilization, amount: Float) : Utilization {
-        let raw_borrowed : Float = utilization.raw_borrowed - amount;
+        let raw_borrowed = utilization.raw_borrowed - amount;
         if (raw_borrowed < 0.0){
             Debug.trap("Cannot remove more than total borrowed");
         };

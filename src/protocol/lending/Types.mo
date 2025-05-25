@@ -173,7 +173,6 @@ module {
 
     public type SupplyInput = {
         id: Text;
-        timestamp: Nat;
         account: Account;
         supplied: Nat;
     };
@@ -206,7 +205,7 @@ module {
     };
 
     public type Utilization = {
-        raw_supplied: Nat;
+        raw_supplied: Float;
         raw_borrowed: Float;
         ratio: Float; // Utilization ratio (0.0 to 1.0)
     };
