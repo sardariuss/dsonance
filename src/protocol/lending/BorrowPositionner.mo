@@ -3,6 +3,7 @@ import Debug "mo:base/Debug";
 import Float "mo:base/Float";
 import Nat "mo:base/Nat";
 import Result "mo:base/Result";
+import Int "mo:base/Int";
 
 import Types "../Types";
 import Borrow "Borrow";
@@ -21,7 +22,7 @@ module {
     type Index            = LendingTypes.Index;
     type Collateral       = LendingTypes.Collateral;
     type Borrow           = LendingTypes.Borrow;
-    type RepaymentArgs    = LendingTypes.RepaymentArgs;
+    type Repayment        = LendingTypes.Repayment;
     type RepaymentInfo    = LendingTypes.RepaymentInfo;
     type BorrowPositionTx = LendingTypes.BorrowPositionTx;
     type BorrowPosition   = LendingTypes.BorrowPosition;
@@ -115,7 +116,7 @@ module {
         public func repay_supply({
             position: BorrowPosition;
             index: Index;
-            args: RepaymentArgs;
+            repayment: Repayment;
         }) : Result<RepaymentInfo, Text> {
 
             let borrow = switch(position.borrow){
@@ -123,58 +124,68 @@ module {
                 case(?b) { b; };
             };
 
-            let amount = switch(args){
-                case(#PARTIAL(amount)) { amount; };
-                case(#FULL) { Owed.owed_amount(borrow.owed, index); };
-            };
+            Debug.print("borrow raw amount: " # Float.toText(borrow.raw_amount));
 
-            let remaining = switch(Borrow.slash(borrow, Owed.new(amount, index))){
-                case(#err(err)) { return #err(err); };
-                case(#ok(b)) { b; };
+            switch(repayment){
+                case(#PARTIAL(amount)) { 
+                    let remaining = switch(Borrow.slash(borrow, { accrued_amount = Float.fromInt(amount); index; })){
+                        case(#err(err)) { return #err(err); };
+                        case(#ok(b)) { b; };
+                    };
+                    let raw_repaid = switch(remaining){
+                        case(null) { borrow.raw_amount; };
+                        case(?r) { borrow.raw_amount - r.raw_amount; };
+                    };
+                    #ok({ amount; remaining; raw_repaid; });
+                };
+                case(#FULL) { 
+                    let due = Owed.accrue_interests(borrow.owed, index).accrued_amount;
+                    #ok({
+                        amount = Int.abs(Float.toInt(Float.ceil(due)));
+                        raw_repaid = borrow.raw_amount;
+                        remaining = null; // Borrow is fully repaid
+                    });
+                };
             };
-
-            let raw_difference = switch(remaining){
-                case(null) { borrow.raw_amount; };
-                case(?remain) { borrow.raw_amount - remain.raw_amount; };
-            };
-
-            #ok({
-                amount;
-                raw_difference;
-                remaining;
-            });
         };
 
         public func compute_health_factor({
-            position: BorrowPosition;
+            borrow: Borrow;
+            collateral: Collateral;
             index: Index;
         }) : Float {
-            parameters.liquidation_threshold / compute_ltv({ position; index; });
+            parameters.liquidation_threshold / compute_ltv({ borrow; collateral; index; });
         };
 
         public func is_healthy({
             position: BorrowPosition;
             index: Index;
         }) : Bool {
-            compute_health_factor({ position; index; }) > 1.0;
+            switch(position.borrow){
+                case(null) { true; }; // No borrow means no risk
+                case(?b) { compute_health_factor({ borrow = b; collateral = position.collateral; index; }) > 1.0; };
+            };
         };
 
         public func compute_ltv({
-            position: BorrowPosition;
+            borrow: Borrow;
+            collateral: Collateral;
             index: Index;
         }) : Float {
-            let accrued_amount = switch(position.borrow){
-                case(null) { 0.0; }; // @todo: check if no side effect
-                case(?b) { Owed.accrue_interests(b.owed, index).accrued_amount; };
-            };
-            accrued_amount / (Float.fromInt(position.collateral.amount * liquidity_pool.get_collateral_spot_in_asset({ time = index.timestamp; })));
+            Owed.accrue_interests(borrow.owed, index).accrued_amount 
+            / (Float.fromInt(collateral.amount * liquidity_pool.get_collateral_spot_in_asset({ time = index.timestamp; })));
         };
 
         public func is_inferior_max_ltv({
             position: BorrowPosition;
             index: Index;
         }) : Bool {
-            compute_ltv({ position; index; }) < parameters.max_ltv;
+            switch(position.borrow){
+                case(null) { true; }; // No borrow means no risk
+                case(?b) { 
+                    compute_ltv({ borrow = b; collateral = position.collateral; index; }) < parameters.max_ltv;
+                };
+            };
         };
 
     };

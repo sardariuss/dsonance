@@ -4,6 +4,7 @@ import LendingTypes "Types";
 import Result "mo:base/Result";
 import Float "mo:base/Float";
 import Int "mo:base/Int";
+import Debug "mo:base/Debug";
 
 module {
 
@@ -28,10 +29,6 @@ module {
             index;
             accrued_amount = owed.accrued_amount * index.value / owed.index.value;
         };
-    };
-
-    public func owed_amount(owed: Owed, index: Index) : Nat {
-        Int.abs(Float.toInt(Float.ceil(accrue_interests(owed, index).accrued_amount)));
     };
 
     public func sum(augend: Owed, addend: Owed) : Result<Owed, Text> {

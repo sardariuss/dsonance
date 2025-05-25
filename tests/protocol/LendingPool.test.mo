@@ -14,20 +14,20 @@ import Fuzz "mo:fuzz";
 
 import { verify; Testify; } = "../utils/Testify";
 
-    await suite("LendingPool", func(): async() {
+await suite("LendingPool", func(): async() {
 
-        type Account = PayementTypes.Account;
-        type BorrowPosition = LendingTypes.BorrowPosition;
-        type SupplyPosition = LendingTypes.SupplyPosition;
-        type Withdrawal = LendingTypes.Withdrawal;
-        type Parameters = LendingTypes.Parameters;
-        type SupplyRegister = LendingTypes.SupplyRegister;
-        type BorrowRegister = LendingTypes.BorrowRegister;
-        type SupplyInput = LendingTypes.SupplyInput;
+    type Account = PayementTypes.Account;
+    type BorrowPosition = LendingTypes.BorrowPosition;
+    type SupplyPosition = LendingTypes.SupplyPosition;
+    type Withdrawal = LendingTypes.Withdrawal;
+    type Parameters = LendingTypes.Parameters;
+    type SupplyRegister = LendingTypes.SupplyRegister;
+    type BorrowRegister = LendingTypes.BorrowRegister;
+    type SupplyInput = LendingTypes.SupplyInput;
 
-        let fuzz = Fuzz.fromSeed(0);
+    let fuzz = Fuzz.fromSeed(0);
 
-        await test("First", func() : async() {
+    await test("Nominal test", func() : async() {
 
         // === Setup Phase ===
 
@@ -148,6 +148,65 @@ import { verify; Testify; } = "../utils/Testify";
         // Supply rate became non-zero only after this update — not enough time passed for interest
         // So supply_index is still 1.0 — this is correct behavior!
         verify(indexer.get_state().supply_index.value, 1.0, Testify.float.equalEpsilon9);
+
+        // === Advance Time to Day 10 (interest should accrue) ===
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(10)))), #repeatedly);
+
+        // Trigger an index update by reading state
+        let state_day10 = indexer.get_state();
+
+        // Borrow index should have increased more due to time and utilization
+        verify(state_day10.borrow_index.value, 1.0, Testify.float.greaterThan);
+
+        // Supply index should now also have increased due to non-zero supply rate
+        verify(state_day10.supply_index.value, 1.0, Testify.float.greaterThan);
+
+        // === Borrower Repayment ===
+
+        // Borrower repays FULL amount, got to 201 tokens to account for accrued interest
+        let repay_result = await* borrow_registry.repay({
+            account = borrower;
+            repayment = #FULL;
+        });
+        verify(repay_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+
+        // Supply ledger should now hold 1001
+        verify(supply_ledger.get_balance(), 1001, Testify.int.equal);
+
+        // Utilization should return to 0
+        verify(indexer.get_state().utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_state().utilization.ratio, 0.0, Testify.float.equalEpsilon9);
+
+        // === Lender Withdrawal ===
+
+        // Advance to Day 20 to ensure some interest has accrued
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(20)))), #repeatedly);
+
+        let withdraw_result = await* supply_registry.remove_position({
+            id = "supply1";
+            share = 1.0; // Full withdrawal
+        });
+
+        verify(withdraw_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+
+        // Final state checks: indexes still increasing, no liquidation, clean balances
+        let final_state = indexer.get_state();
+        verify(final_state.borrow_index.value, 1.0, Testify.float.greaterThan);
+        verify(final_state.supply_index.value, 1.0, Testify.float.greaterThan);
+
+        // Collateral is untouched, since no liquidation
+        verify(register.collateral_balance, 5000, Testify.int.equal);
+
+        // === Collateral Withdrawal ===
+
+        // Borrower withdraw 5000 worth of collateral
+        let collateral_withdrawal_result = await* borrow_registry.withdraw_collateral({
+            account = borrower;
+            amount = 5000;
+        });
+        verify(collateral_withdrawal_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(register.collateral_balance, 0, Testify.int.equal);
+
     });
 
 })

@@ -134,14 +134,14 @@ module {
         owed: Owed;
     };
 
-    public type RepaymentArgs  = {
+    public type Repayment  = {
         #PARTIAL: Nat;
         #FULL;
     };
 
     public type RepaymentInfo = {
         amount: Nat;
-        raw_difference: Float;
+        raw_repaid: Float;
         remaining: ?Borrow;
     };
 

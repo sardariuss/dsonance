@@ -145,6 +145,22 @@ module {
                 toText = intToText;
                 compare = func (x : Nat, y : Nat) : Bool { x == y };
             };
+            greaterThan : Testify<Nat> = {
+                toText = intToText;
+                compare = func (x : Nat, y : Nat) : Bool { x > y };
+            };
+            greaterThanOrEqual : Testify<Nat> = {
+                toText = intToText;
+                compare = func (x : Nat, y : Nat) : Bool { x >= y };
+            };
+            lessThan : Testify<Nat> = {
+                toText = intToText;
+                compare = func (x : Nat, y : Nat) : Bool { x < y };
+            };
+            lessThanOrEqual : Testify<Nat> = {
+                toText = intToText;
+                compare = func (x : Nat, y : Nat) : Bool { x <= y };
+            };
         };
 
         public let nat8 = {

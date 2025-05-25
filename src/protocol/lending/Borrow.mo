@@ -54,13 +54,13 @@ module {
             return #err("Borrow.repay error: Invalid borrow");
         };
 
+        if (owed.accrued_amount <= EPSILON) {
+            return #err("Borrow.repay error: Repayment owed.accrued_amount too small");
+        };
+
         let update_owed = switch(Owed.sub(borrow.owed, owed)){
             case(#err(err)) { return #err(err); };
             case(#ok(o)) { o; };
-        };
-
-        if (owed.accrued_amount <= EPSILON) {
-            return #err("Borrow.repay error: Repayment owed.accrued_amount too small");
         };
 
         // Compute the raw amount left after slashing

@@ -30,7 +30,6 @@ module {
     type SupplyPosition      = LendingTypes.SupplyPosition;
     type SupplyInput         = LendingTypes.SupplyInput;
     type BorrowPosition      = LendingTypes.BorrowPosition;
-    type RepaymentArgs       = LendingTypes.RepaymentArgs;
     type LendingPoolState    = LendingTypes.LendingPoolState;
     type SellCollateralQuery = LendingTypes.SellCollateralQuery;
     type DebtEntry           = LendingTypes.DebtEntry;

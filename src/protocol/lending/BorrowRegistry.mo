@@ -23,7 +23,7 @@ module {
     type TxIndex = Types.TxIndex;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     
-    type RepaymentArgs         = LendingTypes.RepaymentArgs;
+    type Repayment       = LendingTypes.Repayment;
     type BorrowPosition        = LendingTypes.BorrowPosition;
     type QueriedBorrowPosition = LendingTypes.QueriedBorrowPosition;
     type Index                 = LendingTypes.Index;
@@ -86,13 +86,14 @@ module {
         public func withdraw_collateral({
             account: Account;
             amount: Nat;
-            index: Index;
         }) : async* Result<(), Text> {
 
             let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
                 case(null) { return #err("No position found for account " # debug_show(account)); };
                 case(?p) { p; };
             };
+
+            let index = indexer.get_state().borrow_index;
 
             // Remove the collateral from the borrow position
             var update = switch(borrow_positionner.withdraw_collateral({ position; amount; index; })){
@@ -170,7 +171,7 @@ module {
 
         public func repay({
             account: Account;
-            args: RepaymentArgs;
+            repayment: Repayment;
         }) : async* Result<(), Text> {
             
             let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
@@ -180,7 +181,7 @@ module {
 
             let index = indexer.get_state().borrow_index;
 
-            let { amount; remaining; raw_difference; } = switch(borrow_positionner.repay_supply({ position; index; args; })){
+            let { amount; raw_repaid; remaining; } = switch(borrow_positionner.repay_supply({ position; index; repayment; })){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
@@ -195,7 +196,9 @@ module {
             var update = { position with borrow = remaining; };
             update := BorrowPositionner.add_tx({ position = update; tx = #SUPPLY_REPAID(tx); });
             Map.set(register.borrow_positions, MapUtils.acchash, account, update);
-            indexer.remove_raw_borrow({ amount = raw_difference });
+
+            Debug.print("Raw difference after repayment: " # debug_show(raw_repaid));
+            indexer.remove_raw_borrow({ amount = raw_repaid });
 
             // Once a position is repaid, it might allow the unlock withdrawal of supply
             ignore supply_withdrawals.process_pending_withdrawals();
@@ -263,20 +266,20 @@ module {
 //            };
         };
 
-        public func query_borrow_position({ account: Account; index: Index; }) : ?QueriedBorrowPosition {
-
-            switch (Map.get(register.borrow_positions, MapUtils.acchash, account)){
-                case(null) { null; };
-                case(?position) {
-                    ?{
-                        position;
-                        health = borrow_positionner.compute_health_factor({ position; index; });
-                        //borrow_duration_ns = borrow_positionner.borrow_duration_ns({ position; index; });
-                        owed = 0.0; // @todo: compute the owed amount
-                    };
-                };
-            };
-        };
+//        public func query_borrow_position({ account: Account; index: Index; }) : ?QueriedBorrowPosition {
+//
+//            switch (Map.get(register.borrow_positions, MapUtils.acchash, account)){
+//                case(null) { null; };
+//                case(?position) {
+//                    ?{
+//                        position;
+//                        health = borrow_positionner.compute_health_factor({ position; index; });
+//                        //borrow_duration_ns = borrow_positionner.borrow_duration_ns({ position; index; });
+//                        owed = 0.0; // @todo: compute the owed amount
+//                    };
+//                };
+//            };
+//        };
 
         public func get_liquidable_positions() : Map.Iter<BorrowPosition> {
             let index = indexer.get_state().borrow_index;
