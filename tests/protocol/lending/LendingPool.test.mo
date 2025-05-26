@@ -75,8 +75,6 @@ await suite("LendingPool", func(): async() {
         let collateral_ledger = LedgerFacadeFake.LedgerFacadeFake();
         let liquidity_pool = LiquidityPoolFake.LiquidityPoolFake({
             start_price = 100;
-            supply_ledger;
-            collateral_ledger;
         });
 
         // Build the lending system
@@ -260,8 +258,6 @@ await suite("LendingPool", func(): async() {
         let collateral_ledger = LedgerFacadeFake.LedgerFacadeFake();
         let liquidity_pool = LiquidityPoolFake.LiquidityPoolFake({
             start_price = 1.0; // Start with a price of 1.0
-            supply_ledger;
-            collateral_ledger;
         });
 
         let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
@@ -283,6 +279,7 @@ await suite("LendingPool", func(): async() {
             account = lender;
             supplied = 1000;
         });
+        verify(supply_ledger.get_balance(), 1000, Testify.nat.equal); // Tokens moved into the pool
         verify(supply_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
 
         // Borrower supplies 2000 worth of collateral
@@ -298,6 +295,8 @@ await suite("LendingPool", func(): async() {
             amount = 500;
         });
         verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(supply_ledger.get_balance(), 500, Testify.nat.equal); // 1000 supplied - 500 borrowed
+        verify(register.collateral_balance, 2000, Testify.int.equal); // Collateral is still 2000
 
         // Advance time to accrue some interest
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(10)))), #repeatedly);
@@ -353,7 +352,7 @@ await suite("LendingPool", func(): async() {
         verify(register.collateral_balance, 0, Testify.int.equal);
 
         // Supply ledger should have increased (liquidation proceeds)
-        verify(supply_ledger.get_balance(), 1500, Testify.nat.equal); // 1000 from supply + 500 from liquidation
+        verify(supply_ledger.get_balance(), 1000, Testify.nat.equal); // 1000 from supply + 500 from liquidation
 
     });
 

@@ -2,7 +2,6 @@ import Nat "mo:base/Nat";
 import Map "mo:map/Map";
 import Result "mo:base/Result";
 import Debug "mo:base/Debug";
-import Int "mo:base/Int";
 import Float "mo:base/Float";
 import Option "mo:base/Option";
 
