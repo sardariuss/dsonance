@@ -11,8 +11,9 @@ import { test; suite; } "mo:test/async";
 import Map "mo:map/Map";
 import Set "mo:map/Set";
 import Fuzz "mo:fuzz";
+import Debug "mo:base/Debug";
 
-import { verify; Testify; } = "../../utils/Testify";
+import { verify; optionalTestify; Testify; } = "../../utils/Testify";
 
 await suite("LendingPool", func(): async() {
 
@@ -72,7 +73,11 @@ await suite("LendingPool", func(): async() {
 
         let supply_ledger = LedgerFacadeFake.LedgerFacadeFake();
         let collateral_ledger = LedgerFacadeFake.LedgerFacadeFake();
-        let liquidity_pool = LiquidityPoolFake.LiquidityPoolFake(100);
+        let liquidity_pool = LiquidityPoolFake.LiquidityPoolFake({
+            start_price = 100;
+            supply_ledger;
+            collateral_ledger;
+        });
 
         // Build the lending system
         let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
@@ -206,6 +211,149 @@ await suite("LendingPool", func(): async() {
         });
         verify(collateral_withdrawal_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
         verify(register.collateral_balance, 0, Testify.int.equal);
+
+    });
+
+    await test("Liquidation on collateral price crash", func() : async() {
+
+        // === Setup Phase (same as nominal) ===
+
+        let clock = ClockMock.ClockMock();
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
+
+        let parameters = {
+            liquidation_penalty = 0.1;
+            reserve_liquidity = 0.1;
+            protocol_fee = 0.1;
+            max_slippage = 0.1;
+            max_ltv = 0.75;
+            liquidation_threshold = 0.85;
+            interest_rate_curve = [
+                { utilization = 0.0; percentage_rate = 0.02 },
+                { utilization = 0.8; percentage_rate = 0.2 },
+                { utilization = 1.0; percentage_rate = 1.0 },
+            ];
+        };
+
+        let state = {
+            var supply_rate = 0.0;
+            var supply_accrued_interests = 0.0;
+            var borrow_index = 1.0;
+            var supply_index = 1.0;
+            var last_update_timestamp = clock.get_time();  // Day 1
+            var utilization = {
+                raw_supplied = 0.0;
+                raw_borrowed = 0.0;
+                ratio = 0.0;
+            };
+        };
+
+        let register = {
+            var collateral_balance: Nat = 0;
+            borrow_positions = Map.new<Account, BorrowPosition>();
+            supply_positions = Map.new<Text, SupplyPosition>();
+            withdrawals = Map.new<Text, Withdrawal>();
+            withdraw_queue = Set.new<Text>();
+        };
+
+        let supply_ledger = LedgerFacadeFake.LedgerFacadeFake();
+        let collateral_ledger = LedgerFacadeFake.LedgerFacadeFake();
+        let liquidity_pool = LiquidityPoolFake.LiquidityPoolFake({
+            start_price = 1.0; // Start with a price of 1.0
+            supply_ledger;
+            collateral_ledger;
+        });
+
+        let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
+            clock;
+            liquidity_pool;
+            parameters;
+            state;
+            register;
+            supply_ledger;
+            collateral_ledger;
+        });
+
+        let lender = Fuzz.fromSeed(1).icrc1.randomAccount();
+        let borrower = Fuzz.fromSeed(2).icrc1.randomAccount();
+
+        // Lender supplies 1000 tokens
+        let supply_1_result = await* supply_registry.add_position({
+            id = "supply1";
+            account = lender;
+            supplied = 1000;
+        });
+        verify(supply_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+
+        // Borrower supplies 2000 worth of collateral
+        let collateral_1_result = await* borrow_registry.supply_collateral({
+            account = borrower;
+            amount = 2000;
+        });
+        verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+
+        // Borrower borrows 500 tokens
+        let borrow_1_result = await* borrow_registry.borrow({
+            account = borrower;
+            amount = 500;
+        });
+        verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+
+        // Advance time to accrue some interest
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(10)))), #repeatedly);
+        ignore indexer.get_state();
+
+        // Check health before price crash (should be healthy)
+        let before_liquidation = borrow_registry.query_borrow_position({ account = borrower });
+        switch (before_liquidation) {
+            case (?qbp) {
+                Debug.print("Health before crash: " # debug_show(qbp.health));
+                verify(qbp.health, ?1.0, optionalTestify(Testify.float.greaterThan));
+            };
+            case null {
+                verify(false, true, Testify.bool.equal); // Should have a position
+            };
+        };
+
+        // Simulate a collateral price crash
+        liquidity_pool.set_price(0.25); // Drastically lower the price
+
+        // Advance time to ensure state update uses new price
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(11)))), #repeatedly);
+        ignore indexer.get_state();
+
+        // Check health after price crash (should be unhealthy)
+        let after_crash = borrow_registry.query_borrow_position({ account = borrower });
+        switch (after_crash) {
+            case (?qbp) {
+                Debug.print("Health after crash: " # debug_show(qbp.health));
+                verify(qbp.health, ?1.0, optionalTestify(Testify.float.lessThan));
+            };
+            case null {
+                verify(false, true, Testify.bool.equal); // Should have a position
+            };
+        };
+
+        // Call liquidation
+        await* borrow_registry.check_all_positions_and_liquidate();
+
+        // After liquidation, the borrow position should have borrow = null and collateral = 0
+        let after_liquidation = borrow_registry.query_borrow_position({ account = borrower });
+        switch (after_liquidation) {
+            case (?qbp) {
+                verify(qbp.position.collateral.amount, 0, Testify.int.equal);
+                verify(qbp.position.borrow, null, optionalTestify(Testify.borrow.equal));
+            };
+            case null {
+                verify(false, true, Testify.bool.equal); // Should still have a position object
+            };
+        };
+
+        // Collateral balance should be 0
+        verify(register.collateral_balance, 0, Testify.int.equal);
+
+        // Supply ledger should have increased (liquidation proceeds)
+        verify(supply_ledger.get_balance(), 1500, Testify.nat.equal); // 1000 from supply + 500 from liquidation
 
     });
 

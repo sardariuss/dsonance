@@ -19,6 +19,13 @@ module {
             balance += amount;
         };
 
+        public func sub_balance(amount: Nat) {
+            if (amount > balance) {
+                Debug.trap("Not enough balance to subtract " # debug_show(amount));
+            };
+            balance -= amount;
+        };
+
         public func get_balance() : Nat {
             balance;
         };

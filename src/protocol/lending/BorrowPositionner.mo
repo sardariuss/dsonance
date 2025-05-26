@@ -6,7 +6,7 @@ import Result "mo:base/Result";
 import Int "mo:base/Int";
 
 import Types "../Types";
-import Borrow "Borrow";
+import Borrow "./primitives/Borrow";
 import Collateral "./primitives/Collateral";
 import Index "./primitives/Index";
 import Owed "./primitives/Owed";
@@ -148,20 +148,26 @@ module {
         };
 
         public func compute_health_factor({
-            borrow: Borrow;
-            collateral: Collateral;
+            position: BorrowPosition;
             index: Index;
-        }) : Float {
-            parameters.liquidation_threshold / compute_ltv({ borrow; collateral; index; });
+        }) : ?Float {
+            switch(position.borrow){
+                case(null) { return null; }; // No borrow means no risk
+                case(?borrow) {
+                    let ltv = compute_ltv({ borrow; collateral = position.collateral; index; });
+                    if (ltv == 0.0) { return null; }; // No risk if LTV is zero
+                    ?(parameters.liquidation_threshold / ltv);
+                };
+            };
         };
 
         public func is_healthy({
             position: BorrowPosition;
             index: Index;
         }) : Bool {
-            switch(position.borrow){
-                case(null) { true; }; // No borrow means no risk
-                case(?b) { compute_health_factor({ borrow = b; collateral = position.collateral; index; }) > 1.0; };
+            switch(compute_health_factor({ position; index; })){
+                case(null) { true; }; // No risk
+                case(?h) { h > 1.0; };
             };
         };
 

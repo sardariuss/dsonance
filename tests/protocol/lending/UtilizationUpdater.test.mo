@@ -1,5 +1,4 @@
 import UtilizationUpdater "../../../src/protocol/lending/UtilizationUpdater";
-import LendingTypes "../../../src/protocol/lending/Types";
 import { test; suite; } "mo:test";
 import { verify; Testify; } = "../../utils/Testify";
 

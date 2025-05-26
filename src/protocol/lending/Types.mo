@@ -164,8 +164,7 @@ module {
     public type QueriedBorrowPosition = {
         position: BorrowPosition;
         owed: Float;
-        health: Float;
-        //borrow_duration_ns: Nat;
+        health: ?Float;
     };
 
     public type Index = {

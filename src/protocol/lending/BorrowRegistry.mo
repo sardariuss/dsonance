@@ -281,20 +281,21 @@ module {
 //            asset_accounting.unsolved_debts := Buffer.toArray(debts_left);
 //        };
 
-//        public func query_borrow_position({ account: Account; index: Index; }) : ?QueriedBorrowPosition {
-//
-//            switch (Map.get(register.borrow_positions, MapUtils.acchash, account)){
-//                case(null) { null; };
-//                case(?position) {
-//                    ?{
-//                        position;
-//                        health = borrow_positionner.compute_health_factor({ position; index; });
-//                        //borrow_duration_ns = borrow_positionner.borrow_duration_ns({ position; index; });
-//                        owed = 0.0; // @todo: compute the owed amount
-//                    };
-//                };
-//            };
-//        };
+        public func query_borrow_position({ account: Account; }) : ?QueriedBorrowPosition {
+
+            let index = indexer.get_state().borrow_index;
+
+            switch (Map.get(register.borrow_positions, MapUtils.acchash, account)){
+                case(null) { null; };
+                case(?position) {
+                    ?{
+                        position;
+                        health = borrow_positionner.compute_health_factor({ position; index; });
+                        owed = 0.0; // @todo: compute the owed amount
+                    };
+                };
+            };
+        };
 
         public func get_liquidable_positions() : Map.Iter<BorrowPosition> {
             let index = indexer.get_state().borrow_index;
