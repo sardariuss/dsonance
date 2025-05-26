@@ -1,10 +1,10 @@
-import LendingFactory "../../src/protocol/lending/LendingFactory";
-import PayementTypes "../../src/protocol/payement/Types";
-import LendingTypes "../../src/protocol/lending/Types";
-import LiquidityPoolFake "../fake/LiquidityPoolFake";
-import LedgerFacadeFake "../fake/LedgerFacadeFake";
-import Duration "../../src/protocol/duration/Duration";
-import ClockMock "../mocks/ClockMock";
+import LendingFactory "../../../src/protocol/lending/LendingFactory";
+import PayementTypes "../../../src/protocol/payement/Types";
+import LendingTypes "../../../src/protocol/lending/Types";
+import LiquidityPoolFake "../../fake/LiquidityPoolFake";
+import LedgerFacadeFake "../../fake/LedgerFacadeFake";
+import Duration "../../../src/protocol/duration/Duration";
+import ClockMock "../../mocks/ClockMock";
 
 import { test; suite; } "mo:test/async";
 
@@ -12,7 +12,7 @@ import Map "mo:map/Map";
 import Set "mo:map/Set";
 import Fuzz "mo:fuzz";
 
-import { verify; Testify; } = "../utils/Testify";
+import { verify; Testify; } = "../../utils/Testify";
 
 await suite("LendingPool", func(): async() {
 
@@ -75,7 +75,7 @@ await suite("LendingPool", func(): async() {
         let liquidity_pool = LiquidityPoolFake.LiquidityPoolFake(100);
 
         // Build the lending system
-        let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
             clock;
             liquidity_pool;
             parameters;

@@ -86,9 +86,12 @@ module {
         var collateral_balance: Int; // total amount of asset collateralized
     };
 
+    public type UtilizationParameters = {
+        reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
+    };
+
     public type LendingPoolParameters = {
         liquidation_penalty: Float; // ratio, between 0 and 1, e.g. 0.10
-        reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
         protocol_fee: Float; // portion of the supply interest reserved as a fee for the protocol
         max_slippage: Float;
     };
@@ -99,11 +102,10 @@ module {
         //max_borrow_duration: Duration; // the maximum duration a borrow position can last before it gets liquidated
     };
 
-    public type Parameters = LendingPoolParameters and BorrowParameters and {
+    public type Parameters = LendingPoolParameters and BorrowParameters and UtilizationParameters and{
         interest_rate_curve: [CurvePoint];
     };
 
-    // @todo: Take care of the slippage
     public type SellCollateralQuery = ({
         amount: Nat;
     }) -> async* ();
@@ -187,7 +189,7 @@ module {
         supplied: Nat;
         due: Nat;
         var transferred: Nat;
-        var transfers: [Transfer]; // @todo: need to limit the number of transfers
+        var transfers: [Transfer]; // TODO: need to limit the number of transfers
     };
 
     public type BorrowRegister = {
@@ -237,7 +239,7 @@ module {
     };
 
     public type ILiquidityPool = {
-        get_collateral_spot_in_asset: ({ time: Nat; }) -> Nat;
+        get_collateral_spot_in_asset: ({ time: Nat; }) -> Float;
         swap_collateral: ({ amount: Nat; }) -> Nat;
     };
 

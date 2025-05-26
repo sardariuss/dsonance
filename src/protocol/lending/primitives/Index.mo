@@ -1,4 +1,4 @@
-import LendingTypes "Types";
+import LendingTypes "../Types";
 
 module {
 
@@ -13,7 +13,7 @@ module {
     };
 
     public func is_valid(index: Index) : Bool {
-        index.timestamp > 0 and index.value > 0.0;
+        index.value >= 0.0;
     };
     
 };

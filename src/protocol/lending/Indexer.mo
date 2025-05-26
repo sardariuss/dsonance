@@ -10,7 +10,7 @@ import Types "../Types";
 import Duration "../duration/Duration";
 import LendingTypes "Types";
 import Clock "../utils/Clock";
-import Utilization "Utilization";
+import UtilizationUpdater "UtilizationUpdater";
 
 module {
 
@@ -28,6 +28,7 @@ module {
         state: IndexerState;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
         clock: Clock.IClock;
+        utilization_updater: UtilizationUpdater.UtilizationUpdater
     }){
 
         public func get_state() : SIndexerState {
@@ -43,19 +44,35 @@ module {
         };
 
         public func add_raw_supplied({ amount: Nat; }) {
-            update_state({ utilization = compute_utilization(Utilization.add_raw_supplied(state.utilization, amount)); });
+            let utilization = switch(utilization_updater.add_raw_supplied(state.utilization, amount)){
+                case(#err(err)) { Debug.trap(err); };
+                case(#ok(u)){ u; };
+            };
+            update_state({ utilization; });
         };
 
         public func remove_raw_supplied({ amount: Float; }) {
-            update_state({ utilization = compute_utilization(Utilization.remove_raw_supplied(state.utilization, amount)); });
+            let utilization = switch(utilization_updater.remove_raw_supplied(state.utilization, amount)){
+                case(#err(err)) { Debug.trap(err); };
+                case(#ok(u)){ u; };
+            };
+            update_state({ utilization; });
         };
 
         public func add_raw_borrow({ amount: Nat; }) {
-            update_state({ utilization = compute_utilization(Utilization.add_raw_borrow(state.utilization, amount)); });
+            let utilization = switch(utilization_updater.add_raw_borrow(state.utilization, amount)){
+                case(#err(err)) { Debug.trap(err); };
+                case(#ok(u)){ u; };
+            };
+            update_state({ utilization; });
         };
 
         public func remove_raw_borrow({ amount: Float; }) {
-            update_state({ utilization = compute_utilization(Utilization.remove_raw_borrow(state.utilization, amount)); });
+            let utilization = switch(utilization_updater.remove_raw_borrow(state.utilization, amount)){
+                case(#err(err)) { Debug.trap(err); };
+                case(#ok(u)){ u; };
+            };
+            update_state({ utilization; });
         };
 
         public func split_supply_interests({ share: Float; minimum: Int; }) : Result<Int, Text> {
@@ -81,37 +98,6 @@ module {
             //});
         };
 
-        public func compute_utilization({
-            raw_supplied: Float;
-            raw_borrowed: Float;
-        }) : Utilization {
-            {
-                ratio = compute_utilization_ratio({ raw_supplied; raw_borrowed; });
-                raw_supplied;
-                raw_borrowed;
-            };
-        };
-
-        func compute_utilization_ratio({
-            raw_supplied: Float;
-            raw_borrowed: Float;
-        }) : Float {
-
-            if (raw_supplied < 0.0) {
-                Debug.trap("Logic error: raw supplied cannot be negative");
-            };
-            if (raw_borrowed < 0.0) {
-                Debug.trap("Logic error: raw borrowed cannot be negative");
-            };
-
-            let available = raw_supplied * (1.0 - parameters.reserve_liquidity);
-            if (available == 0) {
-                return if (raw_borrowed > 0) { 1.0 } else { 0.0 };
-            };
-            
-            Float.min(1.0, raw_borrowed / available);
-        };
-
         /// Accrues interest for the past period and updates supply/borrow rates.
         ///
         /// This function should be called at the boundary between two periods, with `time`
@@ -124,7 +110,7 @@ module {
         /// - `supply_rate` and `last_update_timestamp` are updated together and should never be stale relative to one another.
         ///
         /// This model ensures consistency and avoids forward-looking rate assumptions.
-        func update_state({ utilization: Utilization }) {
+        public func update_state({ utilization: Utilization }) {
 
             let time = clock.get_time();
             let elapsed_ns : Int = time - state.last_update_timestamp;

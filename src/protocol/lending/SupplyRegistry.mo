@@ -52,7 +52,7 @@ module {
             };
 
             // TODO: small risk here that a user call add_position twice in parallel, two transfer succeed,
-            // and only position is set
+            // and only one position is set
 
             Map.set(register.supply_positions, Map.thash, id, { input with tx; });
             indexer.add_raw_supplied({ amount = supplied; });

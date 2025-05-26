@@ -1,17 +1,22 @@
 import Types "../../src/protocol/lending/Types";
 
+import Float "mo:base/Float";
+import Int "mo:base/Int";
+
 module {
 
     type ILiquidityPool = Types.ILiquidityPool;
 
-    public class LiquidityPoolFake(price: Nat) : ILiquidityPool {
+    public class LiquidityPoolFake(start_price: Float) : ILiquidityPool {
 
-        public func get_collateral_spot_in_asset(_: { time: Nat }) : Nat {
+        var price : Float = start_price;
+
+        public func get_collateral_spot_in_asset(_: { time: Nat }) : Float {
             price;
         };
 
         public func swap_collateral(args: { amount: Nat }) : Nat {
-            args.amount * price;
+            Int.abs(Float.toInt(Float.fromInt(args.amount) * price));
         };
 
     };

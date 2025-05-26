@@ -11,22 +11,20 @@ import MapUtils "../utils/Map";
 import IterUtils "../utils/Iter";
 import LedgerFacade "../payement/LedgerFacade";
 import BorrowPositionner "BorrowPositionner";
-import Index "Index";
 import LendingTypes "Types";
 import Indexer "Indexer";
 import WithdrawalQueue "WithdrawalQueue";
-import Utilization "Utilization";
+import UtilizationUpdater "UtilizationUpdater";
 
 module {
 
-    type Account = Types.Account;
-    type TxIndex = Types.TxIndex;
-    type Result<Ok, Err> = Result.Result<Ok, Err>;
+    type Account               = Types.Account;
+    type TxIndex               = Types.TxIndex;
+    type Result<Ok, Err>       = Result.Result<Ok, Err>;
     
-    type Repayment       = LendingTypes.Repayment;
+    type Repayment             = LendingTypes.Repayment;
     type BorrowPosition        = LendingTypes.BorrowPosition;
     type QueriedBorrowPosition = LendingTypes.QueriedBorrowPosition;
-    type Index                 = LendingTypes.Index;
     type BorrowRegister        = LendingTypes.BorrowRegister;
     type Borrow                = LendingTypes.Borrow;
     type ILiquidityPool        = LendingTypes.ILiquidityPool;
@@ -36,7 +34,6 @@ module {
     };
 
     // @todo: function to delete positions repaid that are too old
-    // @todo: function to transfer the collateral to the user account based on the health factor
     public class BorrowRegistry({
         register: BorrowRegister;
         supply_ledger: LedgerFacade.LedgerFacade;
@@ -45,6 +42,7 @@ module {
         indexer: Indexer.Indexer;
         supply_withdrawals: WithdrawalQueue.WithdrawalQueue;
         liquidity_pool: ILiquidityPool;
+        utilization_updater: UtilizationUpdater.UtilizationUpdater;
     }){
 
         public func get_collateral_balance(): Nat {
@@ -125,7 +123,11 @@ module {
             // increase the utilization ratio more than 1.0
 
             // Verify the utilization does not exceed the allowed limit
-            let utilization = indexer.compute_utilization(Utilization.add_raw_borrow(indexer.get_state().utilization, amount));
+            let utilization = switch(utilization_updater.add_raw_borrow(indexer.get_state().utilization, amount)){
+                case(#err(err)) { return #err("Failed to update utilization: " # err); };
+                case(#ok(u)) { u; };
+            };
+
             if (utilization.ratio > 1.0) {
                 return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
             };
@@ -206,9 +208,7 @@ module {
             #ok;
         };
 
-        // @todo: fix partial liquidation, or use full liquidation for now
         /// Liquidate borrow positions if their health factor is below 1.0.
-        /// @todo: this function access shall be restricted to the protocol only and called by a timer
         public func check_all_positions_and_liquidate() : async*() {
 
             let liquidable_positions = get_liquidable_positions();
@@ -265,6 +265,21 @@ module {
 //                asset_accounting.unsolved_debts := Array.append(asset_accounting.unsolved_debts, [{ timestamp = time; amount = difference; }]);
 //            };
         };
+
+//        public func solve_debts_with_reserve() {
+//
+//            let debts_left = Buffer.Buffer<DebtEntry>(0);
+//
+//            for(debt in Array.vals(asset_accounting.unsolved_debts)){
+//                if (debt.amount < asset_accounting.reserve) {
+//                    asset_accounting.reserve -= debt.amount;
+//                } else {
+//                    debts_left.add(debt);
+//                };
+//            };
+//
+//            asset_accounting.unsolved_debts := Buffer.toArray(debts_left);
+//        };
 
 //        public func query_borrow_position({ account: Account; index: Index; }) : ?QueriedBorrowPosition {
 //

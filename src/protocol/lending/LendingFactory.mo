@@ -5,6 +5,7 @@ import SupplyRegistry "SupplyRegistry";
 import InterestRateCurve "InterestRateCurve";
 import WithdrawalQueue "WithdrawalQueue";
 import Indexer "Indexer";
+import UtilizationUpdater "UtilizationUpdater";
 import PayementTypes "../payement/Types";
 import Clock "../utils/Clock";
 
@@ -31,10 +32,15 @@ module {
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
     } {
 
+        let utilization_updater = UtilizationUpdater.UtilizationUpdater({
+            parameters;
+        });
+
         let indexer = Indexer.Indexer({
             clock;
             parameters;
             state;
+            utilization_updater;
             interest_rate_curve = InterestRateCurve.InterestRateCurve(
                 parameters.interest_rate_curve
             );
@@ -56,6 +62,7 @@ module {
         let borrow_registry = BorrowRegistry.BorrowRegistry({
             indexer;
             register;
+            utilization_updater;
             supply_withdrawals = withdrawal_queue;
             supply_ledger;
             collateral_ledger;

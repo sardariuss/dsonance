@@ -1,10 +1,11 @@
 import Index "Index";
 import Owed "Owed";
-import LendingTypes "Types";
+import LendingTypes "../Types";
 
 import Result "mo:base/Result";
 import Float "mo:base/Float";
 import Bool "mo:base/Bool";
+import Debug "mo:base/Debug";
 
 module {
 
@@ -48,6 +49,7 @@ module {
         });
     };
 
+    // Slash a borrow by an owed amount, returning the remaining borrow if any.
     public func slash(borrow: Borrow, owed: Owed) : Result<?Borrow, Text> {
 
         if (not is_valid(borrow)) {
@@ -64,8 +66,11 @@ module {
         };
 
         // Compute the raw amount left after slashing
-        let remaining_ratio = update_owed.accrued_amount / owed.accrued_amount;
-        let raw_amount = (1 - remaining_ratio) * borrow.raw_amount;
+        // TODO: this is convoluted, it should be simplified
+        let remaining_ratio = update_owed.accrued_amount / Owed.accrue_interests(borrow.owed, owed.index).accrued_amount;
+        Debug.print("Remaining ratio: " # Float.toText(remaining_ratio));
+        let raw_amount = remaining_ratio * borrow.raw_amount;
+        Debug.print("Raw amount after slash: " # Float.toText(raw_amount));
 
         if (raw_amount < EPSILON) {
             return #ok(null); // Borrow is fully repaid

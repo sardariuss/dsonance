@@ -7,14 +7,13 @@ import Int "mo:base/Int";
 
 import Types "../Types";
 import Borrow "Borrow";
-import Collateral "Collateral";
-import Index "Index";
-import Owed "Owed";
+import Collateral "./primitives/Collateral";
+import Index "./primitives/Index";
+import Owed "./primitives/Owed";
 import LendingTypes "Types";
 
 module {
 
-    type Duration = Types.Duration;
     type Account = Types.Account;
     type TxIndex = Types.TxIndex;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
@@ -29,7 +28,6 @@ module {
     type BorrowParameters = LendingTypes.BorrowParameters;
     type ILiquidityPool   = LendingTypes.ILiquidityPool;
 
-    // @todo: check how to handle position duration when collateral is added
     public class BorrowPositionner({
         liquidity_pool: ILiquidityPool;
         parameters: BorrowParameters;
@@ -173,7 +171,7 @@ module {
             index: Index;
         }) : Float {
             Owed.accrue_interests(borrow.owed, index).accrued_amount 
-            / (Float.fromInt(collateral.amount * liquidity_pool.get_collateral_spot_in_asset({ time = index.timestamp; })));
+            / (Float.fromInt(collateral.amount) * liquidity_pool.get_collateral_spot_in_asset({ time = index.timestamp; }));
         };
 
         public func is_inferior_max_ltv({
