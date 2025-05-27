@@ -86,7 +86,7 @@ module {
             withdrawal_queue.add({ position; due; });
 
             // Trigger the withdrawal queue to process the transfer
-            ignore withdrawal_queue.process_pending_withdrawals();
+            ignore await* withdrawal_queue.process_pending_withdrawals();
 
             #ok;
         };

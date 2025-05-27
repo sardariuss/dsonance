@@ -187,6 +187,8 @@ module {
                 case(#ok(p)) { p; };
             };
 
+            Debug.print("Repayment amount: " # debug_show(amount));
+
             // Transfer the repayment from the user
             let tx = switch(await* supply_ledger.transfer_from({ from = account; amount; })){
                 case(#err(_)) { return #err("Transfer failed"); };
@@ -202,7 +204,7 @@ module {
             indexer.remove_raw_borrow({ amount = raw_repaid });
 
             // Once a position is repaid, it might allow the unlock withdrawal of supply
-            ignore supply_withdrawals.process_pending_withdrawals();
+            ignore await* supply_withdrawals.process_pending_withdrawals();
 
             #ok;
         };
@@ -234,7 +236,7 @@ module {
             };
 
             // Once positions are liquidated, it might allow the unlock withdrawal of supply
-            ignore supply_withdrawals.process_pending_withdrawals();
+            ignore await* supply_withdrawals.process_pending_withdrawals();
 
             // @todo: the total borrowed shall take the slippage into account because otherwise the
             // available total liquidity computation will be wrong (i.e. not reflect the amount actually available)
