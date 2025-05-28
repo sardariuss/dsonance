@@ -7,7 +7,7 @@ import DurationCalculator     "duration/DurationCalculator";
 import VoteFactory            "votes/VoteFactory";
 import VoteTypeController     "votes/VoteTypeController";
 import LockInfoUpdater        "locks/LockInfoUpdater";
-import LedgerFacade           "payement/LedgerFacade";
+import LedgerAccount          "ledger/LedgerAccount";
 import LockScheduler          "LockScheduler";
 import Clock                  "utils/Clock";
 import Timeline               "utils/Timeline";
@@ -40,13 +40,13 @@ module {
     type Map<K, V>   = Map.Map<K, V>;
     type Time        = Int;
 
-    public func build(args: State and { provider: Principal; admin: Principal; }) : Controller.Controller {
+    public func build(args: State and { provider: Account; admin: Principal; }) : Controller.Controller {
 
         let { vote_register; ballot_register; lock_scheduler_state; btc; dsn; parameters; provider; yield_state; admin; } = args;
         let { nominal_lock_duration; decay; minter_parameters; } = parameters;
 
-        let btc_ledger = LedgerFacade.LedgerFacade({ btc with provider; });
-        let dsn_ledger = LedgerFacade.LedgerFacade({ dsn with provider; });
+        let btc_ledger = LedgerAccount.LedgerAccount({ btc with account = provider; });
+        let dsn_ledger = LedgerAccount.LedgerAccount({ dsn with account = provider; });
 
         let clock = Clock.Clock(parameters.clock);
 

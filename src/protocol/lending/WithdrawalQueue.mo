@@ -10,7 +10,7 @@ import Map "mo:map/Map";
 import Set "mo:map/Set";
 
 import Types "../Types";
-import LedgerFacade "../payement/LedgerFacade";
+import LedgerAccount "../ledger/LedgerAccount";
 import LendingTypes "Types";
 import Indexer "Indexer";
 
@@ -29,7 +29,7 @@ module {
     public class WithdrawalQueue({
         indexer: Indexer.Indexer;
         register: WithdrawalRegister;
-        ledger: LedgerFacade.LedgerFacade;
+        ledger: LedgerAccount.LedgerAccount;
     }){
 
         var awaiting_transfer = false;
@@ -68,7 +68,7 @@ module {
 
             let buffer_transferring = Buffer.Buffer<async* Transfer>(0);
 
-            var available_for_transfer = ledger.get_balance();
+            var available_for_transfer = ledger.get_local_balance();
 
             label queue_loop for (id in Set.keys(register.withdraw_queue)){
 

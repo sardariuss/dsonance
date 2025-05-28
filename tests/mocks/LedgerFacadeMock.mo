@@ -1,6 +1,6 @@
 import MockTypes "MockTypes";
 import BaseMock "BaseMock";
-import PayementTypes "../../src/protocol/payement/Types";
+import LedgerTypes "../../src/protocol/ledger/Types";
 
 import Debug "mo:base/Debug";
 
@@ -8,11 +8,11 @@ module {
 
     type Time = Int;
 
-    type ILedgerFacade      = PayementTypes.ILedgerFacade;
-    type TransferFromArgs   = PayementTypes.TransferFromArgs;
-    type TransferArgs       = PayementTypes.TransferArgs;
-    type Transfer           = PayementTypes.Transfer;
-    type TransferFromResult = PayementTypes.TransferFromResult;
+    type ILedgerAccount      = LedgerTypes.ILedgerAccount;
+    type TransferFromArgs   = LedgerTypes.TransferFromArgs;
+    type TransferArgs       = LedgerTypes.TransferArgs;
+    type Transfer           = LedgerTypes.Transfer;
+    type TransferFromResult = LedgerTypes.TransferFromResult;
 
     public type Method = {
         #transfer_from;
@@ -36,7 +36,7 @@ module {
         };
     };
 
-    public class LedgerFacadeMock() : ILedgerFacade and MockTypes.IMock<Return> {
+    public class LedgerAccountMock() : ILedgerAccount and MockTypes.IMock<Return> {
 
         let base = BaseMock.BaseMock<Return, Method>({
             to_text = func(arg: Method) : Text {

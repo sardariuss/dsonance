@@ -237,9 +237,4 @@ module {
         percentage_rate: Float; // Annual Percentage Rate (APR) at this utilization (e.g., 5.0 for 5%)
     };
 
-    public type ILiquidityPool = {
-        get_collateral_spot_in_asset: ({ time: Nat; }) -> Float;
-        swap_collateral: ({ amount: Nat; }) -> Nat;
-    };
-
 };

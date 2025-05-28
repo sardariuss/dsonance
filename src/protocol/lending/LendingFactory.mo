@@ -6,24 +6,24 @@ import InterestRateCurve "InterestRateCurve";
 import WithdrawalQueue "WithdrawalQueue";
 import Indexer "Indexer";
 import UtilizationUpdater "UtilizationUpdater";
-import PayementTypes "../payement/Types";
+import LedgerTypes "../ledger/Types";
 import Clock "../utils/Clock";
 
 module {
 
-    type IndexerState = LendingTypes.IndexerState;
+    type IndexerState        = LendingTypes.IndexerState;
     type LendingPoolRegister = LendingTypes.LendingPoolRegister;
-    type Parameters = LendingTypes.Parameters;
-    type ILiquidityPool = LendingTypes.ILiquidityPool;
-    type ILedgerFacade = PayementTypes.ILedgerFacade;
+    type Parameters          = LendingTypes.Parameters;
+    type ILedgerAccount      = LedgerTypes.ILedgerAccount;
+    type IDex                = LedgerTypes.IDex;
 
     public func build({
         parameters: Parameters;
         state: IndexerState;
         register: LendingPoolRegister;
-        supply_ledger: ILedgerFacade;
-        collateral_ledger: ILedgerFacade;
-        liquidity_pool: ILiquidityPool;
+        supply_ledger: ILedgerAccount;
+        collateral_ledger: ILedgerAccount;
+        dex: IDex;
         clock: Clock.IClock;
     }) : {
         indexer: Indexer.Indexer;
@@ -66,10 +66,15 @@ module {
             supply_withdrawals = withdrawal_queue;
             supply_ledger;
             collateral_ledger;
-            liquidity_pool;
+            dex;
             borrow_positionner = BorrowPositionner.BorrowPositionner({
                 parameters;
-                liquidity_pool;
+                collateral_spot_in_asset = func() : Float {
+                    dex.last_price({
+                        pay_token = collateral_ledger.token_symbol();
+                        receive_token = supply_ledger.token_symbol();
+                    });
+                };
             });
         });
 

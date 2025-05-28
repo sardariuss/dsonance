@@ -26,11 +26,10 @@ module {
     type BorrowPositionTx = LendingTypes.BorrowPositionTx;
     type BorrowPosition   = LendingTypes.BorrowPosition;
     type BorrowParameters = LendingTypes.BorrowParameters;
-    type ILiquidityPool   = LendingTypes.ILiquidityPool;
 
     public class BorrowPositionner({
-        liquidity_pool: ILiquidityPool;
         parameters: BorrowParameters;
+        collateral_spot_in_asset: () -> Float;
     }){
 
         if (parameters.max_ltv > parameters.liquidation_threshold){
@@ -177,7 +176,7 @@ module {
             index: Index;
         }) : Float {
             Owed.accrue_interests(borrow.owed, index).accrued_amount 
-            / (Float.fromInt(collateral.amount) * liquidity_pool.get_collateral_spot_in_asset({ time = index.timestamp; }));
+            / (Float.fromInt(collateral.amount) * collateral_spot_in_asset());
         };
 
         public func is_inferior_max_ltv({

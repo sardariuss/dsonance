@@ -1,6 +1,6 @@
 import Types "Types";
 import Timeline "utils/Timeline";
-import LedgerFacade "payement/LedgerFacade";
+import LedgerAccount "ledger/LedgerAccount";
 
 import Array "mo:base/Array";
 import Result "mo:base/Result";
@@ -33,7 +33,7 @@ module {
     type TransferCallback = ({amount: Nat;}) -> ();
 
     public class DebtProcessor({
-        ledger: LedgerFacade.LedgerFacade;
+        ledger: LedgerAccount.LedgerAccount;
         register: DebtRegister;
     }){
 
@@ -107,7 +107,7 @@ module {
             };
         };
 
-        public func get_ledger() : LedgerFacade.LedgerFacade {
+        public func get_ledger() : LedgerAccount.LedgerAccount {
             ledger;
         };
 

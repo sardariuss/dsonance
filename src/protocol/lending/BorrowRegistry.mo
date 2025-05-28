@@ -8,7 +8,8 @@ import Option "mo:base/Option";
 import Types "../Types";
 import MapUtils "../utils/Map";
 import IterUtils "../utils/Iter";
-import LedgerFacade "../payement/LedgerFacade";
+import LedgerAccount "../ledger/LedgerAccount";
+import LedgerTypes "../ledger/Types";
 import BorrowPositionner "BorrowPositionner";
 import LendingTypes "Types";
 import Indexer "Indexer";
@@ -26,7 +27,7 @@ module {
     type QueriedBorrowPosition = LendingTypes.QueriedBorrowPosition;
     type BorrowRegister        = LendingTypes.BorrowRegister;
     type Borrow                = LendingTypes.Borrow;
-    type ILiquidityPool        = LendingTypes.ILiquidityPool;
+    type IDex                  = LedgerTypes.IDex;
     type TotalToLiquidate = {
         raw_borrowed: Float;
         collateral: Nat;
@@ -35,13 +36,13 @@ module {
     // @todo: function to delete positions repaid that are too old
     public class BorrowRegistry({
         register: BorrowRegister;
-        supply_ledger: LedgerFacade.LedgerFacade;
-        collateral_ledger: LedgerFacade.LedgerFacade;
+        supply_ledger: LedgerAccount.LedgerAccount;
+        collateral_ledger: LedgerAccount.LedgerAccount;
         borrow_positionner: BorrowPositionner.BorrowPositionner;
         indexer: Indexer.Indexer;
         supply_withdrawals: WithdrawalQueue.WithdrawalQueue;
-        liquidity_pool: ILiquidityPool;
         utilization_updater: UtilizationUpdater.UtilizationUpdater;
+        dex: IDex;
     }){
 
         public func get_collateral_balance(): Nat {
@@ -62,7 +63,7 @@ module {
         }) : async* Result<(), Text> {
 
             // Transfer the collateral from the user account
-            let tx = switch(await* collateral_ledger.transfer_from({ from = account; amount; })){
+            let tx = switch(await* collateral_ledger.pull({ from = account; amount; })){
                 case(#err(_)) { return #err("Failed to transfer collateral from the user account"); };
                 case(#ok(tx)) { tx; };
             };
@@ -131,7 +132,7 @@ module {
                 return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
             };
 
-            let supply_balance = supply_ledger.get_balance();
+            let supply_balance = supply_ledger.get_local_balance();
             if (supply_balance < amount){
                 return #err("Available liquidity " # debug_show(supply_balance) # " is less than the requested amount " # debug_show(amount));
             };
@@ -190,7 +191,7 @@ module {
             Debug.print("Repayment amount: " # debug_show(amount));
 
             // Transfer the repayment from the user
-            let tx = switch(await* supply_ledger.transfer_from({ from = account; amount; })){
+            let tx = switch(await* supply_ledger.pull({ from = account; amount; })){
                 case(#err(_)) { return #err("Transfer failed"); };
                 case(#ok(tx)) { tx; };
             };
@@ -221,10 +222,15 @@ module {
                 };
             });
 
-            let supply_bought = liquidity_pool.swap_collateral({ amount = to_liquidate.collateral; });
-
-            supply_ledger.add_balance(supply_bought);
-            register.collateral_balance -= to_liquidate.collateral;
+            switch (await* (collateral_ledger.swap({ dex; amount = to_liquidate.collateral; }).against(supply_ledger))){
+                case(#err(err)) {
+                    Debug.print("Liquidation failed: " # err);
+                    return;
+                };
+                case(#ok(swap_reply)) {
+                    Debug.print("Liquidation succeeded: " # debug_show(swap_reply));
+                };
+            };
             indexer.remove_raw_borrow({ amount = to_liquidate.raw_borrowed });
 
             for (position in liquidable_positions.reset()) {

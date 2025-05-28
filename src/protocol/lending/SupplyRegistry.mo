@@ -6,7 +6,7 @@ import Float "mo:base/Float";
 import Map "mo:map/Map";
 
 import Types "../Types";
-import LedgerFacade "../payement/LedgerFacade";
+import LedgerAccount "../ledger/LedgerAccount";
 import LendingTypes "Types";
 import Indexer "Indexer";
 import WithdrawalQueue "WithdrawalQueue";
@@ -30,7 +30,7 @@ module {
     public class SupplyRegistry({
         indexer: Indexer.Indexer;
         register: SupplyRegister;
-        ledger: LedgerFacade.LedgerFacade;
+        ledger: LedgerAccount.LedgerAccount;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
     }){
 
@@ -46,7 +46,7 @@ module {
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
-            let tx = switch(await* ledger.transfer_from({ from = account; amount = supplied; })) {
+            let tx = switch(await* ledger.pull({ from = account; amount = supplied; })) {
                 case(#err(_)) { return #err("Transfer failed"); };
                 case(#ok(tx_index)) { tx_index; };
             };
