@@ -10,7 +10,6 @@ import MapUtils "../../src/protocol/utils/Map";
 import Testify "../utils/Testify";
 
 module {
-
     type Result<Ok, Err>    = Result.Result<Ok, Err>;
     type ILedgerAccount     = LedgerTypes.ILedgerAccount;
     type PullArgs           = LedgerTypes.PullArgs;
@@ -25,24 +24,17 @@ module {
     type TransferFromError  = LedgerTypes.TransferFromError;
     type ILedgerFungible    = LedgerTypes.ILedgerFungible;
 
-    type LedgerBalances = {
-        protocol: Nat;
-        users: [(Account, Nat)];
-    };
-
     public let testify_ledger_balances = {
-        equal : Testify.Testify<LedgerBalances> = {
-            toText = func (u : LedgerBalances) : Text {
-                let user_balances = Array.map(u.users, func(pair: (Account, Nat)) : Text {
+        equal : Testify.Testify<[(Account, Nat)]> = {
+            toText = func (u : [(Account, Nat)]) : Text {
+                let user_balances = Array.map(u, func(pair: (Account, Nat)) : Text {
                     debug_show(pair);
                 });
-                "LedgerBalances { protocol = " # Nat.toText(u.protocol) # 
-                ", users = " # "[ " # Text.join(", ", user_balances.vals()) # " ]";
+                "LedgerBalances [ " # Text.join(", ", user_balances.vals()) # " ]";
             };
-            compare = func (x : LedgerBalances, y : LedgerBalances) : Bool {
-                let users_x = Map.fromIter<Account, Nat>(x.users.vals(), MapUtils.acchash);
-                let users_y = Map.fromIter<Account, Nat>(y.users.vals(), MapUtils.acchash);
-                (x.protocol == y.protocol) and 
+            compare = func (x : [(Account, Nat)], y : [(Account, Nat)]) : Bool {
+                let users_x = Map.fromIter<Account, Nat>(x.vals(), MapUtils.acchash);
+                let users_y = Map.fromIter<Account, Nat>(y.vals(), MapUtils.acchash);
                 MapUtils.compare(users_x, users_y, MapUtils.acchash, func(a: Nat, b: Nat) : Bool {
                     a == b;
                 });
@@ -50,53 +42,53 @@ module {
         };
     };
 
-    public class LedgerFungibleFake(initial_balances: LedgerBalances) : ILedgerFungible {
-        
+    public class LedgerFungibleFake(protocol_account: Account, initial_balances: [(Account, Nat)]) : ILedgerFungible {
         var tx_id = 0;
-        var balance = initial_balances.protocol;
-        let user_balances : Map.Map<Account, Nat> = Map.fromIter(Array.vals(initial_balances.users), MapUtils.acchash);
+        let balances : Map.Map<Account, Nat> = Map.fromIter(Array.vals(initial_balances), MapUtils.acchash);
 
-        public func get_balances() : LedgerBalances {
-            {
-                protocol = balance;
-                users = Map.toArray(user_balances);
-            };
+        public func get_balances() : [(Account, Nat)] {
+            Map.toArray(balances);
         };
 
         public func icrc1_transfer(args : Icrc1TransferArgs) : async* Result<TxIndex, TransferError> {
-            
-            if (args.amount > balance) {
+            // Subtract from protocol_account
+            let protocol_balance = Option.get(Map.get(balances, MapUtils.acchash, protocol_account), 0);
+            let new_protocol_balance : Int = protocol_balance - args.amount;
+            if (new_protocol_balance < 0) {
                 return #err(#GenericError({
-                    message = "Not enough balance to transfer " # debug_show(args.amount) # " from protocol to " # debug_show(args.to);
+                    message = "Not enough balance to transfer " # debug_show(args.amount) # " from protocol_account " # debug_show(protocol_account) # " to " # debug_show(args.to);
                     error_code = 0;
                 }));
             };
-            balance -= args.amount;
-
-            // Add to user balance
-            var user_balance = Option.get(Map.get(user_balances, MapUtils.acchash, args.to), 0);
-            user_balance += args.amount;
-            Map.set(user_balances, MapUtils.acchash, args.to, user_balance);
-            
+            if (new_protocol_balance == 0) {
+                Map.delete(balances, MapUtils.acchash, protocol_account);
+            } else {
+                Map.set(balances, MapUtils.acchash, protocol_account, Int.abs(new_protocol_balance));
+            };
+            // Add to recipient
+            let to_balance = Option.get(Map.get(balances, MapUtils.acchash, args.to), 0) + args.amount;
+            Map.set(balances, MapUtils.acchash, args.to, to_balance);
             #ok(next_tx_id());
         };
 
         public func icrc2_transfer_from(args : TransferFromArgs) : async* Result<TxIndex, TransferFromError> {
-            // Remove from user balance if enough
-            let user_balance = Option.get(Map.get(user_balances, MapUtils.acchash, args.from), 0);
-            let diff : Int = user_balance - args.amount;
+            // Remove from 'from' account
+            let from_balance = Option.get(Map.get(balances, MapUtils.acchash, args.from), 0);
+            let diff : Int = from_balance - args.amount;
             if (diff < 0) {
                 return #err(#GenericError({
-                    message = "Not enough balance to transfer " # debug_show(args.amount) # " from " # debug_show(args.from) # " to protocol";
+                    message = "Not enough balance to transfer " # debug_show(args.amount) # " from " # debug_show(args.from) # " to protocol_account " # debug_show(protocol_account);
                     error_code = 0
                 }));
             };
             if (diff == 0) {
-                Map.delete(user_balances, MapUtils.acchash, args.from);
+                Map.delete(balances, MapUtils.acchash, args.from);
             } else {
-                Map.set(user_balances, MapUtils.acchash, args.from, Int.abs(diff));
+                Map.set(balances, MapUtils.acchash, args.from, Int.abs(diff));
             };
-            balance += args.amount;
+            // Add to protocol_account
+            let protocol_balance = Option.get(Map.get(balances, MapUtils.acchash, protocol_account), 0) + args.amount;
+            Map.set(balances, MapUtils.acchash, protocol_account, protocol_balance);
             #ok(next_tx_id());
         };
 

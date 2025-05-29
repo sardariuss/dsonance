@@ -76,16 +76,6 @@ module {
 
     // ------------------------------ ACTUAL MODULE TYPES ------------------------------
 
-    public type LendingPoolState = {
-        var supply_rate: Float; // supply percentage rate (ratio)
-        var supply_accrued_interests: Float; // accrued supply interests
-        var borrow_index: Float; // growing value, starts at 1.0
-        var supply_index: Float; // growing value, starts at 1.0
-        var last_update_timestamp: Nat; // last time the rates were updated
-        var supply_balance: Int; // total amount of asset supplied
-        var collateral_balance: Int; // total amount of asset collateralized
-    };
-
     public type UtilizationParameters = {
         reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
     };
@@ -192,7 +182,6 @@ module {
     };
 
     public type BorrowRegister = {
-        var collateral_balance: Nat;
         borrow_positions: Map.Map<Account, BorrowPosition>;
     };
 

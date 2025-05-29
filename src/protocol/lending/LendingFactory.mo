@@ -21,8 +21,8 @@ module {
         parameters: Parameters;
         state: IndexerState;
         register: LendingPoolRegister;
-        supply_ledger: ILedgerAccount;
-        collateral_ledger: ILedgerAccount;
+        supply_account: ILedgerAccount;
+        collateral_account: ILedgerAccount;
         dex: IDex;
         clock: Clock.IClock;
     }) : {
@@ -49,14 +49,14 @@ module {
         let withdrawal_queue = WithdrawalQueue.WithdrawalQueue({
             indexer;
             register;
-            ledger = supply_ledger;
+            ledger = supply_account;
         });
 
         let supply_registry = SupplyRegistry.SupplyRegistry({
             indexer;
             register;
             withdrawal_queue;
-            ledger = supply_ledger;
+            ledger = supply_account;
         });
 
         let borrow_registry = BorrowRegistry.BorrowRegistry({
@@ -64,15 +64,15 @@ module {
             register;
             utilization_updater;
             supply_withdrawals = withdrawal_queue;
-            supply_ledger;
-            collateral_ledger;
+            supply_account;
+            collateral_account;
             dex;
             borrow_positionner = BorrowPositionner.BorrowPositionner({
                 parameters;
                 collateral_spot_in_asset = func() : Float {
                     dex.last_price({
-                        pay_token = collateral_ledger.token_symbol();
-                        receive_token = supply_ledger.token_symbol();
+                        pay_token = collateral_account.token_symbol();
+                        receive_token = supply_account.token_symbol();
                     });
                 };
             });

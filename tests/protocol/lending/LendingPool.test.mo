@@ -1,10 +1,10 @@
 import LendingFactory "../../../src/protocol/lending/LendingFactory";
 import LedgerTypes "../../../src/protocol/ledger/Types";
 import LendingTypes "../../../src/protocol/lending/Types";
-//import LiquidityPoolFake "../../fake/LiquidityPoolFake";
 import LedgerFungibleFake "../../fake/LedgerFungibleFake";
 import Duration "../../../src/protocol/duration/Duration";
 import ClockMock "../../mocks/ClockMock";
+import DexMock "../../mocks/DexMock";
 import MapUtils "../../../src/protocol/utils/Map";
 
 import { test; suite; } "mo:test/async";
@@ -15,6 +15,7 @@ import Fuzz "mo:fuzz";
 import Debug "mo:base/Debug";
 
 import { verify; optionalTestify; Testify; } = "../../utils/Testify";
+import LedgerAccount "../../../src/protocol/ledger/LedgerAccount";
 
 await suite("LendingPool", func(): async() {
 
@@ -66,170 +67,175 @@ await suite("LendingPool", func(): async() {
         };
 
         let register = {
-            var collateral_balance: Nat = 0;
             borrow_positions = Map.new<Account, BorrowPosition>();
             supply_positions = Map.new<Text, SupplyPosition>();
             withdrawals = Map.new<Text, Withdrawal>();
             withdraw_queue = Set.new<Text>();
         };
 
+        let protocol = fuzz.icrc1.randomAccount();
         let lender = fuzz.icrc1.randomAccount();
         let borrower = fuzz.icrc1.randomAccount();
 
-        var expected_supply_balances = { protocol = 0; users = [ (lender, 1000), (borrower,1000) ]; };
-        var expected_collateral_balances = { protocol = 0; users = [ (borrower, 5_000) ]; };
-        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(expected_supply_balances);
-        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(expected_collateral_balances);
+        var expected_supply_balances = [ (lender, 1000), (borrower, 1000) ];
+        var expected_collateral_balances = [ (borrower, 5_000) ];
+        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, expected_supply_balances);
+        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, expected_collateral_balances);
 
-//        let supply_ledger = LedgerAccountFake.LedgerAccountFake(expected_supply_balances);
-//        let collateral_ledger = LedgerAccountFake.LedgerAccountFake(expected_collateral_balances);
-//        let liquidity_pool = LiquidityPoolFake.LiquidityPoolFake({
-//            start_price = 1.0;
-//        });
-//
-//        // Build the lending system
-//        let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
-//            clock;
-//            liquidity_pool;
-//            parameters;
-//            state;
-//            register;
-//            supply_ledger;
-//            collateral_ledger;
-//        });
-//
-//        // === Initial Assertions ===
-//
-//
-//        verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
-//        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerAccountFake.testify_ledger_balances.equal);
-//        verify(collateral_ledger.get_balances(), expected_collateral_balances, LedgerAccountFake.testify_ledger_balances.equal);
-//
-//        // === Supply Flow ===
-//
-//        // Lender supplies 1000 tokens — this should increase raw_supplied
-//        let supply_1_result = await* supply_registry.add_position({
-//            id = "supply1";
-//            account = lender;
-//            supplied = 1000;
-//        });
-//        verify(supply_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//
-//        // Expect raw_supplied to reflect the supply
-//        verify(indexer.get_state().utilization.raw_supplied, 1000.0, Testify.float.equalEpsilon9);
-//
-//        // No interest has accrued yet (same timestamp), so indexes should be unchanged
-//        verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
-//        verify(indexer.get_state().supply_index.value, 1.0, Testify.float.equalEpsilon9);
-//
-//        // Tokens moved into the pool
-//        expected_supply_balances := { protocol = 1000; users = [ (borrower,1000) ]; };
-//        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerAccountFake.testify_ledger_balances.equal);
-//
-//        // === Advance Time to Day 2 ===
-//
-//        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
-//
-//        // === Collateral Flow ===
-//
-//        // Borrower supplies 5000 worth of collateral
-//        let collateral_1_result = await* borrow_registry.supply_collateral({
-//            account = borrower;
-//            amount = 5000;
-//        });
-//        verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//        verify(register.collateral_balance, 5000, Testify.int.equal);
-//        expected_collateral_balances := { protocol = 5000; users = []; };
-//        verify(collateral_ledger.get_balances(), expected_collateral_balances, LedgerAccountFake.testify_ledger_balances.equal);
-//
-//        // === Borrow Flow ===
-//
-//        // Borrower borrows 200 tokens
-//        let borrow_1_result = await* borrow_registry.borrow({
-//            account = borrower;
-//            amount = 200;
-//        });
-//        verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//
-//        // 200 tokens have left the pool
-//        expected_supply_balances := { protocol = 800; users = [ (borrower,1_200) ]; };
-//        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerAccountFake.testify_ledger_balances.equal);
-//
-//        // === Post-borrow Expectations ===
-//
-//        // A borrow has occurred, so utilization > 0 → non-zero borrow rate is established
-//        // But supply interest was calculated *before* the rate was updated (still 0%)
-//        // So the borrow index has increased slightly due to non-zero rate, but:
-//        verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.greaterThan);
-//
-//        // Supply rate became non-zero only after this update — not enough time passed for interest
-//        // So supply_index is still 1.0 — this is correct behavior!
-//        verify(indexer.get_state().supply_index.value, 1.0, Testify.float.equalEpsilon9);
-//
-//        // === Advance Time to Day 100 (interest should accrue) ===
-//        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1000)))), #repeatedly);
-//        Debug.print("Clock time after 1000 days: " # debug_show(clock.get_time()));
-//
-//        // Trigger an index update by reading state
-//        let state_day10 = indexer.get_state();
-//
-//        // Borrow index should have increased more due to time and utilization
-//        verify(state_day10.borrow_index.value, 1.0, Testify.float.greaterThan);
-//
-//        // Supply index should now also have increased due to non-zero supply rate
-//        verify(state_day10.supply_index.value, 1.0, Testify.float.greaterThan);
-//
-//        // === Borrower Repayment ===
-//
-//        // Borrower repays FULL amount, got to 201 tokens to account for accrued interest
-//        let repay_result = await* borrow_registry.repay({
-//            account = borrower;
-//            repayment = #FULL;
-//        });
-//        verify(repay_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//
-//        // Supply ledger should now hold 1001
-//        expected_supply_balances := { protocol = 1_001; users = [ (borrower,999) ]; };
-//        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerAccountFake.testify_ledger_balances.equal);
-//
-//        // Utilization should return to 0
-//        verify(indexer.get_state().utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
-//        verify(indexer.get_state().utilization.ratio, 0.0, Testify.float.equalEpsilon9);
-//
-//        // === Lender Withdrawal ===
-//
-//        // Advance to Day 2000 to ensure some interest has accrued
-//        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2000)))), #repeatedly);
-//        Debug.print("Clock time after 2000 days: " # debug_show(clock.get_time()));
-//
-//        let withdraw_result = await* supply_registry.remove_position({
-//            id = "supply1";
-//            share = 1.0; // Full withdrawal
-//        });
-//
-//        verify(withdraw_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//        expected_supply_balances := { protocol = 1; users = [ (lender, 1000),(borrower,999) ]; };
-//        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerAccountFake.testify_ledger_balances.equal);
-//
-//        // Final state checks: indexes still increasing, no liquidation, clean balances
-//        let final_state = indexer.get_state();
-//        verify(final_state.borrow_index.value, 1.0, Testify.float.greaterThan);
-//        verify(final_state.supply_index.value, 1.0, Testify.float.greaterThan);
-//
-//        // Collateral is untouched, since no liquidation
-//        verify(register.collateral_balance, 5000, Testify.int.equal);
-//
-//        // === Collateral Withdrawal ===
-//
-//        // Borrower withdraw 5000 worth of collateral
-//        let collateral_withdrawal_result = await* borrow_registry.withdraw_collateral({
-//            account = borrower;
-//            amount = 5000;
-//        });
-//        verify(collateral_withdrawal_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//        verify(register.collateral_balance, 0, Testify.int.equal);
-//        expected_collateral_balances := { protocol = 0; users = [ (borrower,5_000) ]; };
-//        verify(collateral_ledger.get_balances(), expected_collateral_balances, LedgerAccountFake.testify_ledger_balances.equal);
+        let supply_account = LedgerAccount.LedgerAccount({
+            account = protocol;
+            ledger = supply_ledger;
+            fee = 0; // No fee for testing
+        });
+        let collateral_account = LedgerAccount.LedgerAccount({
+            account = protocol;
+            ledger = collateral_ledger;
+            fee = 0; // No fee for testing
+        });
+        let dex = DexMock.DexMock();
+        dex.expect_call(#last_price(#returns(1.0)), #repeatedly);
+
+        // Build the lending system
+        let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
+            clock;
+            dex;
+            parameters;
+            state;
+            register;
+            supply_account;
+            collateral_account;
+        });
+
+        // === Initial Assertions ===
+        
+        verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+        verify(collateral_ledger.get_balances(), expected_collateral_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+
+        // === Supply Flow ===
+
+        // Lender supplies 1000 tokens — this should increase raw_supplied
+        let supply_1_result = await* supply_registry.add_position({
+            id = "supply1";
+            account = lender;
+            supplied = 1000;
+        });
+        verify(supply_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+
+        // Expect raw_supplied to reflect the supply
+        verify(indexer.get_state().utilization.raw_supplied, 1000.0, Testify.float.equalEpsilon9);
+
+        // No interest has accrued yet (same timestamp), so indexes should be unchanged
+        verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_state().supply_index.value, 1.0, Testify.float.equalEpsilon9);
+
+        // Tokens moved into the pool
+        expected_supply_balances := [ (protocol, 1000), (borrower,1000) ];
+        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+
+        // === Advance Time to Day 2 ===
+
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
+
+        // === Collateral Flow ===
+
+        // Borrower supplies 5000 worth of collateral
+        let collateral_1_result = await* borrow_registry.supply_collateral({
+            account = borrower;
+            amount = 5000;
+        });
+        verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        expected_collateral_balances := [ (protocol, 5000) ];
+        verify(collateral_ledger.get_balances(), expected_collateral_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+
+        // === Borrow Flow ===
+
+        // Borrower borrows 200 tokens
+        let borrow_1_result = await* borrow_registry.borrow({
+            account = borrower;
+            amount = 200;
+        });
+        verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+
+        // 200 tokens have left the pool
+        expected_supply_balances := [ (protocol, 800), (borrower,1200) ];
+        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+
+        // === Post-borrow Expectations ===
+
+        // A borrow has occurred, so utilization > 0 → non-zero borrow rate is established
+        // But supply interest was calculated *before* the rate was updated (still 0%)
+        // So the borrow index has increased slightly due to non-zero rate, but:
+        verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.greaterThan);
+
+        // Supply rate became non-zero only after this update — not enough time passed for interest
+        // So supply_index is still 1.0 — this is correct behavior!
+        verify(indexer.get_state().supply_index.value, 1.0, Testify.float.equalEpsilon9);
+
+        // === Advance Time to Day 100 (interest should accrue) ===
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1000)))), #repeatedly);
+        Debug.print("Clock time after 1000 days: " # debug_show(clock.get_time()));
+
+        // Trigger an index update by reading state
+        let state_day10 = indexer.get_state();
+
+        // Borrow index should have increased more due to time and utilization
+        verify(state_day10.borrow_index.value, 1.0, Testify.float.greaterThan);
+
+        // Supply index should now also have increased due to non-zero supply rate
+        verify(state_day10.supply_index.value, 1.0, Testify.float.greaterThan);
+
+        // === Borrower Repayment ===
+
+        // Borrower repays FULL amount, got to 201 tokens to account for accrued interest
+        let repay_result = await* borrow_registry.repay({
+            account = borrower;
+            repayment = #FULL;
+        });
+        verify(repay_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+
+        // Supply ledger should now hold 1001
+        expected_supply_balances := [ (protocol, 1001), (borrower,999) ];
+        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+
+        // Utilization should return to 0
+        verify(indexer.get_state().utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_state().utilization.ratio, 0.0, Testify.float.equalEpsilon9);
+
+        // === Lender Withdrawal ===
+
+        // Advance to Day 2000 to ensure some interest has accrued
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2000)))), #repeatedly);
+        Debug.print("Clock time after 2000 days: " # debug_show(clock.get_time()));
+
+        let withdraw_result = await* supply_registry.remove_position({
+            id = "supply1";
+            share = 1.0; // Full withdrawal
+        });
+
+        verify(withdraw_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        expected_supply_balances := [ (protocol, 1),(lender, 1000),(borrower,999) ];
+        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+
+        // Final state checks: indexes still increasing, no liquidation, clean balances
+        let final_state = indexer.get_state();
+        verify(final_state.borrow_index.value, 1.0, Testify.float.greaterThan);
+        verify(final_state.supply_index.value, 1.0, Testify.float.greaterThan);
+
+        // Collateral is untouched, since no liquidation
+        expected_collateral_balances := [ (protocol,5_000) ];
+        verify(collateral_ledger.get_balances(), expected_collateral_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+
+        // === Collateral Withdrawal ===
+
+        // Borrower withdraw 5000 worth of collateral
+        let collateral_withdrawal_result = await* borrow_registry.withdraw_collateral({
+            account = borrower;
+            amount = 5000;
+        });
+        verify(collateral_withdrawal_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        expected_collateral_balances := [ (borrower,5_000) ];
+        verify(collateral_ledger.get_balances(), expected_collateral_balances, LedgerFungibleFake.testify_ledger_balances.equal);
     });
 
 //    await test("Liquidation on collateral price crash", func() : async() {

@@ -74,7 +74,7 @@ module {
         slippage: Float;
         txs: [SwapAmountsTxReply];
     };
-    type SwapAmountsResult = { 
+    public type SwapAmountsResult = { 
         #Ok: SwapAmountsReply;
         #Err: Text; 
     };
@@ -100,7 +100,7 @@ module {
         TransactionId : Text;
     };
 
-    type SwapArgs = {
+    public type SwapArgs = {
         pay_token: Text;
         pay_amount: Nat;
         pay_tx_id: ?TxId;
@@ -151,7 +151,7 @@ module {
         #Err : Text;
     };
 
-    type PriceArgs = {
+    public type PriceArgs = {
         pay_token: Text;
         receive_token: Text;
     };
