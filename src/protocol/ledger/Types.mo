@@ -7,7 +7,7 @@ import ICRC2         "mo:icrc2-mo/ICRC2/service";
 
 module {
 
-    type Result<Ok, Err> = Result.Result<Ok, Err>;
+    public type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     public type Account = ICRC1.Account;
     public type TxIndex = ICRC1.TxIndex;
@@ -46,7 +46,7 @@ module {
 
     // Copy/pasted from KongSwap: https://dashboard.internetcomputer.org/canister/2ipq2-uqaaa-aaaar-qailq-cai
 
-    type SwapAmountsTxReply = {
+    public type SwapAmountsTxReply = {
         pool_symbol: Text;
         pay_chain: Text;
         pay_symbol: Text;
@@ -60,7 +60,7 @@ module {
         lp_fee: Nat;
         gas_fee: Nat;
     };
-    type SwapAmountsReply = {
+    public type SwapAmountsReply = {
         pay_chain: Text;
         pay_symbol: Text;
         pay_address: Text;
@@ -79,7 +79,7 @@ module {
         #Err: Text; 
     };
 
-    type ICTransferReply = {
+    public type ICTransferReply = {
         chain : Text;
         symbol : Text;
         is_send : Bool;
@@ -87,15 +87,15 @@ module {
         canister_id : Text;
         block_index : Nat;
     };
-    type TransferReply = {
+    public type TransferReply = {
         #IC : ICTransferReply;
     };
-    type TransferIdReply = {
+    public type TransferIdReply = {
         transfer_id : Nat64;
         transfer : TransferReply
     };
 
-    type TxId = {
+    public type TxId = {
         BlockIndex : Nat;
         TransactionId : Text;
     };
@@ -111,7 +111,9 @@ module {
         referred_by: ?Text;
     };
 
-    type SwapTxReply = {
+    public type AugmentedSwapArgs = SwapArgs and { from: Account; }; // For unit testing purposes
+
+    public type SwapTxReply = {
         pool_symbol : Text;
         pay_chain : Text;
         pay_address : Text;
@@ -171,7 +173,7 @@ module {
         // - swap() has 2 variations:
         //   1) icrc2_approve + icrc2_transfer_from - user must icrc2_approve the pay_amount+gas of pay_token and then call swap() where the canister will then icrc2_transfer_from
         //   2) icrc1_transfer - user must icrc1_transfer the pay_amount of pay_token and then call swap() with the block index
-        swap: SwapArgs -> async* SwapResult;
+        swap: AugmentedSwapArgs -> async* SwapResult;
 
         // @todo: very temporary function
         last_price: PriceArgs -> Float;

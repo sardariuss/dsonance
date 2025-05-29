@@ -2,10 +2,11 @@ import LendingFactory "../../../src/protocol/lending/LendingFactory";
 import LedgerTypes "../../../src/protocol/ledger/Types";
 import LendingTypes "../../../src/protocol/lending/Types";
 import LedgerFungibleFake "../../fake/LedgerFungibleFake";
+import LedgerAccounting "../../fake/LedgerAccounting";
 import Duration "../../../src/protocol/duration/Duration";
 import ClockMock "../../mocks/ClockMock";
 import DexMock "../../mocks/DexMock";
-import MapUtils "../../../src/protocol/utils/Map";
+import DexFake "../../fake/DexFake";
 
 import { test; suite; } "mo:test/async";
 
@@ -29,6 +30,7 @@ await suite("LendingPool", func(): async() {
     type SupplyInput = LendingTypes.SupplyInput;
 
     let fuzz = Fuzz.fromSeed(0);
+    let equal_balances = LedgerAccounting.testify_balances.equal;
 
     // @todo: the test works, but it seems that the interest rate is not applied correctly
     await test("Nominal test", func() : async() {
@@ -77,10 +79,10 @@ await suite("LendingPool", func(): async() {
         let lender = fuzz.icrc1.randomAccount();
         let borrower = fuzz.icrc1.randomAccount();
 
-        var expected_supply_balances = [ (lender, 1000), (borrower, 1000) ];
-        var expected_collateral_balances = [ (borrower, 5_000) ];
-        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, expected_supply_balances);
-        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, expected_collateral_balances);
+        let supply_accounting = LedgerAccounting.LedgerAccounting([(lender, 1_000), (borrower, 1_000),]);
+        let collateral_accounting = LedgerAccounting.LedgerAccounting([(borrower, 5_000),]);
+        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
+        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
 
         let supply_account = LedgerAccount.LedgerAccount({
             account = protocol;
@@ -93,7 +95,7 @@ await suite("LendingPool", func(): async() {
             fee = 0; // No fee for testing
         });
         let dex = DexMock.DexMock();
-        dex.expect_call(#last_price(#returns(1.0)), #repeatedly);
+        dex.expect_call(#last_price(#returns(1.0)), #repeatedly); // 1:1 price
 
         // Build the lending system
         let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
@@ -109,8 +111,8 @@ await suite("LendingPool", func(): async() {
         // === Initial Assertions ===
         
         verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
-        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerFungibleFake.testify_ledger_balances.equal);
-        verify(collateral_ledger.get_balances(), expected_collateral_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+        verify(supply_accounting.balances(), [ (lender, 1_000), (borrower, 1_000) ], equal_balances);
+        verify(collateral_accounting.balances(), [ (borrower, 5_000) ], equal_balances);
 
         // === Supply Flow ===
 
@@ -130,8 +132,7 @@ await suite("LendingPool", func(): async() {
         verify(indexer.get_state().supply_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // Tokens moved into the pool
-        expected_supply_balances := [ (protocol, 1000), (borrower,1000) ];
-        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+        verify(supply_accounting.balances(), [ (protocol, 1_000), (borrower,1_000) ], equal_balances);
 
         // === Advance Time to Day 2 ===
 
@@ -145,8 +146,7 @@ await suite("LendingPool", func(): async() {
             amount = 5000;
         });
         verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-        expected_collateral_balances := [ (protocol, 5000) ];
-        verify(collateral_ledger.get_balances(), expected_collateral_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+        verify(collateral_accounting.balances(), [ (protocol, 5_000) ], equal_balances);
 
         // === Borrow Flow ===
 
@@ -158,8 +158,7 @@ await suite("LendingPool", func(): async() {
         verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
 
         // 200 tokens have left the pool
-        expected_supply_balances := [ (protocol, 800), (borrower,1200) ];
-        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+        verify(supply_accounting.balances(), [ (protocol, 800), (borrower, 1200) ], equal_balances);
 
         // === Post-borrow Expectations ===
 
@@ -173,7 +172,7 @@ await suite("LendingPool", func(): async() {
         verify(indexer.get_state().supply_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // === Advance Time to Day 100 (interest should accrue) ===
-        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1000)))), #repeatedly);
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1_000)))), #repeatedly);
         Debug.print("Clock time after 1000 days: " # debug_show(clock.get_time()));
 
         // Trigger an index update by reading state
@@ -195,8 +194,7 @@ await suite("LendingPool", func(): async() {
         verify(repay_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
 
         // Supply ledger should now hold 1001
-        expected_supply_balances := [ (protocol, 1001), (borrower,999) ];
-        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+        verify(supply_accounting.balances(), [ (protocol, 1001), (borrower, 999) ], equal_balances);
 
         // Utilization should return to 0
         verify(indexer.get_state().utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
@@ -205,7 +203,7 @@ await suite("LendingPool", func(): async() {
         // === Lender Withdrawal ===
 
         // Advance to Day 2000 to ensure some interest has accrued
-        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2000)))), #repeatedly);
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2_000)))), #repeatedly);
         Debug.print("Clock time after 2000 days: " # debug_show(clock.get_time()));
 
         let withdraw_result = await* supply_registry.remove_position({
@@ -214,8 +212,7 @@ await suite("LendingPool", func(): async() {
         });
 
         verify(withdraw_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-        expected_supply_balances := [ (protocol, 1),(lender, 1000),(borrower,999) ];
-        verify(supply_ledger.get_balances(), expected_supply_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+        verify(supply_accounting.balances(), [ (protocol, 1), (lender, 1_000), (borrower, 999) ], equal_balances);
 
         // Final state checks: indexes still increasing, no liquidation, clean balances
         let final_state = indexer.get_state();
@@ -223,8 +220,7 @@ await suite("LendingPool", func(): async() {
         verify(final_state.supply_index.value, 1.0, Testify.float.greaterThan);
 
         // Collateral is untouched, since no liquidation
-        expected_collateral_balances := [ (protocol,5_000) ];
-        verify(collateral_ledger.get_balances(), expected_collateral_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+        verify(collateral_accounting.balances(), [ (protocol, 5_000) ], equal_balances);
 
         // === Collateral Withdrawal ===
 
@@ -234,160 +230,172 @@ await suite("LendingPool", func(): async() {
             amount = 5000;
         });
         verify(collateral_withdrawal_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-        expected_collateral_balances := [ (borrower,5_000) ];
-        verify(collateral_ledger.get_balances(), expected_collateral_balances, LedgerFungibleFake.testify_ledger_balances.equal);
+        verify(collateral_accounting.balances(), [ (borrower, 5_000) ], equal_balances);
     });
 
-//    await test("Liquidation on collateral price crash", func() : async() {
-//
-//        // === Setup Phase (same as nominal) ===
-//
-//        let clock = ClockMock.ClockMock();
-//        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
-//
-//        let parameters = {
-//            liquidation_penalty = 0.1;
-//            reserve_liquidity = 0.1;
-//            protocol_fee = 0.1;
-//            max_slippage = 0.1;
-//            max_ltv = 0.75;
-//            liquidation_threshold = 0.85;
-//            interest_rate_curve = [
-//                { utilization = 0.0; percentage_rate = 0.02 },
-//                { utilization = 0.8; percentage_rate = 0.2 },
-//                { utilization = 1.0; percentage_rate = 1.0 },
-//            ];
-//        };
-//
-//        let state = {
-//            var supply_rate = 0.0;
-//            var supply_accrued_interests = 0.0;
-//            var borrow_index = 1.0;
-//            var supply_index = 1.0;
-//            var last_update_timestamp = clock.get_time();  // Day 1
-//            var utilization = {
-//                raw_supplied = 0.0;
-//                raw_borrowed = 0.0;
-//                ratio = 0.0;
-//            };
-//        };
-//
-//        let register = {
-//            var collateral_balance: Nat = 0;
-//            borrow_positions = Map.new<Account, BorrowPosition>();
-//            supply_positions = Map.new<Text, SupplyPosition>();
-//            withdrawals = Map.new<Text, Withdrawal>();
-//            withdraw_queue = Set.new<Text>();
-//        };
-//
-//        let lender = Fuzz.fromSeed(1).icrc1.randomAccount();
-//        let borrower = Fuzz.fromSeed(2).icrc1.randomAccount();
-//
-//        let user_balances = Map.new<Account, Nat>();
-//        Map.set(user_balances, MapUtils.acchash, lender, 10_000);
-//        Map.set(user_balances, MapUtils.acchash, borrower, 10_000);
-//
-//        let supply_ledger = LedgerAccountFake.LedgerAccountFake(user_balances);
-//        let collateral_ledger = LedgerAccountFake.LedgerAccountFake(user_balances);
-//        let liquidity_pool = LiquidityPoolFake.LiquidityPoolFake({
-//            start_price = 1.0; // Start with a price of 1.0
-//        });
-//
-//        let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
-//            clock;
-//            liquidity_pool;
-//            parameters;
-//            state;
-//            register;
-//            supply_ledger;
-//            collateral_ledger;
-//        });
-//
-//        // Lender supplies 1000 tokens
-//        let supply_1_result = await* supply_registry.add_position({
-//            id = "supply1";
-//            account = lender;
-//            supplied = 1000;
-//        });
-//        verify(supply_ledger.get_balance(), 1000, Testify.nat.equal); // Tokens moved into the pool
-//        verify(supply_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//
-//        // Borrower supplies 2000 worth of collateral
-//        let collateral_1_result = await* borrow_registry.supply_collateral({
-//            account = borrower;
-//            amount = 2000;
-//        });
-//        verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//
-//        // Borrower borrows 500 tokens
-//        let borrow_1_result = await* borrow_registry.borrow({
-//            account = borrower;
-//            amount = 500;
-//        });
-//        verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//        verify(supply_ledger.get_balance(), 500, Testify.nat.equal); // 1000 supplied - 500 borrowed
-//        verify(register.collateral_balance, 2000, Testify.int.equal); // Collateral is still 2000
-//
-//        // Advance time to accrue some interest
-//        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(10)))), #repeatedly);
-//        ignore indexer.get_state();
-//
-//        // Check health before price crash (should be healthy)
-//        let before_liquidation = borrow_registry.query_borrow_position({ account = borrower });
-//        switch (before_liquidation) {
-//            case (?qbp) {
-//                Debug.print("Health before crash: " # debug_show(qbp.health));
-//                verify(qbp.health, ?1.0, optionalTestify(Testify.float.greaterThan));
-//            };
-//            case null {
-//                assert(false); // Should have a position
-//            };
-//        };
-//
-//        // Simulate a collateral price crash
-//        liquidity_pool.set_price(0.25); // Drastically lower the price
-//
-//        // Advance time to ensure state update uses new price
-//        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(11)))), #repeatedly);
-//        ignore indexer.get_state();
-//
-//        // Check health after price crash (should be unhealthy)
-//        let after_crash = borrow_registry.query_borrow_position({ account = borrower });
-//        switch (after_crash) {
-//            case (?qbp) {
-//                Debug.print("Health after crash: " # debug_show(qbp.health));
-//                verify(qbp.health, ?1.0, optionalTestify(Testify.float.lessThan));
-//            };
-//            case null {
-//                assert(false); // Should have a position
-//            };
-//        };
-//
-//        // Call liquidation
-//        await* borrow_registry.check_all_positions_and_liquidate();
-//
-//        // After liquidation, the borrow position should have borrow = null and collateral = 0
-//        let after_liquidation = borrow_registry.query_borrow_position({ account = borrower });
-//        switch (after_liquidation) {
-//            case (?qbp) {
-//                verify(qbp.position.collateral.amount, 0, Testify.int.equal);
-//                verify(qbp.position.borrow, null, optionalTestify(Testify.borrow.equal));
-//            };
-//            case null {
-//                assert(false); // Should still have a position object
-//            };
-//        };
-//
-//        // Collateral balance should be 0
-//        verify(register.collateral_balance, 0, Testify.int.equal);
-//
-//        // Supply ledger should have increased (liquidation proceeds)
-//        verify(supply_ledger.get_balance(), 1000, Testify.nat.equal); // 1000 from supply + 500 from liquidation
-//
-//        // After liquidation, verify user balances
-//        verify(collateral_ledger.get_user_balance(borrower), 8000, Testify.nat.equal); // 2000 collateral was liquidated
-//    });
-//
+    await test("Liquidation on collateral price crash", func() : async() {
+
+        // === Setup Phase (same as nominal) ===
+
+        let clock = ClockMock.ClockMock();
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
+
+        let parameters = {
+            liquidation_penalty = 0.1;
+            reserve_liquidity = 0.1;
+            protocol_fee = 0.1;
+            max_slippage = 0.1;
+            max_ltv = 0.75;
+            liquidation_threshold = 0.85;
+            interest_rate_curve = [
+                { utilization = 0.0; percentage_rate = 0.02 },
+                { utilization = 0.8; percentage_rate = 0.2 },
+                { utilization = 1.0; percentage_rate = 1.0 },
+            ];
+        };
+
+        let state = {
+            var supply_rate = 0.0;
+            var supply_accrued_interests = 0.0;
+            var borrow_index = 1.0;
+            var supply_index = 1.0;
+            var last_update_timestamp = clock.get_time();  // Day 1
+            var utilization = {
+                raw_supplied = 0.0;
+                raw_borrowed = 0.0;
+                ratio = 0.0;
+            };
+        };
+
+        let register = {
+            var collateral_balance: Nat = 0;
+            borrow_positions = Map.new<Account, BorrowPosition>();
+            supply_positions = Map.new<Text, SupplyPosition>();
+            withdrawals = Map.new<Text, Withdrawal>();
+            withdraw_queue = Set.new<Text>();
+        };
+
+        let dex = fuzz.icrc1.randomAccount();
+        let protocol = fuzz.icrc1.randomAccount();
+        let lender = fuzz.icrc1.randomAccount();
+        let borrower = fuzz.icrc1.randomAccount();
+
+        let supply_accounting = LedgerAccounting.LedgerAccounting([(dex, 2_000), (lender, 10_000), (borrower, 10_000),]);
+        let collateral_accounting = LedgerAccounting.LedgerAccounting([(borrower, 10_000),]);
+        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
+        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
+
+        let supply_account = LedgerAccount.LedgerAccount({
+            account = protocol;
+            ledger = supply_ledger;
+            fee = 0; // No fee for testing
+        });
+        let collateral_account = LedgerAccount.LedgerAccount({
+            account = protocol;
+            ledger = collateral_ledger;
+            fee = 0; // No fee for testing
+        });
+        let dex_fake = DexFake.DexFake({ 
+            account = dex;
+            config = {
+                pay_accounting = collateral_accounting;
+                receive_accounting = supply_accounting;
+                pay_token = "";
+                receive_token = "";
+            };
+            init_price = 1.0; // Start with 1:1 price
+        }); 
+
+         // Build the lending system
+        let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
+            clock;
+            dex = dex_fake;
+            parameters;
+            state;
+            register;
+            supply_account;
+            collateral_account;
+        });
+
+        // Lender supplies 1000 tokens
+        let supply_1_result = await* supply_registry.add_position({
+            id = "supply1";
+            account = lender;
+            supplied = 1000;
+        });
+        verify(supply_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(supply_accounting.balances(), [ (dex, 2_000), (protocol, 1_000), (lender, 9_000), (borrower, 10_000) ], equal_balances);
+        
+        // Borrower supplies 2000 worth of collateral
+        let collateral_1_result = await* borrow_registry.supply_collateral({
+            account = borrower;
+            amount = 2000;
+        });
+        verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(collateral_accounting.balances(), [ (protocol, 2_000), (borrower, 8_000) ], equal_balances);
+
+        // Borrower borrows 500 tokens
+        let borrow_1_result = await* borrow_registry.borrow({
+            account = borrower;
+            amount = 500;
+        });
+        verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(supply_accounting.balances(), [ (dex, 2_000), (protocol, 500), (lender, 9_000), (borrower, 10_500) ], equal_balances);
+
+        // Advance time to accrue some interest
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(10)))), #repeatedly);
+        ignore indexer.get_state();
+
+        // Check health before price crash (should be healthy)
+        let before_liquidation = borrow_registry.query_borrow_position({ account = borrower });
+        switch (before_liquidation) {
+            case (?qbp) {
+                Debug.print("Health before crash: " # debug_show(qbp.health));
+                verify(qbp.health, ?1.0, optionalTestify(Testify.float.greaterThan));
+            };
+            case null {
+                assert(false); // Should have a position
+            };
+        };
+
+        // Simulate a collateral price crash
+        dex_fake.set_price(0.25); // Price drops to 0.25
+
+        // Advance time to ensure state update uses new price
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(11)))), #repeatedly);
+        ignore indexer.get_state();
+
+        // Check health after price crash (should be unhealthy)
+        let after_crash = borrow_registry.query_borrow_position({ account = borrower });
+        switch (after_crash) {
+            case (?qbp) {
+                Debug.print("Health after crash: " # debug_show(qbp.health));
+                verify(qbp.health, ?1.0, optionalTestify(Testify.float.lessThan));
+            };
+            case null {
+                assert(false); // Should have a position
+            };
+        };
+
+        // Call liquidation
+        await* borrow_registry.check_all_positions_and_liquidate();
+
+        // After liquidation, the borrow position should have borrow = null and collateral = 0
+        let after_liquidation = borrow_registry.query_borrow_position({ account = borrower });
+        switch (after_liquidation) {
+            case (?qbp) {
+                verify(qbp.position.collateral.amount, 0, Testify.int.equal);
+                verify(qbp.position.borrow, null, optionalTestify(Testify.borrow.equal));
+            };
+            case null {
+                assert(false); // Should still have a position object
+            };
+        };
+
+        verify(collateral_accounting.balances(), [ (dex, 2_000), (borrower, 8_000) ], equal_balances);
+        verify(supply_accounting.balances(), [ (dex, 1_500), (protocol, 1_000), (lender, 9_000), (borrower, 10_500) ], equal_balances);
+    });
+
 //    await test("Lender withdrawal triggers withdrawal queue with partial repayment", func() : async() {
 //
 //        // === Setup Phase ===
@@ -434,8 +442,8 @@ await suite("LendingPool", func(): async() {
 //        let borrower = Fuzz.fromSeed(4).icrc1.randomAccount();
 //
 //        let user_balances = Map.new<Account, Nat>();
-//        Map.set(user_balances, MapUtils.acchash, lender, 10_000);
-//        Map.set(user_balances, MapUtils.acchash, borrower, 10_000);
+//        Map.set(user_balances, MapUtils.acchash, lender, 10__000);
+//        Map.set(user_balances, MapUtils.acchash, borrower, 10__000);
 //
 //        let supply_ledger = LedgerAccountFake.LedgerAccountFake(user_balances);
 //        let collateral_ledger = LedgerAccountFake.LedgerAccountFake(user_balances);

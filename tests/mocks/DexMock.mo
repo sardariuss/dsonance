@@ -11,7 +11,7 @@ module {
     };
 
     public type Return = {
-        #swap_amounts : {
+        #swap_amounts: {
             #returns: LedgerType.SwapAmountsResult;
         };
         #swap :{
