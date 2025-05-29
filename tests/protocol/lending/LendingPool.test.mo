@@ -75,12 +75,12 @@ await suite("LendingPool", func(): async() {
             withdraw_queue = Set.new<Text>();
         };
 
-        let protocol = fuzz.icrc1.randomAccount();
-        let lender = fuzz.icrc1.randomAccount();
-        let borrower = fuzz.icrc1.randomAccount();
+        let protocol = { fuzz.icrc1.randomAccount() with name = "protocol" };
+        let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
+        let borrower = { fuzz.icrc1.randomAccount() with name = "borrower" };
 
-        let supply_accounting = LedgerAccounting.LedgerAccounting([(lender, 1_000), (borrower, 1_000),]);
-        let collateral_accounting = LedgerAccounting.LedgerAccounting([(borrower, 5_000),]);
+        let supply_accounting = LedgerAccounting.LedgerAccounting([(protocol, 0), (lender, 1_000), (borrower, 1_000),]);
+        let collateral_accounting = LedgerAccounting.LedgerAccounting([(protocol, 0), (lender, 0), (borrower, 5_000),]);
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
         let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
 
@@ -111,8 +111,8 @@ await suite("LendingPool", func(): async() {
         // === Initial Assertions ===
         
         verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
-        verify(supply_accounting.balances(), [ (lender, 1_000), (borrower, 1_000) ], equal_balances);
-        verify(collateral_accounting.balances(), [ (borrower, 5_000) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, 0), (lender, 1_000), (borrower, 1_000) ], equal_balances);
+        verify(collateral_accounting.balances(), [ (protocol, 0), (lender, 0), (borrower, 5_000) ], equal_balances);
 
         // === Supply Flow ===
 
@@ -132,7 +132,7 @@ await suite("LendingPool", func(): async() {
         verify(indexer.get_state().supply_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // Tokens moved into the pool
-        verify(supply_accounting.balances(), [ (protocol, 1_000), (borrower,1_000) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, 1_000), (lender, 0), (borrower, 1_000) ], equal_balances);
 
         // === Advance Time to Day 2 ===
 
@@ -146,7 +146,7 @@ await suite("LendingPool", func(): async() {
             amount = 5000;
         });
         verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-        verify(collateral_accounting.balances(), [ (protocol, 5_000) ], equal_balances);
+        verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // === Borrow Flow ===
 
@@ -158,7 +158,7 @@ await suite("LendingPool", func(): async() {
         verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
 
         // 200 tokens have left the pool
-        verify(supply_accounting.balances(), [ (protocol, 800), (borrower, 1200) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, 800), (lender, 0), (borrower, 1200) ], equal_balances);
 
         // === Post-borrow Expectations ===
 
@@ -194,7 +194,7 @@ await suite("LendingPool", func(): async() {
         verify(repay_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
 
         // Supply ledger should now hold 1001
-        verify(supply_accounting.balances(), [ (protocol, 1001), (borrower, 999) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, 1001), (lender, 0), (borrower, 999) ], equal_balances);
 
         // Utilization should return to 0
         verify(indexer.get_state().utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
@@ -220,7 +220,7 @@ await suite("LendingPool", func(): async() {
         verify(final_state.supply_index.value, 1.0, Testify.float.greaterThan);
 
         // Collateral is untouched, since no liquidation
-        verify(collateral_accounting.balances(), [ (protocol, 5_000) ], equal_balances);
+        verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // === Collateral Withdrawal ===
 
@@ -230,7 +230,7 @@ await suite("LendingPool", func(): async() {
             amount = 5000;
         });
         verify(collateral_withdrawal_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-        verify(collateral_accounting.balances(), [ (borrower, 5_000) ], equal_balances);
+        verify(collateral_accounting.balances(), [ (protocol, 0), (lender, 0), (borrower, 5_000) ], equal_balances);
     });
 
     await test("Liquidation on collateral price crash", func() : async() {
@@ -275,13 +275,13 @@ await suite("LendingPool", func(): async() {
             withdraw_queue = Set.new<Text>();
         };
 
-        let dex = fuzz.icrc1.randomAccount();
-        let protocol = fuzz.icrc1.randomAccount();
-        let lender = fuzz.icrc1.randomAccount();
-        let borrower = fuzz.icrc1.randomAccount();
+        let dex = { fuzz.icrc1.randomAccount() with name = "dex" };
+        let protocol = { fuzz.icrc1.randomAccount() with name = "protocol" };
+        let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
+        let borrower = { fuzz.icrc1.randomAccount() with name = "borrower" };
 
-        let supply_accounting = LedgerAccounting.LedgerAccounting([(dex, 2_000), (lender, 10_000), (borrower, 10_000),]);
-        let collateral_accounting = LedgerAccounting.LedgerAccounting([(borrower, 10_000),]);
+        let supply_accounting = LedgerAccounting.LedgerAccounting([(dex, 2_000), (protocol, 0), (lender, 10_000), (borrower, 10_000)]);
+        let collateral_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 0), (borrower, 10_000)]);
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
         let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
 
@@ -332,7 +332,7 @@ await suite("LendingPool", func(): async() {
             amount = 2000;
         });
         verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-        verify(collateral_accounting.balances(), [ (protocol, 2_000), (borrower, 8_000) ], equal_balances);
+        verify(collateral_accounting.balances(), [ (dex, 0), (protocol, 2_000), (lender, 0), (borrower, 8_000) ], equal_balances);
 
         // Borrower borrows 500 tokens
         let borrow_1_result = await* borrow_registry.borrow({
@@ -392,7 +392,7 @@ await suite("LendingPool", func(): async() {
             };
         };
 
-        verify(collateral_accounting.balances(), [ (dex, 2_000), (borrower, 8_000) ], equal_balances);
+        verify(collateral_accounting.balances(), [ (dex, 2_000), (protocol, 0), (lender, 0), (borrower, 8_000) ], equal_balances);
         verify(supply_accounting.balances(), [ (dex, 1_500), (protocol, 1_000), (lender, 9_000), (borrower, 10_500) ], equal_balances);
     });
 
@@ -435,13 +435,13 @@ await suite("LendingPool", func(): async() {
             withdraw_queue = Set.new<Text>();
         };
 
-        let dex = fuzz.icrc1.randomAccount();
-        let protocol = fuzz.icrc1.randomAccount();
-        let lender = fuzz.icrc1.randomAccount();
-        let borrower = fuzz.icrc1.randomAccount();
+        let dex = { fuzz.icrc1.randomAccount() with name = "dex" };
+        let protocol = { fuzz.icrc1.randomAccount() with name = "protocol" };
+        let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
+        let borrower = { fuzz.icrc1.randomAccount() with name = "borrower" };
 
-        let supply_accounting = LedgerAccounting.LedgerAccounting([(lender, 1_000), (borrower, 1_000)]);
-        let collateral_accounting = LedgerAccounting.LedgerAccounting([(borrower, 5_000)]);
+        let supply_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 1_000), (borrower, 1_000)]);
+        let collateral_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 0), (borrower, 5_000)]);
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
         let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
 
@@ -466,7 +466,7 @@ await suite("LendingPool", func(): async() {
             init_price = 1.0; // Start with 1:1 price
         }); 
 
-        let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
+        let { supply_registry; borrow_registry; } = LendingFactory.build({
             clock;
             dex = dex_fake;
             parameters;
@@ -482,7 +482,7 @@ await suite("LendingPool", func(): async() {
             account = lender;
             supplied = 1000;
         });
-        verify(supply_accounting.balances(), [ (protocol, 1_000), (borrower, 1_000) ], equal_balances);
+        verify(supply_accounting.balances(), [ (dex, 0), (protocol, 1_000), (lender, 0), (borrower, 1_000) ], equal_balances);
 
         // Borrower supplies 5000 worth of collateral
         let collateral_1_result = await* borrow_registry.supply_collateral({
@@ -490,7 +490,7 @@ await suite("LendingPool", func(): async() {
             amount = 5000;
         });
         verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-        verify(collateral_accounting.balances(), [ (protocol, 5_000) ], equal_balances);
+        verify(collateral_accounting.balances(), [ (dex, 0), (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // Borrower borrows 900 tokens (almost all liquidity)
         let borrow_1_result = await* borrow_registry.borrow({
@@ -498,7 +498,7 @@ await suite("LendingPool", func(): async() {
             amount = 900;
         });
         verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-        verify(supply_accounting.balances(), [ (protocol, 100), (borrower, 1_900) ], equal_balances);
+        verify(supply_accounting.balances(), [ (dex, 0), (protocol, 100), (lender, 0), (borrower, 1_900) ], equal_balances);
 
         // Lender tries to withdraw full position
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
@@ -524,7 +524,7 @@ await suite("LendingPool", func(): async() {
             };
         };
         // Lender's balance should have increased by 100
-        verify(supply_accounting.balances(), [ (lender, 100), (borrower, 1_900) ], equal_balances);
+        verify(supply_accounting.balances(), [ (dex, 0), (protocol, 0), (lender, 100), (borrower, 1_900) ], equal_balances);
 
         // Now, borrower repays 900 tokens
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(3)))), #repeatedly);
@@ -547,7 +547,7 @@ await suite("LendingPool", func(): async() {
             };
         };
         // Lender should have received all tokens back
-        verify(supply_accounting.balances(), [ (protocol, 1), (lender, 1_000), (borrower, 999) ], equal_balances);
+        verify(supply_accounting.balances(), [ (dex, 0), (protocol, 1), (lender, 1_000), (borrower, 999) ], equal_balances);
     });
 
 })
