@@ -396,144 +396,158 @@ await suite("LendingPool", func(): async() {
         verify(supply_accounting.balances(), [ (dex, 1_500), (protocol, 1_000), (lender, 9_000), (borrower, 10_500) ], equal_balances);
     });
 
-//    await test("Lender withdrawal triggers withdrawal queue with partial repayment", func() : async() {
-//
-//        // === Setup Phase ===
-//
-//        let clock = ClockMock.ClockMock();
-//        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
-//
-//        let parameters = {
-//            liquidation_penalty = 0.1;
-//            reserve_liquidity = 0.1;
-//            protocol_fee = 0.1;
-//            max_slippage = 0.1;
-//            max_ltv = 0.75;
-//            liquidation_threshold = 0.85;
-//            interest_rate_curve = [
-//                { utilization = 0.0; percentage_rate = 0.02 },
-//                { utilization = 0.8; percentage_rate = 0.2 },
-//                { utilization = 1.0; percentage_rate = 1.0 },
-//            ];
-//        };
-//
-//        let state = {
-//            var supply_rate = 0.0;
-//            var supply_accrued_interests = 0.0;
-//            var borrow_index = 1.0;
-//            var supply_index = 1.0;
-//            var last_update_timestamp = clock.get_time();  // Day 1
-//            var utilization = {
-//                raw_supplied = 0.0;
-//                raw_borrowed = 0.0;
-//                ratio = 0.0;
-//            };
-//        };
-//
-//        let register = {
-//            var collateral_balance: Nat = 0;
-//            borrow_positions = Map.new<Account, BorrowPosition>();
-//            supply_positions = Map.new<Text, SupplyPosition>();
-//            withdrawals = Map.new<Text, Withdrawal>();
-//            withdraw_queue = Set.new<Text>();
-//        };
-//
-//        let lender = Fuzz.fromSeed(3).icrc1.randomAccount();
-//        let borrower = Fuzz.fromSeed(4).icrc1.randomAccount();
-//
-//        let user_balances = Map.new<Account, Nat>();
-//        Map.set(user_balances, MapUtils.acchash, lender, 10__000);
-//        Map.set(user_balances, MapUtils.acchash, borrower, 10__000);
-//
-//        let supply_ledger = LedgerAccountFake.LedgerAccountFake(user_balances);
-//        let collateral_ledger = LedgerAccountFake.LedgerAccountFake(user_balances);
-//        let liquidity_pool = LiquidityPoolFake.LiquidityPoolFake({
-//            start_price = 100;
-//        });
-//
-//        let { supply_registry; borrow_registry; } = LendingFactory.build({
-//            clock;
-//            liquidity_pool;
-//            parameters;
-//            state;
-//            register;
-//            supply_ledger;
-//            collateral_ledger;
-//        });
-//
-//        // Lender supplies 1000 tokens
-//        let _ = await* supply_registry.add_position({
-//            id = "supply1";
-//            account = lender;
-//            supplied = 1000;
-//        });
-//        verify(supply_ledger.get_balance(), 1000, Testify.nat.equal);
-//
-//        // Borrower supplies 5000 worth of collateral
-//        let collateral_1_result = await* borrow_registry.supply_collateral({
-//            account = borrower;
-//            amount = 5000;
-//        });
-//        verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//
-//        // Borrower borrows 900 tokens (almost all liquidity)
-//        let borrow_1_result = await* borrow_registry.borrow({
-//            account = borrower;
-//            amount = 900;
-//        });
-//        verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//        verify(supply_ledger.get_balance(), 100, Testify.nat.equal);
-//
-//        // Lender tries to withdraw full position
-//        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
-//        let withdraw_result = await* supply_registry.remove_position({
-//            id = "supply1";
-//            share = 1.0;
-//        });
-//        verify(withdraw_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//
-//        // At this point, only 100 tokens are available for transfer to the lender
-//        // The rest is queued in the withdrawal queue, waiting for borrowers to repay
-//        // The withdrawal queue should have an entry for "supply1" with transferred = 100 and due > 100
-//
-//        let withdrawal = Map.get(register.withdrawals, Map.thash, "supply1");
-//        switch (withdrawal) {
-//            case (?w) {
-//                verify(w.transferred, 100, Testify.nat.equal);
-//                verify(w.due > 100, true, Testify.bool.equal);
-//                // The withdrawal queue should still contain the id
-//                verify(Set.has(register.withdraw_queue, Set.thash, "supply1"), true, Testify.bool.equal);
-//            };
-//            case null {
-//                assert(false); // Should have a withdrawal entry
-//            };
-//        };
-//        verify(supply_ledger.get_user_balance(lender), 9100, Testify.nat.equal);
-//
-//        // Now, borrower repays 900 tokens
-//        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(3)))), #repeatedly);
-//        let repay_result = await* borrow_registry.repay({
-//            account = borrower;
-//            repayment = #FULL;
-//        });
-//        verify(repay_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-//
-//        // After repayment, the withdrawal queue should have processed the rest
-//        let withdrawal_after = Map.get(register.withdrawals, Map.thash, "supply1");
-//        switch (withdrawal_after) {
-//            case (?w) {
-//                verify(w.transferred, w.due, Testify.nat.equal);
-//                // The withdrawal queue should no longer contain the id
-//                verify(Set.has(register.withdraw_queue, Set.thash, "supply1"), false, Testify.bool.equal);
-//            };
-//            case null {
-//                assert(false); // Should have a withdrawal entry
-//            };
-//        };
-//
-//        // Lender should have received all tokens back
-//        verify(supply_ledger.get_user_balance(lender), 10_000, Testify.nat.equal);
-//
-//    });
+    await test("Lender withdrawal triggers withdrawal queue with partial repayment", func() : async() {
+        // === Setup Phase ===
+        let clock = ClockMock.ClockMock();
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
+
+        let parameters = {
+            liquidation_penalty = 0.1;
+            reserve_liquidity = 0.1;
+            protocol_fee = 0.1;
+            max_slippage = 0.1;
+            max_ltv = 0.75;
+            liquidation_threshold = 0.85;
+            interest_rate_curve = [
+                { utilization = 0.0; percentage_rate = 0.02 },
+                { utilization = 0.8; percentage_rate = 0.2 },
+                { utilization = 1.0; percentage_rate = 1.0 },
+            ];
+        };
+
+        let state = {
+            var supply_rate = 0.0;
+            var supply_accrued_interests = 0.0;
+            var borrow_index = 1.0;
+            var supply_index = 1.0;
+            var last_update_timestamp = clock.get_time();  // Day 1
+            var utilization = {
+                raw_supplied = 0.0;
+                raw_borrowed = 0.0;
+                ratio = 0.0;
+            };
+        };
+
+        let register = {
+            borrow_positions = Map.new<Account, BorrowPosition>();
+            supply_positions = Map.new<Text, SupplyPosition>();
+            withdrawals = Map.new<Text, Withdrawal>();
+            withdraw_queue = Set.new<Text>();
+        };
+
+        let dex = fuzz.icrc1.randomAccount();
+        let protocol = fuzz.icrc1.randomAccount();
+        let lender = fuzz.icrc1.randomAccount();
+        let borrower = fuzz.icrc1.randomAccount();
+
+        let supply_accounting = LedgerAccounting.LedgerAccounting([(lender, 1_000), (borrower, 1_000)]);
+        let collateral_accounting = LedgerAccounting.LedgerAccounting([(borrower, 5_000)]);
+        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
+        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
+
+        let supply_account = LedgerAccount.LedgerAccount({
+            account = protocol;
+            ledger = supply_ledger;
+            fee = 0;
+        });
+        let collateral_account = LedgerAccount.LedgerAccount({
+            account = protocol;
+            ledger = collateral_ledger;
+            fee = 0;
+        });
+        let dex_fake = DexFake.DexFake({ 
+            account = dex;
+            config = {
+                pay_accounting = collateral_accounting;
+                receive_accounting = supply_accounting;
+                pay_token = "";
+                receive_token = "";
+            };
+            init_price = 1.0; // Start with 1:1 price
+        }); 
+
+        let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
+            clock;
+            dex = dex_fake;
+            parameters;
+            state;
+            register;
+            supply_account;
+            collateral_account;
+        });
+
+        // Lender supplies 1000 tokens
+        let _ = await* supply_registry.add_position({
+            id = "supply1";
+            account = lender;
+            supplied = 1000;
+        });
+        verify(supply_accounting.balances(), [ (protocol, 1_000), (borrower, 1_000) ], equal_balances);
+
+        // Borrower supplies 5000 worth of collateral
+        let collateral_1_result = await* borrow_registry.supply_collateral({
+            account = borrower;
+            amount = 5000;
+        });
+        verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(collateral_accounting.balances(), [ (protocol, 5_000) ], equal_balances);
+
+        // Borrower borrows 900 tokens (almost all liquidity)
+        let borrow_1_result = await* borrow_registry.borrow({
+            account = borrower;
+            amount = 900;
+        });
+        verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(supply_accounting.balances(), [ (protocol, 100), (borrower, 1_900) ], equal_balances);
+
+        // Lender tries to withdraw full position
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
+        let withdraw_result = await* supply_registry.remove_position({
+            id = "supply1";
+            share = 1.0;
+        });
+        verify(withdraw_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+
+        // At this point, only 100 tokens are available for transfer to the lender
+        // The rest is queued in the withdrawal queue, waiting for borrowers to repay
+        // The withdrawal queue should have an entry for "supply1" with transferred = 100 and due > 100
+        let withdrawal = Map.get(register.withdrawals, Map.thash, "supply1");
+        switch (withdrawal) {
+            case (?w) {
+                verify(w.transferred, 100, Testify.nat.equal);
+                verify(w.due > 100, true, Testify.bool.equal);
+                // The withdrawal queue should still contain the id
+                verify(Set.has(register.withdraw_queue, Set.thash, "supply1"), true, Testify.bool.equal);
+            };
+            case null {
+                assert(false); // Should have a withdrawal entry
+            };
+        };
+        // Lender's balance should have increased by 100
+        verify(supply_accounting.balances(), [ (lender, 100), (borrower, 1_900) ], equal_balances);
+
+        // Now, borrower repays 900 tokens
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(3)))), #repeatedly);
+        let repay_result = await* borrow_registry.repay({
+            account = borrower;
+            repayment = #FULL;
+        });
+        verify(repay_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+
+        // After repayment, the withdrawal queue should have processed the rest
+        let withdrawal_after = Map.get(register.withdrawals, Map.thash, "supply1");
+        switch (withdrawal_after) {
+            case (?w) {
+                verify(w.transferred, w.due, Testify.nat.equal);
+                // The withdrawal queue should no longer contain the id
+                verify(Set.has(register.withdraw_queue, Set.thash, "supply1"), false, Testify.bool.equal);
+            };
+            case null {
+                assert(false); // Should have a withdrawal entry
+            };
+        };
+        // Lender should have received all tokens back
+        verify(supply_accounting.balances(), [ (protocol, 1), (lender, 1_000), (borrower, 999) ], equal_balances);
+    });
 
 })
