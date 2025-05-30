@@ -60,7 +60,7 @@ module {
             #ok;
         };
 
-        public func remove_position({ id: Text; share: Float; }) : async* Result<(), Text> {
+        public func remove_position({ id: Text; share: Float; }) : async* Result<Nat, Text> {
             
             let position = switch(Map.get(register.supply_positions, Map.thash, id)){
                 case(null) { return #err("The map does not have a position with the ID " # debug_show(id)); };
@@ -88,7 +88,7 @@ module {
             // Trigger the withdrawal queue to process the transfer
             ignore await* withdrawal_queue.process_pending_withdrawals();
 
-            #ok;
+            #ok(due);
         };
 
     };

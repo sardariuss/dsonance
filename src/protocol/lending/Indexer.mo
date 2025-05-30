@@ -81,8 +81,11 @@ module {
             if (not Math.is_normalized(share)) {
                 return #err("Invalid interest share");
             };
+            Debug.print("Splitting supply interests with share: " # Float.toText(share) # " and minimum: " # Int.toText(minimum));
             // Make sure the interests is above the minimum
             let interests_amount = Float.toInt(Float.max(Float.fromInt(minimum), get_supply_interests() * share));
+            Debug.print("Total supply interests: " # Float.toText(get_supply_interests()));
+            Debug.print("Interests amount: " # Int.toText(interests_amount));
             // Remove the interests from the total
             state.supply_accrued_interests -= Float.fromInt(interests_amount);
             // Return the amount
@@ -117,19 +120,22 @@ module {
 
             // If the time is before the last update
             if (elapsed_ns < 0) {
-                Debug.trap("Cannot update rates: time is before last update");
-            } else if (elapsed_ns == 0) {
-                // Sill Update the utilization
-                state.utilization := utilization;
-                Debug.print("Rates are already up to date");
-                return;
+                Debug.trap("Cannot update state: time is before last update");
             };
 
             // Calculate the time period in years
             let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.last_update_timestamp; to = time; }));
 
+            // @todo: remove print statements in production
+            Debug.print("Updating rates with elapsed time: " # Int.toText(elapsed_ns) # " ns, which is " # Float.toText(elapsed_annual) # " years");
+            Debug.print("Current raw supplied: " # Float.toText(utilization.raw_supplied));
+            Debug.print("Current supply rate: " # Float.toText(state.supply_rate) # "Current utilization ratio: " # Float.toText(utilization.ratio));
+            Debug.print("Accrued supply interests before: " # Float.toText(state.supply_accrued_interests));
             // Accrue the supply interests up to this date, need to be done before updating anything else!
-            state.supply_accrued_interests += utilization.raw_supplied * state.supply_rate * elapsed_annual;
+            if (elapsed_ns > 0) {
+                state.supply_accrued_interests += compute_accrued_interests({state; elapsed_annual});
+            };
+            Debug.print("Accrued supply interests after: " # Float.toText(state.supply_accrued_interests));
 
             // Update the utilization
             state.utilization := utilization;
@@ -144,6 +150,10 @@ module {
             
             // Refresh update timestamp
             state.last_update_timestamp := time;
+        };
+
+        func compute_accrued_interests({state: IndexerState; elapsed_annual: Float}) : Float {
+            state.utilization.raw_supplied * state.supply_rate * elapsed_annual;
         };
 
     };
