@@ -4,6 +4,7 @@ import Result "mo:base/Result";
 import Debug "mo:base/Debug";
 import Float "mo:base/Float";
 import Option "mo:base/Option";
+import Int "mo:base/Int";
 
 import Types "../Types";
 import MapUtils "../utils/Map";
@@ -15,6 +16,7 @@ import LendingTypes "Types";
 import Indexer "Indexer";
 import WithdrawalQueue "WithdrawalQueue";
 import UtilizationUpdater "UtilizationUpdater";
+import Borrow "./primitives/Borrow";
 
 module {
 
@@ -24,13 +26,14 @@ module {
     
     type Repayment             = LendingTypes.Repayment;
     type BorrowPosition        = LendingTypes.BorrowPosition;
-    type QueriedBorrowPosition = LendingTypes.QueriedBorrowPosition;
+    type Loan                  = LendingTypes.Loan;
     type BorrowRegister        = LendingTypes.BorrowRegister;
     type Borrow                = LendingTypes.Borrow;
     type IDex                  = LedgerTypes.IDex;
-    type TotalToLiquidate = {
+    type BorrowParameters      = LendingTypes.BorrowParameters;
+    type Liquidation = {
         raw_borrowed: Float;
-        collateral: Nat;
+        total_collateral: Nat;
     };
 
     // @todo: function to delete positions repaid that are too old
@@ -203,101 +206,120 @@ module {
         /// Liquidate borrow positions if their health factor is below 1.0.
         public func check_all_positions_and_liquidate() : async*() {
 
-            let liquidable_positions = get_liquidable_positions();
+            let index = indexer.get_state().borrow_index;
+            let loans = get_loans();
 
-            let to_liquidate = IterUtils.fold_left(liquidable_positions, { raw_borrowed = 0.0; collateral = 0; }, func (sum: TotalToLiquidate, position: BorrowPosition): TotalToLiquidate {
-                {
-                    raw_borrowed = sum.raw_borrowed + Option.getMapped(position.borrow, func(borrow: Borrow) : Float { borrow.raw_amount; }, 0.0);
-                    collateral = sum.collateral + position.collateral.amount;
-                };
+            let total_to_liquidate = IterUtils.fold_left(loans, 0, func (sum: Nat, loan: Loan): Nat {
+                sum + Option.get(loan.collateral_to_liquidate, 0);
             });
 
-            switch (await* (collateral_account.swap({ dex; amount = to_liquidate.collateral; }).against(supply_account))){
+            // Perform the swap
+            let receive_amount = switch (await* (collateral_account.swap({ dex; amount = total_to_liquidate; }).against(supply_account))){
                 case(#err(err)) {
                     Debug.print("Liquidation failed: " # err);
                     return;
                 };
                 case(#ok(swap_reply)) {
                     Debug.print("Liquidation succeeded: " # debug_show(swap_reply));
+                    swap_reply.receive_amount;
                 };
             };
-            indexer.remove_raw_borrow({ amount = to_liquidate.raw_borrowed });
 
-            for (position in liquidable_positions.reset()) {
+            var total_raw_repaid : Float = 0.0;
 
-                Map.set(register.borrow_positions, MapUtils.acchash, position.account, { position with 
-                    collateral = { amount = 0; }; 
-                    borrow = null;
-                });
+            label iterate_loans for (loan in loans.reset()) {
+
+                let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, loan.account)){
+                    case(null) { 
+                        Debug.print("No borrow position found for account " # debug_show(loan.account));
+                        continue iterate_loans; // No position to liquidate
+                    };
+                    case(?p) { p };
+                };
+
+                let borrow = switch(position.borrow){
+                    case(null) { 
+                        Debug.trap("Borrow position is null, cannot liquidate"); // TODO: handle this case properly
+                    };
+                    case(?b) { b; };
+                };
+
+                let collateral_to_liquidate = switch(loan.collateral_to_liquidate){
+                    case(null) { 
+                        Debug.print("No collateral to liquidate for account " # debug_show(loan.account));
+                        continue iterate_loans; // No collateral to liquidate
+                    };
+                    case(?c) { c; };
+                };
+
+                let ratio_repaid = Float.fromInt(collateral_to_liquidate) / Float.fromInt(total_to_liquidate);
+                
+                let debt_repaid = (Float.fromInt(receive_amount) * ratio_repaid) / (1.0 + loan.liquidation_penalty);
+
+                let #ok(new_borrow) = Borrow.slash(borrow, { 
+                    index; // @todo: maybe index shall be refreshed to the current index
+                    accrued_amount = debt_repaid;
+                }) else {
+                    Debug.trap("Failed to slash borrow: " # debug_show(borrow));
+                };
+
+                let new_collateral : Int = position.collateral.amount - collateral_to_liquidate;
+
+                if (new_collateral < 0) {
+                    Debug.trap("New collateral amount is negative: " # debug_show(new_collateral));
+                };
+                
+                // Update the position with the new borrow and collateral
+                Map.set<Account, BorrowPosition>(register.borrow_positions, MapUtils.acchash, loan.account,
+                    { position with borrow = new_borrow; collateral = { amount = Int.abs(new_collateral); }; }
+                );
+
+                // Account for the raw repaid amount
+                let raw_repaid = switch(new_borrow){
+                    case(null) { borrow.raw_amount; };
+                    case(?r) { borrow.raw_amount - r.raw_amount; };
+                };
+                total_raw_repaid += raw_repaid;
             };
+
+            Debug.print("Total raw repaid: " # Float.toText(total_raw_repaid));
+            indexer.remove_raw_borrow({ amount = total_raw_repaid });
 
             // Once positions are liquidated, it might allow the unlock withdrawal of supply
             ignore await* supply_withdrawals.process_pending_withdrawals();
-
-            // @todo: the total borrowed shall take the slippage into account because otherwise the
-            // available total liquidity computation will be wrong (i.e. not reflect the amount actually available)
-            //let ratio_sold = Float.fromInt(collateral_sold) / Float.fromInt(collateral_to_sell);
-            
-//            // Update the positions
-//            for (position in liquidable_positions.reset()) {
-//
-//                ignore lending_pool.slash_borrow({ 
-//                    account = position.account;
-//                    borrow_amount = position.borrowed * ratio_sold;
-//                    collateral_amount = position.collateral * ratio_sold;
-//                });
-//            };
-//
-//            let value_sold = Float.fromInt(collateral_sold) * collateral_spot_in_asset();
-//            let value_debt = to_liquidate.borrowed * ratio_sold;
-//
-//            let difference = value_sold - value_debt;
-//
-//            // @todo: need to take protocol fees
-//
-//            if (difference >= 0.0) {
-//                asset_accounting.reserve += difference;
-//            } else {
-//                Debug.print("⚠️ Bad debt: liquidation proceeds are insufficient");
-//                asset_accounting.unsolved_debts := Array.append(asset_accounting.unsolved_debts, [{ timestamp = time; amount = difference; }]);
-//            };
         };
 
-//        public func solve_debts_with_reserve() {
+//        public func solve_loans_with_reserve() {
 //
-//            let debts_left = Buffer.Buffer<DebtEntry>(0);
+//            let loans_left = Buffer.Buffer<LoanEntry>(0);
 //
-//            for(debt in Array.vals(asset_accounting.unsolved_debts)){
-//                if (debt.amount < asset_accounting.reserve) {
-//                    asset_accounting.reserve -= debt.amount;
+//            for(loan in Array.vals(asset_accounting.unsolved_loans)){
+//                if (loan.amount < asset_accounting.reserve) {
+//                    asset_accounting.reserve -= loan.amount;
 //                } else {
-//                    debts_left.add(debt);
+//                    loans_left.add(loan);
 //                };
 //            };
 //
-//            asset_accounting.unsolved_debts := Buffer.toArray(debts_left);
+//            asset_accounting.unsolved_loans := Buffer.toArray(loans_left);
 //        };
 
-        public func query_borrow_position({ account: Account; }) : ?QueriedBorrowPosition {
+        public func query_loan({ account: Account; }) : ?Loan {
 
             let index = indexer.get_state().borrow_index;
 
             switch (Map.get(register.borrow_positions, MapUtils.acchash, account)){
                 case(null) { null; };
                 case(?position) {
-                    ?{
-                        position;
-                        health = borrow_positionner.compute_health_factor({ position; index; });
-                        owed = 0.0; // @todo: compute the owed amount
-                    };
+                    borrow_positionner.to_loan({ position; index; });
                 };
             };
         };
 
-        public func get_liquidable_positions() : Map.Iter<BorrowPosition> {
+        public func get_loans() : Map.Iter<Loan> {
             let index = indexer.get_state().borrow_index;
-            let filtered_map = Map.filter<Account, BorrowPosition>(register.borrow_positions, MapUtils.acchash, func (account: Account, position: BorrowPosition) : Bool {
-                not borrow_positionner.is_healthy({ position; index; });
+            let filtered_map = Map.mapFilter<Account, BorrowPosition, Loan>(register.borrow_positions, MapUtils.acchash, func (account: Account, position: BorrowPosition) : ?Loan {
+                borrow_positionner.to_loan({ position; index; });
             });
             Map.vals(filtered_map);
         };

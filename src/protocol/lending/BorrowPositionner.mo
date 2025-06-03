@@ -191,6 +191,106 @@ module {
             };
         };
 
+        // https://chatgpt.com/share/683defc1-f6e0-8000-a87e-fc212789a229
+        public func to_loan({
+            position: BorrowPosition;
+            index: Index;
+        }) : ?LendingTypes.Loan {
+
+            switch (position.borrow) {
+                case (null) { null }; // No active loan, return nothing
+
+                case (?b) {
+                    // Protocol parameters for risk and liquidation
+                    let { liquidation_threshold; target_ltv; liquidation_penalty; } = parameters;
+
+                    // Compute the up-to-date amount owed, including accrued interest
+                    let loan = Borrow.get_current_owed(b, index).accrued_amount;
+
+                    if (loan <= 0.0) {
+                        return null; // No loan to report
+                    };
+
+                    // Get current spot price of the collateral (in borrow asset units)
+                    let price = collateral_spot_in_asset();
+
+                    // Adjust the price downward to simulate the loss from applying the liquidation penalty
+                    let effective_price = price * (1.0 - liquidation_penalty);
+
+                    // Convert integer collateral amount to float
+                    let collateral = Float.fromInt(position.collateral.amount);
+
+                    // Compute the value of collateral in two ways:
+                    // - actual: what it's worth on the open market
+                    // - effective: pessimistically discounted for liquidation
+                    let collateral_value = {
+                        actual = collateral * price;
+                        effective = collateral * effective_price;
+                    };
+
+                    // Sanity checks to ensure LTV denominator will be valid
+                    if (collateral_value.actual <= 0.0 or collateral_value.effective <= 0.0) {
+                        Debug.trap("BorrowPositionner: LTV denominator is zero or negative, cannot compute LTV");
+                    };
+
+                    // Compute LTVs:
+                    // - raw: regular LTV using current spot price
+                    // - safe: pessimistic LTV accounting for liquidation losses
+                    let ltv = {
+                        raw = loan / collateral_value.actual;
+                        safe = loan / collateral_value.effective;
+                    };
+
+                    if (ltv.raw < 0.0 or ltv.safe < 0.0) {
+                        Debug.trap("BorrowPositionner: LTV is negative, this should not happen");
+                    };
+
+                    // Compute the max debt that would keep the position within the target LTV
+                    let target_loan = collateral * price * target_ltv;
+
+                    // How much repayment is required to bring the position back to target
+                    let required_repayment = if (loan > target_loan) {
+                        Int.abs(ceil_to_int(loan - target_loan));
+                    } else 0;
+
+                    // Health factor: how close the position is to liquidation
+                    // < 1.0 means liquidation should happen
+                    let health = liquidation_threshold / ltv.safe;
+
+                    // If health is below threshold, compute how much collateral must be liquidated
+                    let collateral_to_liquidate = if (health <= 1.0) {
+                        let numerator = loan - target_loan;
+
+                        // Denominator accounts for the loss in price due to penalty and the fact
+                        // that we want the final LTV to land on target_ltv after liquidation
+                        let denominator = price * (1 / (1 + liquidation_penalty) - target_ltv);
+
+                        if (denominator <= 0) {
+                            Debug.trap("Invalid liquidation math: denominator <= 0");
+                        };
+
+                        ?Int.abs(ceil_to_int(numerator / denominator));
+                    } else null;
+
+                    ?{
+                        account = position.account;
+                        raw_borrowed = b.raw_amount;
+                        loan;
+                        collateral = position.collateral.amount;
+                        ltv = ltv.raw;
+                        required_repayment;
+                        health;
+                        collateral_to_liquidate;
+                        liquidation_penalty;
+                    };
+                };
+            };
+        };
+    };
+
+    func ceil_to_int(x: Float) : Int {
+        if (x == Float.floor(x)) { Float.toInt(x) }
+        else { Float.toInt(x) + 1 };
     };
 
     public func add_tx({

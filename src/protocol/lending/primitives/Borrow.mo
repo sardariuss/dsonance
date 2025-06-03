@@ -21,6 +21,10 @@ module {
         borrow.raw_amount > 0.0 and Owed.is_valid(borrow.owed);
     };
 
+    public func get_current_owed(borrow: Borrow, index: Index) : Owed {
+        Owed.accrue_interests(borrow.owed, index);
+    };
+
     public func new(amount: Nat, index: Index) : Borrow {
         {
             raw_amount = Float.fromInt(amount);

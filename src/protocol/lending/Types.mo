@@ -81,15 +81,14 @@ module {
     };
 
     public type LendingPoolParameters = {
-        liquidation_penalty: Float; // ratio, between 0 and 1, e.g. 0.10
         protocol_fee: Float; // portion of the supply interest reserved as a fee for the protocol
-        max_slippage: Float;
     };
 
     public type BorrowParameters = {
+        target_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
         max_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
         liquidation_threshold: Float; // ratio, between 0 and 1, e.g. 0.85
-        //max_borrow_duration: Duration; // the maximum duration a borrow position can last before it gets liquidated
+        liquidation_penalty: Float; // ratio, between 0 and 1, e.g. 0.10
     };
 
     public type Parameters = LendingPoolParameters and BorrowParameters and UtilizationParameters and{
@@ -151,10 +150,16 @@ module {
         tx: [BorrowPositionTx];
     };
 
-    public type QueriedBorrowPosition = {
-        position: BorrowPosition;
-        owed: Float;
-        health: ?Float;
+    public type Loan = {
+        account: Account;
+        raw_borrowed: Float;
+        loan: Float;
+        collateral: Nat;
+        ltv: Float;
+        health: Float;
+        required_repayment: Nat;
+        collateral_to_liquidate: ?Nat;
+        liquidation_penalty: Float;
     };
 
     public type Index = {
