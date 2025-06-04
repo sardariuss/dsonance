@@ -1,11 +1,11 @@
-import Index "Index";
-import Owed "Owed";
+import Index        "Index";
+import Owed         "Owed";
 import LendingTypes "../Types";
 
-import Result "mo:base/Result";
-import Float "mo:base/Float";
-import Bool "mo:base/Bool";
-import Debug "mo:base/Debug";
+import Result       "mo:base/Result";
+import Float        "mo:base/Float";
+import Bool         "mo:base/Bool";
+import Debug        "mo:base/Debug";
 
 module {
 

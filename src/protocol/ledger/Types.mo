@@ -14,6 +14,7 @@ module {
     public type Icrc1TransferArgs = ICRC1.TransferArgs;
     public type TransferError = ICRC1.TransferError;
     public type TransferFromError = ICRC2.TransferFromError;
+    public type TransferResult = Types.TransferResult;
     public type Transfer = Types.Transfer;
     public type TransferFromArgs = ICRC2.TransferFromArgs;
     public type PullResult = Result<TxIndex, TransferFromError>;
@@ -31,17 +32,19 @@ module {
     public type SwapPayload = {
         pay_token: Text;
         pay_amount: Nat;
+        max_slippage: ?Float;
         dex: IDex;
         callback: () -> ();
     };
 
     public type Swap = {
-        against: (ILedgerAccount) -> async* Result<SwapReply, Text>;
+        against: (ISwapReceivable) -> async* Result<SwapReply, Text>;
     };
 
     public type PrepareSwapArgs = {
         dex: IDex;
         amount: Nat;
+        max_slippage: ?Float;
     };
 
     // Copy/pasted from KongSwap: https://dashboard.internetcomputer.org/canister/2ipq2-uqaaa-aaaar-qailq-cai
@@ -189,8 +192,14 @@ module {
         token_symbol: () -> Text;
         pull: (PullArgs) -> async* PullResult;
         transfer: (TransferArgs) -> async* Transfer;
-        perform_swap: (SwapPayload) -> async* Result<SwapReply, Text>;
+    };
+
+    public type ISwapPayable = {
         swap: (PrepareSwapArgs) -> Swap;
+    };
+
+    public type ISwapReceivable = {
+        perform_swap: (SwapPayload) -> async* Result<SwapReply, Text>;
     };
 
 };

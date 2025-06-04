@@ -3,8 +3,6 @@ import LendingTypes "../Types";
 
 import Result "mo:base/Result";
 import Float "mo:base/Float";
-import Int "mo:base/Int";
-import Debug "mo:base/Debug";
 
 module {
 

@@ -32,6 +32,22 @@ await suite("LendingPool", func(): async() {
     let fuzz = Fuzz.fromSeed(0);
     let equal_balances = LedgerAccounting.testify_balances.equal;
 
+    let parameters = {
+        reserve_liquidity = 0.1;
+        lending_fee_ratio = 0.1;
+        target_ltv = 0.60;
+        max_ltv = 0.70;
+        liquidation_threshold = 0.75;
+        liquidation_penalty = 0.03;
+        close_factor = 0.5;
+        max_slippage = 0.05; // Not used in that test, but required by the type
+        interest_rate_curve = [
+            { utilization = 0.0; percentage_rate = 2.0 },
+            { utilization = 0.8; percentage_rate = 20.0 },
+            { utilization = 1.0; percentage_rate = 100.0 },
+        ];
+    };
+
     await test("Nominal test", func() : async() {
 
         // === Setup Phase ===
@@ -40,24 +56,12 @@ await suite("LendingPool", func(): async() {
         // Set time to Day 1
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
-        let parameters = {
-            reserve_liquidity = 0.1;
-            protocol_fee = 0.1;
-            target_ltv = 0.65;
-            max_ltv = 0.75;
-            liquidation_threshold = 0.85;
-            liquidation_penalty = 0.03;
-            close_factor = 0.5;
-            interest_rate_curve = [
-                { utilization = 0.0; percentage_rate = 2.0 },
-                { utilization = 0.8; percentage_rate = 20.0 },
-                { utilization = 1.0; percentage_rate = 100.0 },
-            ];
-        };
-
         let state = {
             var supply_rate = 0.0;
-            var supply_accrued_interests = 0.0;
+            var accrued_interests = {
+                fees = 0.0;
+                supply = 0.0;
+            };
             var borrow_index = 1.0;
             var supply_index = 1.0;
             var last_update_timestamp = clock.get_time();  // Day 1
@@ -75,6 +79,7 @@ await suite("LendingPool", func(): async() {
             withdraw_queue = Set.new<Text>();
         };
 
+        let protocol_owner = fuzz.principal.randomPrincipal(10);
         let protocol = { fuzz.icrc1.randomAccount() with name = "protocol" };
         let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
         let borrower = { fuzz.icrc1.randomAccount() with name = "borrower" };
@@ -99,6 +104,7 @@ await suite("LendingPool", func(): async() {
 
         // Build the lending system
         let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
+            protocol_owner;
             clock;
             dex;
             parameters;
@@ -236,24 +242,12 @@ await suite("LendingPool", func(): async() {
         let clock = ClockMock.ClockMock();
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
-        let parameters = {
-            reserve_liquidity = 0.1;
-            protocol_fee = 0.1;
-            target_ltv = 0.60;
-            max_ltv = 0.70;
-            liquidation_threshold = 0.75;
-            liquidation_penalty = 0.03;
-            close_factor = 0.5;
-            interest_rate_curve = [
-                { utilization = 0.0; percentage_rate = 2.0 },
-                { utilization = 0.8; percentage_rate = 20.0 },
-                { utilization = 1.0; percentage_rate = 100.0 },
-            ];
-        };
-
         let state = {
             var supply_rate = 0.0;
-            var supply_accrued_interests = 0.0;
+            var accrued_interests = {
+                fees = 0.0;
+                supply = 0.0;
+            };
             var borrow_index = 1.0;
             var supply_index = 1.0;
             var last_update_timestamp = clock.get_time();  // Day 1
@@ -271,6 +265,7 @@ await suite("LendingPool", func(): async() {
             withdraw_queue = Set.new<Text>();
         };
 
+        let protocol_owner = fuzz.principal.randomPrincipal(10);
         let dex = { fuzz.icrc1.randomAccount() with name = "dex" };
         let protocol = { fuzz.icrc1.randomAccount() with name = "protocol" };
         let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
@@ -304,6 +299,7 @@ await suite("LendingPool", func(): async() {
 
          // Build the lending system
         let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
+            protocol_owner;
             clock;
             dex = dex_fake;
             parameters;
@@ -381,7 +377,8 @@ await suite("LendingPool", func(): async() {
         };
 
         // Call liquidation
-        await* borrow_registry.check_all_positions_and_liquidate();
+        let liquidation = await* borrow_registry.check_all_positions_and_liquidate();
+        verify(liquidation, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
 
         // After liquidation, the collateral should have been partially liquidated
         let after_liquidation = borrow_registry.query_loan({ account = borrower });
@@ -404,8 +401,8 @@ await suite("LendingPool", func(): async() {
             share = 1.0; // Full withdrawal
         });
         verify(withdraw_result, #ok(1019), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
-        // Lender could only withdraw up to 830 tokens
-        verify(supply_accounting.balances(), [ (dex, 1_670), (protocol, 0), (lender, 9_830), (borrower, 10_500) ], equal_balances);
+        // Lender could only withdraw up to 830 tokens (-3 for fees)
+        verify(supply_accounting.balances(), [ (dex, 1_670), (protocol, 3), (lender, 9_827), (borrower, 10_500) ], equal_balances);
     });
 
     await test("Lender withdrawal triggers withdrawal queue with partial repayment", func() : async() {
@@ -413,24 +410,12 @@ await suite("LendingPool", func(): async() {
         let clock = ClockMock.ClockMock();
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
-        let parameters = {
-            reserve_liquidity = 0.1;
-            protocol_fee = 0.1;
-            target_ltv = 0.65;
-            max_ltv = 0.75;
-            liquidation_threshold = 0.85;
-            liquidation_penalty = 0.03;
-            close_factor = 0.5;
-            interest_rate_curve = [
-                { utilization = 0.0; percentage_rate = 2.0 },
-                { utilization = 0.8; percentage_rate = 20.0 },
-                { utilization = 1.0; percentage_rate = 100.0 },
-            ];
-        };
-
         let state = {
             var supply_rate = 0.0;
-            var supply_accrued_interests = 0.0;
+            var accrued_interests = {
+                fees = 0.0;
+                supply = 0.0;
+            };
             var borrow_index = 1.0;
             var supply_index = 1.0;
             var last_update_timestamp = clock.get_time();  // Day 1
@@ -448,6 +433,7 @@ await suite("LendingPool", func(): async() {
             withdraw_queue = Set.new<Text>();
         };
 
+        let protocol_owner = fuzz.principal.randomPrincipal(10);
         let dex = { fuzz.icrc1.randomAccount() with name = "dex" };
         let protocol = { fuzz.icrc1.randomAccount() with name = "protocol" };
         let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
@@ -480,6 +466,7 @@ await suite("LendingPool", func(): async() {
         }); 
 
         let { supply_registry; borrow_registry; } = LendingFactory.build({
+            protocol_owner;
             clock;
             dex = dex_fake;
             parameters;
@@ -521,13 +508,13 @@ await suite("LendingPool", func(): async() {
         });
         verify(withdraw_result, #ok(1002), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
-        // At this point, only 100 tokens are available for transfer to the lender
+        // At this point, only 100 tokens (-1 for the fees) are available for transfer to the lender
         // The rest is queued in the withdrawal queue, waiting for borrowers to repay
         // The withdrawal queue should have an entry for "supply1" with transferred = 100 and due > 100
         let withdrawal = Map.get(register.withdrawals, Map.thash, "supply1");
         switch (withdrawal) {
             case (?w) {
-                verify(w.transferred, 100, Testify.nat.equal);
+                verify(w.transferred, 99, Testify.nat.equal);
                 verify(w.due > 100, true, Testify.bool.equal);
                 // The withdrawal queue should still contain the id
                 verify(Set.has(register.withdraw_queue, Set.thash, "supply1"), true, Testify.bool.equal);
@@ -537,7 +524,7 @@ await suite("LendingPool", func(): async() {
             };
         };
         // Lender's balance should have increased by 100
-        verify(supply_accounting.balances(), [ (dex, 0), (protocol, 0), (lender, 100), (borrower, 1_900) ], equal_balances);
+        verify(supply_accounting.balances(), [ (dex, 0), (protocol, 1), (lender, 99), (borrower, 1_900) ], equal_balances);
 
         // Now, borrower repays 900 tokens
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(3)))), #repeatedly);

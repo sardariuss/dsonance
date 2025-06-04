@@ -1,15 +1,15 @@
-import Debug "mo:base/Debug";
-import Result "mo:base/Result";
-import Int "mo:base/Int";
-import Float "mo:base/Float";
+import Debug           "mo:base/Debug";
+import Result          "mo:base/Result";
+import Int             "mo:base/Int";
+import Float           "mo:base/Float";
 
-import Map "mo:map/Map";
+import Map             "mo:map/Map";
 
-import Types "../Types";
-import LedgerAccount "../ledger/LedgerAccount";
-import LendingTypes "Types";
-import Indexer "Indexer";
+import Types           "../Types";
+import LendingTypes    "Types";
+import Indexer         "Indexer";
 import WithdrawalQueue "WithdrawalQueue";
+import SupplyAccount   "SupplyAccount";
 
 module {
 
@@ -30,7 +30,7 @@ module {
     public class SupplyRegistry({
         indexer: Indexer.Indexer;
         register: SupplyRegister;
-        ledger: LedgerAccount.LedgerAccount;
+        supply: SupplyAccount.SupplyAccount;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
     }){
 
@@ -46,7 +46,7 @@ module {
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
-            let tx = switch(await* ledger.pull({ from = account; amount = supplied; })) {
+            let tx = switch(await* supply.pull({ from = account; amount = supplied; })) {
                 case(#err(_)) { return #err("Transfer failed"); };
                 case(#ok(tx_index)) { tx_index; };
             };
@@ -71,7 +71,7 @@ module {
             Map.delete(register.supply_positions, Map.thash, id);
 
             // Compute the amount due
-            let interest_amount = switch(indexer.split_supply_interests({ share; minimum = -position.supplied; })){
+            let interest_amount = switch(indexer.take_supply_interests({ share; minimum = -position.supplied; })){
                 case(#err(err)) { return #err(err); };
                 case(#ok(amount)) { amount; };
             };

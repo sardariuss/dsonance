@@ -1,6 +1,6 @@
 import Error "mo:base/Error";
-import Map "mo:map/Map";
-import Set "mo:map/Set";
+import Map   "mo:map/Map";
+import Set   "mo:map/Set";
 
 // @todo: Find a way to import the types from the protocol to avoid copy pasting
 module {
@@ -81,7 +81,7 @@ module {
     };
 
     public type LendingPoolParameters = {
-        protocol_fee: Float; // portion of the supply interest reserved as a fee for the protocol
+        lending_fee_ratio: Float; // portion of the supply interest reserved as a fee for the protocol
     };
 
     public type BorrowParameters = {
@@ -93,6 +93,7 @@ module {
                               // to determine how much of the borrow can be repaid
                               // in a single transaction, e.g. 50% of the borrow
                               // can be repaid in a single transaction
+        max_slippage: Float;
     };
 
     public type Parameters = LendingPoolParameters and BorrowParameters and UtilizationParameters and{
@@ -187,7 +188,7 @@ module {
         supplied: Nat;
         due: Nat;
         var transferred: Nat;
-        var transfers: [Transfer]; // TODO: need to limit the number of transfers
+        var transfers: [TransferResult]; // TODO: need to limit the number of transfers
     };
 
     public type BorrowRegister = {
@@ -212,7 +213,10 @@ module {
     public type IndexerState = {
         var utilization: Utilization;
         var supply_rate: Float; // supply percentage rate (ratio)
-        var supply_accrued_interests: Float; // accrued supply interests
+        var accrued_interests: {
+            fees: Float;
+            supply: Float;
+        };
         var borrow_index: Float; // growing value, starts at 1.0
         var supply_index: Float; // growing value, starts at 1.0
         var last_update_timestamp: Nat; // last time the rates were updated
@@ -221,7 +225,10 @@ module {
     public type SIndexerState = {
         utilization: Utilization;
         supply_rate: Float;
-        supply_accrued_interests: Float;
+        accrued_interests: {
+            fees: Float;
+            supply: Float;
+        };
         borrow_index: Index;
         supply_index: Index;
         last_update_timestamp: Nat;

@@ -14,17 +14,20 @@ module {
     type TxIndex           = LedgerTypes.TxIndex;
     type PullResult        = LedgerTypes.PullResult;
     type ILedgerAccount    = LedgerTypes.ILedgerAccount;
+    type ISwapPayable      = LedgerTypes.ISwapPayable;
+    type ISwapReceivable   = LedgerTypes.ISwapReceivable;
     type Swap              = LedgerTypes.Swap;
     type SwapPayload       = LedgerTypes.SwapPayload;
     type IDex              = LedgerTypes.IDex;
     type SwapReply         = LedgerTypes.SwapReply;
     type ILedgerFungible   = LedgerTypes.ILedgerFungible;
     
+    // TODO: ideally the LedgerAccount should only implement ILedgerAccount
     public class LedgerAccount({
         account: Account;
         ledger: ILedgerFungible;
         fee: Nat;
-    }) : ILedgerAccount {
+    }) : ILedgerAccount and ISwapPayable and ISwapReceivable {
 
         // @todo: should be checked at initialization
         var local_balance = 0;
@@ -105,7 +108,6 @@ module {
                 receive_token = token_symbol();
                 receive_amount = null;
                 receive_address = null;
-                max_slippage = null;
                 referred_by = null;
                 from = account;
             })) {
@@ -122,16 +124,18 @@ module {
         public func swap({
             dex: IDex;
             amount: Nat;
+            max_slippage: ?Float;
         }) : Swap {
             let payload = {
                 pay_token = token_symbol();
                 pay_amount = amount;
+                max_slippage;
                 dex;
                 callback = func() { local_balance -= amount; };
             };
             {
-                against = func(ledger_account: ILedgerAccount) : async* Result<SwapReply, Text> {
-                    await* ledger_account.perform_swap(payload);
+                against = func(swap_receivable: ISwapReceivable) : async* Result<SwapReply, Text> {
+                    await* swap_receivable.perform_swap(payload);
                 };
             };
         };

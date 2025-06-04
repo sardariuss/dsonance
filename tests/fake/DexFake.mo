@@ -22,6 +22,7 @@ module {
         (a.pay_token == b.pay_token) and (a.receive_token == b.receive_token)
     };
     
+    // TODO: have a map of tokens instead
     public class DexFake({ account: Account; config: LedgerConfig; init_price: Float; }) : LedgerTypes.IDex {
         
         var price : Float = init_price;

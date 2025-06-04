@@ -1,13 +1,14 @@
-import LendingTypes "Types";
-import BorrowPositionner "BorrowPositionner";
-import BorrowRegistry "BorrowRegistry";
-import SupplyRegistry "SupplyRegistry";
-import InterestRateCurve "InterestRateCurve";
-import WithdrawalQueue "WithdrawalQueue";
-import Indexer "Indexer";
+import LendingTypes       "Types";
+import BorrowPositionner  "BorrowPositionner";
+import BorrowRegistry     "BorrowRegistry";
+import SupplyRegistry     "SupplyRegistry";
+import InterestRateCurve  "InterestRateCurve";
+import WithdrawalQueue    "WithdrawalQueue";
+import Indexer            "Indexer";
 import UtilizationUpdater "UtilizationUpdater";
-import LedgerTypes "../ledger/Types";
-import Clock "../utils/Clock";
+import SupplyAccount      "SupplyAccount";
+import LedgerTypes        "../ledger/Types";
+import Clock              "../utils/Clock";
 
 module {
 
@@ -16,13 +17,16 @@ module {
     type Parameters          = LendingTypes.Parameters;
     type ILedgerAccount      = LedgerTypes.ILedgerAccount;
     type IDex                = LedgerTypes.IDex;
+    type ISwapReceivable     = LedgerTypes.ISwapReceivable;
+    type ISwapPayable        = LedgerTypes.ISwapPayable;
 
     public func build({
+        protocol_owner: Principal;
         parameters: Parameters;
         state: IndexerState;
         register: LendingPoolRegister;
-        supply_account: ILedgerAccount;
-        collateral_account: ILedgerAccount;
+        supply_account: ILedgerAccount and ISwapReceivable;
+        collateral_account: ILedgerAccount and ISwapPayable;
         dex: IDex;
         clock: Clock.IClock;
     }) : {
@@ -46,27 +50,34 @@ module {
             );
         });
 
+        let supply = SupplyAccount.SupplyAccount({
+            protocol_owner;
+            ledger_account = supply_account;
+            indexer;
+        });
+
         let withdrawal_queue = WithdrawalQueue.WithdrawalQueue({
             indexer;
             register;
-            ledger = supply_account;
+            supply;
         });
 
         let supply_registry = SupplyRegistry.SupplyRegistry({
             indexer;
             register;
             withdrawal_queue;
-            ledger = supply_account;
+            supply;
         });
 
         let borrow_registry = BorrowRegistry.BorrowRegistry({
             indexer;
             register;
             utilization_updater;
-            supply_withdrawals = withdrawal_queue;
-            supply_account;
+            withdrawal_queue;
+            supply;
             collateral_account;
             dex;
+            parameters;
             borrow_positionner = BorrowPositionner.BorrowPositionner({
                 parameters;
                 collateral_spot_in_asset = func() : Float {

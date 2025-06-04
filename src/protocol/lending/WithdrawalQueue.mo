@@ -1,23 +1,23 @@
-import Nat "mo:base/Nat";
-import Debug "mo:base/Debug";
-import Result "mo:base/Result";
-import Int "mo:base/Int";
-import Buffer "mo:base/Buffer";
-import Array "mo:base/Array";
-import Float "mo:base/Float";
+import Nat           "mo:base/Nat";
+import Debug         "mo:base/Debug";
+import Result        "mo:base/Result";
+import Int           "mo:base/Int";
+import Buffer        "mo:base/Buffer";
+import Array         "mo:base/Array";
+import Float         "mo:base/Float";
 
-import Map "mo:map/Map";
-import Set "mo:map/Set";
+import Map           "mo:map/Map";
+import Set           "mo:map/Set";
 
-import Types "../Types";
-import LedgerAccount "../ledger/LedgerAccount";
-import LendingTypes "Types";
-import Indexer "Indexer";
+import Types         "../Types";
+import SupplyAccount "SupplyAccount";
+import LendingTypes  "Types";
+import Indexer       "Indexer";
 
 module {
 
-    type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type Transfer = Types.Transfer;
+    type Result<Ok, Err>    = Result.Result<Ok, Err>;
+    type TransferResult     = Types.TransferResult;
 
     type SupplyPosition     = LendingTypes.SupplyPosition;
     type Withdrawal         = LendingTypes.Withdrawal;
@@ -29,7 +29,7 @@ module {
     public class WithdrawalQueue({
         indexer: Indexer.Indexer;
         register: WithdrawalRegister;
-        ledger: LedgerAccount.LedgerAccount;
+        supply: SupplyAccount.SupplyAccount;
     }){
 
         var awaiting_transfer = false;
@@ -59,17 +59,23 @@ module {
             };
         };
 
-        public func process_pending_withdrawals() : async* Result<[Transfer], Text> {
+        public func process_pending_withdrawals() : async* Result<[TransferResult], Text> {
 
             // Prevent re-entry
             if (awaiting_transfer){
                 return #err("Withdraw queue is currently awaiting transfer, try again later");
             };
 
-            let buffer_transferring = Buffer.Buffer<async* Transfer>(0);
+            // Compute the amount available for transfer
+            var available_for_transfer = supply.get_balance();
+            if (available_for_transfer == 0){
+                return #err("No supply available to transfer withdrawals");
+            };
 
-            var available_for_transfer = ledger.get_local_balance();
+            // Initialize a buffer to hold the transfers
+            let buffer_transferring = Buffer.Buffer<async* TransferResult>(0);
 
+            // Process the queue
             label queue_loop for (id in Set.keys(register.withdraw_queue)){
 
                 let withdrawal = switch(Map.get(register.withdrawals, Map.thash, id)){
@@ -98,7 +104,7 @@ module {
             };
 
             awaiting_transfer := true;
-            var transfers = Buffer.Buffer<Transfer>(0);
+            var transfers = Buffer.Buffer<TransferResult>(0);
 
             for (transferring in buffer_transferring.vals()){
                 transfers.add(await* transferring);
@@ -108,14 +114,14 @@ module {
             #ok(Buffer.toArray(transfers));
         };
 
-        func transfer({ withdrawal: Withdrawal; amount: Nat; }) : async* Transfer {
+        func transfer({ withdrawal: Withdrawal; amount: Nat; }) : async* TransferResult {
 
-            let transfer = await* ledger.transfer({ to = withdrawal.account; amount; });
+            let transfer = await* supply.transfer({ to = withdrawal.account; amount; });
 
             // Add the transfer
             withdrawal.transfers := Array.append(withdrawal.transfers, [transfer]);
 
-            switch(transfer.result){
+            switch(transfer){
                 case(#ok(_)){
 
                     let prev_raw_withdrawn = compute_raw_withdrawn(withdrawal);

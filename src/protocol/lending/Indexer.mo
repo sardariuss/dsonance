@@ -1,15 +1,15 @@
-import Int "mo:base/Int";
-import Float "mo:base/Float";
-import Nat "mo:base/Nat";
-import Debug "mo:base/Debug";
-import Result "mo:base/Result";
+import Int                "mo:base/Int";
+import Float              "mo:base/Float";
+import Nat                "mo:base/Nat";
+import Debug              "mo:base/Debug";
+import Result             "mo:base/Result";
 
-import InterestRateCurve "InterestRateCurve";
-import Math "../utils/Math";
-import Types "../Types";
-import Duration "../duration/Duration";
-import LendingTypes "Types";
-import Clock "../utils/Clock";
+import InterestRateCurve  "InterestRateCurve";
+import Math               "../utils/Math";
+import Types              "../Types";
+import Duration           "../duration/Duration";
+import LendingTypes       "Types";
+import Clock              "../utils/Clock";
 import UtilizationUpdater "UtilizationUpdater";
 
 module {
@@ -39,7 +39,10 @@ module {
                 borrow_index = { value = state.borrow_index; timestamp = state.last_update_timestamp };
                 last_update_timestamp = state.last_update_timestamp;
                 supply_rate = state.supply_rate;
-                supply_accrued_interests = state.supply_accrued_interests;
+                accrued_interests = {
+                    fees = state.accrued_interests.fees;
+                    supply = state.accrued_interests.supply;
+                };
             };
         };
 
@@ -75,7 +78,7 @@ module {
             update_state({ utilization; });
         };
 
-        public func split_supply_interests({ share: Float; minimum: Int; }) : Result<Int, Text> {
+        public func take_supply_interests({ share: Float; minimum: Int; }) : Result<Int, Text> {
             update_state({ utilization = state.utilization });
             // Make sure the share is normalized
             if (not Math.is_normalized(share)) {
@@ -83,22 +86,16 @@ module {
             };
             Debug.print("Splitting supply interests with share: " # Float.toText(share) # " and minimum: " # Int.toText(minimum));
             // Make sure the interests is above the minimum
-            let interests_amount = Float.toInt(Float.max(Float.fromInt(minimum), get_supply_interests() * share));
-            Debug.print("Total supply interests: " # Float.toText(get_supply_interests()));
+            let interests_amount = Float.toInt(Float.max(Float.fromInt(minimum), state.accrued_interests.supply * share));
+            Debug.print("Total supply interests: " # Float.toText(state.accrued_interests.supply));
             Debug.print("Interests amount: " # Int.toText(interests_amount));
-            // Remove the interests from the total
-            state.supply_accrued_interests -= Float.fromInt(interests_amount);
+            // Remove the interests from the supply
+            state.accrued_interests := {
+                fees = state.accrued_interests.fees;
+                supply = state.accrued_interests.supply - Float.fromInt(interests_amount);
+            };
             // Return the amount
             #ok(interests_amount);
-        };
-
-        public func get_supply_interests() : Float {
-            update_state({ utilization = state.utilization });
-            state.supply_accrued_interests;
-            // @todo: uncomment when using unsolved debts
-            //state.supply_accrued_interests - Array.foldLeft<DebtEntry, Float>(asset_accounting.unsolved_debts, 0.0, func (acc: Float, debt: DebtEntry) {
-                //acc + debt.amount;
-            //});
         };
 
         /// Accrues interest for the past period and updates supply/borrow rates.
@@ -130,19 +127,17 @@ module {
             Debug.print("Updating rates with elapsed time: " # Int.toText(elapsed_ns) # " ns, which is " # Float.toText(elapsed_annual) # " years");
             Debug.print("Current raw supplied: " # Float.toText(utilization.raw_supplied));
             Debug.print("Current supply rate: " # Float.toText(state.supply_rate) # "Current utilization ratio: " # Float.toText(utilization.ratio));
-            Debug.print("Accrued supply interests before: " # Float.toText(state.supply_accrued_interests));
             // Accrue the supply interests up to this date, need to be done before updating anything else!
             if (elapsed_ns > 0) {
-                state.supply_accrued_interests += compute_accrued_interests({state; elapsed_annual});
+                accrue_interests({state; elapsed_annual});
             };
-            Debug.print("Accrued supply interests after: " # Float.toText(state.supply_accrued_interests));
 
             // Update the utilization
             state.utilization := utilization;
 
             // Get the current rates from the curve
             let borrow_rate = Math.percentage_to_ratio(interest_rate_curve.get_apr(state.utilization.ratio));
-            state.supply_rate := borrow_rate * state.utilization.ratio * (1.0 - parameters.protocol_fee);
+            state.supply_rate := borrow_rate * state.utilization.ratio;
 
             // Update the indexes
             state.borrow_index := state.borrow_index * (1.0 + borrow_rate * elapsed_annual);
@@ -152,8 +147,12 @@ module {
             state.last_update_timestamp := time;
         };
 
-        func compute_accrued_interests({state: IndexerState; elapsed_annual: Float}) : Float {
-            state.utilization.raw_supplied * state.supply_rate * elapsed_annual;
+        func accrue_interests({state: IndexerState; elapsed_annual: Float}) {
+            let interests = state.utilization.raw_supplied * state.supply_rate * elapsed_annual;
+            state.accrued_interests := {
+                fees = state.accrued_interests.fees + interests * parameters.lending_fee_ratio;
+                supply = state.accrued_interests.supply + interests * (1.0 - parameters.lending_fee_ratio);
+            };
         };
 
     };

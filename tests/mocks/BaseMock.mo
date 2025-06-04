@@ -6,6 +6,7 @@ import Option "mo:base/Option";
 
 import Map "mo:map/Map";
 
+// TODO: mocks shall be able to take function arguments as well, not just return values.
 module {
 
     type IMock<R> = MockTypes.IMock<R>;

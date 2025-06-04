@@ -1,17 +1,17 @@
-import Array "mo:base/Array";
-import Debug "mo:base/Debug";
-import Float "mo:base/Float";
-import Nat "mo:base/Nat";
-import Result "mo:base/Result";
-import Int "mo:base/Int";
+import Array        "mo:base/Array";
+import Debug        "mo:base/Debug";
+import Float        "mo:base/Float";
+import Nat          "mo:base/Nat";
+import Result       "mo:base/Result";
+import Int          "mo:base/Int";
 
-import Types "../Types";
-import Borrow "./primitives/Borrow";
-import Collateral "./primitives/Collateral";
-import Index "./primitives/Index";
-import Owed "./primitives/Owed";
 import LendingTypes "Types";
-import Math "../utils/Math";
+import Types        "../Types";
+import Borrow       "./primitives/Borrow";
+import Collateral   "./primitives/Collateral";
+import Index        "./primitives/Index";
+import Owed         "./primitives/Owed";
+import Math         "../utils/Math";
 
 module {
 

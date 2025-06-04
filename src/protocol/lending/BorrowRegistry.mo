@@ -1,22 +1,22 @@
-import Nat "mo:base/Nat";
-import Map "mo:map/Map";
-import Result "mo:base/Result";
-import Debug "mo:base/Debug";
-import Float "mo:base/Float";
-import Option "mo:base/Option";
-import Int "mo:base/Int";
+import Nat                "mo:base/Nat";
+import Map                "mo:map/Map";
+import Result             "mo:base/Result";
+import Debug              "mo:base/Debug";
+import Float              "mo:base/Float";
+import Option             "mo:base/Option";
+import Int                "mo:base/Int";
 
-import Types "../Types";
-import MapUtils "../utils/Map";
-import IterUtils "../utils/Iter";
-import LedgerAccount "../ledger/LedgerAccount";
-import LedgerTypes "../ledger/Types";
-import BorrowPositionner "BorrowPositionner";
-import LendingTypes "Types";
-import Indexer "Indexer";
-import WithdrawalQueue "WithdrawalQueue";
+import Types              "../Types";
+import MapUtils           "../utils/Map";
+import IterUtils          "../utils/Iter";
+import LedgerTypes        "../ledger/Types";
+import BorrowPositionner  "BorrowPositionner";
+import LendingTypes       "Types";
+import Indexer            "Indexer";
+import WithdrawalQueue    "WithdrawalQueue";
 import UtilizationUpdater "UtilizationUpdater";
-import Borrow "./primitives/Borrow";
+import Borrow             "./primitives/Borrow";
+import SupplyAccount      "SupplyAccount";
 
 module {
 
@@ -30,6 +30,8 @@ module {
     type BorrowRegister        = LendingTypes.BorrowRegister;
     type Borrow                = LendingTypes.Borrow;
     type IDex                  = LedgerTypes.IDex;
+    type ILedgerAccount        = LedgerTypes.ILedgerAccount;
+    type ISwapPayable          = LedgerTypes.ISwapPayable;
     type BorrowParameters      = LendingTypes.BorrowParameters;
     type Liquidation = {
         raw_borrowed: Float;
@@ -39,12 +41,13 @@ module {
     // @todo: function to delete positions repaid that are too old
     public class BorrowRegistry({
         register: BorrowRegister;
-        supply_account: LedgerAccount.LedgerAccount;
-        collateral_account: LedgerAccount.LedgerAccount;
+        supply: SupplyAccount.SupplyAccount;
+        collateral_account: ILedgerAccount and ISwapPayable;
         borrow_positionner: BorrowPositionner.BorrowPositionner;
         indexer: Indexer.Indexer;
-        supply_withdrawals: WithdrawalQueue.WithdrawalQueue;
+        withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         utilization_updater: UtilizationUpdater.UtilizationUpdater;
+        parameters: BorrowParameters;
         dex: IDex;
     }){
 
@@ -125,7 +128,7 @@ module {
                 return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
             };
 
-            let supply_balance = supply_account.get_local_balance();
+            let supply_balance = supply.get_balance();
             if (supply_balance < amount){
                 return #err("Available liquidity " # debug_show(supply_balance) # " is less than the requested amount " # debug_show(amount));
             };
@@ -151,8 +154,8 @@ module {
             // consistency in how interest is calculated and avoid retroactive index shifts.
             
             // Transfer the borrow amount to the user account
-            let tx = switch((await* supply_account.transfer({ to = account; amount; })).result){
-                case(#err(_)) { return #err("Failed to transfer borrow amount to the user account"); };
+            let tx = switch(await* supply.transfer({ to = account; amount; })){
+                case(#err(err)) { return #err("Failed to transfer borrow amount to the user account: " # debug_show(err)); };
                 case(#ok(tx)) { tx; };
             };
 
@@ -184,7 +187,7 @@ module {
             Debug.print("Repayment amount: " # debug_show(amount));
 
             // Transfer the repayment from the user
-            let tx = switch(await* supply_account.pull({ from = account; amount; })){
+            let tx = switch(await* supply.pull({ from = account; amount; })){
                 case(#err(_)) { return #err("Transfer failed"); };
                 case(#ok(tx)) { tx; };
             };
@@ -198,13 +201,13 @@ module {
             indexer.remove_raw_borrow({ amount = raw_repaid });
 
             // Once a position is repaid, it might allow the unlock withdrawal of supply
-            ignore await* supply_withdrawals.process_pending_withdrawals();
+            ignore await* withdrawal_queue.process_pending_withdrawals();
 
             #ok;
         };
 
         /// Liquidate borrow positions if their health factor is below 1.0.
-        public func check_all_positions_and_liquidate() : async*() {
+        public func check_all_positions_and_liquidate() : async* Result<(), Text> {
 
             let index = indexer.get_state().borrow_index;
             let loans = get_loans();
@@ -213,19 +216,26 @@ module {
                 sum + Option.get(loan.collateral_to_liquidate, 0);
             });
 
+            let prepare_swap_args = {
+                dex;
+                amount = total_to_liquidate;
+                max_slippage = ?parameters.max_slippage;
+            };
+
             // Perform the swap
-            let receive_amount = switch (await* (collateral_account.swap({ dex; amount = total_to_liquidate; }).against(supply_account))){
+            let receive_amount = switch (await* (collateral_account.swap(prepare_swap_args).against(supply))){
                 case(#err(err)) {
-                    Debug.print("Liquidation failed: " # err);
-                    return;
+                    return #err("Failed to perform swap: " # err);
                 };
                 case(#ok(swap_reply)) {
-                    Debug.print("Liquidation succeeded: " # debug_show(swap_reply));
                     swap_reply.receive_amount;
                 };
             };
 
             var total_raw_repaid : Float = 0.0;
+
+            // TODO: the liquidation penalty could be kept as fees for the protocol instead
+            // of being used to repay the borrow
 
             label iterate_loans for (loan in loans.reset()) {
 
@@ -281,11 +291,12 @@ module {
                 total_raw_repaid += raw_repaid;
             };
 
-            Debug.print("Total raw repaid: " # Float.toText(total_raw_repaid));
             indexer.remove_raw_borrow({ amount = total_raw_repaid });
 
             // Once positions are liquidated, it might allow the unlock withdrawal of supply
-            ignore await* supply_withdrawals.process_pending_withdrawals();
+            ignore await* withdrawal_queue.process_pending_withdrawals();
+
+            #ok;
         };
 
 //        public func solve_loans_with_reserve() {
