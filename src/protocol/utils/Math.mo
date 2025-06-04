@@ -33,5 +33,10 @@ module {
     public func is_normalized(x: Float) : Bool {
         x >= 0.0 and x <= 1.0;
     };
+
+    public func ceil_to_int(x: Float) : Int {
+        if (x == Float.floor(x)) { Float.toInt(x) }
+        else { Float.toInt(x) + 1 };
+    };
     
 };

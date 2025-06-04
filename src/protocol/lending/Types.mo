@@ -89,6 +89,10 @@ module {
         max_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
         liquidation_threshold: Float; // ratio, between 0 and 1, e.g. 0.85
         liquidation_penalty: Float; // ratio, between 0 and 1, e.g. 0.10
+        close_factor: Float; // ratio, between 0 and 1, e.g. 0.50, used
+                              // to determine how much of the borrow can be repaid
+                              // in a single transaction, e.g. 50% of the borrow
+                              // can be repaid in a single transaction
     };
 
     public type Parameters = LendingPoolParameters and BorrowParameters and UtilizationParameters and{

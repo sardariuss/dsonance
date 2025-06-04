@@ -253,8 +253,7 @@ module {
                 };
 
                 let ratio_repaid = Float.fromInt(collateral_to_liquidate) / Float.fromInt(total_to_liquidate);
-                
-                let debt_repaid = (Float.fromInt(receive_amount) * ratio_repaid) / (1.0 + loan.liquidation_penalty);
+                let debt_repaid = Float.fromInt(receive_amount) * ratio_repaid / (1.0 + loan.liquidation_penalty);
 
                 let #ok(new_borrow) = Borrow.slash(borrow, { 
                     index; // @todo: maybe index shall be refreshed to the current index

@@ -9,14 +9,13 @@ import DexMock "../../mocks/DexMock";
 import DexFake "../../fake/DexFake";
 
 import { test; suite; } "mo:test/async";
-import Test "mo:test";
 
 import Map "mo:map/Map";
 import Set "mo:map/Set";
 import Fuzz "mo:fuzz";
 import Debug "mo:base/Debug";
 
-import { verify; optionalTestify; Testify; } = "../../utils/Testify";
+import { verify; Testify; } = "../../utils/Testify";
 import LedgerAccount "../../../src/protocol/ledger/LedgerAccount";
 
 await suite("LendingPool", func(): async() {
@@ -47,7 +46,8 @@ await suite("LendingPool", func(): async() {
             target_ltv = 0.65;
             max_ltv = 0.75;
             liquidation_threshold = 0.85;
-            liquidation_penalty = 0.1;
+            liquidation_penalty = 0.03;
+            close_factor = 0.5;
             interest_rate_curve = [
                 { utilization = 0.0; percentage_rate = 2.0 },
                 { utilization = 0.8; percentage_rate = 20.0 },
@@ -239,10 +239,11 @@ await suite("LendingPool", func(): async() {
         let parameters = {
             reserve_liquidity = 0.1;
             protocol_fee = 0.1;
-            target_ltv = 0.65;
-            max_ltv = 0.75;
-            liquidation_threshold = 0.85;
-            liquidation_penalty = 0.1;
+            target_ltv = 0.60;
+            max_ltv = 0.70;
+            liquidation_threshold = 0.75;
+            liquidation_penalty = 0.03;
+            close_factor = 0.5;
             interest_rate_curve = [
                 { utilization = 0.0; percentage_rate = 2.0 },
                 { utilization = 0.8; percentage_rate = 20.0 },
@@ -349,7 +350,7 @@ await suite("LendingPool", func(): async() {
         let before_liquidation = borrow_registry.query_loan({ account = borrower });
         switch (before_liquidation) {
             case (?loan) {
-                Debug.print("Health before crash: " # debug_show(loan.health));
+                Debug.print(debug_show(loan));
                 verify(loan.health, 1.0, Testify.float.greaterThan);
             };
             case null {
@@ -359,9 +360,9 @@ await suite("LendingPool", func(): async() {
 
         // Simulate a collateral price crash
         // To stay healthy, price > (borrowed / (collateral * liquidation_threshold))
-        // borrowed = 500, collateral = 2000, liquidation_threshold = 0.85
-        // So price must be > (500 / (2000 * 0.85)) = 0.2941 (ignoring the borrowing interests)
-        dex_fake.set_price(0.29); // Price drops to 0.29
+        // borrowed = 500, collateral = 2000, liquidation_threshold = 0.75
+        // So price must be > (500 / (2000 * 0.75)) = 0.3333 (ignoring the borrowing interests)
+        dex_fake.set_price(0.33); // Price drops to 0.33
 
         // Advance time to ensure state update uses new price
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(101)))), #repeatedly);
@@ -371,7 +372,7 @@ await suite("LendingPool", func(): async() {
         let after_crash = borrow_registry.query_loan({ account = borrower });
         switch (after_crash) {
             case (?loan) {
-                Debug.print("Health after crash: " # debug_show(loan.health));
+                Debug.print(debug_show(loan));
                 verify(loan.health, 1.0, Testify.float.lessThan);
             };
             case null {
@@ -387,24 +388,24 @@ await suite("LendingPool", func(): async() {
         switch (after_liquidation) {
             case null { assert(false); }; // Not full liquidation, should still have a position
             case (?loan) {
-                Debug.print("Post-liquidation health: " # debug_show(loan.health));
-                verify(loan.health, 1.0, Testify.float.greaterThan); // Should be healthy after liquidation
-                verify(loan.collateral_to_liquidate, null, optionalTestify(Testify.nat.equal)); // No collateral left to liquidate
-                //verify(loan.required_repayment, 0, Testify.nat.equal); // Required repayment should be 0 after liquidation, because target LTV was met
-                //verify(loan.ltv, parameters.target_ltv, Testify.float.equalEpsilon9); // LTV should be at target level
+                verify(loan.health, 1.0, Testify.float.greaterThan);
+                verify(loan.collateral, 1_000, Testify.nat.equal); // 2000 - 1000 (liquidated)
             };
         };
 
-//        verify(collateral_accounting.balances(), [ (dex, 2_000), (protocol, 0), (lender, 0), (borrower, 8_000) ], equal_balances);
-//        verify(supply_accounting.balances(), [ (dex, 1_420), (protocol, 1_080), (lender, 9_000), (borrower, 10_500) ], equal_balances);
-//
-//        // Lender withdraws their supply
-//        let withdraw_result = await* supply_registry.remove_position({
-//            id = "supply1";
-//            share = 1.0; // Full withdrawal
-//        });
-//        verify(withdraw_result, #ok(1019), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
-//        verify(supply_accounting.balances(), [ (dex, 1_420), (protocol, 61), (lender, 10_019), (borrower, 10_500) ], equal_balances);
+        // 1000 collateral was sent to the dex
+        verify(collateral_accounting.balances(), [ (dex, 1_000), (protocol, 1_000), (lender, 0), (borrower, 8_000) ], equal_balances);
+        // (1000 * 0.33) = 330 supply was sent to the protocol
+        verify(supply_accounting.balances(), [ (dex, 1_670), (protocol, 830), (lender, 9_000), (borrower, 10_500) ], equal_balances);
+
+        // Lender withdraws their supply
+        let withdraw_result = await* supply_registry.remove_position({
+            id = "supply1";
+            share = 1.0; // Full withdrawal
+        });
+        verify(withdraw_result, #ok(1019), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
+        // Lender could only withdraw up to 830 tokens
+        verify(supply_accounting.balances(), [ (dex, 1_670), (protocol, 0), (lender, 9_830), (borrower, 10_500) ], equal_balances);
     });
 
     await test("Lender withdrawal triggers withdrawal queue with partial repayment", func() : async() {
@@ -418,7 +419,8 @@ await suite("LendingPool", func(): async() {
             target_ltv = 0.65;
             max_ltv = 0.75;
             liquidation_threshold = 0.85;
-            liquidation_penalty = 0.1;
+            liquidation_penalty = 0.03;
+            close_factor = 0.5;
             interest_rate_curve = [
                 { utilization = 0.0; percentage_rate = 2.0 },
                 { utilization = 0.8; percentage_rate = 20.0 },
