@@ -48,27 +48,28 @@ interface BallotProps {
   selected: boolean;
 }
 
+// @int: debt_info is commented out
 const BallotRow = ({ ballot, now, selected }: BallotProps) => {
 
   const { formatSatoshis } = useCurrencyContext();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  const { data: debt_info } = protocolActor.useQueryCall({
-    functionName: "get_debt_info",
-    args: [ballot.YES_NO.ballot_id],
-  });
+//  const { data: debt_info } = protocolActor.useQueryCall({
+//    functionName: "get_debt_info",
+//    args: [ballot.YES_NO.ballot_id],
+//  });
 
   const { releaseTimestamp, contribution, foresightAPR } = useMemo(() => {
       
-      const debt = debt_info ? fromNullable(debt_info) : undefined;
+      //const debt = debt_info ? fromNullable(debt_info) : undefined;
 
       return {
-        contribution: BigInt(Math.floor(debt?.amount.current.data.earned || 0)),
+        contribution: 0n, //contribution: BigInt(Math.floor(debt?.amount.current.data.earned || 0)),
         foresightAPR: ballot.YES_NO.foresight.current.data.apr.current,
         releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot.YES_NO).duration_ns.current.data 
       }
     },
-    [ballot, debt_info]
+    [ballot]
   );
 
   const { data: opt_vote } = backendActor.useQueryCall({

@@ -133,10 +133,9 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_info();
     };
 
-    // @int: commented out for now, will be implemented later
-//    public query func get_parameters() : async Types.SProtocolParameters {
-//        getFacade().get_parameters();
-//    };
+    public query func get_parameters() : async Types.SProtocolParameters {
+        getFacade().get_parameters();
+    };
 
     func getFacade() : SharedFacade.SharedFacade {
         switch(_facade){

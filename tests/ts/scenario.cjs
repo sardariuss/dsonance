@@ -188,7 +188,7 @@ async function callCanisterMethod() {
         const args = { text: VOTES_TO_OPEN[i], id: uuidv4(), thumbnail: new Uint8Array(), from_subaccount: [] };
         getRandomUserActor(userActors).backend.new_vote(args).then((result) => {
             if ('ok' in result) {
-                console.log('New vote added successfully');
+                console.log('New vote added: ', args.text);
             } else {
                 console.error('Error adding new vote:', result.err);
             }
@@ -205,8 +205,6 @@ async function callCanisterMethod() {
 
         // Retrieve all votes
         let votes = await backendSimActor.get_votes( { previous: [], limit: 100 } );
-        console.log(votes);
-
         let putBallotPromises = [];
 
         for (let [_, actors] of userActors) {

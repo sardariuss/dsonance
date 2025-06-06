@@ -37,13 +37,14 @@ const UserVotes = () => {
     functionName: "get_votes_by_author",
   });
 
-  const { data: minedByAuthor, call: refreshMinedByAuthor } = protocolActor.useQueryCall({
-    functionName: "get_mined_by_author",
-    args: [{ author: {
-      owner: identity?.getPrincipal(),
-      subaccount: [],
-    }}]
-  });
+  // @int
+//  const { data: minedByAuthor, call: refreshMinedByAuthor } = protocolActor.useQueryCall({
+//    functionName: "get_mined_by_author",
+//    args: [{ author: {
+//      owner: identity?.getPrincipal(),
+//      subaccount: [],
+//    }}]
+//  });
 
   const selectVote = (voteId: string) => {
     setSearchParams((prevParams) => {
@@ -87,7 +88,7 @@ const UserVotes = () => {
   // Initial Fetch on Mount
   useEffect(() => {
     fetchAndSetVotes();
-    refreshMinedByAuthor();
+    //refreshMinedByAuthor(); // @int
   }, []);
 
   useEffect(() => {
@@ -105,7 +106,7 @@ const UserVotes = () => {
     <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 p-2 rounded w-full">
       <div className="flex flex-row w-full space-x-1 justify-center items-baseline py-5">
         <span>Total mined:</span>
-          {
+          {/*
             minedByAuthor !== undefined ?
             <div className="flex flex-row items-baseline space-x-1">
               <span className="text-lg">{ formatBalanceE8s(BigInt(Math.trunc(minedByAuthor.earned)), DSONANCE_COIN_SYMBOL, 2) }</span>
@@ -114,7 +115,7 @@ const UserVotes = () => {
               </div>
             </div>
               :
-            <span className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse self-center"/>
+            <span className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse self-center"/>*/
           }
       </div>
       <AdaptiveInfiniteScroll
@@ -129,7 +130,7 @@ const UserVotes = () => {
           {
             /* Size of the header is 26 on mobile and 22 on desktop */
             votes.map((vote, index) => (
-              <li key={index} ref={(el) => (voteRefs.current.set(vote.vote_id, el))} 
+              <li key={index} ref={(el) => {voteRefs.current.set(vote.vote_id, el)}} 
                 className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]" 
                 onClick={(e) => { selectVote(vote.vote_id); }}>
                 <UserVoteRow vote={vote} selected={vote.vote_id === selectedVoteId}/>

@@ -76,11 +76,10 @@ module {
         public func get_info() : SProtocolInfo {
             SharedConversions.shareProtocolInfo(controller.get_info());
         };
-
-        // @int: commented out for now, will be implemented later
-        //public func get_parameters() : SProtocolParameters {
-            //SharedConversions.shareProtocolParameters(controller.get_parameters());
-        //};
+        
+        public func get_parameters() : SProtocolParameters {
+            SharedConversions.shareProtocolParameters(controller.get_parameters());
+        };
 
         public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
             controller.get_queries().get_vote_ballots(vote_id);

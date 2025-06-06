@@ -7,7 +7,7 @@ import DurationChart, { CHART_COLORS, SerieInput } from "../charts/DurationChart
 import { unwrapLock } from "../../utils/conversions/ballot";
 import { formatBalanceE8s } from "../../utils/conversions/token";
 
-import { SBallotType, STimeline_4 } from "@/declarations/protocol/protocol.did";
+import { SBallotType } from "@/declarations/protocol/protocol.did";
 import { useEffect, useMemo, useState } from "react";
 import ChevronUpIcon from "../icons/ChevronUpIcon";
 import ChevronDownIcon from "../icons/ChevronDownIcon";
@@ -70,11 +70,11 @@ const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, c
 interface BallotDetailsProps {
   ballot: SBallotType;
   now: bigint;
-  contribution: STimeline_4 | undefined;
+  // contribution: STimeline_1 | undefined; // @int
   isMobile: boolean;
 }
 
-const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contribution, isMobile }) => {
+const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, /*contribution,*/ isMobile }) => {
 
     const releaseTimestamp = ballot.YES_NO.timestamp + unwrapLock(ballot.YES_NO).duration_ns.current.data;
 
@@ -116,10 +116,11 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
           formatValue: (value: number) => value.toFixed(2),
           valueClassName: "[text-shadow:0px_0px_10px_rgb(59,130,246)]"
         },
-        {
+        // @int
+        /*{
           title: "Mining earned:",
           value: formatBalanceE8s(
-            BigInt(Math.floor(contribution === undefined ? 0 : contribution.current.data.earned)),
+            BigInt(Math.floor(contribution === undefined ? 0 : contribution.current.data)),
             DSONANCE_COIN_SYMBOL,
             2
           ),
@@ -135,7 +136,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, contributio
             ],
           ]),
           formatValue: (value: number) => formatBalanceE8s(BigInt(value), DSONANCE_COIN_SYMBOL, 2),
-        },
+        },*/
         {
           title: "Consent:",
           value: ballot.YES_NO.consent.current.data.toFixed(3),
@@ -207,14 +208,15 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
       args: [{ vote_id: ballot.YES_NO.vote_id }],
   });
 
-  const { data: debtInfo, call: refreshDebtInfo } = protocolActor.useQueryCall({
-    functionName: "get_debt_info",
-    args: [ballot.YES_NO.ballot_id],
-  });
+  // @int
+//  const { data: debtInfo, call: refreshDebtInfo } = protocolActor.useQueryCall({
+//    functionName: "get_debt_info",
+//    args: [ballot.YES_NO.ballot_id],
+//  });
 
   useEffect(() => {
     refreshVote();
-    refreshDebtInfo();
+    // refreshDebtInfo(); // @int
   }
   , [ballot]);
 
@@ -223,10 +225,11 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
   }
   , [vote]);
 
-  const actualDebtInfo = useMemo(() => {
-    return debtInfo ? fromNullable(debtInfo) : undefined;
-  }
-  , [debtInfo]);
+  // @int
+//  const actualDebtInfo = useMemo(() => {
+//    return debtInfo ? fromNullable(debtInfo) : undefined;
+//  }
+//  , [debtInfo]);
 
   const thumbnail = useMemo(() => {
     if (actualVote === undefined) {
@@ -276,7 +279,7 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
           <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
         </div>
       </div>
-      <BallotDetails ballot={ballot} now={now} contribution={actualDebtInfo?.amount} isMobile={isMobile}/>
+      <BallotDetails ballot={ballot} now={now} /*contribution={actualDebtInfo?.amount}*/ isMobile={isMobile}/>
     </div>
     );
 }
