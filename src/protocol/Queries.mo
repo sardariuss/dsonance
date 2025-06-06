@@ -35,7 +35,8 @@ module {
         clock: Clock.Clock;
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
-        dsn_debt_register: DebtRegister;
+        // @int: commented out for now, will be implemented later
+        //dsn_debt_register: DebtRegister;
     }){
 
         public func get_ballots({ account: Account; previous: ?UUID; limit: Nat; filter_active: Bool; }) : [SBallotType] {
@@ -138,22 +139,23 @@ module {
             Buffer.toArray(Buffer.map<VoteType, SVoteType>(buffer, SharedConversions.shareVoteType));
         };
 
-        public func get_mined_by_author({ author: Account }) : DebtRecord {
-            var total_mined = { earned = 0.0; pending = 0.0; };
-            let opened_ids = Option.get(Map.get(vote_register.by_author, MapUtils.acchash, author), Set.new<UUID>());
-            for (vote_id in Set.keys(opened_ids)){
-                switch(Map.get(dsn_debt_register.debts, Map.thash, vote_id)){
-                    case(null) { Debug.trap("Debt not found"); };
-                    case(?debt) {
-                        total_mined := {
-                            earned = total_mined.earned + debt.amount.current.data.earned;
-                            pending = total_mined.pending + debt.amount.current.data.pending;
-                        };
-                    };
-                };
-            };
-            total_mined;
-        };
+        // @int: commented out for now, will be implemented later
+//        public func get_mined_by_author({ author: Account }) : DebtRecord {
+//            var total_mined = { earned = 0.0; pending = 0.0; };
+//            let opened_ids = Option.get(Map.get(vote_register.by_author, MapUtils.acchash, author), Set.new<UUID>());
+//            for (vote_id in Set.keys(opened_ids)){
+//                switch(Map.get(dsn_debt_register.debts, Map.thash, vote_id)){
+//                    case(null) { Debug.trap("Debt not found"); };
+//                    case(?debt) {
+//                        total_mined := {
+//                            earned = total_mined.earned + debt.amount.current.data.earned;
+//                            pending = total_mined.pending + debt.amount.current.data.pending;
+//                        };
+//                    };
+//                };
+//            };
+//            total_mined;
+//        };
 
         public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
             let vote = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
@@ -172,15 +174,16 @@ module {
             Buffer.toArray(buffer);
         };
 
-        public func get_debt_info(debt_id: UUID) : ?Types.SDebtInfo {
-            Option.map<DebtInfo, SDebtInfo>(Map.get(dsn_debt_register.debts, Map.thash, debt_id), SharedConversions.shareDebtInfo);
-        };
-
-        public func get_debt_infos(ids: [UUID]) : [SDebtInfo] {
-            Array.mapFilter<UUID, SDebtInfo>(ids, func(id: UUID) : ?SDebtInfo {
-                Option.map<DebtInfo, SDebtInfo>(Map.get(dsn_debt_register.debts, Map.thash, id), SharedConversions.shareDebtInfo);
-            });
-        };
+    // @int: commented out for now, will be implemented later
+//        public func get_debt_info(debt_id: UUID) : ?Types.SDebtInfo {
+//            Option.map<DebtInfo, SDebtInfo>(Map.get(dsn_debt_register.debts, Map.thash, debt_id), SharedConversions.shareDebtInfo);
+//        };
+//
+//        public func get_debt_infos(ids: [UUID]) : [SDebtInfo] {
+//            Array.mapFilter<UUID, SDebtInfo>(ids, func(id: UUID) : ?SDebtInfo {
+//                Option.map<DebtInfo, SDebtInfo>(Map.get(dsn_debt_register.debts, Map.thash, id), SharedConversions.shareDebtInfo);
+//            });
+//        };
 
     };
 

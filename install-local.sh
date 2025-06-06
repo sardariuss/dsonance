@@ -4,11 +4,12 @@ set -ex
 dfx canister create --all
 
 # Fetch canister IDs dynamically
-for canister in ck_btc dsn_ledger protocol minter; do
+for canister in ck_btc ck_usdt protocol minter; do
   export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
 done
 
 # Parallel deployment for independent canisters
+# https://dashboard.internetcomputer.org/canister/mxzaz-hqaaa-aaaar-qaada-cai
 dfx deploy ck_btc --argument '(opt record {
   icrc1 = opt record {
     name              = opt "ckBTC";
@@ -28,20 +29,15 @@ dfx deploy ck_btc --argument '(opt record {
   icrc3 = null;
   icrc4 = null;
 })' &
-dfx deploy dsn_ledger --argument '(opt record {
+# https://dashboard.internetcomputer.org/canister/cngnf-vqaaa-aaaar-qag4q-cai
+dfx deploy ck_usdt --argument '(opt record {
   icrc1 = opt record {
-    name              = opt "Dsonance Coin";
-    symbol            = opt "DSN";
-    decimals          = 8;
-    fee               = opt variant { Fixed = 1_000 };
+    name              = opt "ckUSDT";
+    symbol            = opt "ckUSDT";
+    decimals          = 6;
+    fee               = opt variant { Fixed = 10_000 };
     max_supply        = opt 100_000_000_000_000_000;
     min_burn_amount   = opt 1_000;
-    initial_balances  = vec {
-      record { 
-        account = principal "'${PROTOCOL_PRINCIPAL}'";
-        amount = 50_000_000_000_000_000;
-      };
-    };
     minting_account   = opt record { 
       owner = principal "'${MINTER_PRINCIPAL}'";
       subaccount = null; 
@@ -52,6 +48,30 @@ dfx deploy dsn_ledger --argument '(opt record {
   icrc3 = null;
   icrc4 = null;
 })' &
+# dfx deploy dsn_ledger --argument '(opt record {
+#   icrc1 = opt record {
+#     name              = opt "Dsonance Coin";
+#     symbol            = opt "DSN";
+#     decimals          = 8;
+#     fee               = opt variant { Fixed = 1_000 };
+#     max_supply        = opt 100_000_000_000_000_000;
+#     min_burn_amount   = opt 1_000;
+#     initial_balances  = vec {
+#       record { 
+#         account = principal "'${PROTOCOL_PRINCIPAL}'";
+#         amount = 50_000_000_000_000_000;
+#       };
+#     };
+#     minting_account   = opt record { 
+#       owner = principal "'${MINTER_PRINCIPAL}'";
+#       subaccount = null; 
+#     };
+#     advanced_settings = null;
+#   };
+#   icrc2 = null;
+#   icrc3 = null;
+#   icrc4 = null;
+# })' &
 wait
 
 # Deploy protocol with dependencies
@@ -62,20 +82,11 @@ wait
 # dissent_steepness be between 0 and 1, the closer to 1 the steepest (the less the majority is rewarded)
 # consent_steepness be between 0 and 0.25, the closer to 0 the steepest
 # 216 seconds timer interval, with a 100x dilation factor, means 6 hours in simulated time
+# @todo: fees should be queried by the protocol
 dfx deploy protocol --argument '( variant { 
   init = record {
-    btc = record {
-      ledger = principal "'${CK_BTC_PRINCIPAL}'";
-      fee = 10;
-    };
-    dsn = record {
-      ledger  = principal "'${DSN_LEDGER_PRINCIPAL}'";
-      fee = 10;
-    };
-    minter = record {
-      contribution_per_day = 100_000_000_000;
-      author_share = 0.2;
-    };
+    supply_ledger = principal "'${CK_BTC_PRINCIPAL}'";
+    collateral_ledger = principal "'${CK_USDT_PRINCIPAL}'";
     parameters = record {
       age_coefficient = 0.25;
       max_age = variant { YEARS = 4 };
@@ -106,7 +117,7 @@ dfx deps deploy internet_identity
 dfx canister call protocol init_facade
 
 dfx generate ck_btc
-dfx generate dsn_ledger
+dfx generate ck_usdt
 dfx generate backend # Will generate protocol as well
 dfx generate internet_identity
 dfx generate minter

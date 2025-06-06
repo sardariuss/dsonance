@@ -80,7 +80,7 @@ module {
         reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
     };
 
-    public type LendingPoolParameters = {
+    public type IndexerParameters = {
         lending_fee_ratio: Float; // portion of the supply interest reserved as a fee for the protocol
     };
 
@@ -96,7 +96,7 @@ module {
         max_slippage: Float;
     };
 
-    public type Parameters = LendingPoolParameters and BorrowParameters and UtilizationParameters and{
+    public type LendingParameters = IndexerParameters and BorrowParameters and UtilizationParameters and {
         interest_rate_curve: [CurvePoint];
     };
 
@@ -234,7 +234,7 @@ module {
         last_update_timestamp: Nat;
     };
 
-    public type LendingPoolRegister = BorrowRegister and SupplyRegister and WithdrawalRegister;
+    public type LendingRegister = BorrowRegister and SupplyRegister and WithdrawalRegister;
 
     // A point on the interest rate curve
     public type CurvePoint = {

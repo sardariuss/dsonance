@@ -77,9 +77,10 @@ module {
             SharedConversions.shareProtocolInfo(controller.get_info());
         };
 
-        public func get_parameters() : SProtocolParameters {
-            SharedConversions.shareProtocolParameters(controller.get_parameters());
-        };
+        // @int: commented out for now, will be implemented later
+        //public func get_parameters() : SProtocolParameters {
+            //SharedConversions.shareProtocolParameters(controller.get_parameters());
+        //};
 
         public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
             controller.get_queries().get_vote_ballots(vote_id);
@@ -119,10 +120,6 @@ module {
 
         public func get_mined_by_author({ author: Account }) : DebtRecord {
             controller.get_queries().get_mined_by_author({author});
-        };
-
-        public func get_yield_state() : SYieldState {
-            SharedConversions.shareYieldState(controller.get_yield_state());
         };
         
     };

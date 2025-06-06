@@ -12,6 +12,7 @@ module {
     public type Account = ICRC1.Account;
     public type TxIndex = ICRC1.TxIndex;
     public type Icrc1TransferArgs = ICRC1.TransferArgs;
+    public type Icrc1TransferResult = ICRC1.TransferResult;
     public type TransferError = ICRC1.TransferError;
     public type TransferFromError = ICRC2.TransferFromError;
     public type TransferResult = Types.TransferResult;
@@ -182,9 +183,9 @@ module {
         last_price: PriceArgs -> Float;
     };
 
-    public type ILedgerFungible = {
-        icrc1_transfer: (Icrc1TransferArgs) -> async* Result<TxIndex, TransferError>;
-        icrc2_transfer_from: (TransferFromArgs) -> async* Result<TxIndex, TransferFromError>;
+    public type ILedgerFungible = actor {
+        icrc1_transfer: shared (Icrc1TransferArgs) -> async Icrc1TransferResult;
+        icrc2_transfer_from: shared (TransferFromArgs) -> async {#Err : TransferFromError; #Ok : Nat};
     };
 
     public type ILedgerAccount = {

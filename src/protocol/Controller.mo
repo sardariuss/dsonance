@@ -1,5 +1,4 @@
 import Types                   "Types";
-import DebtProcessor           "DebtProcessor";
 import LockScheduler           "LockScheduler";
 import Queries                 "Queries";
 import MapUtils                "utils/Map";
@@ -8,18 +7,16 @@ import Clock                   "utils/Clock";
 import SharedConversions       "shared/SharedConversions";
 import BallotUtils             "votes/BallotUtils";
 import VoteTypeController      "votes/VoteTypeController";
+import SupplyRegistry          "lending/SupplyRegistry";
 import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
-import TokenMinter             "TokenMinter";
 import ProtocolTimer           "ProtocolTimer";
-import Yielder                 "Yielder";
 
 import Map                     "mo:map/Map";
 
 import Int                     "mo:base/Int";
 import Float                   "mo:base/Float";
 import Debug                   "mo:base/Debug";
-import Buffer                  "mo:base/Buffer";
 import Result                  "mo:base/Result";
 
 module {
@@ -78,12 +75,9 @@ module {
         ballot_register: BallotRegister;
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
-        btc_debt: DebtProcessor.DebtProcessor;
-        dsn_debt: DebtProcessor.DebtProcessor;
+        supply_registry: SupplyRegistry.SupplyRegistry;
         queries: Queries.Queries;
         protocol_timer: ProtocolTimer.ProtocolTimer;
-        minter: TokenMinter.TokenMinter;
-        yielder: Yielder.Yielder;
         parameters: ProtocolParameters;
     }){
 
@@ -97,21 +91,10 @@ module {
                 return #err(#VoteAlreadyExists({vote_id}));
             };
 
-            // TODO: the fee should be burnt
-            let transfer = await* dsn_debt.get_ledger().transfer_from({
-                from = account;
-                amount = parameters.author_fee;
-            });
-
-            let tx_id = switch(transfer){
-                case(#err(err)) { return #err(err); };
-                case(#ok(tx_id)) { tx_id; };
-            };
-
             // Add the vote
             let vote = vote_type_controller.new_vote({
                 vote_id;
-                tx_id;
+                tx_id = 0; // @todo: for now everyone can create a vote without a transfer
                 vote_type_enum = type_enum;
                 date = clock.get_time();
                 origin;
@@ -174,13 +157,14 @@ module {
                 return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount; }));
             };
 
-            let transfer = await* btc_debt.get_ledger().transfer_from({
-                from = { owner = caller; subaccount = from_subaccount; };
-                amount;
+            let transfer = await* supply_registry.add_position({
+                id;
+                account = { owner = caller; subaccount = from_subaccount; };
+                supplied = amount;
             });
 
             let tx_id = switch(transfer){
-                case(#err(err)) { return #err(err); };
+                case(#err(err)) { return #err(#GenericError({ error_code = 0; message = err; })); };
                 case(#ok(tx_id)) { tx_id; };
             };
 
@@ -211,22 +195,8 @@ module {
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
             
+            // The try_unlock should trigger supply.position_remove and the withdrawal queue
             lock_scheduler.try_unlock(time);
-            let { locks; tvl; } = lock_scheduler.get_state();
-            minter.mint({
-                time;
-                locked_ballots = map_locks_to_pair(locks, ballot_register.ballots, vote_register.votes);
-                tvl;
-            });
-
-            let transfers = Buffer.Buffer<async* ()>(0);
-            
-            transfers.add(btc_debt.transfer_pending());
-            transfers.add(dsn_debt.transfer_pending());
-
-            for (call in transfers.vals()){
-                await* call;
-            };
         };
 
         public func get_queries() : Queries.Queries {
@@ -259,10 +229,6 @@ module {
                 last_run = 0; // @todo: use minter instead
                 btc_locked = Timeline.initialize<Nat>(0, 0); // @todo
             };
-        };
-
-        public func get_yield_state() : YieldState {
-            yielder.get_state();
         };
 
         // TODO: remove duplicate (see Factory)

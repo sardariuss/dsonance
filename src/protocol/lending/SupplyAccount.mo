@@ -25,10 +25,14 @@ module {
     type Swap            = LedgerTypes.Swap;
     
     public class SupplyAccount({
-        protocol_owner: Principal;
+        admin: Principal;
         ledger_account: ILedgerAccount and ISwapReceivable;
         indexer: Indexer.Indexer;
     }) : ISwapReceivable {
+
+        public func token_symbol() : Text {
+            ledger_account.token_symbol();
+        };
         
         public func get_balance() : Nat {
             let supply_balance = ledger_account.get_local_balance();
@@ -62,8 +66,8 @@ module {
             amount: Nat;
         }) : async* TransferResult {
 
-            if (caller != protocol_owner) {
-                return #err(#GenericError({ error_code = 0; message = "Caller is not the owner of the protocol"; }));
+            if (caller != admin) {
+                return #err(#GenericError({ error_code = 0; message = "Caller is not the admin of the protocol"; }));
             };
             
             if (amount > get_available_fees()) {

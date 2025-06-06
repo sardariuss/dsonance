@@ -210,7 +210,8 @@ module {
         dissent_steepness: Float;
         consent_steepness: Float;
         author_fee: Nat;
-        minter_parameters: SMinterParameters;
+        // @int: commented out for now, will be implemented later
+        //minter_parameters: SMinterParameters;
         decay: {
             half_life: Duration;
             time_init: Nat;

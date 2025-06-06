@@ -4,6 +4,10 @@
       "main": "src/ledger/main.mo",
       "type": "motoko"
     },
+    "ck_usdt": {
+      "main": "src/ledger/main.mo",
+      "type": "motoko"
+    },
     "dsn_ledger": {
       "main": "src/ledger/main.mo",
       "type": "motoko"

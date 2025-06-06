@@ -42,7 +42,7 @@ module {
     public class BorrowRegistry({
         register: BorrowRegister;
         supply: SupplyAccount.SupplyAccount;
-        collateral_account: ILedgerAccount and ISwapPayable;
+        collateral: ILedgerAccount and ISwapPayable;
         borrow_positionner: BorrowPositionner.BorrowPositionner;
         indexer: Indexer.Indexer;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
@@ -65,7 +65,7 @@ module {
         }) : async* Result<(), Text> {
 
             // Transfer the collateral from the user account
-            let tx = switch(await* collateral_account.pull({ from = account; amount; })){
+            let tx = switch(await* collateral.pull({ from = account; amount; })){
                 case(#err(_)) { return #err("Failed to transfer collateral from the user account"); };
                 case(#ok(tx)) { tx; };
             };
@@ -99,7 +99,7 @@ module {
             };
 
             // Transfer the collateral to the user account
-            let tx = switch((await* collateral_account.transfer({ to = account; amount; })).result){
+            let tx = switch((await* collateral.transfer({ to = account; amount; })).result){
                 case(#err(_)) { return #err("Failed to transfer the collateral to the user account"); };
                 case(#ok(tx)) { tx; };
             };
@@ -223,7 +223,7 @@ module {
             };
 
             // Perform the swap
-            let receive_amount = switch (await* (collateral_account.swap(prepare_swap_args).against(supply))){
+            let receive_amount = switch (await* (collateral.swap(prepare_swap_args).against(supply))){
                 case(#err(err)) {
                     return #err("Failed to perform swap: " # err);
                 };

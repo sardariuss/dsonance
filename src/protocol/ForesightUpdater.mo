@@ -55,6 +55,7 @@ module {
 
         public func update_foresights(items: Iter<ForesightItem>) {
 
+            // @int: need to take the yield from the SupplyAccount or Indexer instead
             let { earned; apr; time_last_update; } = get_yield();
 
             // Filter out the inactive items: take only the one which timeline intersects with the time_last_update

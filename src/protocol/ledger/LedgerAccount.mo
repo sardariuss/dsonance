@@ -24,10 +24,11 @@ module {
     
     // TODO: ideally the LedgerAccount should only implement ILedgerAccount
     public class LedgerAccount({
-        account: Account;
+        protocol_account: Account;
         ledger: ILedgerFungible;
-        fee: Nat;
     }) : ILedgerAccount and ISwapPayable and ISwapReceivable {
+
+        var fee : Nat = 0; // @todo: should be set at initialization
 
         // @todo: should be checked at initialization
         var local_balance = 0;
@@ -50,7 +51,7 @@ module {
                 // different spender subaccount than the one specified, the transfer will be rejected.
                 spender_subaccount = null;
                 from;
-                to = account;
+                to = protocol_account;
                 amount = amount + fee;
                 fee = null;
                 memo = null;
@@ -59,9 +60,9 @@ module {
 
             // Perform the transfer
             // @todo: can this trap ?
-            switch(await* ledger.icrc2_transfer_from(args)){
-                case(#err(error)){ #err(error); };
-                case(#ok(tx_id)){ 
+            switch(await ledger.icrc2_transfer_from(args)){
+                case(#Err(error)){ #err(error); };
+                case(#Ok(tx_id)){ 
                     local_balance += amount;
                     #ok(tx_id); 
                 };
@@ -84,12 +85,12 @@ module {
 
             // Perform the transfer
             let result = try {
-                switch(await* ledger.icrc1_transfer(args)){
-                    case(#ok(tx_id)){ 
+                switch(await ledger.icrc1_transfer(args)){
+                    case(#Ok(tx_id)){ 
                         local_balance -= amount;
                         #ok(tx_id); 
                     };
-                    case(#err(error)){ 
+                    case(#Err(error)){ 
                         #err(error); 
                     };
                 };
@@ -109,7 +110,7 @@ module {
                 receive_amount = null;
                 receive_address = null;
                 referred_by = null;
-                from = account;
+                from = protocol_account;
             })) {
                 case(#Err(error)){ return #err(error); };
                 case(#Ok(reply)) {

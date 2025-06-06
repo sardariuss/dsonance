@@ -8,25 +8,28 @@ import Indexer            "Indexer";
 import UtilizationUpdater "UtilizationUpdater";
 import SupplyAccount      "SupplyAccount";
 import LedgerTypes        "../ledger/Types";
+import LedgerAccount      "../ledger/LedgerAccount";
 import Clock              "../utils/Clock";
 
 module {
 
     type IndexerState        = LendingTypes.IndexerState;
-    type LendingPoolRegister = LendingTypes.LendingPoolRegister;
-    type Parameters          = LendingTypes.Parameters;
+    type LendingRegister     = LendingTypes.LendingRegister;
+    type LendingParameters   = LendingTypes.LendingParameters;
     type ILedgerAccount      = LedgerTypes.ILedgerAccount;
     type IDex                = LedgerTypes.IDex;
     type ISwapReceivable     = LedgerTypes.ISwapReceivable;
     type ISwapPayable        = LedgerTypes.ISwapPayable;
+    type ILedgerFungible     = LedgerTypes.ILedgerFungible;
 
     public func build({
-        protocol_owner: Principal;
-        parameters: Parameters;
+        parameters: LendingParameters;
         state: IndexerState;
-        register: LendingPoolRegister;
-        supply_account: ILedgerAccount and ISwapReceivable;
-        collateral_account: ILedgerAccount and ISwapPayable;
+        register: LendingRegister;
+        admin: Principal;
+        protocol: Principal;
+        supply_ledger: ILedgerFungible;
+        collateral_ledger: ILedgerFungible;
         dex: IDex;
         clock: Clock.IClock;
     }) : {
@@ -51,9 +54,16 @@ module {
         });
 
         let supply = SupplyAccount.SupplyAccount({
-            protocol_owner;
-            ledger_account = supply_account;
+            admin;
+            ledger_account = LedgerAccount.LedgerAccount({
+                protocol_account = { owner = protocol; subaccount = null; };
+                ledger = supply_ledger;
+            });
             indexer;
+        });
+        let collateral = LedgerAccount.LedgerAccount({
+            protocol_account = { owner = protocol; subaccount = null; };
+            ledger = collateral_ledger;
         });
 
         let withdrawal_queue = WithdrawalQueue.WithdrawalQueue({
@@ -75,15 +85,15 @@ module {
             utilization_updater;
             withdrawal_queue;
             supply;
-            collateral_account;
+            collateral;
             dex;
             parameters;
             borrow_positionner = BorrowPositionner.BorrowPositionner({
                 parameters;
                 collateral_spot_in_asset = func() : Float {
                     dex.last_price({
-                        pay_token = collateral_account.token_symbol();
-                        receive_token = supply_account.token_symbol();
+                        pay_token = collateral.token_symbol();
+                        receive_token = supply.token_symbol();
                     });
                 };
             });

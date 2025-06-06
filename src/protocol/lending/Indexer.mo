@@ -18,13 +18,13 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     type Index                 = LendingTypes.Index;
-    type LendingPoolParameters = LendingTypes.LendingPoolParameters;
+    type IndexerParameters     = LendingTypes.IndexerParameters;
     type IndexerState          = LendingTypes.IndexerState;
     type SIndexerState         = LendingTypes.SIndexerState;
     type Utilization           = LendingTypes.Utilization;
 
     public class Indexer({
-        parameters: LendingPoolParameters;
+        parameters: IndexerParameters;
         state: IndexerState;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
         clock: Clock.IClock;

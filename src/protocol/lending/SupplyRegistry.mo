@@ -38,7 +38,7 @@ module {
             Map.get(register.supply_positions, Map.thash, id);
         };
 
-        public func add_position(input: SupplyInput) : async* Result<(), Text> {
+        public func add_position(input: SupplyInput) : async* Result<Nat, Text> {
 
             let { id; account; supplied; } = input;
 
@@ -57,7 +57,7 @@ module {
             Map.set(register.supply_positions, Map.thash, id, { input with tx; });
             indexer.add_raw_supplied({ amount = supplied; });
 
-            #ok;
+            #ok(tx);
         };
 
         public func remove_position({ id: Text; share: Float; }) : async* Result<Nat, Text> {

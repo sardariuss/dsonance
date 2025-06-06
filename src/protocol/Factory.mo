@@ -1,6 +1,5 @@
 import Types                  "Types";
 import Controller             "Controller";
-import Yielder                "Yielder";
 import Queries                "Queries";
 import Decay                  "duration/Decay";
 import DurationCalculator     "duration/DurationCalculator";
@@ -17,6 +16,8 @@ import IterUtils              "utils/Iter";
 import ForesightUpdater       "ForesightUpdater";
 import Incentives             "votes/Incentives";
 import ProtocolTimer          "ProtocolTimer";
+import SupplyAccount          "lending/SupplyAccount";
+import LendingFactory         "lending/LendingFactory";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
@@ -40,58 +41,41 @@ module {
     type Map<K, V>   = Map.Map<K, V>;
     type Time        = Int;
 
-    public func build(args: State and { provider: Account; admin: Principal; }) : Controller.Controller {
+    public func build(args: State and { protocol: Principal; admin: Principal; }) : Controller.Controller {
 
-        let { vote_register; ballot_register; lock_scheduler_state; btc; dsn; parameters; provider; yield_state; admin; } = args;
-        let { nominal_lock_duration; decay; minter_parameters; } = parameters;
-
-        let btc_ledger = LedgerAccount.LedgerAccount({ btc with account = provider; });
-        let dsn_ledger = LedgerAccount.LedgerAccount({ dsn with account = provider; });
+        let { vote_register; ballot_register; lock_scheduler_state; supply_ledger; collateral_ledger; parameters; protocol; admin; lending; } = args;
+        let { nominal_lock_duration; decay; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
 
-        let btc_debt = DebtProcessor.DebtProcessor({
-            ledger = btc_ledger;
-            register = btc.debt_register;
+        let { supply_registry } = LendingFactory.build({
+            lending with
+            protocol;
+            admin;
+            supply_ledger;
+            collateral_ledger;
+            dex;
+            clock;
         });
 
-        let dsn_debt = DebtProcessor.DebtProcessor({
-            ledger = dsn_ledger;
-            register = dsn.debt_register;
-        });
-
-        let minter = TokenMinter.TokenMinter({
-            parameters = minter_parameters;
-            dsn_debt;
-        });
-
-        let yielder = Yielder.Yielder(yield_state);
-
+        // @int: foresight_updater.update_foresights should also be called when the yield is updated
+        // so on borrow, withdraw, etc.
         let foresight_updater = ForesightUpdater.ForesightUpdater({
             get_yield = func () : { earned: Float; apr: Float; time_last_update: Nat; } {
+                // @int: use Indexer instead
                 {
-                    earned = yield_state.interest.earned;
-                    apr = yield_state.apr;
-                    time_last_update = yield_state.interest.time_last_update;
+                    earned = 0.0;
+                    apr = 0.0;
+                    time_last_update = 0;
                 }
             };
         });
         
+        // @int: the foresight_updater should directly listen to the Indexer updates instead of the LockScheduler
         let lock_scheduler = LockScheduler.LockScheduler({
             state = lock_scheduler_state;
-            before_change = func({ time: Nat; state: LockState; }){
-                
-                // Mint the tokens until time
-                minter.mint({
-                    time;
-                    locked_ballots = map_locks_to_pair(state.locks, ballot_register.ballots, vote_register.votes);
-                    tvl = state.tvl;
-                });
-            };
+            before_change = func({ time: Nat; state: LockState; }){};
             after_change = func({ time: Nat; event: LockEvent; state: LockState; }){
-                
-                // Refresh the yield
-                yielder.update_tvl({ new_tvl = state.tvl; time; });
                 
                 // Update the ballots foresights
                 foresight_updater.update_foresights(map_ballots_to_foresight_items(ballot_register.ballots, parameters));
@@ -105,26 +89,20 @@ module {
                         let ballot = get_ballot(ballot_register.ballots, id);
                         let ballot_interest = Timeline.current(ballot.foresight).reward;
 
-                        // Refresh the yield
-                        yielder.remove_from_earned({ to_remove = ballot_interest; time; });
-
                         // Update the ballots foresights
                         foresight_updater.update_foresights(map_ballots_to_foresight_items(ballot_register.ballots, parameters));
                         
-                        // Initiate the transfer of the locked BTC and yield
-                        btc_debt.increase_debt({ 
+                        // @int: remove and use SupplyRegister.remove_position instead
+                        supply_registry.remove_position({
                             id;
-                            account = ballot.from;
-                            amount = Float.fromInt(ballot.amount + ballot_interest);
-                            pending = 0.0;
-                            time;
+                            share = 0.0; // @todo
                         });
-
                         { ballot; diff = -amount; };
                     };
                 };
 
                 // Update the vote TVL
+                // @int: this shall still be done
                 let vote = get_vote(vote_register.votes, ballot.vote_id);
                 vote.tvl := do {
                     let new_tvl : Int = vote.tvl + diff;
@@ -154,7 +132,6 @@ module {
         let queries = Queries.Queries({
             vote_register;
             ballot_register;
-            dsn_debt_register = dsn.debt_register;
             clock;
         });
 
@@ -169,13 +146,10 @@ module {
             ballot_register;
             lock_scheduler;
             vote_type_controller;
-            btc_debt;
-            dsn_debt;
+            supply_registry;
             queries;
             protocol_timer;
-            minter;
             parameters;
-            yielder;
         });
     };
 

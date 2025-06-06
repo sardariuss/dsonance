@@ -338,6 +338,124 @@ module {
         amount_minted: Timeline<Float>;
     };
 
+    // FROM LENDING
+
+    public type CurvePoint = {
+        utilization: Float; // Utilization ratio (0.0 to 1.0)
+        percentage_rate: Float; // Annual Percentage Rate (APR) at this utilization (e.g., 5.0 for 5%)
+    };
+
+    public type UtilizationParameters = {
+        reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
+    };
+
+    public type IndexerParameters = {
+        lending_fee_ratio: Float; // portion of the supply interest reserved as a fee for the protocol
+    };
+
+    public type BorrowParameters = {
+        target_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
+        max_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
+        liquidation_threshold: Float; // ratio, between 0 and 1, e.g. 0.85
+        liquidation_penalty: Float; // ratio, between 0 and 1, e.g. 0.10
+        close_factor: Float; // ratio, between 0 and 1, e.g. 0.50, used
+                              // to determine how much of the borrow can be repaid
+                              // in a single transaction, e.g. 50% of the borrow
+                              // can be repaid in a single transaction
+        max_slippage: Float;
+    };
+
+    public type LendingParameters = IndexerParameters and BorrowParameters and UtilizationParameters and {
+        interest_rate_curve: [CurvePoint];
+    };
+
+    public type Owed = {
+        index: Index;
+        accrued_amount: Float;
+    };
+
+    public type Borrow = {
+        // original borrowed, unaffected by index growth
+        // used to scale linearly based on repayment proportion
+        raw_amount: Float; 
+        owed: Owed;
+    };
+
+    public type Collateral = {
+        amount: Nat;
+    };
+
+    public type BorrowPositionTx = {
+        #COLLATERAL_PROVIDED: TxIndex;
+        #COLLATERAL_WITHDRAWNED: TxIndex;
+        #SUPPLY_BORROWED: TxIndex;
+        #SUPPLY_REPAID: TxIndex;
+    };
+
+    public type BorrowPosition = {
+        account: Account;
+        collateral: Collateral;
+        borrow: ?Borrow;
+        tx: [BorrowPositionTx];
+    };
+
+    public type Index = {
+        timestamp: Nat;
+        value: Float;
+    };
+
+    public type SupplyInput = {
+        id: Text;
+        account: Account;
+        supplied: Nat;
+    };
+
+    public type SupplyPosition = SupplyInput and {
+        tx: TxIndex;
+    };
+
+    public type Withdrawal = {
+        id: Text;
+        account: Account;
+        supplied: Nat;
+        due: Nat;
+        var transferred: Nat;
+        var transfers: [TransferResult]; // TODO: need to limit the number of transfers
+    };
+
+    public type BorrowRegister = {
+        borrow_positions: Map.Map<Account, BorrowPosition>;
+    };
+
+    public type SupplyRegister = {
+        supply_positions: Map.Map<Text, SupplyPosition>;
+    };
+
+    public type WithdrawalRegister = {
+        withdrawals: Map.Map<Text, Withdrawal>;
+        withdraw_queue: Set.Set<Text>;
+    };
+
+    public type LendingRegister = BorrowRegister and SupplyRegister and WithdrawalRegister;
+
+    public type Utilization = {
+        raw_supplied: Float;
+        raw_borrowed: Float;
+        ratio: Float; // Utilization ratio (0.0 to 1.0)
+    };
+
+    public type IndexerState = {
+        var utilization: Utilization;
+        var supply_rate: Float; // supply percentage rate (ratio)
+        var accrued_interests: {
+            fees: Float;
+            supply: Float;
+        };
+        var borrow_index: Float; // growing value, starts at 1.0
+        var supply_index: Float; // growing value, starts at 1.0
+        var last_update_timestamp: Nat; // last time the rates were updated
+    };
+
     public type ProtocolParameters = {
         nominal_lock_duration: Duration;
         minimum_ballot_amount: Nat;
@@ -346,7 +464,8 @@ module {
         age_coefficient: Float;
         max_age: Nat;
         author_fee: Nat;
-        minter_parameters: MinterParameters;
+        // @int: commented out for now, will be implemented later
+        //minter_parameters: MinterParameters; 
         timer: TimerParameters;
         decay: {
             half_life: Duration;
@@ -363,16 +482,10 @@ module {
     };
 
     public type InitArgs = {
-        btc: {
-            ledger: Principal;
-            fee: Nat;
-        };
-        dsn: {
-            ledger: Principal;
-            fee: Nat;
-        };
-        minter: MinterArgs;
+        supply_ledger: Principal;
+        collateral_ledger: Principal;
         parameters: {
+            lending: LendingParameters;
             age_coefficient: Float;
             max_age: Duration;
             ballot_half_life: Duration;
@@ -394,18 +507,14 @@ module {
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
         lock_scheduler_state: LockSchedulerState;
-        yield_state: YieldState;
-        btc: {
-            ledger: ICRC1 and ICRC2;
-            fee: Nat;
-            debt_register: DebtRegister;
-        };
-        dsn: {
-            ledger: ICRC1 and ICRC2;
-            fee: Nat;
-            debt_register: DebtRegister;
-        };
+        supply_ledger: ICRC1 and ICRC2;
+        collateral_ledger: ICRC1 and ICRC2;
         parameters: ProtocolParameters;
+        lending: {
+            parameters: LendingParameters;
+            state: IndexerState;
+            register: LendingRegister;
+        };
     };
   
 };
