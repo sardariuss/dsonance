@@ -77,6 +77,8 @@ module {
     // ------------------------------ ACTUAL MODULE TYPES ------------------------------
 
     public type UtilizationParameters = {
+        // @todo: remove reserve_liquidity, since accumulated fees can already not be withdrawn?
+        // Otherwise it should be taken into account when withdrawing supply!
         reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
     };
 

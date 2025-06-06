@@ -2,11 +2,14 @@ import Int "mo:base/Int";
 import Float "mo:base/Float";
 import Debug "mo:base/Debug";
 import Option "mo:base/Option";
+import Result "mo:base/Result";
 
 import LedgerTypes "../../src/protocol/ledger/Types";
 import LedgerAccounting "LedgerAccounting";
 
 module {
+
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
 
     type LedgerConfig = {
         pay_token: Text;
@@ -38,7 +41,7 @@ module {
             price
         };
 
-        public func swap_amounts(pay_token: Text, pay_amount: Nat, receive_token: Text) : async* LedgerTypes.SwapAmountsResult {
+        public func swap_amounts(pay_token: Text, pay_amount: Nat, receive_token: Text) : async* Result<LedgerTypes.SwapAmountsReply, Text> {
             
             if (not equal_configs({ pay_token; receive_token; }, config)) {
                 Debug.trap("swap_amounts called with unexpected tokens: " # pay_token # " and " # receive_token);
@@ -60,10 +63,10 @@ module {
                 slippage = 0.0;
                 txs = [];
             };
-            #Ok(reply)
+            #ok(reply)
         };
 
-        public func swap(args: AugmentedSwapArgs) : async* LedgerTypes.SwapResult {
+        public func swap(args: AugmentedSwapArgs) : async* Result<LedgerTypes.SwapReply, Text> {
 
             if (not equal_configs(args, config)) {
                 Debug.trap("swap_amounts called with unexpected tokens: " # args.pay_token # " and " # args.receive_token);
@@ -78,13 +81,13 @@ module {
                 from = args.from;
                 to = account;
                 amount = args.pay_amount;
-            }) else return #Err("Swap: failed to transfer pay amount");
+            }) else return #err("Swap: failed to transfer pay amount");
 
             let #ok(_) = config.receive_accounting.transfer({
                 from = account;
                 to = args.from;
                 amount = receive_amount;
-            }) else return #Err("Swap: failed to transfer receive amount");
+            }) else return #err("Swap: failed to transfer receive amount");
 
             let reply : LedgerTypes.SwapReply = {
                 tx_id = 0;
@@ -106,7 +109,7 @@ module {
                 claim_ids = [];
                 ts = 0;
             };
-            #Ok(reply)
+            #ok(reply)
         };
     };
 };

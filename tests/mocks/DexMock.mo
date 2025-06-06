@@ -1,9 +1,14 @@
+import Debug "mo:base/Debug";
+import Result "mo:base/Result";
+
 import MockTypes "MockTypes";
 import BaseMock "BaseMock";
 import LedgerType "../../src/protocol/ledger/Types";
-import Debug "mo:base/Debug";
 
 module {
+
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
+
     public type Method = {
         #swap_amounts : (Text, Nat, Text);
         #swap : LedgerType.SwapArgs;
@@ -12,10 +17,10 @@ module {
 
     public type Return = {
         #swap_amounts: {
-            #returns: LedgerType.SwapAmountsResult;
+            #returns: Result<LedgerType.SwapAmountsReply, Text>;
         };
         #swap :{
-            #returns:  LedgerType.SwapResult;
+            #returns:  Result<LedgerType.SwapReply, Text>;
         };
         #last_price :{
             #returns:  Float;
@@ -59,7 +64,7 @@ module {
             )
         });
 
-        public func swap_amounts(pay_token: Text, pay_amount: Nat, receive_token: Text) : async* LedgerType.SwapAmountsResult {
+        public func swap_amounts(pay_token: Text, pay_amount: Nat, receive_token: Text) : async* Result<LedgerType.SwapAmountsReply, Text> {
             let arg = base.next_call(#swap_amounts(pay_token, pay_amount, receive_token));
             switch(arg){
                 case(#swap_amounts(#returns(result))) result;
@@ -67,7 +72,7 @@ module {
             }
         };
 
-        public func swap(args: LedgerType.SwapArgs) : async* LedgerType.SwapResult {
+        public func swap(args: LedgerType.SwapArgs) : async* Result<LedgerType.SwapReply, Text> {
             let arg = base.next_call(#swap(args));
             switch(arg){
                 case(#swap(#returns(result))) result;

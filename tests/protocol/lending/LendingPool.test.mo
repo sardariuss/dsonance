@@ -16,7 +16,6 @@ import Fuzz "mo:fuzz";
 import Debug "mo:base/Debug";
 
 import { verify; Testify; } = "../../utils/Testify";
-import LedgerAccount "../../../src/protocol/ledger/LedgerAccount";
 
 await suite("LendingPool", func(): async() {
 
@@ -24,7 +23,6 @@ await suite("LendingPool", func(): async() {
     type BorrowPosition = LendingTypes.BorrowPosition;
     type SupplyPosition = LendingTypes.SupplyPosition;
     type Withdrawal = LendingTypes.Withdrawal;
-    type Parameters = LendingTypes.Parameters;
     type SupplyRegister = LendingTypes.SupplyRegister;
     type BorrowRegister = LendingTypes.BorrowRegister;
     type SupplyInput = LendingTypes.SupplyInput;
@@ -79,7 +77,7 @@ await suite("LendingPool", func(): async() {
             withdraw_queue = Set.new<Text>();
         };
 
-        let protocol_owner = fuzz.principal.randomPrincipal(10);
+        let admin = fuzz.principal.randomPrincipal(10);
         let protocol = { fuzz.icrc1.randomAccount() with name = "protocol" };
         let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
         let borrower = { fuzz.icrc1.randomAccount() with name = "borrower" };
@@ -89,29 +87,20 @@ await suite("LendingPool", func(): async() {
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
         let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
 
-        let supply_account = LedgerAccount.LedgerAccount({
-            account = protocol;
-            ledger = supply_ledger;
-            fee = 0; // No fee for testing
-        });
-        let collateral_account = LedgerAccount.LedgerAccount({
-            account = protocol;
-            ledger = collateral_ledger;
-            fee = 0; // No fee for testing
-        });
         let dex = DexMock.DexMock();
         dex.expect_call(#last_price(#returns(1.0)), #repeatedly); // 1:1 price
 
         // Build the lending system
         let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
-            protocol_owner;
-            clock;
-            dex;
+            admin;
+            protocol_account = protocol;
             parameters;
             state;
             register;
-            supply_account;
-            collateral_account;
+            supply_ledger;
+            collateral_ledger;
+            dex;
+            clock;
         });
 
         // === Initial Assertions ===
@@ -128,7 +117,7 @@ await suite("LendingPool", func(): async() {
             account = lender;
             supplied = 1000;
         });
-        verify(supply_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(supply_1_result, #ok(1), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
         // Expect raw_supplied to reflect the supply
         verify(indexer.get_state().utilization.raw_supplied, 1000.0, Testify.float.equalEpsilon9);
@@ -265,7 +254,7 @@ await suite("LendingPool", func(): async() {
             withdraw_queue = Set.new<Text>();
         };
 
-        let protocol_owner = fuzz.principal.randomPrincipal(10);
+        let admin = fuzz.principal.randomPrincipal(10);
         let dex = { fuzz.icrc1.randomAccount() with name = "dex" };
         let protocol = { fuzz.icrc1.randomAccount() with name = "protocol" };
         let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
@@ -276,16 +265,6 @@ await suite("LendingPool", func(): async() {
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
         let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
 
-        let supply_account = LedgerAccount.LedgerAccount({
-            account = protocol;
-            ledger = supply_ledger;
-            fee = 0; // No fee for testing
-        });
-        let collateral_account = LedgerAccount.LedgerAccount({
-            account = protocol;
-            ledger = collateral_ledger;
-            fee = 0; // No fee for testing
-        });
         let dex_fake = DexFake.DexFake({ 
             account = dex;
             config = {
@@ -297,16 +276,17 @@ await suite("LendingPool", func(): async() {
             init_price = 1.0; // Start with 1:1 price
         }); 
 
-         // Build the lending system
+        // Build the lending system
         let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
-            protocol_owner;
-            clock;
-            dex = dex_fake;
+            admin;
+            protocol_account = protocol;
             parameters;
             state;
             register;
-            supply_account;
-            collateral_account;
+            supply_ledger;
+            collateral_ledger;
+            dex = dex_fake;
+            clock;
         });
 
         // === Initial Assertions ===
@@ -319,7 +299,7 @@ await suite("LendingPool", func(): async() {
             account = lender;
             supplied = 1000;
         });
-        verify(supply_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(supply_1_result, #ok(1), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
         verify(supply_accounting.balances(), [ (dex, 2_000), (protocol, 1_000), (lender, 9_000), (borrower, 10_000) ], equal_balances);
         
         // Borrower supplies 2000 worth of collateral
@@ -433,7 +413,7 @@ await suite("LendingPool", func(): async() {
             withdraw_queue = Set.new<Text>();
         };
 
-        let protocol_owner = fuzz.principal.randomPrincipal(10);
+        let admin = fuzz.principal.randomPrincipal(10);
         let dex = { fuzz.icrc1.randomAccount() with name = "dex" };
         let protocol = { fuzz.icrc1.randomAccount() with name = "protocol" };
         let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
@@ -444,16 +424,6 @@ await suite("LendingPool", func(): async() {
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
         let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
 
-        let supply_account = LedgerAccount.LedgerAccount({
-            account = protocol;
-            ledger = supply_ledger;
-            fee = 0;
-        });
-        let collateral_account = LedgerAccount.LedgerAccount({
-            account = protocol;
-            ledger = collateral_ledger;
-            fee = 0;
-        });
         let dex_fake = DexFake.DexFake({ 
             account = dex;
             config = {
@@ -465,15 +435,17 @@ await suite("LendingPool", func(): async() {
             init_price = 1.0; // Start with 1:1 price
         }); 
 
+        // Build the lending system
         let { supply_registry; borrow_registry; } = LendingFactory.build({
-            protocol_owner;
-            clock;
-            dex = dex_fake;
+            admin;
+            protocol_account = protocol;
             parameters;
             state;
             register;
-            supply_account;
-            collateral_account;
+            supply_ledger;
+            collateral_ledger;
+            dex = dex_fake;
+            clock;
         });
 
         // Lender supplies 1000 tokens

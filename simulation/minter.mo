@@ -4,11 +4,14 @@ import Map "mo:map/Map";
 
 import Result "mo:base/Result";
 import Debug "mo:base/Debug";
+import Principal "mo:base/Principal";
 
-import ckBTC "canister:ck_btc";
-import dsnLedger "canister:dsn_ledger";
+import ICRC1 "mo:icrc1-mo/ICRC1/service";
 
-shared({ caller = owner }) actor class Minter() {
+shared({ caller = owner }) actor class Minter({ canister_ids: { ck_btc: Principal; ck_usdt: Principal; }}) = this {
+
+    let ckBTC : ICRC1.service = actor(Principal.toText(canister_ids.ck_btc));
+    let ckUSDT : ICRC1.service = actor(Principal.toText(canister_ids.ck_usdt));
 
     type Account = {
         owner : Principal;
@@ -23,7 +26,7 @@ shared({ caller = owner }) actor class Minter() {
             var total_distributed = 0;
             map_distributed = Map.new<Principal, Nat>();
         };
-        dsn_airdrop_info = {
+        usdt_airdrop_info = {
             var allowed_per_user = 100_000_000_000;
             var total_distributed = 0;
             map_distributed = Map.new<Principal, Nat>();
@@ -32,9 +35,9 @@ shared({ caller = owner }) actor class Minter() {
     };
 
     let btc_airdrop = Airdrop.Airdrop({ info = state.btc_airdrop_info; ledger = ckBTC; });
-    let dsn_airdrop = Airdrop.Airdrop({ info = state.dsn_airdrop_info; ledger = dsnLedger; });
+    let dsn_airdrop = Airdrop.Airdrop({ info = state.usdt_airdrop_info; ledger = ckUSDT; });
 
-    public shared({caller}) func mint_btc({amount: Nat; to: Account}) : async ckBTC.TransferResult {
+    public shared({caller}) func mint_btc({amount: Nat; to: Account}) : async ICRC1.TransferResult {
         
         if (state.is_restricted and caller != owner) {
             Debug.trap("Only the owner of the canister can call this function!");
@@ -50,13 +53,13 @@ shared({ caller = owner }) actor class Minter() {
         });
     };
 
-    public shared({caller}) func mint_dsn({amount: Nat; to: Account}) : async dsnLedger.TransferResult {
+    public shared({caller}) func mint_usdt({amount: Nat; to: Account}) : async ICRC1.TransferResult {
         
         if (state.is_restricted and caller != owner) {
             Debug.trap("Only the owner of the canister can call this function!");
         };
 
-        await dsnLedger.icrc1_transfer({
+        await ckUSDT.icrc1_transfer({
             fee = null;
             memo = null;
             from_subaccount = null;
@@ -94,7 +97,7 @@ shared({ caller = owner }) actor class Minter() {
         await dsn_airdrop.airdropUser(caller);
     };
 
-    public query func get_dsn_airdrop_info(): async SAirdropInfo {
+    public query func get_usdt_airdrop_info(): async SAirdropInfo {
         dsn_airdrop.getAirdropInfo();
     };
 

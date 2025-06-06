@@ -150,6 +150,123 @@ module {
         icrc2_allowance : query (AllowanceArgs) -> async (Allowance);
     };
 
+    // FROM LEDGER TYPES
+
+    public type SwapAmountsTxReply = {
+        pool_symbol: Text;
+        pay_chain: Text;
+        pay_symbol: Text;
+        pay_address: Text;
+        pay_amount: Nat;
+        receive_chain: Text;
+        receive_symbol: Text;
+        receive_address: Text;
+        receive_amount: Nat;
+        price: Float;
+        lp_fee: Nat;
+        gas_fee: Nat;
+    };
+    public type SwapAmountsReply = {
+        pay_chain: Text;
+        pay_symbol: Text;
+        pay_address: Text;
+        pay_amount: Nat;
+        receive_chain: Text;
+        receive_symbol: Text;
+        receive_address: Text;
+        receive_amount: Nat;
+        price: Float;
+        mid_price: Float;
+        slippage: Float;
+        txs: [SwapAmountsTxReply];
+    };
+    public type SwapAmountsResult = { 
+        #Ok: SwapAmountsReply;
+        #Err: Text; 
+    };
+
+    public type ICTransferReply = {
+        chain : Text;
+        symbol : Text;
+        is_send : Bool;
+        amount : Nat;
+        canister_id : Text;
+        block_index : Nat;
+    };
+    public type TransferReply = {
+        #IC : ICTransferReply;
+    };
+    public type TransferIdReply = {
+        transfer_id : Nat64;
+        transfer : TransferReply
+    };
+
+    public type TxId = {
+        BlockIndex : Nat;
+        TransactionId : Text;
+    };
+
+    public type SwapArgs = {
+        pay_token: Text;
+        pay_amount: Nat;
+        pay_tx_id: ?TxId;
+        receive_token: Text;
+        receive_amount: ?Nat;
+        receive_address: ?Text;
+        max_slippage: ?Float;
+        referred_by: ?Text;
+    };
+
+    public type SwapTxReply = {
+        pool_symbol : Text;
+        pay_chain : Text;
+        pay_address : Text;
+        pay_symbol : Text;
+        pay_amount : Nat;
+        receive_chain : Text;
+        receive_address : Text;
+        receive_symbol : Text;
+        receive_amount : Nat;
+        price : Float;
+        lp_fee : Nat;
+        gas_fee : Nat;
+        ts : Nat64;
+    };
+    public type SwapReply = {
+        tx_id : Nat64;
+        request_id : Nat64;
+        status : Text;
+        pay_chain : Text;
+        pay_address : Text;
+        pay_symbol : Text;
+        pay_amount : Nat;
+        receive_chain : Text;
+        receive_address : Text;
+        receive_symbol : Text;
+        receive_amount : Nat;
+        mid_price : Float;
+        price : Float;
+        slippage : Float;
+        txs : [SwapTxReply];
+        transfer_ids : [TransferIdReply];
+        claim_ids : [Nat64];
+        ts : Nat64;
+    };
+    public type SwapResult = { 
+        #Ok : SwapReply;
+        #Err : Text;
+    };
+
+    public type PriceArgs = {
+        pay_token: Text;
+        receive_token: Text;
+    };
+
+    public type DexActor = actor {
+        swap_amounts: shared (Text, Nat, Text) -> async SwapAmountsResult;
+        swap: shared SwapArgs -> async SwapResult;
+    };
+
     // FROM PROTOCOL ITSELF
 
     public type UUID = Text;
@@ -482,10 +599,12 @@ module {
     };
 
     public type InitArgs = {
-        supply_ledger: Principal;
-        collateral_ledger: Principal;
+        canister_ids: {
+            supply_ledger: Principal;
+            collateral_ledger: Principal;
+            dex: Principal;
+        };
         parameters: {
-            lending: LendingParameters;
             age_coefficient: Float;
             max_age: Duration;
             ballot_half_life: Duration;
@@ -496,6 +615,7 @@ module {
             author_fee: Nat;
             timer_interval_s: Nat;
             clock: ClockInitArgs;
+            lending: LendingParameters;
         };
     };
     public type UpgradeArgs = {
@@ -504,11 +624,12 @@ module {
     };
 
     public type State = {
+        supply_ledger: ICRC1 and ICRC2;
+        collateral_ledger: ICRC1 and ICRC2;
+        dex: DexActor;
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
         lock_scheduler_state: LockSchedulerState;
-        supply_ledger: ICRC1 and ICRC2;
-        collateral_ledger: ICRC1 and ICRC2;
         parameters: ProtocolParameters;
         lending: {
             parameters: LendingParameters;

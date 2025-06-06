@@ -34,7 +34,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         switch(_state){
             case(#v0_1_0(stable_data)) {
                 _facade := ?SharedFacade.SharedFacade(Factory.build({stable_data with 
-                    provider = Principal.fromActor(this);
+                    protocol = Principal.fromActor(this);
                     admin;
                 }));
             };
@@ -59,20 +59,22 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().find_vote(args);
     };
 
-    // TODO: rename, this is specific to DSN
-    public query func get_debt_info(debt_id: Types.UUID) : async ?Types.SDebtInfo {
-        getFacade().get_debt_info(debt_id);
-    };
 
+    // @int: commented out for now, will be implemented later
     // TODO: rename, this is specific to DSN
-    public query func get_debt_infos(ids: [Types.UUID]) : async [Types.SDebtInfo] {
-        getFacade().get_debt_infos(ids);
-    };
-
-    // TODO: rename, this is specific to DSN
-    public func get_mined_by_author({ author: Types.Account }) : async Types.DebtRecord {
-        getFacade().get_mined_by_author({ author; });
-    };
+//    public query func get_debt_info(debt_id: Types.UUID) : async ?Types.SDebtInfo {
+//        getFacade().get_debt_info(debt_id);
+//    };
+//
+//    // TODO: rename, this is specific to DSN
+//    public query func get_debt_infos(ids: [Types.UUID]) : async [Types.SDebtInfo] {
+//        getFacade().get_debt_infos(ids);
+//    };
+//
+//    // TODO: rename, this is specific to DSN
+//    public func get_mined_by_author({ author: Types.Account }) : async Types.DebtRecord {
+//        getFacade().get_mined_by_author({ author; });
+//    };
 
     public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.SPreviewBallotResult {
         getFacade().preview_ballot({ args with caller; });
@@ -131,9 +133,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_info();
     };
 
-    public query func get_parameters() : async Types.SProtocolParameters {
-        getFacade().get_parameters();
-    };
+    // @int: commented out for now, will be implemented later
+//    public query func get_parameters() : async Types.SProtocolParameters {
+//        getFacade().get_parameters();
+//    };
 
     func getFacade() : SharedFacade.SharedFacade {
         switch(_facade){

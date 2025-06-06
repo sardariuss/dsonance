@@ -16,6 +16,10 @@ module {
 
     public class LedgerFungibleFake(account: Account, ledger_accounting: LedgerAccounting.LedgerAccounting) : ILedgerFungible {
 
+        public func icrc1_balance_of(account: Account) : async* Nat {
+            ledger_accounting.get_balance(account);
+        };
+
         public func icrc1_transfer(args : Icrc1TransferArgs) : async* Result<TxIndex, TransferError> {
             ledger_accounting.transfer({
                 from = account;

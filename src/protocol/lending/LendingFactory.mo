@@ -21,13 +21,14 @@ module {
     type ISwapReceivable     = LedgerTypes.ISwapReceivable;
     type ISwapPayable        = LedgerTypes.ISwapPayable;
     type ILedgerFungible     = LedgerTypes.ILedgerFungible;
+    type Account             = LedgerTypes.Account;
 
     public func build({
         parameters: LendingParameters;
         state: IndexerState;
         register: LendingRegister;
         admin: Principal;
-        protocol: Principal;
+        protocol_account: Account;
         supply_ledger: ILedgerFungible;
         collateral_ledger: ILedgerFungible;
         dex: IDex;
@@ -56,13 +57,13 @@ module {
         let supply = SupplyAccount.SupplyAccount({
             admin;
             ledger_account = LedgerAccount.LedgerAccount({
-                protocol_account = { owner = protocol; subaccount = null; };
+                protocol_account;
                 ledger = supply_ledger;
             });
             indexer;
         });
         let collateral = LedgerAccount.LedgerAccount({
-            protocol_account = { owner = protocol; subaccount = null; };
+            protocol_account;
             ledger = collateral_ledger;
         });
 

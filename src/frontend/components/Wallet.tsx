@@ -4,7 +4,7 @@ import { useAuth } from '@ic-reactor/react';
 import { ckBtcActor } from '../actors/CkBtcActor';
 import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
-import { dsonanceLedgerActor } from '../actors/DsonanceLedgerActor';
+import { ckUsdtActor } from '../actors/CkUsdtActor';
 import { formatBalanceE8s, toE8s } from '../utils/conversions/token';
 import { DSONANCE_COIN_SYMBOL } from '../constants';
 import { minterActor } from '../actors/MinterActor';
@@ -33,7 +33,7 @@ const Wallet = () => {
     subaccount: []
   }), [identity]);
 
-  const { data: dsnBalance, call: refreshDsnBalance } = dsonanceLedgerActor.useQueryCall({
+  const { data: dsnBalance, call: refreshDsnBalance } = ckUsdtActor.useQueryCall({
     functionName: 'icrc1_balance_of',
     args: [account]
   });
@@ -96,7 +96,7 @@ const Wallet = () => {
     }]
   });
 
-  const { call: dsnApprove, loading: dsnApproving } = dsonanceLedgerActor.useUpdateCall({
+  const { call: dsnApprove, loading: dsnApproving } = ckUsdtActor.useUpdateCall({
     functionName: 'icrc2_approve',
     args: [{
       fee: [],

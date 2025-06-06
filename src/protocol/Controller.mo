@@ -208,7 +208,7 @@ module {
         };
 
         public func set_timer_interval({ caller: Principal; interval_s: Nat; }) : async* Result<(), Text> {
-            await* protocol_timer.set_interval({ caller; interval_s; fn = run;});
+            await* protocol_timer.set_interval({ caller; interval_s; });
         };
 
         public func start_timer({ caller: Principal; }) : async* Result<(), Text> {
@@ -229,34 +229,6 @@ module {
                 last_run = 0; // @todo: use minter instead
                 btc_locked = Timeline.initialize<Nat>(0, 0); // @todo
             };
-        };
-
-        // TODO: remove duplicate (see Factory)
-
-        func get_ballot(ballots: Map<UUID, BallotType>, id: UUID) : YesNoBallot {
-            switch(Map.get(ballots, Map.thash, id)) {
-                case(null) { Debug.trap("Ballot " #  debug_show(id) # " not found"); };
-                case(?#YES_NO(ballot)) {
-                    ballot;
-                };
-            };
-        };
-
-        func get_vote(votes: Map<UUID, VoteType>, id: UUID) : YesNoVote {
-            switch(Map.get(votes, Map.thash, id)) {
-                case(null) { Debug.trap("Vote " #  debug_show(id) # " not found"); };
-                case(?#YES_NO(vote)) {
-                    vote;
-                };
-            };
-        };
-
-        func map_locks_to_pair(locks: Iter<Lock>, ballots: Map<UUID, BallotType>, votes: Map<UUID, VoteType>) : Iter<(YesNoBallot, YesNoVote)> {
-            IterUtils.map<Lock, (YesNoBallot, YesNoVote)>(locks, func(lock: Lock) : (YesNoBallot, YesNoVote) {
-                let ballot = get_ballot(ballots, lock.id);
-                let vote = get_vote(votes, ballot.vote_id);
-                (ballot, vote);
-            });
         };
 
     };

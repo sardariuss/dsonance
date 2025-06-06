@@ -6,18 +6,15 @@ import DurationCalculator     "duration/DurationCalculator";
 import VoteFactory            "votes/VoteFactory";
 import VoteTypeController     "votes/VoteTypeController";
 import LockInfoUpdater        "locks/LockInfoUpdater";
-import LedgerAccount          "ledger/LedgerAccount";
 import LockScheduler          "LockScheduler";
 import Clock                  "utils/Clock";
-import Timeline               "utils/Timeline";
-import DebtProcessor          "DebtProcessor";
-import TokenMinter            "TokenMinter"; 
+import Timeline               "utils/Timeline"; 
 import IterUtils              "utils/Iter";
 import ForesightUpdater       "ForesightUpdater";
 import Incentives             "votes/Incentives";
 import ProtocolTimer          "ProtocolTimer";
-import SupplyAccount          "lending/SupplyAccount";
 import LendingFactory         "lending/LendingFactory";
+import ActorInterface         "ActorInterface";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
@@ -43,18 +40,18 @@ module {
 
     public func build(args: State and { protocol: Principal; admin: Principal; }) : Controller.Controller {
 
-        let { vote_register; ballot_register; lock_scheduler_state; supply_ledger; collateral_ledger; parameters; protocol; admin; lending; } = args;
+        let { supply_ledger; collateral_ledger; dex; vote_register; ballot_register; lock_scheduler_state; parameters; protocol; admin; lending; } = args;
         let { nominal_lock_duration; decay; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
 
         let { supply_registry } = LendingFactory.build({
             lending with
-            protocol;
+            protocol_account = { owner = protocol; subaccount = null; };
             admin;
-            supply_ledger;
-            collateral_ledger;
-            dex;
+            supply_ledger = ActorInterface.wrapLedgerFungible(supply_ledger);
+            collateral_ledger = ActorInterface.wrapLedgerFungible(collateral_ledger);
+            dex = ActorInterface.wrapDex(dex);
             clock;
         });
 
@@ -92,11 +89,11 @@ module {
                         // Update the ballots foresights
                         foresight_updater.update_foresights(map_ballots_to_foresight_items(ballot_register.ballots, parameters));
                         
-                        // @int: remove and use SupplyRegister.remove_position instead
-                        supply_registry.remove_position({
-                            id;
-                            share = 0.0; // @todo
-                        });
+                        // @todo: solve this
+                        //supply_registry.remove_position({
+                            //id;
+                            //share = 0.0; // @todo
+                        //});
                         { ballot; diff = -amount; };
                     };
                 };

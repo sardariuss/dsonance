@@ -162,13 +162,13 @@ module {
         receive_token: Text;
     };
 
-    public type IDex = {
+    public type DexActor = actor {
         // swap_amounts(pay_token, pay_amount, receive_token)
         // pay_token, receive_token - format Symbol, Chain.Symbol, CanisterId or Chain.CanisterId ie. ckBTC, IC.ckBTC, or IC.ryjl3-tyaaa-aaaaa-aaaba-cai
         // pay_amount, receive_amount - Nat numbers with corresponding decimal precision as defined in ledger canister
         // - calculates the expected receive_amount and price of the swap
         // - results of swap_amounts() are then pass to swap() for execution
-        swap_amounts: (Text, Nat, Text) -> async* SwapAmountsResult;
+        swap_amounts: shared (Text, Nat, Text) -> async SwapAmountsResult;
 
         // swap()
         // pay_token, receive_token - format Symbol, Chain.Symbol, CanisterId or Chain.CanisterId ie. ckBTC, IC.ckBTC, or IC.ryjl3-tyaaa-aaaaa-aaaba-cai
@@ -177,15 +177,26 @@ module {
         // - swap() has 2 variations:
         //   1) icrc2_approve + icrc2_transfer_from - user must icrc2_approve the pay_amount+gas of pay_token and then call swap() where the canister will then icrc2_transfer_from
         //   2) icrc1_transfer - user must icrc1_transfer the pay_amount of pay_token and then call swap() with the block index
-        swap: AugmentedSwapArgs -> async* SwapResult;
+        swap: shared SwapArgs -> async SwapResult;
+    };
 
+    public type IDex = {
+        swap_amounts: (Text, Nat, Text) -> async* Result<SwapAmountsReply, Text>;
+        swap: AugmentedSwapArgs -> async* Result<SwapReply, Text>;
         // @todo: very temporary function
         last_price: PriceArgs -> Float;
     };
 
-    public type ILedgerFungible = actor {
+    public type LedgerFungibleActor = actor {
+        icrc1_balance_of : shared query Account -> async Nat;
         icrc1_transfer: shared (Icrc1TransferArgs) -> async Icrc1TransferResult;
         icrc2_transfer_from: shared (TransferFromArgs) -> async {#Err : TransferFromError; #Ok : Nat};
+    };
+
+    public type ILedgerFungible = {
+        icrc1_balance_of: (Account) -> async* Nat;
+        icrc1_transfer: (Icrc1TransferArgs) -> async* Result<Nat, TransferError>;
+        icrc2_transfer_from: (TransferFromArgs) -> async* Result<Nat, TransferFromError>;
     };
 
     public type ILedgerAccount = {

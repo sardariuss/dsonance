@@ -60,9 +60,9 @@ module {
 
             // Perform the transfer
             // @todo: can this trap ?
-            switch(await ledger.icrc2_transfer_from(args)){
-                case(#Err(error)){ #err(error); };
-                case(#Ok(tx_id)){ 
+            switch(await* ledger.icrc2_transfer_from(args)){
+                case(#err(error)){ #err(error); };
+                case(#ok(tx_id)){ 
                     local_balance += amount;
                     #ok(tx_id); 
                 };
@@ -85,13 +85,11 @@ module {
 
             // Perform the transfer
             let result = try {
-                switch(await ledger.icrc1_transfer(args)){
-                    case(#Ok(tx_id)){ 
+                switch(await* ledger.icrc1_transfer(args)){
+                    case(#err(error)){ #err(error); };
+                    case(#ok(tx_id)){ 
                         local_balance -= amount;
                         #ok(tx_id); 
-                    };
-                    case(#Err(error)){ 
-                        #err(error); 
                     };
                 };
             } catch(err) {
@@ -112,8 +110,8 @@ module {
                 referred_by = null;
                 from = protocol_account;
             })) {
-                case(#Err(error)){ return #err(error); };
-                case(#Ok(reply)) {
+                case(#err(error)){ return #err(error); };
+                case(#ok(reply)) {
                     local_balance += reply.receive_amount;
                     // Call the callback to update the local_balance of the other ledger account
                     payload.callback();

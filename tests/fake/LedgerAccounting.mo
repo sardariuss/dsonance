@@ -71,6 +71,13 @@ module {
             });
         };
 
+        public func get_balance(account: Account) : Nat {
+            switch(Map.get(map_infos, MapUtils.acchash, account)) {
+                case(null) { 0; };
+                case(?info) { info.balance; };
+            };
+        };
+
         public func transfer({ from: Account; to: Account; amount: Nat; }) : Result<TxIndex, TransferError> {
             let from_info = switch(Map.get(map_infos, MapUtils.acchash, from)) {
                 case(null) {

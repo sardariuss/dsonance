@@ -110,17 +110,18 @@ module {
             controller.get_queries().find_ballot(ballot_id);
         };
 
-        public func get_debt_info(debt_id: UUID) : ?SDebtInfo {
-            controller.get_queries().get_debt_info(debt_id);
-        };
-        
-        public func get_debt_infos(ids: [UUID]) : [SDebtInfo] {
-            controller.get_queries().get_debt_infos(ids);
-        };
-
-        public func get_mined_by_author({ author: Account }) : DebtRecord {
-            controller.get_queries().get_mined_by_author({author});
-        };
+        // @int: commented out for now, will be implemented later
+//        public func get_debt_info(debt_id: UUID) : ?SDebtInfo {
+//            controller.get_queries().get_debt_info(debt_id);
+//        };
+//        
+//        public func get_debt_infos(ids: [UUID]) : [SDebtInfo] {
+//            controller.get_queries().get_debt_infos(ids);
+//        };
+//
+//        public func get_mined_by_author({ author: Account }) : DebtRecord {
+//            controller.get_queries().get_mined_by_author({author});
+//        };
         
     };
 };

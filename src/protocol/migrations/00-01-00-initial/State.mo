@@ -32,16 +32,20 @@ module {
     type BorrowPosition = Types.BorrowPosition;
     type SupplyPosition = Types.SupplyPosition;
     type Withdrawal     = Types.Withdrawal;
+    type DexActor      = Types.DexActor;
     type Set<K>        = Set.Set<K>;
 
     let BTREE_ORDER = 8;
 
     public func init(args: InitArgs) : State {
 
-        let { supply_ledger; collateral_ledger; parameters; } = args;
+        let { canister_ids; parameters; } = args;
         let now = Int.abs(Time.now());
 
         #v0_1_0({
+            supply_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.supply_ledger));
+            collateral_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.collateral_ledger));
+            dex : DexActor = actor(Principal.toText(canister_ids.dex));
             vote_register = { 
                 votes = Map.new<UUID, VoteType>();
                 by_origin = Map.new<Principal, Set<UUID>>();
@@ -51,8 +55,6 @@ module {
                 ballots = Map.new<UUID, BallotType>();
                 by_account = Map.new<Account, Set<UUID>>();
             };
-            supply_ledger : ICRC1 and ICRC2 = actor(Principal.toText(supply_ledger));
-            collateral_ledger : ICRC1 and ICRC2 = actor(Principal.toText(collateral_ledger));
             lock_scheduler_state = {
                 btree = BTree.init<Lock, ()>(?BTREE_ORDER);
                 map = Map.new<Text, Lock>();

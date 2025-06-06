@@ -8,8 +8,8 @@
       "main": "src/ledger/main.mo",
       "type": "motoko"
     },
-    "dsn_ledger": {
-      "main": "src/ledger/main.mo",
+    "dex": {
+      "main": "src/dex/main.mo",
       "type": "motoko"
     },
     "protocol": {
@@ -37,8 +37,7 @@
     },
     "minter": {
       "main": "simulation/minter.mo",
-      "type": "motoko",
-      "dependencies": ["ck_btc", "dsn_ledger"]
+      "type": "motoko"
     },
     "icp_coins": {
       "main": "src/mocks/icp_coins.mo",

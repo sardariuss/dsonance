@@ -21,13 +21,13 @@ const ConsensusIndicator: React.FC<ConsensusIndicatorProps> = ({ cursor, pulse }
       <svg className="w-16" viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}>
         <path
           d={pathDefinition}
-          stroke-width={strokeWidth}
+          strokeWidth={strokeWidth}
           className="dark:stroke-gray-700 stroke-gray-300 fill-none"
         />
         <path
           d={pathDefinition}
           fill="none"
-          stroke-width={strokeWidth}
+          strokeWidth={strokeWidth}
           className={`${cursor < 0.5 ? 'stroke-brand-false' : 'stroke-brand-true'} ${pulse? "animate-pulse" : ""}`}
           style={{
             strokeDasharray: halfCircumference,

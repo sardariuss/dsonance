@@ -4,7 +4,7 @@ import { useAuth } from "@ic-reactor/react";
 import { Account__1 } from "@/declarations/ck_btc/ck_btc.did";
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
-import { dsonanceLedgerActor } from "../actors/DsonanceLedgerActor";
+import { ckUsdtActor } from "../actors/CkUsdtActor";
 
 interface AllowanceContextType {
   btcAllowance: bigint | undefined;
@@ -43,7 +43,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     btcRefresh();
   };
 
-  const { call: dsnRefresh, data: dsnAllowance } = dsonanceLedgerActor.useQueryCall({
+  const { call: dsnRefresh, data: dsnAllowance } = ckUsdtActor.useQueryCall({
     functionName: 'icrc2_allowance',
     args: [{
       account,
