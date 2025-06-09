@@ -1,5 +1,5 @@
-import Float "mo:base/Float";
-import Debug "mo:base/Debug";
+import Float        "mo:base/Float";
+import Debug        "mo:base/Debug";
 
 import LendingTypes "Types";
 

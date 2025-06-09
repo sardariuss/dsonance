@@ -3,14 +3,11 @@ import { backendActor } from "../../actors/BackendActor";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMediaQuery } from "react-responsive";
-import { DSONANCE_COIN_SYMBOL, MOBILE_MAX_WIDTH_QUERY } from "../../constants";
+import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
 import { toNullable } from "@dfinity/utils";
 import { useAuth } from "@ic-reactor/react";
-import { formatBalanceE8s } from "../../utils/conversions/token";
-import DsnCoinIcon from "../icons/DsnCoinIcon";
 import UserVoteRow from "./UserVoteRow";
 import AdaptiveInfiniteScroll from "../AdaptiveInfinitScroll";
-import { protocolActor } from "../../actors/ProtocolActor";
 
 
 const UserVotes = () => {
@@ -104,8 +101,11 @@ const UserVotes = () => {
 
   return (
     <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 p-2 rounded w-full">
-      <div className="flex flex-row w-full space-x-1 justify-center items-baseline py-5">
-        <span>Total mined:</span>
+      <div className="flex flex-row w-full space-x-1 justify-center items-baseline">
+
+        {
+          // @int: DSN mining commented out for now
+          /*<span>Total mined:</span>*}
           {/*
             minedByAuthor !== undefined ?
             <div className="flex flex-row items-baseline space-x-1">

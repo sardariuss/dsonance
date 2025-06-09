@@ -8,9 +8,9 @@ import { ckUsdtActor } from "../actors/CkUsdtActor";
 
 interface AllowanceContextType {
   btcAllowance: bigint | undefined;
-  dsnAllowance: bigint | undefined;
+  usdtAllowance: bigint | undefined;
   refreshBtcAllowance: () => void;
-  refreshDsnAllowance: () => void;
+  refreshUsdtAllowance: () => void;
 }
 
 const AllowanceContext = createContext<AllowanceContextType | undefined>(undefined);
@@ -43,7 +43,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     btcRefresh();
   };
 
-  const { call: dsnRefresh, data: dsnAllowance } = ckUsdtActor.useQueryCall({
+  const { call: usdtRefresh, data: usdtAllowance } = ckUsdtActor.useQueryCall({
     functionName: 'icrc2_allowance',
     args: [{
       account,
@@ -54,12 +54,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }]
   });
 
-  const refreshDsnAllowance = () => {
-    dsnRefresh();
+  const refreshUsdtAllowance = () => {
+    usdtRefresh();
   }
 
   return (
-    <AllowanceContext.Provider value={{ btcAllowance: btcAllowance?.allowance, dsnAllowance: dsnAllowance?.allowance, refreshBtcAllowance, refreshDsnAllowance }}>
+    <AllowanceContext.Provider value={{ btcAllowance: btcAllowance?.allowance, usdtAllowance: usdtAllowance?.allowance, refreshBtcAllowance, refreshUsdtAllowance }}>
       {children}
     </AllowanceContext.Provider>
   );

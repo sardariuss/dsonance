@@ -1,5 +1,5 @@
-import Float "mo:base/Float";
-import Result "mo:base/Result";
+import Float        "mo:base/Float";
+import Result       "mo:base/Result";
 
 import LendingTypes "Types";
 

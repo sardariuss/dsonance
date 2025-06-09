@@ -1,11 +1,10 @@
 import { formatDuration } from "../../utils/conversions/durationUnit";
 import { niceFormatDate, timeToDate } from "../../utils/conversions/date";
 
-import { DSONANCE_COIN_SYMBOL, MOBILE_MAX_WIDTH_QUERY } from "../../constants";
+import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
 import { get_current, get_timeline_diff, interpolate_now, map_timeline_hack, to_number_timeline, to_time_left } from "../../utils/timeline";
 import DurationChart, { CHART_COLORS, SerieInput } from "../charts/DurationChart";
 import { unwrapLock } from "../../utils/conversions/ballot";
-import { formatBalanceE8s } from "../../utils/conversions/token";
 
 import { SBallotType } from "@/declarations/protocol/protocol.did";
 import { useEffect, useMemo, useState } from "react";
@@ -18,7 +17,6 @@ import { fromNullable } from "@dfinity/utils";
 import { toEnum } from "../../utils/conversions/yesnochoice";
 import { useCurrencyContext } from "../CurrencyContext";
 import ChoiceView from "../ChoiceView";
-import { protocolActor } from "../../actors/ProtocolActor";
 
 enum CHART_TOGGLE {
     DURATION,

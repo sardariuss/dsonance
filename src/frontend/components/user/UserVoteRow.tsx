@@ -1,12 +1,7 @@
-import { DSONANCE_COIN_SYMBOL, MOBILE_MAX_WIDTH_QUERY } from "../../constants";
-import { fromNullable } from "@dfinity/utils";
-import { formatBalanceE8s } from "../../utils/conversions/token";
+import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
 
-import { useEffect, useMemo } from "react";
-import { protocolActor } from "../../actors/ProtocolActor";
+import { useMemo } from "react";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
-import DurationChart, { CHART_COLORS } from "../charts/DurationChart";
-import { map_timeline_hack } from "../../utils/timeline";
 import { useMediaQuery } from "react-responsive";
 
 interface Props {

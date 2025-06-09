@@ -35,7 +35,7 @@ shared({ caller = owner }) actor class Minter({ canister_ids: { ck_btc: Principa
     };
 
     let btc_airdrop = Airdrop.Airdrop({ info = state.btc_airdrop_info; ledger = ckBTC; });
-    let dsn_airdrop = Airdrop.Airdrop({ info = state.usdt_airdrop_info; ledger = ckUSDT; });
+    let usdt_airdrop = Airdrop.Airdrop({ info = state.usdt_airdrop_info; ledger = ckUSDT; });
 
     public shared({caller}) func mint_btc({amount: Nat; to: Account}) : async ICRC1.TransferResult {
         
@@ -89,23 +89,23 @@ shared({ caller = owner }) actor class Minter({ canister_ids: { ck_btc: Principa
         #ok;
     };
 
-        public query({caller}) func is_dsn_airdrop_available() : async Bool {
-        dsn_airdrop.isAirdropAvailable(caller);
+        public query({caller}) func is_usdt_airdrop_available() : async Bool {
+        usdt_airdrop.isAirdropAvailable(caller);
     };
 
-    public shared({caller}) func dsn_airdrop_user() : async Result<Nat, Text> {
-        await dsn_airdrop.airdropUser(caller);
+    public shared({caller}) func usdt_airdrop_user() : async Result<Nat, Text> {
+        await usdt_airdrop.airdropUser(caller);
     };
 
     public query func get_usdt_airdrop_info(): async SAirdropInfo {
-        dsn_airdrop.getAirdropInfo();
+        usdt_airdrop.getAirdropInfo();
     };
 
-    public shared({caller}) func set_dsn_airdrop_per_user({ amount : Nat; }) : async Result<(), Text> {
+    public shared({caller}) func set_usdt_airdrop_per_user({ amount : Nat; }) : async Result<(), Text> {
         if (caller != owner) {
             return #err("Only the owner of the canister can call this function!");
         };
-        dsn_airdrop.setAirdropPerUser({amount});
+        usdt_airdrop.setAirdropPerUser({amount});
         #ok;
     };
 
