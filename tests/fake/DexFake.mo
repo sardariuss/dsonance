@@ -28,7 +28,7 @@ module {
     // TODO: have a map of tokens instead
     public class DexFake({ account: Account; config: LedgerConfig; init_price: Float; }) : LedgerTypes.IDex {
         
-        var price : Float = init_price;
+        var price : Float = init_price; // Receive token price in terms of pay token
 
         public func set_price(new_price: Float) {
             price := new_price;
@@ -47,7 +47,7 @@ module {
                 Debug.trap("swap_amounts called with unexpected tokens: " # pay_token # " and " # receive_token);
             };
             
-            let receive_amount = Int.abs(Float.toInt(Float.fromInt(pay_amount) * price));
+            let receive_amount = Int.abs(Float.toInt(Float.fromInt(pay_amount) / price));
 
             let reply : LedgerTypes.SwapAmountsReply = {
                 pay_chain = "IC";
@@ -73,21 +73,27 @@ module {
             };
 
             let receive_amount = switch(args.receive_amount) {
-                case (null) { Int.abs(Float.toInt(Float.fromInt(args.pay_amount) * price)) };
+                case (null) { Int.abs(Float.toInt(Float.fromInt(args.pay_amount) / price)) };
                 case (_) { Debug.trap("receive_amount is not supported by DexFake (yet)"); };
             };
 
-            let #ok(_) = config.pay_accounting.transfer({
+            switch(config.pay_accounting.transfer({
                 from = args.from;
                 to = account;
                 amount = args.pay_amount;
-            }) else return #err("Swap: failed to transfer pay amount");
+            })){
+                case(#err(err)) { return #err("Fail to transfer token 0: " # debug_show(err)); };
+                case(#ok(_)) {};
+            };
 
-            let #ok(_) = config.receive_accounting.transfer({
+            switch(config.receive_accounting.transfer({
                 from = account;
                 to = args.from;
                 amount = receive_amount;
-            }) else return #err("Swap: failed to transfer receive amount");
+            })){
+                case(#err(err)) { return #err("Fail to transfer token 1: " # debug_show(err)); };
+                case(#ok(_)) {};
+            };
 
             let reply : LedgerTypes.SwapReply = {
                 tx_id = 0;

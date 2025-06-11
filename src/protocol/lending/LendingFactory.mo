@@ -92,7 +92,7 @@ module {
             borrow_positionner = BorrowPositionner.BorrowPositionner({
                 parameters;
                 collateral_spot_in_asset = func() : Float {
-                    dex.last_price({
+                    1 / dex.last_price({
                         pay_token = collateral.token_symbol();
                         receive_token = supply.token_symbol();
                     });

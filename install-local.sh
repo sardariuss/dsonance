@@ -19,7 +19,15 @@ dfx deploy ck_btc --argument '(opt record {
     fee               = opt variant { Fixed = 10 };
     max_supply        = opt 2_100_000_000_000_000;
     min_burn_amount   = opt 1_000;
-    initial_balances  = vec {};
+    initial_balances  = vec {
+      record {
+        record {
+          account = principal "'${DEX_PRINCIPAL}'";
+          subaccount = null;
+        };
+        10;
+      };
+    };
     minting_account   = opt record { 
       owner = principal "'${MINTER_PRINCIPAL}'";
       subaccount = null; 
@@ -40,6 +48,15 @@ dfx deploy ck_usdt --argument '(opt record {
     fee               = opt variant { Fixed = 10_000 };
     max_supply        = opt 100_000_000_000_000_000;
     min_burn_amount   = opt 1_000;
+    initial_balances  = vec {
+      record {
+        record {
+          account = principal "'${DEX_PRINCIPAL}'";
+          subaccount = null;
+        };
+        1_100_000;
+      };
+    };
     minting_account   = opt record { 
       owner = principal "'${MINTER_PRINCIPAL}'";
       subaccount = null; 

@@ -214,7 +214,8 @@ module {
 
     public type IndexerState = {
         var utilization: Utilization;
-        var supply_rate: Float; // supply percentage rate (ratio)
+        var borrow_rate: Float; // borrow rate (ratio)
+        var supply_rate: Float; // supply rate (ratio)
         var accrued_interests: {
             fees: Float;
             supply: Float;
@@ -226,6 +227,7 @@ module {
 
     public type SIndexerState = {
         utilization: Utilization;
+        borrow_rate: Float;
         supply_rate: Float;
         accrued_interests: {
             fees: Float;

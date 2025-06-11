@@ -30,7 +30,7 @@ module {
                 Result.fromUpper(await dex_actor.swap(args));
             };
             last_price = func(args: LedgerTypes.PriceArgs) : Float {
-                0.0; // @todo
+                110_000; // @todo
             };
         };
     };

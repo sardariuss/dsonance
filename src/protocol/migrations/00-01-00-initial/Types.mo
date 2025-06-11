@@ -351,6 +351,7 @@ module {
     };
 
     public type Foresight = {
+        share: Float;
         reward: Int;
         apr: {
             current: Float;
@@ -563,7 +564,8 @@ module {
 
     public type IndexerState = {
         var utilization: Utilization;
-        var supply_rate: Float; // supply percentage rate (ratio)
+        var borrow_rate: Float; // borrow rate (ratio)
+        var supply_rate: Float; // supply rate (ratio)
         var accrued_interests: {
             fees: Float;
             supply: Float;

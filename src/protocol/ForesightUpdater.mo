@@ -9,12 +9,13 @@ import Map "mo:map/Map";
 
 module {
 
-    let EPSILON = 1e-12; // @todo: what value to take?
+    let EPSILON = 1e-12; // TODO: review if this epsilon is appropriate for the use case
 
     type UUID = Types.UUID;
     type Foresight = Types.Foresight;
     type YesNoVote = Types.YesNoVote;
     type Timeline<T> = Types.Timeline<T>;
+    type SIndexerState = Types.SIndexerState;
 
     type Iter<T> = Map.Iter<T>;
 
@@ -28,10 +29,10 @@ module {
         tvl: Nat;
     };
     
-    public type InputYield = { 
-        earned: Float; // supply_accrued_interests
-        apr: Float; // supply_rate
-        time_last_update: Nat;
+    public type SupplyInfo = { 
+        accrued_interests: Float;
+        interests_rate: Float;
+        last_update_timestamp: Nat;
     };
 
     public type ForesightItem = {
@@ -50,32 +51,39 @@ module {
     public type ContribItem = ForesightItem and { contrib: Contrib };
 
     public class ForesightUpdater({
-        get_yield: () -> InputYield;
+        initial_supply_info: SupplyInfo;
+        get_items: () -> Iter<ForesightItem>;
     }) {
 
-        public func update_foresights(items: Iter<ForesightItem>) {
+        var supply_info = initial_supply_info;
 
-            // @int: need to take the yield from the SupplyAccount or Indexer instead
-            let { earned; apr; time_last_update; } = get_yield();
+        public func set_supply_info(new_supply_info: SupplyInfo) {
+            supply_info := new_supply_info;
+            update_foresights();
+        };
 
-            // Filter out the inactive items: take only the one which timeline intersects with the time_last_update
-            let active_items = IterUtils.filter<ForesightItem>(items, func(item: ForesightItem) : Bool {
+        public func update_foresights() {
 
-                item.timestamp < time_last_update and item.release_date > time_last_update;
+            let { accrued_interests; interests_rate; last_update_timestamp; } = supply_info;
+
+            // Filter out the inactive items: take only the one which timeline intersects with the last_update_timestamp
+            let active_items = IterUtils.filter<ForesightItem>(get_items(), func(item: ForesightItem) : Bool {
+
+                item.timestamp < last_update_timestamp and item.release_date > last_update_timestamp;
             });
             
             // Compute the contribution of each item
             let contrib_items = IterUtils.map<ForesightItem, ContribItem>(active_items, func(item: ForesightItem) : ContribItem {
 
                 var weight = Float.fromInt(item.amount) * item.discernment;
-                if (earned < 0.0) {
+                if (accrued_interests < 0.0) {
                     // In case the interests earned by the protocol are negative (due to insolvency),
                     // revert the weights so that the most performing items gets the smallest penalty
                     weight := 1 / weight;
                 };
                 {   
                     item with contrib = {
-                        cumulated = weight * Float.fromInt(time_last_update - item.timestamp);
+                        cumulated = weight * Float.fromInt(last_update_timestamp - item.timestamp);
                         current = weight;
                     };
                 };
@@ -99,18 +107,21 @@ module {
 
                 let { cumulated; current; } = item.contrib;
 
-                let remaining_duration = Duration.toAnnual(Duration.getDuration({ from = time_last_update; to = item.release_date; }));
+                let remaining_duration = Duration.toAnnual(Duration.getDuration({ from = last_update_timestamp; to = item.release_date; }));
                 let lock_duration = Duration.toAnnual(Duration.getDuration({ from = item.timestamp; to = item.release_date; }));
                 
-                // Actual reward accumulated until now
-                let actual_reward = do {
+                
+                let share = do {
                     // The denominator will always be greater than the nominator, but if both are close to 0, just return 0
                     if(Float.equalWithin(sum_contribs.cumulated, 0.0, EPSILON)) {
                         0.0; 
                     } else {
-                        (cumulated / sum_contribs.cumulated) * earned;
+                        (cumulated / sum_contribs.cumulated);
                     };
                 };
+                // Actual reward accumulated until now
+                let actual_reward = share * accrued_interests;
+
                 // Projected reward until the end of the lock
                 // This is an approximation because it does not take account that items can be added or removed, but because 
                 // it is the same as if as many items were added and removed, we can accept that approximation
@@ -119,19 +130,20 @@ module {
                     if(Float.equalWithin(sum_contribs.current, 0.0, EPSILON)) {
                         0.0;
                     } else {
-                        (current / sum_contribs.current) * Math.percentage_to_ratio(apr) * Float.fromInt(tvl) * remaining_duration;
+                        (current / sum_contribs.current) * interests_rate * Float.fromInt(tvl) * remaining_duration;
                     };
                 };
 
                 let item_apr = Math.ratio_to_percentage((actual_reward + projected_reward) / Float.fromInt(item.amount)) / lock_duration;
                 let foresight = {
+                    share;
                     reward = Float.toInt(actual_reward);
                     apr = {
                         current = item_apr;
                         potential = item_apr / item.consent;
                     };
                 };
-                item.update_foresight(foresight, time_last_update);
+                item.update_foresight(foresight, last_update_timestamp);
             };
         };
 

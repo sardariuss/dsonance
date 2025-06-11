@@ -7,10 +7,13 @@ import Clock                   "utils/Clock";
 import SharedConversions       "shared/SharedConversions";
 import BallotUtils             "votes/BallotUtils";
 import VoteTypeController      "votes/VoteTypeController";
-import SupplyRegistry          "lending/SupplyRegistry";
 import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
 import ProtocolTimer           "ProtocolTimer";
+import Indexer                 "lending/Indexer";
+import SupplyRegistry          "lending/SupplyRegistry";
+import BorrowRegistry          "lending/BorrowRegistry";
+import WithdrawalQueue         "lending/WithdrawalQueue";
 
 import Map                     "mo:map/Map";
 
@@ -75,7 +78,10 @@ module {
         ballot_register: BallotRegister;
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
+        indexer: Indexer.Indexer;
         supply_registry: SupplyRegistry.SupplyRegistry;
+        borrow_registry: BorrowRegistry.BorrowRegistry;
+        withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         queries: Queries.Queries;
         protocol_timer: ProtocolTimer.ProtocolTimer;
         parameters: ProtocolParameters;
@@ -190,13 +196,52 @@ module {
             #ok(SharedConversions.shareBallotType(ballot_type));
         };
 
+        public func get_indexer_state() : Types.SIndexerState {
+            indexer.get_state();
+        };
+
+        public func supply_collateral({
+            account: Account;
+            amount: Nat;
+        }) : async* Result<(), Text> {
+            await* borrow_registry.supply_collateral({ account; amount; });
+        };
+
+        public func withdraw_collateral({
+            account: Account;
+            amount: Nat;
+        }) : async* Result<(), Text> {
+            await* borrow_registry.withdraw_collateral({ account; amount; });
+        };
+
+        public func borrow({
+            account: Account;
+            amount: Nat;
+        }) : async* Result<(), Text> {
+            await* borrow_registry.borrow({ account; amount; });
+        };
+
+        public func repay({
+            account: Account;
+            repayment: {
+                #PARTIAL: Nat;
+                #FULL;
+            };
+        }) : async* Result<(), Text> {
+            await* borrow_registry.repay({ account; repayment; });
+        };
+
+        // @todo: what to do with the results ?
         public func run() : async* () {
             
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
+
+            ignore await* borrow_registry.check_all_positions_and_liquidate();
             
-            // The try_unlock should trigger supply.position_remove and the withdrawal queue
             lock_scheduler.try_unlock(time);
+
+            ignore await* withdrawal_queue.process_pending_withdrawals();
         };
 
         public func get_queries() : Queries.Queries {

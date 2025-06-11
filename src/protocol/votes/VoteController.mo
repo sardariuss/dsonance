@@ -156,7 +156,7 @@ module {
                 choice;
                 dissent;
                 consent = Timeline.initialize<Float>(timestamp, consent);
-                foresight = Timeline.initialize<Foresight>(timestamp, { reward = 0; apr = { current = 0.0; potential = 0.0; }; });
+                foresight = Timeline.initialize<Foresight>(timestamp, { share = 0.0; reward = 0; apr = { current = 0.0; potential = 0.0; }; });
                 decay = decay_model.compute_decay(timestamp);
                 var hotness = 0.0;
                 var lock : ?LockInfo = null;

@@ -109,6 +109,57 @@ module {
             controller.get_queries().find_ballot(ballot_id);
         };
 
+        public func get_indexer_state() : Types.SIndexerState {
+            controller.get_indexer_state();
+        };
+
+        public func supply_collateral({
+            caller: Principal;
+            subaccount: ?Blob;
+            amount: Nat;
+        }) : async* Result<(), Text> {
+            await* controller.supply_collateral({ 
+                account = { owner = caller; subaccount; };
+                amount;
+            });
+        };
+
+        public func withdraw_collateral({
+            caller: Principal;
+            subaccount: ?Blob;
+            amount: Nat;
+        }) : async* Result<(), Text> {
+            await* controller.withdraw_collateral({ 
+                account = { owner = caller; subaccount; };
+                amount;
+            });
+        };
+
+        public func borrow({
+            caller: Principal;
+            subaccount: ?Blob;
+            amount: Nat;
+        }) : async* Result<(), Text> {
+            await* controller.borrow({ 
+                account = { owner = caller; subaccount; };
+                amount;
+            });
+        };
+
+        public func repay({
+            caller: Principal;
+            subaccount: ?Blob;
+            repayment: {
+                #PARTIAL: Nat;
+                #FULL;
+            };
+        }) : async* Result<(), Text> {
+            await* controller.repay({ 
+                account = { owner = caller; subaccount; };
+                repayment;
+            });
+        };
+
         // @int: commented out for now, will be implemented later
 //        public func get_debt_info(debt_id: UUID) : ?SDebtInfo {
 //            controller.get_queries().get_debt_info(debt_id);

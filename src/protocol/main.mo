@@ -137,6 +137,26 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_parameters();
     };
 
+    public query func get_indexer_state() : async Types.SIndexerState {
+        getFacade().get_indexer_state();
+    };
+
+    public shared({caller}) func supply_collateral({ subaccount: ?Blob; amount: Nat; }) : async Result.Result<(), Text> {
+        await* getFacade().supply_collateral({ caller; subaccount; amount; });
+    };
+
+    public shared({caller}) func withdraw_collateral({ subaccount: ?Blob; amount: Nat; }) : async Result.Result<(), Text> {
+        await* getFacade().withdraw_collateral({ caller; subaccount; amount; });
+    };
+
+    public shared({caller}) func borrow({ subaccount: ?Blob; amount: Nat; }) : async Result.Result<(), Text> {
+        await* getFacade().borrow({ caller; subaccount; amount; });
+    };
+
+    public shared({caller}) func repay({ subaccount: ?Blob; repayment: { #PARTIAL: Nat; #FULL; }; }) : async Result.Result<(), Text> {
+        await* getFacade().repay({ caller; subaccount; repayment; });
+    };
+
     func getFacade() : SharedFacade.SharedFacade {
         switch(_facade){
             case (null) { Debug.trap("The facade is not initialized"); };

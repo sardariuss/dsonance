@@ -18,7 +18,6 @@ import ActorInterface         "ActorInterface";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
-import Float                  "mo:base/Float";
 import Map                    "mo:map/Map";
 
 module {
@@ -45,7 +44,7 @@ module {
 
         let clock = Clock.Clock(parameters.clock);
 
-        let { supply_registry } = LendingFactory.build({
+        let { supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
             lending with
             protocol_account = { owner = protocol; subaccount = null; };
             admin;
@@ -55,17 +54,17 @@ module {
             clock;
         });
 
-        // @int: foresight_updater.update_foresights should also be called when the yield is updated
-        // so on borrow, withdraw, etc.
         let foresight_updater = ForesightUpdater.ForesightUpdater({
-            get_yield = func () : { earned: Float; apr: Float; time_last_update: Nat; } {
-                // @int: use Indexer instead
-                {
-                    earned = 0.0;
-                    apr = 0.0;
-                    time_last_update = 0;
-                }
+            initial_supply_info = to_supply_info(indexer.get_state());
+            get_items = func() : Iter<ForesightUpdater.ForesightItem> {
+                // Map the ballots to foresight items
+                map_ballots_to_foresight_items(ballot_register.ballots, parameters);
             };
+        });
+
+        // Update the foresights when the indexer state is updated
+        indexer.add_observer(func(indexer_state: Types.SIndexerState) {
+            foresight_updater.set_supply_info(to_supply_info(indexer_state));
         });
         
         // @int: the foresight_updater should directly listen to the Indexer updates instead of the LockScheduler
@@ -75,31 +74,26 @@ module {
             after_change = func({ time: Nat; event: LockEvent; state: LockState; }){
                 
                 // Update the ballots foresights
-                foresight_updater.update_foresights(map_ballots_to_foresight_items(ballot_register.ballots, parameters));
+                foresight_updater.update_foresights();
 
                 let { ballot; diff; } = switch(event){
                     case(#LOCK_ADDED({id; amount;})){
                         { ballot = get_ballot(ballot_register.ballots, id); diff = amount; };
                     };
                     case(#LOCK_REMOVED({id; amount;})){
-                        
-                        let ballot = get_ballot(ballot_register.ballots, id);
-                        let ballot_interest = Timeline.current(ballot.foresight).reward;
 
-                        // Update the ballots foresights
-                        foresight_updater.update_foresights(map_ballots_to_foresight_items(ballot_register.ballots, parameters));
+                        let ballot = get_ballot(ballot_register.ballots, id);
                         
-                        // @todo: solve this
-                        //supply_registry.remove_position({
-                            //id;
-                            //share = 0.0; // @todo
-                        //});
+                        // TODO: what if it returns an error?
+                        ignore supply_registry.remove_position({
+                            id;
+                            share = Timeline.current(ballot.foresight).share;
+                        });
                         { ballot; diff = -amount; };
                     };
                 };
 
                 // Update the vote TVL
-                // @int: this shall still be done
                 let vote = get_vote(vote_register.votes, ballot.vote_id);
                 vote.tvl := do {
                     let new_tvl : Int = vote.tvl + diff;
@@ -143,7 +137,10 @@ module {
             ballot_register;
             lock_scheduler;
             vote_type_controller;
+            indexer;
             supply_registry;
+            borrow_registry;
+            withdrawal_queue;
             queries;
             protocol_timer;
             parameters;
@@ -168,14 +165,6 @@ module {
                 vote;
             };
         };
-    };
-
-    func map_locks_to_pair(locks: Iter<Lock>, ballots: Map<UUID, BallotType>, votes: Map<UUID, VoteType>) : Iter<(YesNoBallot, YesNoVote)> {
-        IterUtils.map<Lock, (YesNoBallot, YesNoVote)>(locks, func(lock: Lock) : (YesNoBallot, YesNoVote) {
-            let ballot = get_ballot(ballots, lock.id);
-            let vote = get_vote(votes, ballot.vote_id);
-            (ballot, vote);
-        });
     };
 
     func map_ballots_to_foresight_items(ballots: Map<UUID, BallotType>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {
@@ -205,6 +194,14 @@ module {
                 };
             };
         });
+    };
+
+    func to_supply_info(indexer_state: Types.SIndexerState) : ForesightUpdater.SupplyInfo {
+        {
+            accrued_interests = indexer_state.accrued_interests.supply;
+            interests_rate = indexer_state.supply_rate;
+            last_update_timestamp = indexer_state.last_update_timestamp;
+        };
     };
 
 };

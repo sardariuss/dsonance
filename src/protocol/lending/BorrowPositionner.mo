@@ -76,7 +76,11 @@ module {
             let updated_position = { position with collateral; };
 
             // Check the withdrawal does not lower the health factor more than 1.0
-            if (not is_healthy({ position = updated_position; index; })) {
+            let is_healthy = switch(to_loan({ position = updated_position; index; })){
+                case(null) { true; }; // No loan means no risk
+                case(?loan) { loan.health > 1.0; };
+            };
+            if (not is_healthy) {
                 return #err("BorrowPositionner: withdrawal would lower health factor below 1.0");
             };
 
@@ -105,7 +109,12 @@ module {
             };
 
             // Check the borrow does not exceed the maximum LTV
-            if (not is_inferior_max_ltv({ position = update; index; })) {
+            let ltv = switch(to_loan({ position = update; index; })){
+                case(null) { return #err("BorrowPositionner: loan is null"); };
+                case(?l) { l.ltv; };
+            };
+            
+            if (ltv > parameters.max_ltv) {
                 return #err("LTV ratio is above current allowed maximum");
             };
 
@@ -144,51 +153,6 @@ module {
                         raw_repaid = borrow.raw_amount;
                         remaining = null; // Borrow is fully repaid
                     });
-                };
-            };
-        };
-
-        public func compute_health_factor({
-            position: BorrowPosition;
-            index: Index;
-        }) : ?Float {
-            switch(position.borrow){
-                case(null) { return null; }; // No borrow means no risk
-                case(?borrow) {
-                    let ltv = compute_ltv({ borrow; collateral = position.collateral; index; });
-                    if (ltv == 0.0) { return null; }; // No risk if LTV is zero
-                    ?(parameters.liquidation_threshold / ltv);
-                };
-            };
-        };
-
-        public func is_healthy({
-            position: BorrowPosition;
-            index: Index;
-        }) : Bool {
-            switch(compute_health_factor({ position; index; })){
-                case(null) { true; }; // No risk
-                case(?h) { h > 1.0; };
-            };
-        };
-
-        public func compute_ltv({
-            borrow: Borrow;
-            collateral: Collateral;
-            index: Index;
-        }) : Float {
-            Owed.accrue_interests(borrow.owed, index).accrued_amount 
-            / (Float.fromInt(collateral.amount) * collateral_spot_in_asset());
-        };
-
-        public func is_inferior_max_ltv({
-            position: BorrowPosition;
-            index: Index;
-        }) : Bool {
-            switch(position.borrow){
-                case(null) { true; }; // No borrow means no risk
-                case(?b) { 
-                    compute_ltv({ borrow = b; collateral = position.collateral; index; }) < parameters.max_ltv;
                 };
             };
         };

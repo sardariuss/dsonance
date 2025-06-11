@@ -299,21 +299,6 @@ module {
             #ok;
         };
 
-//        public func solve_loans_with_reserve() {
-//
-//            let loans_left = Buffer.Buffer<LoanEntry>(0);
-//
-//            for(loan in Array.vals(asset_accounting.unsolved_loans)){
-//                if (loan.amount < asset_accounting.reserve) {
-//                    asset_accounting.reserve -= loan.amount;
-//                } else {
-//                    loans_left.add(loan);
-//                };
-//            };
-//
-//            asset_accounting.unsolved_loans := Buffer.toArray(loans_left);
-//        };
-
         public func query_loan({ account: Account; }) : ?Loan {
 
             let index = indexer.get_state().borrow_index;

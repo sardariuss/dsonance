@@ -55,6 +55,7 @@ await suite("LendingPool", func(): async() {
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
         let state = {
+            var borrow_rate = 0.0;
             var supply_rate = 0.0;
             var accrued_interests = {
                 fees = 0.0;
@@ -91,7 +92,7 @@ await suite("LendingPool", func(): async() {
         dex.expect_call(#last_price(#returns(1.0)), #repeatedly); // 1:1 price
 
         // Build the lending system
-        let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
+        let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             protocol_account = protocol;
             parameters;
@@ -168,7 +169,6 @@ await suite("LendingPool", func(): async() {
 
         // === Advance Time to Day 100 (interest should accrue) ===
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(100)))), #repeatedly);
-        Debug.print("Clock time after 100 days: " # debug_show(clock.get_time()));
 
         // Trigger an index update by reading state
         let state_day100 = indexer.get_state();
@@ -197,10 +197,11 @@ await suite("LendingPool", func(): async() {
 
         // === Lender Withdrawal ===
 
-        let withdraw_result = await* supply_registry.remove_position({
+        let withdraw_result = supply_registry.remove_position({
             id = "supply1";
             share = 1.0; // Full withdrawal
         });
+        ignore await* withdrawal_queue.process_pending_withdrawals(); // To effectively withdraw the funds from remove_position
 
         verify(withdraw_result, #ok(1003), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
         verify(supply_accounting.balances(), [ (protocol, 1), (lender, 1_003), (borrower, 996) ], equal_balances);
@@ -232,6 +233,7 @@ await suite("LendingPool", func(): async() {
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
         let state = {
+            var borrow_rate = 0.0;
             var supply_rate = 0.0;
             var accrued_interests = {
                 fees = 0.0;
@@ -277,7 +279,7 @@ await suite("LendingPool", func(): async() {
         }); 
 
         // Build the lending system
-        let { indexer; supply_registry; borrow_registry; } = LendingFactory.build({
+        let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             protocol_account = protocol;
             parameters;
@@ -326,7 +328,6 @@ await suite("LendingPool", func(): async() {
         let before_liquidation = borrow_registry.query_loan({ account = borrower });
         switch (before_liquidation) {
             case (?loan) {
-                Debug.print(debug_show(loan));
                 verify(loan.health, 1.0, Testify.float.greaterThan);
             };
             case null {
@@ -338,7 +339,7 @@ await suite("LendingPool", func(): async() {
         // To stay healthy, price > (borrowed / (collateral * liquidation_threshold))
         // borrowed = 500, collateral = 2000, liquidation_threshold = 0.75
         // So price must be > (500 / (2000 * 0.75)) = 0.3333 (ignoring the borrowing interests)
-        dex_fake.set_price(0.33); // Price drops to 0.33
+        dex_fake.set_price(3.0); // Price "drops" to 3.0 (1 / 0.3333, because it's the price of the supply token in terms of collateral)
 
         // Advance time to ensure state update uses new price
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(101)))), #repeatedly);
@@ -348,7 +349,6 @@ await suite("LendingPool", func(): async() {
         let after_crash = borrow_registry.query_loan({ account = borrower });
         switch (after_crash) {
             case (?loan) {
-                Debug.print(debug_show(loan));
                 verify(loan.health, 1.0, Testify.float.lessThan);
             };
             case null {
@@ -366,23 +366,24 @@ await suite("LendingPool", func(): async() {
             case null { assert(false); }; // Not full liquidation, should still have a position
             case (?loan) {
                 verify(loan.health, 1.0, Testify.float.greaterThan);
-                verify(loan.collateral, 1_000, Testify.nat.equal); // 2000 - 1000 (liquidated)
+                verify(loan.collateral, 1_030, Testify.nat.equal); // 2000 - 970 (liquidated)
             };
         };
 
-        // 1000 collateral was sent to the dex
-        verify(collateral_accounting.balances(), [ (dex, 1_000), (protocol, 1_000), (lender, 0), (borrower, 8_000) ], equal_balances);
-        // (1000 * 0.33) = 330 supply was sent to the protocol
-        verify(supply_accounting.balances(), [ (dex, 1_670), (protocol, 830), (lender, 9_000), (borrower, 10_500) ], equal_balances);
+        // 970 collateral was sent to the dex
+        verify(collateral_accounting.balances(), [ (dex, 970), (protocol, 1_030), (lender, 0), (borrower, 8_000) ], equal_balances);
+        // (970 * 0.33) = 323 supply was sent to the protocol
+        verify(supply_accounting.balances(), [ (dex, 1_677), (protocol, 823), (lender, 9_000), (borrower, 10_500) ], equal_balances);
 
         // Lender withdraws their supply
-        let withdraw_result = await* supply_registry.remove_position({
+        let withdraw_result = supply_registry.remove_position({
             id = "supply1";
             share = 1.0; // Full withdrawal
         });
+        ignore await* withdrawal_queue.process_pending_withdrawals(); // To effectively withdraw the funds from remove_position
         verify(withdraw_result, #ok(1019), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
         // Lender could only withdraw up to 830 tokens (-3 for fees)
-        verify(supply_accounting.balances(), [ (dex, 1_670), (protocol, 3), (lender, 9_827), (borrower, 10_500) ], equal_balances);
+        verify(supply_accounting.balances(), [ (dex, 1_677), (protocol, 3), (lender, 9_820), (borrower, 10_500) ], equal_balances);
     });
 
     await test("Lender withdrawal triggers withdrawal queue with partial repayment", func() : async() {
@@ -391,6 +392,7 @@ await suite("LendingPool", func(): async() {
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
         let state = {
+            var borrow_rate = 0.0;
             var supply_rate = 0.0;
             var accrued_interests = {
                 fees = 0.0;
@@ -436,7 +438,7 @@ await suite("LendingPool", func(): async() {
         }); 
 
         // Build the lending system
-        let { supply_registry; borrow_registry; } = LendingFactory.build({
+        let { supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             protocol_account = protocol;
             parameters;
@@ -474,10 +476,11 @@ await suite("LendingPool", func(): async() {
 
         // Lender tries to withdraw full position
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
-        let withdraw_result = await* supply_registry.remove_position({
+        let withdraw_result = supply_registry.remove_position({
             id = "supply1";
             share = 1.0;
         });
+        ignore await* withdrawal_queue.process_pending_withdrawals(); // To effectively withdraw the funds from remove_position
         verify(withdraw_result, #ok(1002), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
         // At this point, only 100 tokens (-1 for the fees) are available for transfer to the lender

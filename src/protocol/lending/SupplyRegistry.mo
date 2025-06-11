@@ -60,7 +60,9 @@ module {
             #ok(tx);
         };
 
-        public func remove_position({ id: Text; share: Float; }) : async* Result<Nat, Text> {
+        // Remove a position from the supply registry.
+        // Watchout, the transfer is not done immediately, it is added to the withdrawal queue.
+        public func remove_position({ id: Text; share: Float; }) : Result<Nat, Text> {
             
             let position = switch(Map.get(register.supply_positions, Map.thash, id)){
                 case(null) { return #err("The map does not have a position with the ID " # debug_show(id)); };
@@ -84,9 +86,6 @@ module {
             };
 
             withdrawal_queue.add({ position; due; });
-
-            // Trigger the withdrawal queue to process the transfer
-            ignore await* withdrawal_queue.process_pending_withdrawals();
 
             #ok(due);
         };

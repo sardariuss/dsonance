@@ -58,6 +58,8 @@ module {
     public type LockSchedulerState = Types.Current.LockSchedulerState;
     public type YieldState         = Types.Current.YieldState;
     public type TransferError      = Types.Current.TransferError;
+    public type Index              = Types.Current.Index;
+    public type Utilization        = Types.Current.Utilization;
 
     // CANISTER ARGS
 
@@ -120,6 +122,18 @@ module {
     };
 
     // SHARED TYPES
+
+    public type SIndexerState = {
+        utilization: Utilization;
+        supply_rate: Float;
+        accrued_interests: {
+            fees: Float;
+            supply: Float;
+        };
+        borrow_index: Index;
+        supply_index: Index;
+        last_update_timestamp: Nat;
+    };
 
     public type SYieldState = {
         tvl: Nat;

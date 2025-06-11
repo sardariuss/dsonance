@@ -88,13 +88,14 @@ module {
                         raw_borrowed = 0.0;
                         ratio = 0.0;
                     };
+                    var borrow_rate = 0.0;
                     var supply_rate = 0.0;
                     var accrued_interests = {
                         fees = 0.0;
                         supply = 0.0;
                     };
-                    var borrow_index = 0.0;
-                    var supply_index = 0.0;
+                    var borrow_index = 1.0;
+                    var supply_index = 1.0;
                     var last_update_timestamp = now;
                 };
                 register = {

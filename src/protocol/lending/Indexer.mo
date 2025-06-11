@@ -3,6 +3,8 @@ import Float              "mo:base/Float";
 import Nat                "mo:base/Nat";
 import Debug              "mo:base/Debug";
 import Result             "mo:base/Result";
+import Option             "mo:base/Option";
+import Buffer             "mo:base/Buffer";
 
 import InterestRateCurve  "InterestRateCurve";
 import Math               "../utils/Math";
@@ -22,22 +24,31 @@ module {
     type IndexerState          = LendingTypes.IndexerState;
     type SIndexerState         = LendingTypes.SIndexerState;
     type Utilization           = LendingTypes.Utilization;
+    
+    type Observer = (SIndexerState) -> ();
 
     public class Indexer({
         parameters: IndexerParameters;
         state: IndexerState;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
         clock: Clock.IClock;
-        utilization_updater: UtilizationUpdater.UtilizationUpdater
+        utilization_updater: UtilizationUpdater.UtilizationUpdater;
     }){
 
+        let observers = Buffer.Buffer<Observer>(0);
+
+        public func add_observer(observer: Observer) {
+            observers.add(observer);
+        };
+
         public func get_state() : SIndexerState {
-            update_state({ utilization = state.utilization });
+            update_state(null);
             {
                 utilization = state.utilization;
                 supply_index = { value = state.supply_index; timestamp = state.last_update_timestamp };
                 borrow_index = { value = state.borrow_index; timestamp = state.last_update_timestamp };
                 last_update_timestamp = state.last_update_timestamp;
+                borrow_rate = state.borrow_rate;
                 supply_rate = state.supply_rate;
                 accrued_interests = {
                     fees = state.accrued_interests.fees;
@@ -51,7 +62,7 @@ module {
                 case(#err(err)) { Debug.trap(err); };
                 case(#ok(u)){ u; };
             };
-            update_state({ utilization; });
+            update_state(?utilization);
         };
 
         public func remove_raw_supplied({ amount: Float; }) {
@@ -59,7 +70,7 @@ module {
                 case(#err(err)) { Debug.trap(err); };
                 case(#ok(u)){ u; };
             };
-            update_state({ utilization; });
+            update_state(?utilization);
         };
 
         public func add_raw_borrow({ amount: Nat; }) {
@@ -67,7 +78,7 @@ module {
                 case(#err(err)) { Debug.trap(err); };
                 case(#ok(u)){ u; };
             };
-            update_state({ utilization; });
+            update_state(?utilization);
         };
 
         public func remove_raw_borrow({ amount: Float; }) {
@@ -75,20 +86,17 @@ module {
                 case(#err(err)) { Debug.trap(err); };
                 case(#ok(u)){ u; };
             };
-            update_state({ utilization; });
+            update_state(?utilization);
         };
 
         public func take_supply_interests({ share: Float; minimum: Int; }) : Result<Int, Text> {
-            update_state({ utilization = state.utilization });
+            update_state(null);
             // Make sure the share is normalized
             if (not Math.is_normalized(share)) {
                 return #err("Invalid interest share");
             };
-            Debug.print("Splitting supply interests with share: " # Float.toText(share) # " and minimum: " # Int.toText(minimum));
             // Make sure the interests is above the minimum
             let interests_amount = Float.toInt(Float.max(Float.fromInt(minimum), state.accrued_interests.supply * share));
-            Debug.print("Total supply interests: " # Float.toText(state.accrued_interests.supply));
-            Debug.print("Interests amount: " # Int.toText(interests_amount));
             // Remove the interests from the supply
             state.accrued_interests := {
                 fees = state.accrued_interests.fees;
@@ -110,7 +118,7 @@ module {
         /// - `supply_rate` and `last_update_timestamp` are updated together and should never be stale relative to one another.
         ///
         /// This model ensures consistency and avoids forward-looking rate assumptions.
-        public func update_state({ utilization: Utilization }) {
+        public func update_state(utilization: ?Utilization) {
 
             let time = clock.get_time();
             let elapsed_ns : Int = time - state.last_update_timestamp;
@@ -119,32 +127,41 @@ module {
             if (elapsed_ns < 0) {
                 Debug.trap("Cannot update state: time is before last update");
             };
+            
+            let previous_state = state;
+            var state_updated = false;
 
-            // Calculate the time period in years
-            let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.last_update_timestamp; to = time; }));
+            Option.iterate(utilization, func (new_utilization: Utilization) {
+                // Update the utilization
+                state.utilization := new_utilization;
+                // Get the current rates from the curve
+                state.borrow_rate := Math.percentage_to_ratio(interest_rate_curve.get_apr(state.utilization.ratio));
+                state.supply_rate := state.borrow_rate * state.utilization.ratio;
+                // Need to notify the observers
+                state_updated := true;
+            });
 
-            // @todo: remove print statements in production
-            Debug.print("Updating rates with elapsed time: " # Int.toText(elapsed_ns) # " ns, which is " # Float.toText(elapsed_annual) # " years");
-            Debug.print("Current raw supplied: " # Float.toText(utilization.raw_supplied));
-            Debug.print("Current supply rate: " # Float.toText(state.supply_rate) # "Current utilization ratio: " # Float.toText(utilization.ratio));
-            // Accrue the supply interests up to this date, need to be done before updating anything else!
             if (elapsed_ns > 0) {
-                accrue_interests({state; elapsed_annual});
+                // Calculate the time period in years
+                let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.last_update_timestamp; to = time; }));
+                // Update the indexes
+                state.borrow_index := state.borrow_index * (1.0 + state.borrow_rate * elapsed_annual);
+                state.supply_index := state.supply_index * (1.0 + state.supply_rate * elapsed_annual);
+                // Accrue the supply interests up to this date using the previous state up to this date!
+                accrue_interests({ state = previous_state; elapsed_annual; });
+                // Refresh update timestamp
+                state.last_update_timestamp := time;
+                // Need to notify the observers
+                state_updated := true;
             };
 
-            // Update the utilization
-            state.utilization := utilization;
-
-            // Get the current rates from the curve
-            let borrow_rate = Math.percentage_to_ratio(interest_rate_curve.get_apr(state.utilization.ratio));
-            state.supply_rate := borrow_rate * state.utilization.ratio;
-
-            // Update the indexes
-            state.borrow_index := state.borrow_index * (1.0 + borrow_rate * elapsed_annual);
-            state.supply_index := state.supply_index * (1.0 + state.supply_rate * elapsed_annual);
-            
-            // Refresh update timestamp
-            state.last_update_timestamp := time;
+            // Notify the observers if the state has been updated
+            if (state_updated) {
+                let new_state = get_state();
+                for (observer in observers.vals()) {
+                    observer(new_state);
+                };
+            };
         };
 
         func accrue_interests({state: IndexerState; elapsed_annual: Float}) {

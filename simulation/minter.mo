@@ -89,7 +89,7 @@ shared({ caller = owner }) actor class Minter({ canister_ids: { ck_btc: Principa
         #ok;
     };
 
-        public query({caller}) func is_usdt_airdrop_available() : async Bool {
+    public query({caller}) func is_usdt_airdrop_available() : async Bool {
         usdt_airdrop.isAirdropAvailable(caller);
     };
 
