@@ -14,24 +14,39 @@ module {
     type TransferFromError  = LedgerTypes.TransferFromError;
     type ILedgerFungible    = LedgerTypes.ILedgerFungible;
 
-    public class LedgerFungibleFake(account: Account, ledger_accounting: LedgerAccounting.LedgerAccounting) : ILedgerFungible {
+    type Info = {
+        account: Account;
+        ledger_accounting: LedgerAccounting.LedgerAccounting;
+        fee: Nat;
+        token_symbol: Text;
+    };
 
-        public func icrc1_balance_of(account: Account) : async* Nat {
-            ledger_accounting.get_balance(account);
+    public class LedgerFungibleFake(info: Info) : ILedgerFungible {
+
+        public func fee() : Nat {
+            info.fee;
+        };
+        
+        public func token_symbol() : Text {
+            info.token_symbol;
         };
 
-        public func icrc1_transfer(args : Icrc1TransferArgs) : async* Result<TxIndex, TransferError> {
-            ledger_accounting.transfer({
-                from = account;
+        public func balance_of(account: Account) : async* Nat {
+            info.ledger_accounting.get_balance(account);
+        };
+
+        public func transfer(args : Icrc1TransferArgs) : async* Result<TxIndex, TransferError> {
+            info.ledger_accounting.transfer({
+                from = info.account;
                 to = args.to;
                 amount = args.amount;
             });
         };
 
-        public func icrc2_transfer_from(args : TransferFromArgs) : async* Result<TxIndex, TransferFromError> {
-            ledger_accounting.transfer({
+        public func transfer_from(args : TransferFromArgs) : async* Result<TxIndex, TransferFromError> {
+            info.ledger_accounting.transfer({
                 from = args.from;
-                to = account;
+                to = info.account;
                 amount = args.amount;
             });
         };

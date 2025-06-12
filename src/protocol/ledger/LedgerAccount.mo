@@ -28,17 +28,11 @@ module {
         ledger: ILedgerFungible;
     }) : ILedgerAccount and ISwapPayable and ISwapReceivable {
 
-        var fee : Nat = 0; // @todo: should be set at initialization
-
         // @todo: should be checked at initialization
         var local_balance = 0;
 
         public func get_local_balance() : Nat {
             local_balance;
-        };
-
-        public func token_symbol() : Text {
-            ""; // placeholder
         };
 
         public func pull({
@@ -52,15 +46,15 @@ module {
                 spender_subaccount = null;
                 from;
                 to = protocol_account;
-                amount = amount + fee;
-                fee = null;
+                amount = amount + ledger.fee();
+                fee = ?ledger.fee();
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             };
 
             // Perform the transfer
             // @todo: can this trap ?
-            switch(await* ledger.icrc2_transfer_from(args)){
+            switch(await* ledger.transfer_from(args)){
                 case(#err(error)){ #err(error); };
                 case(#ok(tx_id)){ 
                     local_balance += amount;
@@ -78,14 +72,14 @@ module {
                 to;
                 from_subaccount = null;
                 amount;
-                fee = null;
+                fee = ?ledger.fee();
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             };
 
             // Perform the transfer
             let result = try {
-                switch(await* ledger.icrc1_transfer(args)){
+                switch(await* ledger.transfer(args)){
                     case(#err(error)){ #err(error); };
                     case(#ok(tx_id)){ 
                         local_balance -= amount;
@@ -104,7 +98,7 @@ module {
             switch(await* payload.dex.swap({
                 payload with
                 pay_tx_id = null;
-                receive_token = token_symbol();
+                receive_token = ledger.token_symbol();
                 receive_amount = null;
                 receive_address = null;
                 referred_by = null;
@@ -126,7 +120,7 @@ module {
             max_slippage: ?Float;
         }) : Swap {
             let payload = {
-                pay_token = token_symbol();
+                pay_token = ledger.token_symbol();
                 pay_amount = amount;
                 max_slippage;
                 dex;

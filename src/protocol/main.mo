@@ -21,24 +21,29 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     // Unfortunately the principal of the canister cannot be used at the construction of the actor
     // because of the compiler error "cannot use self before self has been defined".
     // Therefore, one need to use an init method to initialize the facade.
-    public shared({caller}) func init_facade() : async () {
+    public shared({caller}) func init_facade() : async Result.Result<(), Text> {
 
         if (not Principal.equal(caller, admin)) {
-            Debug.trap("Only the admin can initialize the facade");
+            return #err("Only the admin can initialize the facade");
         };
 
         if (Option.isSome(_facade)) {
-            Debug.trap("The facade is already initialized");
+            return #err("The facade is already initialized");
         };
 
-        switch(_state){
-            case(#v0_1_0(stable_data)) {
-                _facade := ?SharedFacade.SharedFacade(Factory.build({stable_data with 
-                    protocol = Principal.fromActor(this);
-                    admin;
-                }));
-            };
+        let #v0_1_0(stable_data) = _state;
+        let { controller; initialize } = Factory.build({
+            stable_data with
+            protocol = Principal.fromActor(this);
+            admin;
+        });
+        switch(await* initialize()) {
+            case (#err(e)) { return #err("Protocol.init_facade: " # e); };
+            case (#ok) {};
         };
+        
+        _facade := ?SharedFacade.SharedFacade(controller);
+        #ok;
     };
 
     // Create a new vote
@@ -58,23 +63,6 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     public query func find_vote(args: Types.FindVoteArgs) : async ?Types.SVoteType {
         getFacade().find_vote(args);
     };
-
-
-    // @int: commented out for now, will be implemented later
-    // TODO: rename, this is specific to DSN
-//    public query func get_debt_info(debt_id: Types.UUID) : async ?Types.SDebtInfo {
-//        getFacade().get_debt_info(debt_id);
-//    };
-//
-//    // TODO: rename, this is specific to DSN
-//    public query func get_debt_infos(ids: [Types.UUID]) : async [Types.SDebtInfo] {
-//        getFacade().get_debt_infos(ids);
-//    };
-//
-//    // TODO: rename, this is specific to DSN
-//    public func get_mined_by_author({ author: Types.Account }) : async Types.DebtRecord {
-//        getFacade().get_mined_by_author({ author; });
-//    };
 
     public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.SPreviewBallotResult {
         getFacade().preview_ballot({ args with caller; });

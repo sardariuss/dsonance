@@ -29,10 +29,6 @@ module {
         ledger_account: ILedgerAccount and ISwapReceivable;
         indexer: Indexer.Indexer;
     }) : ISwapReceivable {
-
-        public func token_symbol() : Text {
-            ledger_account.token_symbol();
-        };
         
         public func get_balance() : Nat {
             let supply_balance = ledger_account.get_local_balance();

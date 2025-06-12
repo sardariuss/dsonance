@@ -7,24 +7,26 @@ import Nat64 "mo:base/Nat64";
 import Int "mo:base/Int";
 
 import LedgerTypes "../protocol/ledger/Types";
-import ActorInterface "../protocol/ActorInterface";
+
+import ICRC1              "mo:icrc1-mo/ICRC1/service";
+import ICRC2              "mo:icrc2-mo/ICRC2/service";
 
 shared actor class Dex({ canister_ids: { ck_btc: Principal; ck_usdt: Principal; }}) = this {
 
-    let ckBTC = ActorInterface.wrapLedgerFungible(actor(Principal.toText(canister_ids.ck_btc)));
-    let ckUSDT = ActorInterface.wrapLedgerFungible(actor(Principal.toText(canister_ids.ck_usdt)));
+    let ckBTC : ICRC1.service and ICRC2.service = actor(Principal.toText(canister_ids.ck_btc));
+    let ckUSDT : ICRC1.service and ICRC2.service = actor(Principal.toText(canister_ids.ck_usdt));
 
     // Helper to get ledger and symbol
-    func get_ledger(token: Text) : LedgerTypes.ILedgerFungible {
+    func get_ledger(token: Text) : ICRC1.service and ICRC2.service {
         if (token == "ckBTC") return ckBTC;
         if (token == "ckUSDT") return ckUSDT;
         Debug.trap("Token not supported");
     };
 
     // Helper to get pool reserves
-    func get_reserves() : async* (Nat, Nat) {
-        let btc_balance = await* ckBTC.icrc1_balance_of({owner = Principal.fromActor(this); subaccount = null});
-        let usdt_balance = await* ckUSDT.icrc1_balance_of({owner = Principal.fromActor(this); subaccount = null});
+    func get_reserves() : async (Nat, Nat) {
+        let btc_balance = await ckBTC.icrc1_balance_of({owner = Principal.fromActor(this); subaccount = null});
+        let usdt_balance = await ckUSDT.icrc1_balance_of({owner = Principal.fromActor(this); subaccount = null});
         (btc_balance, usdt_balance)
     };
 
@@ -60,7 +62,7 @@ shared actor class Dex({ canister_ids: { ck_btc: Principal; ck_usdt: Principal; 
         if (not(pay_token == "ckBTC" and receive_token == "ckUSDT") and not(pay_token == "ckUSDT" and receive_token == "ckBTC")) {
             Debug.trap("Token pair " # pay_token # " / " # receive_token # " not supported");
         };
-        let (btc_reserve, usdt_reserve) = await* get_reserves();
+        let (btc_reserve, usdt_reserve) = await get_reserves();
         let (amount_out, price, slippage) = get_amount_out(pay_token, pay_amount, btc_reserve, usdt_reserve);
         #Ok({
             receive_amount = amount_out;
@@ -109,7 +111,7 @@ shared actor class Dex({ canister_ids: { ck_btc: Principal; ck_usdt: Principal; 
         let receive_ledger = get_ledger(args.receive_token);
 
         // Get pool reserves before swap
-        let (btc_reserve, usdt_reserve) = await* get_reserves();
+        let (btc_reserve, usdt_reserve) = await get_reserves();
         let (amount_out, price, slippage) = get_amount_out(args.pay_token, args.pay_amount, btc_reserve, usdt_reserve);
 
         // Check slippage
@@ -130,10 +132,10 @@ shared actor class Dex({ canister_ids: { ck_btc: Principal; ck_usdt: Principal; 
             memo = null;
             created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
         };
-        let transfer_from_result = await* pay_ledger.icrc2_transfer_from(transfer_from_args);
+        let transfer_from_result = await pay_ledger.icrc2_transfer_from(transfer_from_args);
         switch (transfer_from_result) {
-            case (#err(err)) return #Err("Transfer from user failed: " # debug_show(err));
-            case (#ok(_)) {};
+            case (#Err(err)) return #Err("Transfer from user failed: " # debug_show(err));
+            case (#Ok(_)) {};
         };
 
         // Transfer receive_token from pool to user
@@ -145,9 +147,9 @@ shared actor class Dex({ canister_ids: { ck_btc: Principal; ck_usdt: Principal; 
             memo = null;
             created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
         };
-        let transfer_result = await* receive_ledger.icrc1_transfer(transfer_args);
+        let transfer_result = await receive_ledger.icrc1_transfer(transfer_args);
         switch (transfer_result) {
-            case (#ok(tx_id)) {
+            case (#Ok(tx_id)) {
                 #Ok({
                     tx_id = Nat64.fromNat(tx_id);
                     request_id = 0;
@@ -169,7 +171,7 @@ shared actor class Dex({ canister_ids: { ck_btc: Principal; ck_usdt: Principal; 
                     ts = Nat64.fromNat(Int.abs(Time.now()));
                 })
             };
-            case (#err(err)) return #Err("Transfer to user failed: " # debug_show(err));
+            case (#Err(err)) return #Err("Transfer to user failed: " # debug_show(err));
         }
     };
 };

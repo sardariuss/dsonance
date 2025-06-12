@@ -187,21 +187,26 @@ module {
         last_price: PriceArgs -> Float;
     };
 
+    public type Value = { #Nat : Nat; #Int : Int; #Blob : Blob; #Text : Text; #Array : [Value]; #Map: [(Text, Value)] };
+
     public type LedgerFungibleActor = actor {
         icrc1_balance_of : shared query Account -> async Nat;
         icrc1_transfer: shared (Icrc1TransferArgs) -> async Icrc1TransferResult;
         icrc2_transfer_from: shared (TransferFromArgs) -> async {#Err : TransferFromError; #Ok : Nat};
+        icrc1_fee : shared query () -> async Nat;
+        icrc1_metadata : shared query () -> async [(Text, Value)];
     };
 
     public type ILedgerFungible = {
-        icrc1_balance_of: (Account) -> async* Nat;
-        icrc1_transfer: (Icrc1TransferArgs) -> async* Result<Nat, TransferError>;
-        icrc2_transfer_from: (TransferFromArgs) -> async* Result<Nat, TransferFromError>;
+        balance_of: (Account) -> async* Nat;
+        transfer: (Icrc1TransferArgs) -> async* Result<Nat, TransferError>;
+        transfer_from: (TransferFromArgs) -> async* Result<Nat, TransferFromError>;
+        fee: () -> Nat;
+        token_symbol: () -> Text;
     };
 
     public type ILedgerAccount = {
         get_local_balance: () -> Nat;
-        token_symbol: () -> Text;
         pull: (PullArgs) -> async* PullResult;
         transfer: (TransferArgs) -> async* Transfer;
     };

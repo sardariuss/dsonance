@@ -93,8 +93,8 @@ module {
                 parameters;
                 collateral_spot_in_asset = func() : Float {
                     1 / dex.last_price({
-                        pay_token = collateral.token_symbol();
-                        receive_token = supply.token_symbol();
+                        pay_token = collateral_ledger.token_symbol();
+                        receive_token = supply_ledger.token_symbol();
                     });
                 };
             });

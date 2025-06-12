@@ -15,10 +15,12 @@ import Incentives             "votes/Incentives";
 import ProtocolTimer          "ProtocolTimer";
 import LendingFactory         "lending/LendingFactory";
 import ActorInterface         "ActorInterface";
+import LedgerFungible         "ledger/LedgerFungible";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
 import Map                    "mo:map/Map";
+import Result                 "mo:base/Result";
 
 module {
 
@@ -31,25 +33,33 @@ module {
     type LockEvent   = Types.LockEvent;
     type BallotType  = Types.BallotType;
     type VoteType    = Types.VoteType;
-    type LockState   = Types.LockState; 
+    type LockState   = Types.LockState;
     
     type Iter<T>     = Map.Iter<T>;
     type Map<K, V>   = Map.Map<K, V>;
     type Time        = Int;
 
-    public func build(args: State and { protocol: Principal; admin: Principal; }) : Controller.Controller {
+    type BuildOutput = {
+        controller: Controller.Controller;
+        initialize: () -> async* Result.Result<(), Text>;
+    };
 
-        let { supply_ledger; collateral_ledger; dex; vote_register; ballot_register; lock_scheduler_state; parameters; protocol; admin; lending; } = args;
+    public func build(args: State and { protocol: Principal; admin: Principal; }) : BuildOutput {
+
+        let { dex; vote_register; ballot_register; lock_scheduler_state; parameters; protocol; admin; lending; } = args;
         let { nominal_lock_duration; decay; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
+
+        let supply_ledger = LedgerFungible.LedgerFungible(args.supply_ledger);
+        let collateral_ledger = LedgerFungible.LedgerFungible(args.collateral_ledger);
 
         let { supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
             lending with
             protocol_account = { owner = protocol; subaccount = null; };
             admin;
-            supply_ledger = ActorInterface.wrapLedgerFungible(supply_ledger);
-            collateral_ledger = ActorInterface.wrapLedgerFungible(collateral_ledger);
+            supply_ledger;
+            collateral_ledger;
             dex = ActorInterface.wrapDex(dex);
             clock;
         });
@@ -131,23 +141,34 @@ module {
             parameters = parameters.timer;
         });
 
-        Controller.Controller({
-            clock;
-            vote_register;
-            ballot_register;
-            lock_scheduler;
-            vote_type_controller;
-            indexer;
-            supply_registry;
-            borrow_registry;
-            withdrawal_queue;
-            queries;
-            protocol_timer;
-            parameters;
-        });
+        {
+            controller = Controller.Controller({
+                clock;
+                vote_register;
+                ballot_register;
+                lock_scheduler;
+                vote_type_controller;
+                indexer;
+                supply_registry;
+                borrow_registry;
+                withdrawal_queue;
+                queries;
+                protocol_timer;
+                parameters;
+            });
+            initialize = func() : async* Result.Result<(), Text> {
+                switch(await* supply_ledger.initialize()) {
+                    case(#err(e)) { return #err("Failed to initialize supply ledger: " # e); };
+                    case(#ok(_)) {};
+                };
+                switch(await* collateral_ledger.initialize()) {
+                    case(#err(e)) { return #err("Failed to initialize collateral ledger: " # e); };
+                    case(#ok(_)) {};
+                };
+                #ok;
+            };
+        };
     };
-
-    // TODO: remove duplicate (see Controller)
 
     func get_ballot(ballots: Map<UUID, BallotType>, id: UUID) : YesNoBallot {
         switch(Map.get(ballots, Map.thash, id)) {

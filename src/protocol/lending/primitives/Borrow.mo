@@ -5,11 +5,10 @@ import LendingTypes "../Types";
 import Result       "mo:base/Result";
 import Float        "mo:base/Float";
 import Bool         "mo:base/Bool";
-import Debug        "mo:base/Debug";
 
 module {
 
-    let EPSILON = 0.00001; // @todo: why not 1.0 ?
+    let EPSILON = 0.00001; // TODO: validate this epsilon value
 
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
@@ -72,9 +71,7 @@ module {
         // Compute the raw amount left after slashing
         // TODO: this is convoluted, it should be simplified
         let remaining_ratio = update_owed.accrued_amount / Owed.accrue_interests(borrow.owed, owed.index).accrued_amount;
-        Debug.print("Remaining ratio: " # Float.toText(remaining_ratio));
         let raw_amount = remaining_ratio * borrow.raw_amount;
-        Debug.print("Raw amount after slash: " # Float.toText(raw_amount));
 
         if (raw_amount < EPSILON) {
             return #ok(null); // Borrow is fully repaid

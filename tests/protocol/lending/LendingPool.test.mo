@@ -85,8 +85,8 @@ await suite("LendingPool", func(): async() {
 
         let supply_accounting = LedgerAccounting.LedgerAccounting([(protocol, 0), (lender, 1_000), (borrower, 1_000)]);
         let collateral_accounting = LedgerAccounting.LedgerAccounting([(protocol, 0), (lender, 0), (borrower, 5_000)]);
-        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
-        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
+        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
+        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; fee = 0; token_symbol = ""});
 
         let dex = DexMock.DexMock();
         dex.expect_call(#last_price(#returns(1.0)), #repeatedly); // 1:1 price
@@ -264,8 +264,8 @@ await suite("LendingPool", func(): async() {
 
         let supply_accounting = LedgerAccounting.LedgerAccounting([(dex, 2_000), (protocol, 0), (lender, 10_000), (borrower, 10_000)]);
         let collateral_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 0), (borrower, 10_000)]);
-        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
-        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
+        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
+        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; fee = 0; token_symbol = ""});
 
         let dex_fake = DexFake.DexFake({ 
             account = dex;
@@ -423,8 +423,8 @@ await suite("LendingPool", func(): async() {
 
         let supply_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 1_000), (borrower, 1_000)]);
         let collateral_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 0), (borrower, 5_000)]);
-        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, supply_accounting);
-        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake(protocol, collateral_accounting);
+        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
+        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; fee = 0; token_symbol = ""});
 
         let dex_fake = DexFake.DexFake({ 
             account = dex;
