@@ -456,6 +456,21 @@ module {
         amount_minted: Timeline<Float>;
     };
 
+     type Var<V> = {
+        var value: V;
+    };
+
+    public type ProtocolAccounts = {
+        supply: {
+            subaccount: ?Subaccount;
+            local_balance: Var<Nat>;
+        };
+        collateral: {
+            subaccount: ?Subaccount;
+            local_balance: Var<Nat>;
+        };
+    };
+
     // FROM LENDING
 
     public type CurvePoint = {
@@ -633,6 +648,7 @@ module {
         ballot_register: BallotRegister;
         lock_scheduler_state: LockSchedulerState;
         parameters: ProtocolParameters;
+        accounts: ProtocolAccounts;
         lending: {
             parameters: LendingParameters;
             state: IndexerState;

@@ -83,6 +83,12 @@ await suite("LendingPool", func(): async() {
         let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
         let borrower = { fuzz.icrc1.randomAccount() with name = "borrower" };
 
+        let protocol_info = {
+            principal = protocol.owner;
+            supply = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+            collateral = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+        };
+
         let supply_accounting = LedgerAccounting.LedgerAccounting([(protocol, 0), (lender, 1_000), (borrower, 1_000)]);
         let collateral_accounting = LedgerAccounting.LedgerAccounting([(protocol, 0), (lender, 0), (borrower, 5_000)]);
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
@@ -94,7 +100,7 @@ await suite("LendingPool", func(): async() {
         // Build the lending system
         let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
-            protocol_account = protocol;
+            protocol_info;
             parameters;
             state;
             register;
@@ -262,6 +268,12 @@ await suite("LendingPool", func(): async() {
         let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
         let borrower = { fuzz.icrc1.randomAccount() with name = "borrower" };
 
+        let protocol_info = {
+            principal = protocol.owner;
+            supply = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+            collateral = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+        };
+
         let supply_accounting = LedgerAccounting.LedgerAccounting([(dex, 2_000), (protocol, 0), (lender, 10_000), (borrower, 10_000)]);
         let collateral_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 0), (borrower, 10_000)]);
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
@@ -281,7 +293,7 @@ await suite("LendingPool", func(): async() {
         // Build the lending system
         let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
-            protocol_account = protocol;
+            protocol_info;
             parameters;
             state;
             register;
@@ -421,6 +433,12 @@ await suite("LendingPool", func(): async() {
         let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
         let borrower = { fuzz.icrc1.randomAccount() with name = "borrower" };
 
+        let protocol_info = {
+            principal = protocol.owner;
+            supply = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+            collateral = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+        };
+
         let supply_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 1_000), (borrower, 1_000)]);
         let collateral_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 0), (borrower, 5_000)]);
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
@@ -440,7 +458,7 @@ await suite("LendingPool", func(): async() {
         // Build the lending system
         let { supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
-            protocol_account = protocol;
+            protocol_info;
             parameters;
             state;
             register;

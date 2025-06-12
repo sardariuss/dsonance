@@ -10,6 +10,7 @@ import SupplyAccount      "SupplyAccount";
 import LedgerTypes        "../ledger/Types";
 import LedgerAccount      "../ledger/LedgerAccount";
 import Clock              "../utils/Clock";
+import Cell               "../utils/Cell";
 
 module {
 
@@ -21,14 +22,14 @@ module {
     type ISwapReceivable     = LedgerTypes.ISwapReceivable;
     type ISwapPayable        = LedgerTypes.ISwapPayable;
     type ILedgerFungible     = LedgerTypes.ILedgerFungible;
-    type Account             = LedgerTypes.Account;
+    type ProtocolInfo        = LedgerTypes.ProtocolInfo;
 
     public func build({
         parameters: LendingParameters;
         state: IndexerState;
         register: LendingRegister;
         admin: Principal;
-        protocol_account: Account;
+        protocol_info: ProtocolInfo;
         supply_ledger: ILedgerFungible;
         collateral_ledger: ILedgerFungible;
         dex: IDex;
@@ -57,14 +58,22 @@ module {
         let supply = SupplyAccount.SupplyAccount({
             admin;
             ledger_account = LedgerAccount.LedgerAccount({
-                protocol_account;
+                protocol_account = {
+                    owner = protocol_info.principal;
+                    subaccount = protocol_info.supply.subaccount;
+                };
                 ledger = supply_ledger;
+                local_balance = Cell.Cell(protocol_info.supply.local_balance);
             });
             indexer;
         });
         let collateral = LedgerAccount.LedgerAccount({
-            protocol_account;
+            protocol_account = {
+                owner = protocol_info.principal;
+                subaccount = protocol_info.collateral.subaccount;
+            };
             ledger = collateral_ledger;
+            local_balance = Cell.Cell(protocol_info.collateral.local_balance);
         });
 
         let withdrawal_queue = WithdrawalQueue.WithdrawalQueue({

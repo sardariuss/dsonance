@@ -80,6 +80,20 @@ module {
                     };
                 };
             };
+            accounts = {
+                supply = {
+                    subaccount = null;
+                    local_balance = {
+                        var value = 0;
+                    };
+                };
+                collateral = {
+                    subaccount = null;
+                    local_balance = {
+                        var value = 0;
+                    };
+                };
+            };
             lending = {
                 parameters = parameters.lending;
                 state = {

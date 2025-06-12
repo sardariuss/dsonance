@@ -219,4 +219,20 @@ module {
         perform_swap: (SwapPayload) -> async* Result<SwapReply, Text>;
     };
 
+    public type ProtocolInfo = {
+        principal: Principal;
+        supply: {
+            subaccount: ?Blob;
+            local_balance: {
+                var value: Nat;
+            };
+        };
+        collateral: {
+            subaccount: ?Blob;
+            local_balance: {
+                var value: Nat;
+            };
+        };
+    };
+
 };

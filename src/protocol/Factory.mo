@@ -46,7 +46,7 @@ module {
 
     public func build(args: State and { protocol: Principal; admin: Principal; }) : BuildOutput {
 
-        let { dex; vote_register; ballot_register; lock_scheduler_state; parameters; protocol; admin; lending; } = args;
+        let { dex; vote_register; ballot_register; lock_scheduler_state; parameters; protocol; admin; accounts; lending; } = args;
         let { nominal_lock_duration; decay; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
@@ -56,7 +56,10 @@ module {
 
         let { supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
             lending with
-            protocol_account = { owner = protocol; subaccount = null; };
+            protocol_info = {
+                accounts with
+                principal = protocol;
+            };
             admin;
             supply_ledger;
             collateral_ledger;

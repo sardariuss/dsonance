@@ -1,4 +1,5 @@
 import LedgerTypes   "Types";
+import Cell          "../utils/Cell";
 
 import Int           "mo:base/Int";
 import Result        "mo:base/Result";
@@ -21,18 +22,17 @@ module {
     type IDex              = LedgerTypes.IDex;
     type SwapReply         = LedgerTypes.SwapReply;
     type ILedgerFungible   = LedgerTypes.ILedgerFungible;
+    type Cell<T>           = Cell.Cell<T>;
     
     // TODO: ideally the LedgerAccount should only implement ILedgerAccount
     public class LedgerAccount({
         protocol_account: Account;
         ledger: ILedgerFungible;
+        local_balance: Cell<Nat>;
     }) : ILedgerAccount and ISwapPayable and ISwapReceivable {
 
-        // @todo: should be checked at initialization
-        var local_balance = 0;
-
         public func get_local_balance() : Nat {
-            local_balance;
+            local_balance.get();
         };
 
         public func pull({
@@ -57,7 +57,7 @@ module {
             switch(await* ledger.transfer_from(args)){
                 case(#err(error)){ #err(error); };
                 case(#ok(tx_id)){ 
-                    local_balance += amount;
+                    local_balance.set(local_balance.get() + amount);
                     #ok(tx_id); 
                 };
             };
@@ -81,8 +81,8 @@ module {
             let result = try {
                 switch(await* ledger.transfer(args)){
                     case(#err(error)){ #err(error); };
-                    case(#ok(tx_id)){ 
-                        local_balance -= amount;
+                    case(#ok(tx_id)){
+                        local_balance.set(local_balance.get() - amount); 
                         #ok(tx_id); 
                     };
                 };
@@ -106,7 +106,7 @@ module {
             })) {
                 case(#err(error)){ return #err(error); };
                 case(#ok(reply)) {
-                    local_balance += reply.receive_amount;
+                    local_balance.set(local_balance.get() + reply.receive_amount);
                     // Call the callback to update the local_balance of the other ledger account
                     payload.callback();
                     #ok(reply);
@@ -124,7 +124,7 @@ module {
                 pay_amount = amount;
                 max_slippage;
                 dex;
-                callback = func() { local_balance -= amount; };
+                callback = func() { local_balance.set(local_balance.get() - amount); };
             };
             {
                 against = func(swap_receivable: ISwapReceivable) : async* Result<SwapReply, Text> {
