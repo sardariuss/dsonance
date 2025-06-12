@@ -14,8 +14,8 @@ import ForesightUpdater       "ForesightUpdater";
 import Incentives             "votes/Incentives";
 import ProtocolTimer          "ProtocolTimer";
 import LendingFactory         "lending/LendingFactory";
-import ActorInterface         "ActorInterface";
 import LedgerFungible         "ledger/LedgerFungible";
+import Dex                    "ledger/Dex";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
@@ -63,7 +63,7 @@ module {
             admin;
             supply_ledger;
             collateral_ledger;
-            dex = ActorInterface.wrapDex(dex);
+            dex = Dex.Dex(dex);
             clock;
         });
 
