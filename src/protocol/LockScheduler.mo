@@ -50,7 +50,7 @@ module {
             };
             add_lock(new);
 
-            // Update the previous locks
+            // Update the previous locks because their release date might have changed
             for (prev in previous){
                 // Update the lock only if it exists
                 Option.iterate(remove_lock(prev.id), func(old: Lock) {

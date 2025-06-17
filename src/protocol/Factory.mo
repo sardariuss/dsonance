@@ -207,6 +207,7 @@ module {
         };
     };
 
+    // @todo: could return only the items which release_date is in the future, it would avoid to do it in the ForesightUpdater
     func map_ballots_to_foresight_items(ballots: Map<UUID, BallotType>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {
         IterUtils.map(Map.vals(ballots), func(ballot_type: BallotType) : ForesightUpdater.ForesightItem {
             switch(ballot_type){
