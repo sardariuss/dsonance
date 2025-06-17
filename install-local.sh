@@ -19,15 +19,6 @@ dfx deploy ck_btc --argument '(opt record {
     fee               = opt variant { Fixed = 10 };
     max_supply        = opt 2_100_000_000_000_000;
     min_burn_amount   = opt 1_000;
-    initial_balances  = vec {
-      record {
-        record {
-          account = principal "'${DEX_PRINCIPAL}'";
-          subaccount = null;
-        };
-        10;
-      };
-    };
     minting_account   = opt record { 
       owner = principal "'${MINTER_PRINCIPAL}'";
       subaccount = null; 
@@ -48,15 +39,6 @@ dfx deploy ck_usdt --argument '(opt record {
     fee               = opt variant { Fixed = 10_000 };
     max_supply        = opt 100_000_000_000_000_000;
     min_burn_amount   = opt 1_000;
-    initial_balances  = vec {
-      record {
-        record {
-          account = principal "'${DEX_PRINCIPAL}'";
-          subaccount = null;
-        };
-        1_100_000;
-      };
-    };
     minting_account   = opt record { 
       owner = principal "'${MINTER_PRINCIPAL}'";
       subaccount = null; 
@@ -135,6 +117,24 @@ dfx deploy backend
 dfx deps pull
 dfx deps init
 dfx deps deploy internet_identity
+
+# Transfer liquidity to the dex canister
+# Transfer 10 ckBTC (e8s)
+dfx canister call minter mint_btc '( record {
+  amount = 1_000_000_000;
+  to = record {
+    owner = principal "'${DEX_PRINCIPAL}'";
+    subaccount = null;
+  };
+})'
+# Transfer 1_100_000 ckUSDT (e6s)
+dfx canister call minter mint_usdt '( record {
+  amount = 1_100_000_000_000;
+  to = record {
+    owner = principal "'${DEX_PRINCIPAL}'";
+    subaccount = null;
+  };
+})'
 
 # Protocol initialization and frontend generation
 dfx canister call protocol init_facade

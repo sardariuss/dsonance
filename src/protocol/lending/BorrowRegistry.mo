@@ -10,12 +10,12 @@ import Types              "../Types";
 import MapUtils           "../utils/Map";
 import IterUtils          "../utils/Iter";
 import LedgerTypes        "../ledger/Types";
+import Borrow             "./primitives/Borrow";
 import BorrowPositionner  "BorrowPositionner";
 import LendingTypes       "Types";
 import Indexer            "Indexer";
 import WithdrawalQueue    "WithdrawalQueue";
 import UtilizationUpdater "UtilizationUpdater";
-import Borrow             "./primitives/Borrow";
 import SupplyAccount      "SupplyAccount";
 
 module {
@@ -184,8 +184,6 @@ module {
                 case(#ok(p)) { p; };
             };
 
-            Debug.print("Repayment amount: " # debug_show(amount));
-
             // Transfer the repayment from the user
             let tx = switch(await* supply.pull({ from = account; amount; })){
                 case(#err(_)) { return #err("Transfer failed"); };
@@ -197,7 +195,6 @@ module {
             update := BorrowPositionner.add_tx({ position = update; tx = #SUPPLY_REPAID(tx); });
             Map.set(register.borrow_positions, MapUtils.acchash, account, update);
 
-            Debug.print("Raw difference after repayment: " # debug_show(raw_repaid));
             indexer.remove_raw_borrow({ amount = raw_repaid });
 
             // Once a position is repaid, it might allow the unlock withdrawal of supply
@@ -219,7 +216,7 @@ module {
             let prepare_swap_args = {
                 dex;
                 amount = total_to_liquidate;
-                max_slippage = ?parameters.max_slippage;
+                max_slippage = parameters.max_slippage;
             };
 
             // Perform the swap

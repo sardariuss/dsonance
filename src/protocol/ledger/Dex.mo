@@ -22,10 +22,6 @@ module {
             Result.fromUpper(await dex_actor.swap(args));
         };
         
-        public func last_price(_: PriceArgs) : Float {
-            110_000; // @todo
-        };
-        
     };
 
 }

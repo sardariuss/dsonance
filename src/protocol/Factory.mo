@@ -16,6 +16,7 @@ import ProtocolTimer          "ProtocolTimer";
 import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
 import Dex                    "ledger/Dex";
+import PriceTracker           "ledger/PriceTracker";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
@@ -46,7 +47,7 @@ module {
 
     public func build(args: State and { protocol: Principal; admin: Principal; }) : BuildOutput {
 
-        let { dex; vote_register; ballot_register; lock_scheduler_state; parameters; protocol; admin; accounts; lending; } = args;
+        let { vote_register; ballot_register; lock_scheduler_state; parameters; protocol; admin; accounts; lending; collateral_price_in_supply; } = args;
         let { nominal_lock_duration; decay; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
@@ -54,8 +55,18 @@ module {
         let supply_ledger = LedgerFungible.LedgerFungible(args.supply_ledger);
         let collateral_ledger = LedgerFungible.LedgerFungible(args.collateral_ledger);
 
+        let dex = Dex.Dex(args.dex);
+
+        let collateral_price_tracker = PriceTracker.PriceTracker({
+            dex;
+            tracked_price = collateral_price_in_supply;
+            pay_ledger = collateral_ledger;
+            receive_ledger = supply_ledger;
+        });
+
         let { supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
             lending with
+            collateral_price_tracker;
             protocol_info = {
                 accounts with
                 principal = protocol;
@@ -63,7 +74,7 @@ module {
             admin;
             supply_ledger;
             collateral_ledger;
-            dex = Dex.Dex(dex);
+            dex;
             clock;
         });
 
@@ -155,6 +166,7 @@ module {
                 supply_registry;
                 borrow_registry;
                 withdrawal_queue;
+                collateral_price_tracker;
                 queries;
                 protocol_timer;
                 parameters;
@@ -166,6 +178,10 @@ module {
                 };
                 switch(await* collateral_ledger.initialize()) {
                     case(#err(e)) { return #err("Failed to initialize collateral ledger: " # e); };
+                    case(#ok(_)) {};
+                };
+                switch(await* collateral_price_tracker.fetch_price()) {
+                    case(#err(error)) { return #err("Failed to update collateral price: " # error); };
                     case(#ok(_)) {};
                 };
                 #ok;

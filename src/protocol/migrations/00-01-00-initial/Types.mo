@@ -267,6 +267,10 @@ module {
         swap: shared SwapArgs -> async SwapResult;
     };
 
+    public type TrackedPrice = {
+        var value: ?Float;
+    };
+
     // FROM PROTOCOL ITSELF
 
     public type UUID = Text;
@@ -644,6 +648,7 @@ module {
         supply_ledger: ICRC1 and ICRC2;
         collateral_ledger: ICRC1 and ICRC2;
         dex: DexActor;
+        collateral_price_in_supply: TrackedPrice;
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
         lock_scheduler_state: LockSchedulerState;

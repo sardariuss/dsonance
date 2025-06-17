@@ -20,26 +20,14 @@ module {
 
     type Account = LedgerTypes.Account;
     type AugmentedSwapArgs = LedgerTypes.SwapArgs and { from: Account; };
+    type TrackedPrice = LedgerTypes.TrackedPrice;
 
     func equal_configs(a: LedgerTypes.PriceArgs, b: LedgerTypes.PriceArgs) : Bool {
         (a.pay_token == b.pay_token) and (a.receive_token == b.receive_token)
     };
     
     // TODO: have a map of tokens instead
-    public class DexFake({ account: Account; config: LedgerConfig; init_price: Float; }) : LedgerTypes.IDex {
-        
-        var price : Float = init_price; // Receive token price in terms of pay token
-
-        public func set_price(new_price: Float) {
-            price := new_price;
-        };
-
-        public func last_price(args: LedgerTypes.PriceArgs) : Float {
-            if (not equal_configs(args, config)) {
-                Debug.trap("swap_amounts called with unexpected tokens: " # args.pay_token # " and " # args.receive_token);
-            };
-            price
-        };
+    public class DexFake({ account: Account; config: LedgerConfig; price: TrackedPrice; }) : LedgerTypes.IDex {
 
         public func swap_amounts(pay_token: Text, pay_amount: Nat, receive_token: Text) : async* Result<LedgerTypes.SwapAmountsReply, Text> {
             
@@ -47,7 +35,7 @@ module {
                 Debug.trap("swap_amounts called with unexpected tokens: " # pay_token # " and " # receive_token);
             };
             
-            let receive_amount = Int.abs(Float.toInt(Float.fromInt(pay_amount) / price));
+            let receive_amount = Int.abs(Float.toInt(Float.fromInt(pay_amount) * get_price()));
 
             let reply : LedgerTypes.SwapAmountsReply = {
                 pay_chain = "IC";
@@ -58,8 +46,8 @@ module {
                 receive_symbol = receive_token;
                 receive_address = "";
                 receive_amount = receive_amount;
-                price = price;
-                mid_price = price;
+                price = get_price();
+                mid_price = get_price();
                 slippage = 0.0;
                 txs = [];
             };
@@ -73,7 +61,7 @@ module {
             };
 
             let receive_amount = switch(args.receive_amount) {
-                case (null) { Int.abs(Float.toInt(Float.fromInt(args.pay_amount) / price)) };
+                case (null) { Int.abs(Float.toInt(Float.fromInt(args.pay_amount) * get_price())) };
                 case (_) { Debug.trap("receive_amount is not supported by DexFake (yet)"); };
             };
 
@@ -107,8 +95,8 @@ module {
                 receive_address = Option.get(args.receive_address, "");
                 receive_symbol = args.receive_token;
                 receive_amount = receive_amount;
-                mid_price = price;
-                price = price;
+                mid_price = get_price();
+                price = get_price();
                 slippage = 0.0;
                 txs = [];
                 transfer_ids = [];
@@ -116,6 +104,13 @@ module {
                 ts = 0;
             };
             #ok(reply)
+        };
+
+        func get_price() : Float {
+            switch(price.value) {
+                case(?value) { value; };
+                case(null) { Debug.trap("Price not set"); };
+            }
         };
     };
 };

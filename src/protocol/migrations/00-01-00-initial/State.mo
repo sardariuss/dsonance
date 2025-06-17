@@ -33,6 +33,7 @@ module {
     type SupplyPosition = Types.SupplyPosition;
     type Withdrawal     = Types.Withdrawal;
     type DexActor      = Types.DexActor;
+    type TrackedPrice  = Types.TrackedPrice;
     type Set<K>        = Set.Set<K>;
 
     let BTREE_ORDER = 8;
@@ -46,6 +47,9 @@ module {
             supply_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.supply_ledger));
             collateral_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.collateral_ledger));
             dex : DexActor = actor(Principal.toText(canister_ids.dex));
+            collateral_price_in_supply : TrackedPrice = {
+                var value = null;
+            };
             vote_register = { 
                 votes = Map.new<UUID, VoteType>();
                 by_origin = Map.new<Principal, Set<UUID>>();

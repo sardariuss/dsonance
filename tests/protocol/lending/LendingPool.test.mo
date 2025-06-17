@@ -94,19 +94,19 @@ await suite("LendingPool", func(): async() {
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
         let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; fee = 0; token_symbol = ""});
 
-        let dex = DexMock.DexMock();
-        dex.expect_call(#last_price(#returns(1.0)), #repeatedly); // 1:1 price
+        let collateral_price_in_supply = { var value = ?1.0; }; // 1:1 price
 
         // Build the lending system
         let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
+            collateral_price_in_supply;
             protocol_info;
             parameters;
             state;
             register;
             supply_ledger;
             collateral_ledger;
-            dex;
+            dex = DexMock.DexMock();
             clock;
         });
 
@@ -279,6 +279,8 @@ await suite("LendingPool", func(): async() {
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
         let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; fee = 0; token_symbol = ""});
 
+        let collateral_price_in_supply = { var value = ?1.0; }; // Start with 1:1 price
+
         let dex_fake = DexFake.DexFake({ 
             account = dex;
             config = {
@@ -287,12 +289,13 @@ await suite("LendingPool", func(): async() {
                 pay_token = "";
                 receive_token = "";
             };
-            init_price = 1.0; // Start with 1:1 price
-        }); 
+            price = collateral_price_in_supply;
+        });
 
         // Build the lending system
         let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
+            collateral_price_in_supply;
             protocol_info;
             parameters;
             state;
@@ -351,7 +354,7 @@ await suite("LendingPool", func(): async() {
         // To stay healthy, price > (borrowed / (collateral * liquidation_threshold))
         // borrowed = 500, collateral = 2000, liquidation_threshold = 0.75
         // So price must be > (500 / (2000 * 0.75)) = 0.3333 (ignoring the borrowing interests)
-        dex_fake.set_price(3.0); // Price "drops" to 3.0 (1 / 0.3333, because it's the price of the supply token in terms of collateral)
+        collateral_price_in_supply.value := ?0.3333;
 
         // Advance time to ensure state update uses new price
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(101)))), #repeatedly);
@@ -444,27 +447,19 @@ await suite("LendingPool", func(): async() {
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
         let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; fee = 0; token_symbol = ""});
 
-        let dex_fake = DexFake.DexFake({ 
-            account = dex;
-            config = {
-                pay_accounting = collateral_accounting;
-                receive_accounting = supply_accounting;
-                pay_token = "";
-                receive_token = "";
-            };
-            init_price = 1.0; // Start with 1:1 price
-        }); 
+        let collateral_price_in_supply = { var value = ?1.0; }; // 1:1 price
 
         // Build the lending system
         let { supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
+            collateral_price_in_supply;
             protocol_info;
             parameters;
             state;
             register;
             supply_ledger;
             collateral_ledger;
-            dex = dex_fake;
+            dex = DexMock.DexMock();
             clock;
         });
 

@@ -74,7 +74,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     // Run the protocol
-    public func run() : async () {
+    public func run() : async Result.Result<(), Text> {
         await* getFacade().run();
     };
 

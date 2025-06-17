@@ -5,8 +5,8 @@ import Nat          "mo:base/Nat";
 import Result       "mo:base/Result";
 import Int          "mo:base/Int";
 
-import LendingTypes "Types";
-import Types        "../Types";
+import Types        "Types";
+import LedgerTypes  "../ledger/Types";
 import Borrow       "./primitives/Borrow";
 import Collateral   "./primitives/Collateral";
 import Index        "./primitives/Index";
@@ -15,22 +15,22 @@ import Math         "../utils/Math";
 
 module {
 
-    type Account = Types.Account;
-    type TxIndex = Types.TxIndex;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    type Index            = LendingTypes.Index;
-    type Collateral       = LendingTypes.Collateral;
-    type Borrow           = LendingTypes.Borrow;
-    type Repayment        = LendingTypes.Repayment;
-    type RepaymentInfo    = LendingTypes.RepaymentInfo;
-    type BorrowPositionTx = LendingTypes.BorrowPositionTx;
-    type BorrowPosition   = LendingTypes.BorrowPosition;
-    type BorrowParameters = LendingTypes.BorrowParameters;
+    type Index            = Types.Index;
+    type Collateral       = Types.Collateral;
+    type Borrow           = Types.Borrow;
+    type Repayment        = Types.Repayment;
+    type RepaymentInfo    = Types.RepaymentInfo;
+    type BorrowPositionTx = Types.BorrowPositionTx;
+    type BorrowPosition   = Types.BorrowPosition;
+    type BorrowParameters = Types.BorrowParameters;
+    type Account          = LedgerTypes.Account;
+    type IPriceTracker    = LedgerTypes.IPriceTracker;
 
     public class BorrowPositionner({
         parameters: BorrowParameters;
-        collateral_spot_in_asset: () -> Float;
+        collateral_price_tracker: IPriceTracker; //  Price of the collateral in terms of the borrow asset
     }){
 
         switch(validateBorrowParameters(parameters)){
@@ -132,8 +132,6 @@ module {
                 case(?b) { b; };
             };
 
-            Debug.print("borrow raw amount: " # Float.toText(borrow.raw_amount));
-
             switch(repayment){
                 case(#PARTIAL(amount)) { 
                     let remaining = switch(Borrow.slash(borrow, { accrued_amount = Float.fromInt(amount); index; })){
@@ -160,7 +158,7 @@ module {
         public func to_loan({
             position: BorrowPosition;
             index: Index;
-        }) : ?LendingTypes.Loan {
+        }) : ?Types.Loan {
 
             switch (position.borrow) {
                 case (null) { null }; // No active loan, return nothing
@@ -177,7 +175,7 @@ module {
                     };
 
                     // Get current spot price of the collateral (in borrow asset units)
-                    let price = collateral_spot_in_asset();
+                    let price = collateral_price_tracker.get_price();
 
                     // Convert integer collateral amount to float
                     let collateral = Float.fromInt(position.collateral.amount);

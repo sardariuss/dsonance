@@ -14,6 +14,7 @@ import Indexer                 "lending/Indexer";
 import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
+import PriceTracker            "ledger/PriceTracker";
 
 import Map                     "mo:map/Map";
 
@@ -82,6 +83,7 @@ module {
         supply_registry: SupplyRegistry.SupplyRegistry;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
+        collateral_price_tracker: PriceTracker.PriceTracker;
         queries: Queries.Queries;
         protocol_timer: ProtocolTimer.ProtocolTimer;
         parameters: ProtocolParameters;
@@ -231,17 +233,29 @@ module {
             await* borrow_registry.repay({ account; repayment; });
         };
 
-        // @todo: what to do with the results ?
-        public func run() : async* () {
+        public func run() : async* Result<(), Text> {
             
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
 
-            ignore await* borrow_registry.check_all_positions_and_liquidate();
+            switch(await* collateral_price_tracker.fetch_price()){
+                case(#err(error)) { return #err("Failed to update collateral price: " # error); };
+                case(#ok(_)) {};
+            };
+
+            switch(await* borrow_registry.check_all_positions_and_liquidate()){
+                case(#err(error)) { return #err("Failed to check positions and liquidate: " # error); };
+                case(#ok(_)) {};
+            };
             
             lock_scheduler.try_unlock(time);
 
-            ignore await* withdrawal_queue.process_pending_withdrawals();
+            switch(await* withdrawal_queue.process_pending_withdrawals()){
+                case(#err(error)) { return #err("Failed to process pending withdrawals: " # error); };
+                case(#ok(_)) {};
+            };
+
+            #ok;
         };
 
         public func get_queries() : Queries.Queries {
@@ -257,7 +271,7 @@ module {
         };
 
         public func start_timer({ caller: Principal; }) : async* Result<(), Text> {
-            await* protocol_timer.start_timer({ caller; fn = run; });
+            await* protocol_timer.start_timer({ caller; fn = func() : async*() { ignore (await* run()); }});
         };
 
         public func stop_timer({ caller: Principal }) : Result<(), Text> {

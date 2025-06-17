@@ -30,10 +30,20 @@ module {
         amount: Nat;
     };
 
+    public type IPriceTracker = {
+        fetch_price: () -> async* Result<(), Text>;
+        get_price: () -> Float;
+    };
+
+    public type TrackedPrice = {
+        var value: ?Float;
+    };
+
     public type SwapPayload = {
+        from: Account;
         pay_token: Text;
-        pay_amount: Nat;
-        max_slippage: ?Float;
+        amount: Nat;
+        max_slippage: Float;
         dex: IDex;
         callback: () -> ();
     };
@@ -45,7 +55,7 @@ module {
     public type PrepareSwapArgs = {
         dex: IDex;
         amount: Nat;
-        max_slippage: ?Float;
+        max_slippage: Float;
     };
 
     // Copy/pasted from KongSwap: https://dashboard.internetcomputer.org/canister/2ipq2-uqaaa-aaaar-qailq-cai
@@ -183,8 +193,6 @@ module {
     public type IDex = {
         swap_amounts: (Text, Nat, Text) -> async* Result<SwapAmountsReply, Text>;
         swap: AugmentedSwapArgs -> async* Result<SwapReply, Text>;
-        // @todo: very temporary function
-        last_price: PriceArgs -> Float;
     };
 
     public type Value = { #Nat : Nat; #Int : Int; #Blob : Blob; #Text : Text; #Array : [Value]; #Map: [(Text, Value)] };

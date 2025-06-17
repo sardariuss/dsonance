@@ -9,8 +9,11 @@ import UtilizationUpdater "UtilizationUpdater";
 import SupplyAccount      "SupplyAccount";
 import LedgerTypes        "../ledger/Types";
 import LedgerAccount      "../ledger/LedgerAccount";
+import PriceTracker       "../ledger/PriceTracker";
 import Clock              "../utils/Clock";
 import Cell               "../utils/Cell";
+
+import Result             "mo:base/Result";
 
 module {
 
@@ -23,6 +26,8 @@ module {
     type ISwapPayable        = LedgerTypes.ISwapPayable;
     type ILedgerFungible     = LedgerTypes.ILedgerFungible;
     type ProtocolInfo        = LedgerTypes.ProtocolInfo;
+    type IPriceTracker       = LedgerTypes.IPriceTracker;
+    type Result<Ok, Err>     = Result.Result<Ok, Err>;
 
     public func build({
         parameters: LendingParameters;
@@ -33,6 +38,7 @@ module {
         supply_ledger: ILedgerFungible;
         collateral_ledger: ILedgerFungible;
         dex: IDex;
+        collateral_price_tracker: IPriceTracker;
         clock: Clock.IClock;
     }) : {
         indexer: Indexer.Indexer;
@@ -100,12 +106,7 @@ module {
             parameters;
             borrow_positionner = BorrowPositionner.BorrowPositionner({
                 parameters;
-                collateral_spot_in_asset = func() : Float {
-                    1 / dex.last_price({
-                        pay_token = collateral_ledger.token_symbol();
-                        receive_token = supply_ledger.token_symbol();
-                    });
-                };
+                collateral_price_tracker;
             });
         });
 

@@ -80,14 +80,6 @@ module {
             }
         };
 
-        public func last_price(args: LedgerType.PriceArgs) : Float {
-            let arg = base.next_call(#last_price(args));
-            switch(arg){
-                case(#last_price(#returns(price))) price;
-                case _ Debug.trap("DexMock: Unexpected return for last_price");
-            }
-        };
-
         public func expect_call(arg: Return, times: MockTypes.Times) {
             base.expect_call(arg, times);
         };

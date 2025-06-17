@@ -49,7 +49,7 @@ module {
             await* controller.put_ballot(args);
         };
 
-        public func run() : async* () {
+        public func run() : async* Result<(), Text> {
             await* controller.run();
         };
 

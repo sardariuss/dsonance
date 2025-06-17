@@ -1,4 +1,4 @@
-import LedgerTypes   "Types";
+import Types         "Types";
 import Cell          "../utils/Cell";
 
 import Int           "mo:base/Int";
@@ -10,19 +10,19 @@ import Nat64         "mo:base/Nat64";
 module {
 
     type Result<Ok, Err>   = Result.Result<Ok, Err>;
-    type Transfer          = LedgerTypes.Transfer;
-    type Account           = LedgerTypes.Account;
-    type TxIndex           = LedgerTypes.TxIndex;
-    type PullResult        = LedgerTypes.PullResult;
-    type ILedgerAccount    = LedgerTypes.ILedgerAccount;
-    type ISwapPayable      = LedgerTypes.ISwapPayable;
-    type ISwapReceivable   = LedgerTypes.ISwapReceivable;
-    type Swap              = LedgerTypes.Swap;
-    type SwapPayload       = LedgerTypes.SwapPayload;
-    type IDex              = LedgerTypes.IDex;
-    type SwapReply         = LedgerTypes.SwapReply;
-    type ILedgerFungible   = LedgerTypes.ILedgerFungible;
     type Cell<T>           = Cell.Cell<T>;
+    type Transfer          = Types.Transfer;
+    type Account           = Types.Account;
+    type TxIndex           = Types.TxIndex;
+    type PullResult        = Types.PullResult;
+    type ILedgerAccount    = Types.ILedgerAccount;
+    type ISwapPayable      = Types.ISwapPayable;
+    type ISwapReceivable   = Types.ISwapReceivable;
+    type Swap              = Types.Swap;
+    type SwapPayload       = Types.SwapPayload;
+    type IDex              = Types.IDex;
+    type SwapReply         = Types.SwapReply;
+    type ILedgerFungible   = Types.ILedgerFungible;
     
     // TODO: ideally the LedgerAccount should only implement ILedgerAccount
     public class LedgerAccount({
@@ -94,15 +94,20 @@ module {
         };
 
         public func perform_swap(payload: SwapPayload) : async* Result<SwapReply, Text> {
-            // @todo: check if the accounts are the same ?
+            // Check if the from account matches the protocol account
+            if (payload.from != protocol_account) {
+                return #err("Protocol accounts do not match");
+            };
             switch(await* payload.dex.swap({
-                payload with
+                from = payload.from;
+                pay_token = payload.pay_token;
+                pay_amount = payload.amount;
                 pay_tx_id = null;
                 receive_token = ledger.token_symbol();
                 receive_amount = null;
                 receive_address = null;
+                max_slippage = ?payload.max_slippage;
                 referred_by = null;
-                from = protocol_account;
             })) {
                 case(#err(error)){ return #err(error); };
                 case(#ok(reply)) {
@@ -117,11 +122,13 @@ module {
         public func swap({
             dex: IDex;
             amount: Nat;
-            max_slippage: ?Float;
+            max_slippage: Float;
         }) : Swap {
+            
             let payload = {
+                from = protocol_account;
                 pay_token = ledger.token_symbol();
-                pay_amount = amount;
+                amount;
                 max_slippage;
                 dex;
                 callback = func() { local_balance.set(local_balance.get() - amount); };

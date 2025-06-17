@@ -13,6 +13,21 @@ import ICRC2              "mo:icrc2-mo/ICRC2/service";
 
 shared actor class Dex({ canister_ids: { ck_btc: Principal; ck_usdt: Principal; }}) = this {
 
+    type SwapAmountsTxReply = {
+        pool_symbol: Text;
+        pay_chain: Text;
+        pay_symbol: Text;
+        pay_address: Text;
+        pay_amount: Nat;
+        receive_chain: Text;
+        receive_symbol: Text;
+        receive_address: Text;
+        receive_amount: Nat;
+        price: Float;
+        lp_fee: Nat;
+        gas_fee: Nat;
+    };
+
     let ckBTC : ICRC1.service and ICRC2.service = actor(Principal.toText(canister_ids.ck_btc));
     let ckUSDT : ICRC1.service and ICRC2.service = actor(Principal.toText(canister_ids.ck_usdt));
 
@@ -58,16 +73,45 @@ shared actor class Dex({ canister_ids: { ck_btc: Principal; ck_usdt: Principal; 
     };
 
     // swap_amounts: preview a swap
-    public func swap_amounts(pay_token: Text, pay_amount: Nat, receive_token: Text) : async { #Ok: { receive_amount: Nat; price: Float; slippage: Float }; #Err: Text } {
+    public func swap_amounts(
+        pay_token: Text,
+        pay_amount: Nat,
+        receive_token: Text
+    ) : async { 
+        #Ok: {
+            pay_chain: Text;
+            pay_symbol: Text;
+            pay_address: Text;
+            pay_amount: Nat;
+            receive_chain: Text;
+            receive_symbol: Text;
+            receive_address: Text;
+            receive_amount: Nat;
+            price: Float;
+            mid_price: Float;
+            slippage: Float;
+            txs: [SwapAmountsTxReply];
+        }; 
+        #Err: Text 
+    } {
         if (not(pay_token == "ckBTC" and receive_token == "ckUSDT") and not(pay_token == "ckUSDT" and receive_token == "ckBTC")) {
             Debug.trap("Token pair " # pay_token # " / " # receive_token # " not supported");
         };
         let (btc_reserve, usdt_reserve) = await get_reserves();
         let (amount_out, price, slippage) = get_amount_out(pay_token, pay_amount, btc_reserve, usdt_reserve);
         #Ok({
+            pay_chain = "IC";
+            pay_symbol = pay_token;
+            pay_address = Principal.toText(Principal.fromActor(this));
+            pay_amount = pay_amount;
+            receive_chain = "IC";
+            receive_symbol = receive_token;
+            receive_address = Principal.toText(Principal.fromActor(this));
             receive_amount = amount_out;
-            price;
-            slippage;
+            price = price;
+            mid_price = price; // Mid price is the same as the price in this case
+            slippage = slippage;
+            txs = []; // No transactions in preview
         })
     };
 
