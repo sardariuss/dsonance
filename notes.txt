@@ -1,0 +1,35 @@
+- Need a way to preview state after a fake call to add_raw_supply in Indexer.mo
+    -> should the indexer be directly used in the Controller.mo ?
+
+- Could have supplyRegistry.add_position, preview_add_position and remove_position returning the SupplyInfo
+then the supply_info is simply passed to the foresight_updater
+
+The controller needs the foresight_updater for add_position and preview_add_position
+No need for a callback on the lock_scheduler anymore, as long as try_unlock returns the unlocked ballot in the right order
+the shares can be removed on by one.
+What was preventing me from removing the obs?
+ - the fact that it was used in the add_lock, not only try_unlock
+ - weird logic on last_update_timestamp in LockScheduler
+
+Clock issue: it is not possible to update the indexer "in the past" because the indexer has its own clock.
+
+
+Advantages if several calls to update_index with different timestamps:
+ - no need to update release_date in ballot
+
+Incovenients:
+ - small gain loss
+ - indexer needs to have its own clock
+ - requires an observer in LockScheduler
+
+
+Problem: with current logic to get active_locks, some locks might be missed if the ballot.release_date is before
+indexer.last_update. Current logic to get active_locks suck because its based on timestamps, try_unlock should return the remaning active locks
+and removed locks instead.
+
+No need to remove clock from the indexer to do that.
+
+At the end, in controller:
+
+indexer = get_last_indexer();
+lock_scheduler.try_unlock()

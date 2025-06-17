@@ -6,7 +6,7 @@ import Dashboard from "../components/Dashboard";
 import Vote from "../components/Vote";
 import NewVote from "../components/NewVote";
 import Ballot from "../components/user/Ballot";
-import BorrowTab from "../components/BorrowTab";
+import BorrowTab from "../components/borrow/BorrowTab";
 
 const Router = () => {
   
