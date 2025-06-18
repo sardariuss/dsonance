@@ -229,14 +229,14 @@ const Wallet = () => {
       </div>
     </div>
 
-    {/* Dsonance Section */}
+    {/* USDT Section */}
     <div className="w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
       <div className="flex items-center space-x-2 mb-2">
         <img src={getTokenLogo(usdtMetadata)} alt="USDT" className="w-6 h-6" />
-        <span className="text-gray-700 dark:text-white text-lg">{getTokenName(usdtMetadata) ?? "Dsonance"}</span>
+        <span className="text-gray-700 dark:text-white text-lg">{getTokenName(usdtMetadata) ?? "USDT"}</span>
       </div>
 
-      {/* Dsonance Balance */}
+      {/* USDT Balance */}
       <div className="flex justify-between w-full">
         <span className="font-medium">Balance:</span>
         <span className="text-md font-semibold">

@@ -68,8 +68,7 @@ module {
 
             // Filter out the inactive items: take only the one which timeline intersects with the last_update_timestamp
             let active_items = IterUtils.filter<ForesightItem>(get_items(), func(item: ForesightItem) : Bool {
-
-                item.timestamp < last_update_timestamp and item.release_date > last_update_timestamp;
+                item.timestamp <= last_update_timestamp and item.release_date >= last_update_timestamp;
             });
             
             // Compute the contribution of each item

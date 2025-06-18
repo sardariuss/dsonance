@@ -25,9 +25,6 @@ dfx deploy ck_btc --argument '(opt record {
     };
     advanced_settings = null;
   };
-  icrc2 = null;
-  icrc3 = null;
-  icrc4 = null;
 })' &
 # https://dashboard.internetcomputer.org/canister/cngnf-vqaaa-aaaar-qag4q-cai
 dfx deploy ck_usdt --argument '(opt record {
@@ -45,9 +42,6 @@ dfx deploy ck_usdt --argument '(opt record {
     };
     advanced_settings = null;
   };
-  icrc2 = null;
-  icrc3 = null;
-  icrc4 = null;
 })' &
 dfx deploy dex --argument '( record {
   canister_ids = record {
