@@ -15,8 +15,11 @@ import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
 import PriceTracker            "ledger/PriceTracker";
+import ForesightUpdater        "ForesightUpdater";
+import Incentives              "votes/Incentives";
 
 import Map                     "mo:map/Map";
+import Set                     "mo:map/Set";
 
 import Int                     "mo:base/Int";
 import Float                   "mo:base/Float";
@@ -50,6 +53,7 @@ module {
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
+    type Set<T> = Set.Set<T>;
 
     type WeightParams = {
         ballot: BallotType;
@@ -181,6 +185,8 @@ module {
 
             let ballot_type = vote_type_controller.put_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id; timestamp; from; }});
 
+            //lock_scheduler.try_unlock(timestamp);
+
             // Update the locks
             lock_scheduler.add(
                 BallotUtils.unwrap_lock(ballot_type),
@@ -248,7 +254,7 @@ module {
                 case(#ok(_)) {};
             };
             
-            lock_scheduler.try_unlock(time);
+            ignore lock_scheduler.try_unlock(time);
 
             switch(await* withdrawal_queue.process_pending_withdrawals()){
                 case(#err(error)) { return #err("Failed to process pending withdrawals: " # error); };
@@ -288,6 +294,36 @@ module {
                 last_run = 0; // @todo: use minter instead
                 btc_locked = Timeline.initialize<Nat>(0, 0); // @todo
             };
+        };
+
+        func map_ballots_to_foresight_items(ballot_ids: Set<UUID>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {
+
+            IterUtils.map(Set.keys(ballot_ids), func(ballot_id: UUID) : ForesightUpdater.ForesightItem {
+                let b = switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)){
+                    case(null) { Debug.trap("Ballot " #  debug_show(ballot_id) # " not found"); };
+                    case(?#YES_NO(ballot)) { ballot; };
+                };
+                let release_date = switch(b.lock){
+                    case(null) { Debug.trap("The ballot does not have a lock"); };
+                    case(?lock) { lock.release_date; };
+                };
+                let discernment = Incentives.compute_discernment({
+                    dissent = b.dissent;
+                    consent = Timeline.current(b.consent);
+                    lock_duration = release_date - b.timestamp;
+                    parameters;
+                });
+                {
+                    timestamp = b.timestamp;
+                    amount = b.amount;
+                    release_date;
+                    discernment;
+                    consent = Timeline.current(b.consent);
+                    update_foresight = func(foresight: Types.Foresight, time: Nat) { 
+                        Timeline.insert(b.foresight, time, foresight);
+                    };
+                };
+            });
         };
 
     };
