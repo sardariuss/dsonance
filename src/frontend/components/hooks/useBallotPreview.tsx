@@ -6,7 +6,7 @@ import { BallotInfo } from "../types";
 
 export const useBallotPreview = (vote_id: string, ballot: BallotInfo) => {
   const [debouncedBallot, setDebouncedBallot] = useState(ballot);
-  const { data: preview, call: refreshPreview } = protocolActor.useQueryCall({
+  const { data: preview, call: refreshPreview } = protocolActor.useUpdateCall({
     functionName: "preview_ballot",
   });
 

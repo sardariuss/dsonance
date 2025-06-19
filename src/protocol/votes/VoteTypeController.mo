@@ -34,20 +34,6 @@ module {
             };
         };
 
-        public func preview_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : BallotPreview {
-            switch(vote_type, choice_type){
-                case(#YES_NO(vote), #YES_NO(choice)) { 
-                    let { new; previous } = yes_no_controller.preview_ballot(vote, choice, args); 
-                    return {
-                        new = #YES_NO(new);
-                        previous = Array.map(previous, func(ballot: YesNoBallot) : BallotType {
-                            #YES_NO(ballot);
-                        });
-                    };
-                };
-            };
-        };
-
         public func put_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : BallotType {
             switch(vote_type, choice_type){
                 case(#YES_NO(vote), #YES_NO(choice)) { #YES_NO(yes_no_controller.put_ballot(vote, choice, args)); };

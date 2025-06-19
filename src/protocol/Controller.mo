@@ -9,7 +9,6 @@ import VoteTypeController      "votes/VoteTypeController";
 import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
 import ProtocolTimer           "ProtocolTimer";
-import Indexer                 "lending/Indexer";
 import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
@@ -32,7 +31,6 @@ module {
     type VoteType = Types.VoteType;
     type BallotType = Types.BallotType;
     type PutBallotResult = Types.PutBallotResult;
-    type PreviewBallotResult = Types.PreviewBallotResult;
     type ChoiceType = Types.ChoiceType;
     type Account = Types.Account;
     type TimedData<T> = Timeline.TimedData<T>;
@@ -49,6 +47,7 @@ module {
     type Lock = Types.Lock;
     type Duration = Types.Duration;
     type YieldState = Types.YieldState;
+    type PutBallotError = Types.PutBallotError;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -119,57 +118,45 @@ module {
             #ok(SharedConversions.shareVoteType(vote));
         };
 
-        public func preview_ballot(args: PutBallotArgs) : PreviewBallotResult {
+        // This function is made to allow the frontend to preview the result of put_ballot
+        // TODO: ideally one should have a true preview function that does not mutate the state
+        public func put_ballot_for_free(args: PutBallotArgs) : PutBallotResult {
 
-            let { id; vote_id; choice_type; caller; from_subaccount; amount; } = args;
-
-            let ballot_id = IdFormatter.format(#VoteId(id));
-
-            let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
-                case(null) { return #err(#VoteNotFound({vote_id})); };
-                case(?v) { v };
+            let { ballot_id; vote_type; } = switch(process_ballot_input(args)){
+                case(#err(err)) { return #err(err); };
+                case(#ok(input)) { input; };
             };
 
-            if (amount < parameters.minimum_ballot_amount){
-                return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount; }));
+            let preview_result = supply_registry.add_position_without_transfer({
+                id = ballot_id;
+                account = { owner = args.caller; subaccount = args.from_subaccount; };
+                supplied = args.amount;
+            });
+
+            let tx_id = switch(preview_result){
+                case(#err(err)) { return #err(#GenericError({ error_code = 0; message = err; })); };
+                case(#ok(tx_id)) { tx_id; };
             };
 
-            let timestamp = clock.get_time();
-            let from = { owner = caller; subaccount = from_subaccount; };
-
-            let { new; previous; } = vote_type_controller.preview_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id = 0; timestamp; from; }});
-
-            // @todo: Refresh the foresight
-            //let yes_no_ballot = BallotUtils.unwrap_yes_no(new);
-            //Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
-
-            #ok({ new; previous; });
+            perform_put_ballot({
+                args;
+                vote_type;
+                ballot_id;
+                tx_id;
+            });
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
 
-            let { id; vote_id; choice_type; caller; from_subaccount; amount; } = args;
-
-            let ballot_id = IdFormatter.format(#BallotId(id));
-
-            let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
-                case(null) { return #err(#VoteNotFound({vote_id}));  };
-                case(?v) { v };
-            };
-
-            switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)){
-                case(?_) { return #err(#BallotAlreadyExists({ballot_id})); };
-                case(null) {};
-            };
-
-            if (amount < parameters.minimum_ballot_amount){
-                return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount; }));
+            let { ballot_id; vote_type; } = switch(process_ballot_input(args)){
+                case(#err(err)) { return #err(err); };
+                case(#ok(input)) { input; };
             };
 
             let transfer = await* supply_registry.add_position({
-                id;
-                account = { owner = caller; subaccount = from_subaccount; };
-                supplied = amount;
+                id = ballot_id;
+                account = { owner = args.caller; subaccount = args.from_subaccount; };
+                supplied = args.amount;
             });
 
             let tx_id = switch(transfer){
@@ -177,28 +164,12 @@ module {
                 case(#ok(tx_id)) { tx_id; };
             };
 
-            let timestamp = clock.get_time();
-            let from = { owner = caller; subaccount = from_subaccount; };
-
-            let ballot_type = vote_type_controller.put_ballot({vote_type; choice_type; args = { args with ballot_id; tx_id; timestamp; from; }});
-
-            //lock_scheduler.try_unlock(timestamp);
-
-            // Update the locks
-            lock_scheduler.add(
-                BallotUtils.unwrap_lock(ballot_type),
-                IterUtils.map<BallotType, Lock>(vote_type_controller.vote_ballots(vote_type), BallotUtils.unwrap_lock),
-                timestamp);
-
-            // @todo: this is kind of a hack to have an up-to-date foresight and contribution, should be removed
-            //let yes_no_ballot = BallotUtils.unwrap_yes_no(ballot_type);
-            //Timeline.insert(yes_no_ballot.foresight, timestamp, lock_scheduler.preview_foresight(yes_no_ballot));
-
-            // Add the ballot to that account
-            MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
-
-            // TODO: Ideally it's not the controller's responsibility to share types
-            #ok(SharedConversions.shareBallotType(ballot_type));
+            perform_put_ballot({
+                args;
+                vote_type;
+                ballot_id;
+                tx_id;
+            });
         };
 
         public func supply_collateral({
@@ -283,6 +254,70 @@ module {
                 last_run = 0; // @todo: use minter instead
                 btc_locked = Timeline.initialize<Nat>(0, 0); // @todo
             };
+        };
+
+        type ProcessedBallotInput = {
+            ballot_id: Text;
+            vote_type: VoteType;
+        };
+
+        func process_ballot_input(args: PutBallotArgs) : Result<ProcessedBallotInput, PutBallotError> {
+            
+            let { id; vote_id; amount; } = args;
+
+            let ballot_id = IdFormatter.format(#BallotId(id));
+
+            let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
+                case(null) return #err(#VoteNotFound({ vote_id }));
+                case(?v) v;
+            };
+
+            switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)){
+                case(?_) return #err(#BallotAlreadyExists({ ballot_id }));
+                case(null) {};
+            };
+
+            if (amount < parameters.minimum_ballot_amount){
+                return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount }));
+            };
+
+            #ok({
+                ballot_id;
+                vote_type;
+            });
+        };
+
+        func perform_put_ballot({
+            args: PutBallotArgs;
+            vote_type: VoteType;
+            ballot_id: Text;
+            tx_id: Nat;
+        }): PutBallotResult {
+
+            let timestamp = clock.get_time();
+            
+            let from = { owner = args.caller; subaccount = args.from_subaccount };
+
+            let ballot_type = vote_type_controller.put_ballot({
+                vote_type;
+                choice_type = args.choice_type;
+                args = { args with ballot_id; tx_id; timestamp; from };
+            });
+
+            //lock_scheduler.try_unlock(timestamp);
+
+            lock_scheduler.add(
+                BallotUtils.unwrap_lock(ballot_type),
+                IterUtils.map<BallotType, Lock>(
+                    vote_type_controller.vote_ballots(vote_type),
+                    BallotUtils.unwrap_lock
+                ),
+                timestamp
+            );
+
+            MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
+
+            #ok(SharedConversions.shareBallotType(ballot_type))
         };
 
         func map_ballots_to_foresight_items(ballot_ids: Set<UUID>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {

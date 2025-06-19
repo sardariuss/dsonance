@@ -141,7 +141,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
             voteDetails={voteDetails}
             ballot={ballot}
             setBallot={setBallot}
-            ballotPreview={ballotPreview?.new.YES_NO}
+            ballotPreview={ballotPreview?.YES_NO}
             onMouseUp={() => {}}
             onMouseDown={() => {}}
           />

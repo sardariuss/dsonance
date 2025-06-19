@@ -56,9 +56,9 @@ const BorrowInfoPanel: React.FC<BorrowInfoProps> = ({
         <div className="grid grid-rows-3 gap-1 h-full">
             <span className="text-sm text-gray-400">Total borrowed</span>
             <span className="text-lg font-bold">
-              <span>{ formatCurrency(fromFixedPoint(totalBorrowed, 6), "")} </span>
+              <span>{ formatCurrency(fromFixedPoint(totalBorrowed, 8), "")} </span>
               <span> of </span>
-              <span> { formatCurrency(fromFixedPoint(borrowCap, 6), "") }</span>
+              <span> { formatCurrency(fromFixedPoint(borrowCap, 8), "") }</span>
             </span>
             <span className="text-xs text-gray-400">
               { formatCurrency(satoshisToCurrency(totalBorrowed), "$")} of {formatCurrency(satoshisToCurrency(borrowCap), "$") }

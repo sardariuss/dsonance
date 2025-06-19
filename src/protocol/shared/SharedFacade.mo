@@ -12,14 +12,11 @@ module {
     type VoteType = Types.VoteType;
     type BallotType = Types.BallotType;
     type PutBallotResult = Types.PutBallotResult;
-    type PreviewBallotResult = Types.PreviewBallotResult;
-    type SPreviewBallotResult = Types.SPreviewBallotResult;
     type NewVoteArgs = Types.NewVoteArgs;
     type PutBallotArgs = Types.PutBallotArgs;
     type GetBallotArgs = Types.GetBallotArgs;
     type Account = Types.Account;
     type SBallotType = Types.SBallotType;
-    type PreviewBallotError = Types.PreviewBallotError;
     type Duration = Types.Duration;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type SNewVoteResult = Types.SNewVoteResult;
@@ -45,8 +42,8 @@ module {
             await* controller.new_vote(args);
         };
 
-        public func preview_ballot(args: PutBallotArgs and { caller: Principal; }) : SPreviewBallotResult {
-            Result.mapOk<BallotPreview, SBallotPreview, PreviewBallotError>(controller.preview_ballot(args), SharedConversions.shareBallotPreview);
+        public func put_ballot_for_free(args: PutBallotArgs and { caller: Principal; }) : PutBallotResult {
+            controller.put_ballot_for_free(args);
         };
 
         public func put_ballot(args: PutBallotArgs and { caller: Principal; }) : async* PutBallotResult {

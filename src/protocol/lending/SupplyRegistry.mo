@@ -40,6 +40,20 @@ module {
             Map.get(register.supply_positions, Map.thash, id);
         };
 
+        // ⚠️ This function is only for preview purposes, it does not perform the transfer.
+        // No check are done to ensure that the supply cap is not reached.
+        public func add_position_without_transfer(input: SupplyInput) : Result<Nat, Text> {
+
+            let { id; supplied; } = input;
+
+            let tx = 0; // Tx set arbitrarily to 0, as no transfer is done
+
+            Map.set(register.supply_positions, Map.thash, id, { input with tx; });
+            indexer.add_raw_supplied({ amount = supplied; });
+
+            #ok(tx);
+        };
+
         public func add_position(input: SupplyInput) : async* Result<Nat, Text> {
 
             let { id; account; supplied; } = input;

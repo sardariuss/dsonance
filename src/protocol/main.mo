@@ -64,8 +64,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().find_vote(args);
     };
 
-    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.SPreviewBallotResult {
-        getFacade().preview_ballot({ args with caller; });
+    // ⚠️ THIS IS INTENTIONALLY A QUERY FUNCTION
+    // DO NOT CHANGE IT TO A SHARED FUNCTION OTHERWISE THE PREVIEW WILL UPDATE THE STATE
+    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.PutBallotResult {
+        getFacade().put_ballot_for_free({ args with caller; });
     };
 
     // Add a ballot on the given vote identified by its vote_id
