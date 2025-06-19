@@ -9,7 +9,6 @@ import UtilizationUpdater "UtilizationUpdater";
 import SupplyAccount      "SupplyAccount";
 import LedgerTypes        "../ledger/Types";
 import LedgerAccount      "../ledger/LedgerAccount";
-import PriceTracker       "../ledger/PriceTracker";
 import Clock              "../utils/Clock";
 import Cell               "../utils/Cell";
 

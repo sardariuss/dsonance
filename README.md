@@ -4,6 +4,8 @@ _My views are changing as much as the world itself is changing. Your views shoul
 
 > [Tucker Carlson, 2024 World Government Summit in Dubai.](https://youtu.be/mMXikZM\_O80?si=bSkrQ0C2GeTJe7TV\&t=118)
 
+Dsonance is designed to help communities converge on empirical consensus — shared agreement on claims that can be evaluated based on evidence, observation, and reasoning. This includes scientific findings, historical facts, and other truth-based knowledge.
+
 ## Canister arguments
 
 * `deposit_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the ballots (aims to be ckBTC)

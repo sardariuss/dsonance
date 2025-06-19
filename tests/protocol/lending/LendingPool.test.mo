@@ -4,6 +4,7 @@ import LendingTypes "../../../src/protocol/lending/Types";
 import LedgerFungibleFake "../../fake/LedgerFungibleFake";
 import LedgerAccounting "../../fake/LedgerAccounting";
 import Duration "../../../src/protocol/duration/Duration";
+import PriceTracker "../../../src/protocol/ledger/PriceTracker";
 import ClockMock "../../mocks/ClockMock";
 import DexMock "../../mocks/DexMock";
 import DexFake "../../fake/DexFake";
@@ -31,6 +32,8 @@ await suite("LendingPool", func(): async() {
     let equal_balances = LedgerAccounting.testify_balances.equal;
 
     let parameters = {
+        supply_cap = 1_000_000_000_000; // arbitrary supply cap
+        borrow_cap = 1_000_000_000_000; // arbitrary borrow cap
         reserve_liquidity = 0.1;
         lending_fee_ratio = 0.1;
         target_ltv = 0.60;
@@ -96,17 +99,26 @@ await suite("LendingPool", func(): async() {
 
         let collateral_price_in_supply = { var value = ?1.0; }; // 1:1 price
 
+        let dex = DexMock.DexMock();
+
+        let collateral_price_tracker = PriceTracker.PriceTracker({
+            dex;
+            tracked_price = collateral_price_in_supply;
+            pay_ledger = collateral_ledger;
+            receive_ledger = supply_ledger;
+        });
+
         // Build the lending system
         let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
-            collateral_price_in_supply;
             protocol_info;
             parameters;
             state;
             register;
             supply_ledger;
             collateral_ledger;
-            dex = DexMock.DexMock();
+            dex;
+            collateral_price_tracker;
             clock;
         });
 
@@ -292,10 +304,17 @@ await suite("LendingPool", func(): async() {
             price = collateral_price_in_supply;
         });
 
+        let collateral_price_tracker = PriceTracker.PriceTracker({
+            dex = dex_fake;
+            tracked_price = collateral_price_in_supply;
+            pay_ledger = collateral_ledger;
+            receive_ledger = supply_ledger;
+        });
+
         // Build the lending system
         let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
-            collateral_price_in_supply;
+            collateral_price_tracker;
             protocol_info;
             parameters;
             state;
@@ -431,7 +450,6 @@ await suite("LendingPool", func(): async() {
         };
 
         let admin = fuzz.principal.randomPrincipal(10);
-        let dex = { fuzz.icrc1.randomAccount() with name = "dex" };
         let protocol = { fuzz.icrc1.randomAccount() with name = "protocol" };
         let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
         let borrower = { fuzz.icrc1.randomAccount() with name = "borrower" };
@@ -442,24 +460,33 @@ await suite("LendingPool", func(): async() {
             collateral = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
         };
 
-        let supply_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 1_000), (borrower, 1_000)]);
-        let collateral_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 0), (borrower, 5_000)]);
+        let supply_accounting = LedgerAccounting.LedgerAccounting([ (protocol, 0), (lender, 1_000), (borrower, 1_000)]);
+        let collateral_accounting = LedgerAccounting.LedgerAccounting([ (protocol, 0), (lender, 0), (borrower, 5_000)]);
         let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
         let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; fee = 0; token_symbol = ""});
 
         let collateral_price_in_supply = { var value = ?1.0; }; // 1:1 price
 
+        let dex = DexMock.DexMock();
+
+        let collateral_price_tracker = PriceTracker.PriceTracker({
+            dex;
+            tracked_price = collateral_price_in_supply;
+            pay_ledger = collateral_ledger;
+            receive_ledger = supply_ledger;
+        });
+
         // Build the lending system
         let { supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
-            collateral_price_in_supply;
+            collateral_price_tracker;
             protocol_info;
             parameters;
             state;
             register;
             supply_ledger;
             collateral_ledger;
-            dex = DexMock.DexMock();
+            dex;
             clock;
         });
 
@@ -469,7 +496,7 @@ await suite("LendingPool", func(): async() {
             account = lender;
             supplied = 1000;
         });
-        verify(supply_accounting.balances(), [ (dex, 0), (protocol, 1_000), (lender, 0), (borrower, 1_000) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, 1_000), (lender, 0), (borrower, 1_000) ], equal_balances);
 
         // Borrower supplies 5000 worth of collateral
         let collateral_1_result = await* borrow_registry.supply_collateral({
@@ -477,7 +504,7 @@ await suite("LendingPool", func(): async() {
             amount = 5000;
         });
         verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-        verify(collateral_accounting.balances(), [ (dex, 0), (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
+        verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // Borrower borrows 900 tokens (almost all liquidity)
         let borrow_1_result = await* borrow_registry.borrow({
@@ -485,7 +512,7 @@ await suite("LendingPool", func(): async() {
             amount = 900;
         });
         verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
-        verify(supply_accounting.balances(), [ (dex, 0), (protocol, 100), (lender, 0), (borrower, 1_900) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, 100), (lender, 0), (borrower, 1_900) ], equal_balances);
 
         // Lender tries to withdraw full position
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
@@ -512,7 +539,7 @@ await suite("LendingPool", func(): async() {
             };
         };
         // Lender's balance should have increased by 100
-        verify(supply_accounting.balances(), [ (dex, 0), (protocol, 1), (lender, 99), (borrower, 1_900) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, 1), (lender, 99), (borrower, 1_900) ], equal_balances);
 
         // Now, borrower repays 900 tokens
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(3)))), #repeatedly);
@@ -535,7 +562,7 @@ await suite("LendingPool", func(): async() {
             };
         };
         // Lender should have received all tokens back
-        verify(supply_accounting.balances(), [ (dex, 0), (protocol, 3), (lender, 1_002), (borrower, 995) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, 3), (lender, 1_002), (borrower, 995) ], equal_balances);
     });
 
 })
