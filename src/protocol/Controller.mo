@@ -1,6 +1,5 @@
 import Types                   "Types";
 import LockScheduler           "LockScheduler";
-import Queries                 "Queries";
 import MapUtils                "utils/Map";
 import Timeline                "utils/Timeline";
 import Clock                   "utils/Clock";
@@ -83,12 +82,10 @@ module {
         ballot_register: BallotRegister;
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
-        indexer: Indexer.Indexer;
         supply_registry: SupplyRegistry.SupplyRegistry;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         collateral_price_tracker: PriceTracker.PriceTracker;
-        queries: Queries.Queries;
         protocol_timer: ProtocolTimer.ProtocolTimer;
         parameters: ProtocolParameters;
     }){
@@ -204,10 +201,6 @@ module {
             #ok(SharedConversions.shareBallotType(ballot_type));
         };
 
-        public func get_indexer_state() : Types.SIndexerState {
-            indexer.get_state();
-        };
-
         public func supply_collateral({
             account: Account;
             amount: Nat;
@@ -262,10 +255,6 @@ module {
             };
 
             #ok;
-        };
-
-        public func get_queries() : Queries.Queries {
-            queries;
         };
 
         public func get_clock() : Clock.Clock {

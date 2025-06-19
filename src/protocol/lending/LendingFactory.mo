@@ -91,6 +91,7 @@ module {
         let supply_registry = SupplyRegistry.SupplyRegistry({
             indexer;
             register;
+            parameters;
             withdrawal_queue;
             supply;
         });

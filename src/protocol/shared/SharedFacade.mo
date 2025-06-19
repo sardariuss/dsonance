@@ -1,5 +1,6 @@
 import Types             "../Types";
 import Controller        "../Controller";
+import Queries           "../Queries";
 import SharedConversions "SharedConversions";
 
 import Result            "mo:base/Result";
@@ -35,7 +36,10 @@ module {
     type SBallotPreview = Types.SBallotPreview;
     type SYieldState = Types.SYieldState;
 
-    public class SharedFacade(controller: Controller.Controller) {
+    public class SharedFacade({
+        controller: Controller.Controller;
+        queries: Queries.Queries;
+    }) {
 
         public func new_vote(args: NewVoteArgs and { origin: Principal; }) : async* SNewVoteResult {
             await* controller.new_vote(args);
@@ -81,36 +85,40 @@ module {
             SharedConversions.shareProtocolParameters(controller.get_parameters());
         };
 
+        public func get_lending_parameters() : Types.LendingParameters {
+            queries.get_lending_parameters();
+        };
+
         public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
-            controller.get_queries().get_vote_ballots(vote_id);
+            queries.get_vote_ballots(vote_id);
         };
 
         public func get_votes({origin: Principal; previous: ?UUID; limit: Nat }) : [SVoteType] {
-            controller.get_queries().get_votes({origin; previous; limit; });
+            queries.get_votes({origin; previous; limit; });
         };
         
         public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; }) : [SVoteType] {
-            controller.get_queries().get_votes_by_author({author; previous; limit;});
+            queries.get_votes_by_author({author; previous; limit;});
         };
         
         public func find_vote({vote_id: UUID;}) : ?SVoteType {
-            controller.get_queries().find_vote(vote_id);
+            queries.find_vote(vote_id);
         };
         
         public func get_ballots(args: GetBallotArgs) : [SBallotType] {
-            controller.get_queries().get_ballots(args);
+            queries.get_ballots(args);
         };
         
         public func get_locked_amount({ account: Account; }) : Nat {
-            controller.get_queries().get_locked_amount({account});
+            queries.get_locked_amount({account});
         };
         
         public func find_ballot(ballot_id: UUID) : ?SBallotType {
-            controller.get_queries().find_ballot(ballot_id);
+            queries.find_ballot(ballot_id);
         };
 
         public func get_indexer_state() : Types.SIndexerState {
-            controller.get_indexer_state();
+            SharedConversions.shareIndexerState(queries.get_indexer_state());
         };
 
         public func supply_collateral({
@@ -162,15 +170,15 @@ module {
 
         // @int: commented out for now, will be implemented later
 //        public func get_debt_info(debt_id: UUID) : ?SDebtInfo {
-//            controller.get_queries().get_debt_info(debt_id);
+//            queries.get_debt_info(debt_id);
 //        };
 //        
 //        public func get_debt_infos(ids: [UUID]) : [SDebtInfo] {
-//            controller.get_queries().get_debt_infos(ids);
+//            queries.get_debt_infos(ids);
 //        };
 //
 //        public func get_mined_by_author({ author: Account }) : DebtRecord {
-//            controller.get_queries().get_mined_by_author({author});
+//            queries.get_mined_by_author({author});
 //        };
         
     };

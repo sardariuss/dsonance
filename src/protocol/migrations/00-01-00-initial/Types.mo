@@ -479,7 +479,7 @@ module {
 
     public type CurvePoint = {
         utilization: Float; // Utilization ratio (0.0 to 1.0)
-        percentage_rate: Float; // Annual Percentage Rate (APR) at this utilization (e.g., 5.0 for 5%)
+        rate: Float; // Annual Percentage Rate (APR) at this utilization (e.g., 0.05 for 5%)
     };
 
     public type UtilizationParameters = {
@@ -490,7 +490,12 @@ module {
         lending_fee_ratio: Float; // portion of the supply interest reserved as a fee for the protocol
     };
 
+    public type SupplyParameters = {
+        supply_cap: Nat;
+    };
+
     public type BorrowParameters = {
+        borrow_cap: Nat;
         target_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
         max_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
         liquidation_threshold: Float; // ratio, between 0 and 1, e.g. 0.85
@@ -502,7 +507,7 @@ module {
         max_slippage: Float;
     };
 
-    public type LendingParameters = IndexerParameters and BorrowParameters and UtilizationParameters and {
+    public type LendingParameters = IndexerParameters and SupplyParameters and BorrowParameters and UtilizationParameters and {
         interest_rate_curve: [CurvePoint];
     };
 

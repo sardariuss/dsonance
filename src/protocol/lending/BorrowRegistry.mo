@@ -115,6 +115,16 @@ module {
             amount: Nat;
         }) : async* Result<(), Text> {
 
+            let supply_balance = supply.get_balance();
+            if (supply_balance < amount){
+                return #err("Available liquidity " # debug_show(supply_balance) # " is less than the requested amount " # debug_show(amount));
+            };
+            
+            let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
+                case(null) { return #err("No borrow position found for account " # debug_show(account)); };
+                case(?p) { p; };
+            };
+
             // @todo: should add to a map of <Account, Nat> the amount concurrent borrows that could 
             // increase the utilization ratio more than 1.0
 
@@ -123,19 +133,11 @@ module {
                 case(#err(err)) { return #err("Failed to update utilization: " # err); };
                 case(#ok(u)) { u; };
             };
-
             if (utilization.ratio > 1.0) {
                 return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
             };
-
-            let supply_balance = supply.get_balance();
-            if (supply_balance < amount){
-                return #err("Available liquidity " # debug_show(supply_balance) # " is less than the requested amount " # debug_show(amount));
-            };
-            
-            let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
-                case(null) { return #err("No position found for account " # debug_show(account)); };
-                case(?p) { p; };
+            if (utilization.raw_borrowed > Float.fromInt(parameters.borrow_cap)){
+                return #err("Borrow cap of " # debug_show(parameters.borrow_cap) # " exceeded with current utilization " # debug_show(utilization));
             };
 
             let index = indexer.get_state().borrow_index;

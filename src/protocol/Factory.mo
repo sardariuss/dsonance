@@ -42,20 +42,25 @@ module {
 
     type BuildOutput = {
         controller: Controller.Controller;
+        queries: Queries.Queries;
         initialize: () -> async* Result.Result<(), Text>;
     };
 
-    public func build(args: State and { protocol: Principal; admin: Principal; }) : BuildOutput {
+    public func build({
+        state: State;
+        protocol: Principal;
+        admin: Principal;
+    }) : BuildOutput {
 
-        let { vote_register; ballot_register; lock_scheduler_state; parameters; protocol; admin; accounts; lending; collateral_price_in_supply; } = args;
+        let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_price_in_supply; } = state;
         let { nominal_lock_duration; decay; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
 
-        let supply_ledger = LedgerFungible.LedgerFungible(args.supply_ledger);
-        let collateral_ledger = LedgerFungible.LedgerFungible(args.collateral_ledger);
+        let supply_ledger = LedgerFungible.LedgerFungible(state.supply_ledger);
+        let collateral_ledger = LedgerFungible.LedgerFungible(state.collateral_ledger);
 
-        let dex = Dex.Dex(args.dex);
+        let dex = Dex.Dex(state.dex);
 
         let collateral_price_tracker = PriceTracker.PriceTracker({
             dex;
@@ -97,7 +102,7 @@ module {
             before_change = func({ time: Nat; state: LockState; }){};
             after_change = func({ time: Nat; event: LockEvent; state: LockState; }){
                 
-                // Update the ballots foresights
+                // Update the bal lots foresights
                 foresight_updater.update_foresights();
 
                 let { ballot; diff; } = switch(event){
@@ -144,12 +149,6 @@ module {
             yes_no_controller;
         });
 
-        let queries = Queries.Queries({
-            vote_register;
-            ballot_register;
-            clock;
-        });
-
         let protocol_timer = ProtocolTimer.ProtocolTimer({
             admin;
             parameters = parameters.timer;
@@ -162,14 +161,16 @@ module {
                 ballot_register;
                 lock_scheduler;
                 vote_type_controller;
-                indexer;
                 supply_registry;
                 borrow_registry;
                 withdrawal_queue;
                 collateral_price_tracker;
-                queries;
                 protocol_timer;
                 parameters;
+            });
+            queries = Queries.Queries({
+                state;
+                clock;
             });
             initialize = func() : async* Result.Result<(), Text> {
                 switch(await* supply_ledger.initialize()) {

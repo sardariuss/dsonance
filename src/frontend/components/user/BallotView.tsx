@@ -96,15 +96,15 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, /*contribut
       return [
         {
           title: "APR:",
-          value: ballot.YES_NO.foresight.current.data.apr.current.toFixed(2) + "%",
-          diff: apr_diff !== undefined ? `(${apr_diff > 0 ? "+" : ""}${apr_diff.toFixed(2)}%)` : undefined,
+          value: (ballot.YES_NO.foresight.current.data.apr.current * 100).toFixed(2) + "%",
+          diff: apr_diff !== undefined ? `(${apr_diff > 0 ? "+" : ""}${(apr_diff * 100).toFixed(2)}%)` : undefined,
           toggleKey: CHART_TOGGLE.DISCERNMENT,
           chartTimelines: new Map([
             [
               "current",
               {
                 timeline: interpolate_now(
-                  map_timeline_hack(ballot.YES_NO.foresight, (foresight) => Number(foresight.apr.current)),
+                  map_timeline_hack(ballot.YES_NO.foresight, (foresight) => Number(foresight.apr.current * 100)),
                   now
                 ),
                 color: CHART_COLORS.GREEN,

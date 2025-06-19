@@ -40,9 +40,9 @@ await suite("LendingPool", func(): async() {
         close_factor = 0.5;
         max_slippage = 0.05; // Not used in that test, but required by the type
         interest_rate_curve = [
-            { utilization = 0.0; percentage_rate = 2.0 },
-            { utilization = 0.8; percentage_rate = 20.0 },
-            { utilization = 1.0; percentage_rate = 100.0 },
+            { utilization = 0.0; rate = 0.02 },
+            { utilization = 0.8; rate = 0.20 },
+            { utilization = 1.0; rate = 1.00 },
         ];
     };
 

@@ -50,6 +50,7 @@ module {
     public type BallotRegister     = Types.Current.BallotRegister;
     public type ProtocolParameters = Types.Current.ProtocolParameters;
     public type TimerParameters    = Types.Current.TimerParameters;
+    public type LendingParameters  = Types.Current.LendingParameters;
     public type Foresight          = Types.Current.Foresight;
     public type Register<T>        = Types.Current.Register<T>;
     public type DebtRegister       = Types.Current.DebtRegister;
@@ -60,6 +61,7 @@ module {
     public type TransferError      = Types.Current.TransferError;
     public type Index              = Types.Current.Index;
     public type Utilization        = Types.Current.Utilization;
+    public type IndexerState       = Types.Current.IndexerState;
 
     // CANISTER ARGS
 
@@ -126,6 +128,7 @@ module {
     public type SIndexerState = {
         utilization: Utilization;
         supply_rate: Float;
+        borrow_rate: Float;
         accrued_interests: {
             fees: Float;
             supply: Float;

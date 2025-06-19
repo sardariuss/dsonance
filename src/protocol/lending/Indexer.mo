@@ -135,7 +135,7 @@ module {
                 // Update the utilization
                 state.utilization := new_utilization;
                 // Get the current rates from the curve
-                state.borrow_rate := Math.percentage_to_ratio(interest_rate_curve.get_apr(state.utilization.ratio));
+                state.borrow_rate := interest_rate_curve.get_apr(state.utilization.ratio);
                 state.supply_rate := state.borrow_rate * state.utilization.ratio;
                 // Need to notify the observers
                 state_updated := true;

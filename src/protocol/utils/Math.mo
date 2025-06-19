@@ -22,14 +22,6 @@ module {
         (1 - offset) / -lambda * (Float.exp(-lambda * b) - Float.exp(-lambda * a)) + offset * (b - a);
     };
 
-    public func percentage_to_ratio(percentage: Float) : Float {
-        percentage / 100.0;
-    };
-
-    public func ratio_to_percentage(ratio: Float) : Float {
-        ratio * 100.0;
-    };
-
     public func is_normalized(x: Float) : Bool {
         x >= 0.0 and x <= 1.0;
     };

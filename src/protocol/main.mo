@@ -31,9 +31,9 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
             return #err("The facade is already initialized");
         };
 
-        let #v0_1_0(stable_data) = _state;
-        let { controller; initialize } = Factory.build({
-            stable_data with
+        let #v0_1_0(state) = _state;
+        let { controller; queries; initialize; } = Factory.build({
+            state;
             protocol = Principal.fromActor(this);
             admin;
         });
@@ -42,7 +42,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
             case (#ok) {};
         };
         
-        _facade := ?SharedFacade.SharedFacade(controller);
+        _facade := ?SharedFacade.SharedFacade({ controller; queries; });
         #ok;
     };
 
@@ -123,6 +123,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
 
     public query func get_parameters() : async Types.SProtocolParameters {
         getFacade().get_parameters();
+    };
+
+    public query func get_lending_parameters() : async Types.LendingParameters {
+        getFacade().get_lending_parameters();
     };
 
     public query func get_indexer_state() : async Types.SIndexerState {

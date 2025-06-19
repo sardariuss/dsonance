@@ -19,10 +19,11 @@ module {
     type TransferError = Types.TransferError;
     type TxIndex = Types.TxIndex;
 
-    type SupplyInput    = LendingTypes.SupplyInput;
-    type SupplyPosition = LendingTypes.SupplyPosition;
-    type Withdrawal     = LendingTypes.Withdrawal;
-    type SupplyRegister = LendingTypes.SupplyRegister;
+    type SupplyInput      = LendingTypes.SupplyInput;
+    type SupplyPosition   = LendingTypes.SupplyPosition;
+    type Withdrawal       = LendingTypes.Withdrawal;
+    type SupplyRegister   = LendingTypes.SupplyRegister;
+    type SupplyParameters = LendingTypes.SupplyParameters;
 
     // @todo: need functions to retry if transfer failed.
     // @todo: need queries to retrieve the transfers and withdrawals (union of the two maps)
@@ -31,6 +32,7 @@ module {
         indexer: Indexer.Indexer;
         register: SupplyRegister;
         supply: SupplyAccount.SupplyAccount;
+        parameters: SupplyParameters;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
     }){
 
@@ -44,6 +46,10 @@ module {
 
             if (Map.has(register.supply_positions, Map.thash, id)){
                 return #err("The map already has a position with the ID " # debug_show(id));
+            };
+
+            if (indexer.get_state().utilization.raw_supplied + Float.fromInt(supplied) > Float.fromInt(parameters.supply_cap)){
+                return #err("Cannot add position, the supply cap of " # debug_show(parameters.supply_cap) # " is reached");
             };
 
             let tx = switch(await* supply.pull({ from = account; amount = supplied; })) {

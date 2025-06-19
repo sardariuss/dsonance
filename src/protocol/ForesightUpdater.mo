@@ -133,7 +133,7 @@ module {
                     };
                 };
 
-                let item_apr = Math.ratio_to_percentage((actual_reward + projected_reward) / Float.fromInt(item.amount)) / lock_duration;
+                let item_apr = (actual_reward + projected_reward) / Float.fromInt(item.amount) / lock_duration;
                 let foresight = {
                     share;
                     reward = Float.toInt(actual_reward);
