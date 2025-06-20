@@ -4,13 +4,10 @@ import { ckBtcActor } from "../../actors/CkBtcActor";
 import { formatCurrency, fromFixedPoint } from "../../utils/conversions/token";
 import { useCurrencyContext } from "../CurrencyContext";
 import { fromNullableExt } from "../../utils/conversions/nullable";
-import Modal from "../common/Modal";
-import { useState } from "react";
 import TokenLabel from "../common/TokenLabel";
+import BorrowButton from "./BorrowButton";
 
 const BorrowTab = () => {
-
-  const [ showModal, setShowModal ] = useState(false);
 
   const { data: usdtMetadata } = ckUsdtActor.useQueryCall({
     functionName: 'icrc1_metadata'
@@ -51,12 +48,8 @@ const BorrowTab = () => {
             <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(test.collateral), "$")} </span>
           </div>
           <span>{/*spacer*/}</span>
-          <button className="button-blue text-base">
-            Supply
-          </button>
-          <button className="button-blue text-base">
-            Withdraw
-          </button>
+          <BorrowButton title="Supply" tokenMetadata={usdtMetadata}/>
+          <BorrowButton title="Withdraw" tokenMetadata={usdtMetadata}/>
         </div>
       </div>
       <div className="border-b border-gray-300 dark:border-gray-700 w-full"></div>
@@ -69,55 +62,10 @@ const BorrowTab = () => {
             <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(test.raw_borrowed), "$")} </span>
           </div>
           <span>{/*spacer*/}</span>
-          <button className="button-blue text-base" onClick={() => setShowModal(true)}>
-            Borrow
-          </button>
-          <button className="button-blue text-base">
-            Repay
-          </button>
+          <BorrowButton title="Borrow" tokenMetadata={btcMetadata}/>
+          <BorrowButton title="Repay" tokenMetadata={btcMetadata}/>
         </div>
       </div>
-      <Modal
-        isVisible={showModal} // Replace with actual state to control modal visibility
-        onClose={() => setShowModal(false) } // Replace with actual close handler
-        title="Borrow BTC"
-      >
-        <div className="flex flex-col w-full text-black dark:text-white space-y-4">
-          <div className="flex flex-col w-full space-y-1">
-            <span className="text-gray-600 dark:text-gray-400 text-sm">Amount</span>
-            <div className="grid grid-cols-[auto_auto] border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1">
-              <div className="grid grid-rows-[5fr_3fr]">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  className="w-full h-9 appearance-none bg-transparent text-lg"
-                />
-                <span className="text-xs text-gray-600 dark:text-gray-400">
-                  {formatCurrency(satoshisToCurrency(0), "$")}
-                </span>
-              </div>
-              <div className="grid grid-rows-[5fr_3fr]">
-                <TokenLabel metadata={btcMetadata}/>
-                <span className="text-xs text-gray-600 dark:text-gray-400 justify-self-end">
-                  test
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col w-full space-y-1">
-            <span className="text-gray-600 dark:text-gray-400 text-sm">Transaction overview</span>
-            <div className="grid grid-cols-[auto_auto] border border-gray-300 dark:border-gray-700 rounded-md p-2">
-              <span className="text-base">Health factor</span>
-              <span className="text-base justify-self-end">1.54</span>
-            </div>
-          </div>
-          <button
-            className="button-blue text-base w-full"
-          >
-            Confirm Borrow
-          </button>
-        </div>
-      </Modal>
     </div>
   );
 }
