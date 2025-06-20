@@ -27,6 +27,7 @@ module {
     type Repayment             = LendingTypes.Repayment;
     type BorrowPosition        = LendingTypes.BorrowPosition;
     type Loan                  = LendingTypes.Loan;
+    type LoanPosition          = LendingTypes.LoanPosition;
     type BorrowRegister        = LendingTypes.BorrowRegister;
     type Borrow                = LendingTypes.Borrow;
     type IDex                  = LedgerTypes.IDex;
@@ -211,7 +212,7 @@ module {
             let index = indexer.get_state().borrow_index;
             let loans = get_loans();
 
-            let total_to_liquidate = IterUtils.fold_left(loans, 0, func (sum: Nat, loan: Loan): Nat {
+            let total_to_liquidate = IterUtils.fold_left(Map.vals(loans), 0, func (sum: Nat, loan: Loan): Nat {
                 sum + Option.get(loan.collateral_to_liquidate, 0);
             });
 
@@ -236,11 +237,11 @@ module {
             // TODO: the liquidation penalty could be kept as fees for the protocol instead
             // of being used to repay the borrow
 
-            label iterate_loans for (loan in loans.reset()) {
+            label iterate_loans for ((account, loan) in Map.entries(loans)) {
 
-                let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, loan.account)){
+                let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
                     case(null) { 
-                        Debug.print("No borrow position found for account " # debug_show(loan.account));
+                        Debug.print("No borrow position found for account " # debug_show(account));
                         continue iterate_loans; // No position to liquidate
                     };
                     case(?p) { p };
@@ -255,7 +256,7 @@ module {
 
                 let collateral_to_liquidate = switch(loan.collateral_to_liquidate){
                     case(null) { 
-                        Debug.print("No collateral to liquidate for account " # debug_show(loan.account));
+                        Debug.print("No collateral to liquidate for account " # debug_show(account));
                         continue iterate_loans; // No collateral to liquidate
                     };
                     case(?c) { c; };
@@ -278,7 +279,7 @@ module {
                 };
                 
                 // Update the position with the new borrow and collateral
-                Map.set<Account, BorrowPosition>(register.borrow_positions, MapUtils.acchash, loan.account,
+                Map.set<Account, BorrowPosition>(register.borrow_positions, MapUtils.acchash, account,
                     { position with borrow = new_borrow; collateral = { amount = Int.abs(new_collateral); }; }
                 );
 
@@ -298,24 +299,31 @@ module {
             #ok;
         };
 
-        public func get_loan(account: Account) : ?Loan {
+        public func get_loan_position(account: Account) : LoanPosition {
 
             let index = indexer.get_state().borrow_index;
 
             switch (Map.get(register.borrow_positions, MapUtils.acchash, account)){
-                case(null) { null; };
+                case(null) { 
+                    {
+                        account;
+                        collateral = 0;
+                        loan = null;
+                    };
+                };
                 case(?position) {
-                    borrow_positionner.to_loan({ position; index; });
+                    borrow_positionner.to_loan_position({ position; index; });
                 };
             };
         };
 
-        public func get_loans() : Map.Iter<Loan> {
+        public func get_loans() : Map.Map<Account, Loan> {
+
             let index = indexer.get_state().borrow_index;
-            let filtered_map = Map.mapFilter<Account, BorrowPosition, Loan>(register.borrow_positions, MapUtils.acchash, func (account: Account, position: BorrowPosition) : ?Loan {
-                borrow_positionner.to_loan({ position; index; });
+
+            Map.mapFilter<Account, BorrowPosition, Loan>(register.borrow_positions, MapUtils.acchash, func (account: Account, position: BorrowPosition) : ?Loan {
+                borrow_positionner.to_loan_position({ position; index; }).loan;
             });
-            Map.vals(filtered_map);
         };
 
     };

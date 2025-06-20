@@ -5,12 +5,13 @@ import { ckBtcActor } from '../actors/CkBtcActor';
 import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
 import { ckUsdtActor } from '../actors/CkUsdtActor';
-import { formatBalanceE8s, toE8s } from '../utils/conversions/token';
+import { formatBalanceE8s, formatCurrency, fromFixedPoint, toE8s } from '../utils/conversions/token';
 import { minterActor } from '../actors/MinterActor';
 import { useCurrencyContext } from './CurrencyContext';
 import { useAllowanceContext } from './AllowanceContext';
 import { MetaDatum } from '@/declarations/ck_btc/ck_btc.did';
-import { getTokenLogo, getTokenName } from '../utils/metadata';
+import { getTokenLogo, getTokenName, getTokenSymbol } from '../utils/metadata';
+import TokenLabel from './common/TokenLabel';
 
 const Wallet = () => {
 
@@ -152,8 +153,7 @@ const Wallet = () => {
     {/* Bitcoin Section */}
     <div className="w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
       <div className="flex items-center space-x-2 mb-2">
-        <img src={getTokenLogo(btcMetadata)} alt="BTC" className="w-6 h-6" />
-        <span className="text-gray-700 dark:text-white text-lg">{getTokenName(btcMetadata) ?? "Bitcoin"}</span>
+        <TokenLabel metadata={btcMetadata} />
       </div>
 
       {/* Bitcoin Balance */}
@@ -200,15 +200,14 @@ const Wallet = () => {
     {/* USDT Section */}
     <div className="w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
       <div className="flex items-center space-x-2 mb-2">
-        <img src={getTokenLogo(usdtMetadata)} alt="USDT" className="w-6 h-6" />
-        <span className="text-gray-700 dark:text-white text-lg">{getTokenName(usdtMetadata) ?? "USDT"}</span>
+        <TokenLabel metadata={usdtMetadata} />
       </div>
 
       {/* USDT Balance */}
       <div className="flex justify-between w-full">
         <span className="font-medium">Balance:</span>
         <span className="text-md font-semibold">
-          {formatBalanceE8s(usdtBalance ?? 0n, getTokenSymbol(usdtMetadata) ?? "")}
+          {formatCurrency(fromFixedPoint(usdtBalance ?? 0n, 6), "")}
         </span>
       </div>
 
@@ -217,7 +216,7 @@ const Wallet = () => {
         <span className="font-medium">Allowance:</span>
         {usdtAllowance !== undefined && (
           <span className="text-md font-semibold">
-            {formatBalanceE8s(usdtAllowance, getTokenSymbol(usdtMetadata) ?? "")}
+            {formatCurrency(fromFixedPoint(usdtAllowance, 6), "")}
           </span>
         )}
       </div>

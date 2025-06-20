@@ -25,6 +25,8 @@ module {
     type BorrowPositionTx = Types.BorrowPositionTx;
     type BorrowPosition   = Types.BorrowPosition;
     type BorrowParameters = Types.BorrowParameters;
+    type Loan             = Types.Loan;
+    type LoanPosition     = Types.LoanPosition;
     type Account          = LedgerTypes.Account;
     type IPriceTracker    = LedgerTypes.IPriceTracker;
 
@@ -76,7 +78,7 @@ module {
             let updated_position = { position with collateral; };
 
             // Check the withdrawal does not lower the health factor more than 1.0
-            let is_healthy = switch(to_loan({ position = updated_position; index; })){
+            let is_healthy = switch(to_loan_position({ position = updated_position; index; }).loan){
                 case(null) { true; }; // No loan means no risk
                 case(?loan) { loan.health > 1.0; };
             };
@@ -109,7 +111,7 @@ module {
             };
 
             // Check the borrow does not exceed the maximum LTV
-            let ltv = switch(to_loan({ position = update; index; })){
+            let ltv = switch(to_loan_position({ position = update; index; }).loan){
                 case(null) { return #err("BorrowPositionner: loan is null"); };
                 case(?l) { l.ltv; };
             };
@@ -155,87 +157,103 @@ module {
             };
         };
 
-        public func to_loan({
+        public func to_loan_position({
             position: BorrowPosition;
             index: Index;
-        }) : ?Types.Loan {
+        }) : LoanPosition {
 
-            switch (position.borrow) {
-                case (null) { null }; // No active loan, return nothing
-
-                case (?b) {
-                    // Protocol parameters for risk and liquidation
-                    let { liquidation_threshold; target_ltv; liquidation_penalty; close_factor; } = parameters;
-
-                    // Compute the up-to-date amount owed, including accrued interest
-                    let loan = Borrow.get_current_owed(b, index).accrued_amount;
-
-                    if (loan <= 0.0) {
-                        return null; // No loan to report
-                    };
-
-                    // Get current spot price of the collateral (in borrow asset units)
-                    let price = collateral_price_tracker.get_price();
-
-                    // Convert integer collateral amount to float
-                    let collateral = Float.fromInt(position.collateral.amount);
-
-                    // Compute the value of collateral
-                    let collateral_value = collateral * price;
-
-                    // Sanity checks to ensure LTV denominator will be valid
-                    if (collateral_value <= 0.0) {
-                        Debug.trap("BorrowPositionner: LTV denominator is zero or negative, cannot compute LTV");
-                    };
-
-                    // Compute LTV
-                    let ltv = loan / collateral_value;
-
-                    if (ltv < 0.0) {
-                        Debug.trap("BorrowPositionner: LTV is negative, this should not happen");
-                    };
-
-                    // Compute the max debt that would keep the position within the target LTV
-                    let target_loan = collateral * price * target_ltv;
-
-                    // How much repayment is required to bring the position back to target
-                    let required_repayment = if (loan <= target_loan) 0 else {
-                        Int.abs(Math.ceil_to_int(loan - target_loan));
-                    };
-
-                    // Health factor: how close the position is to liquidation
-                    // < 1.0 means liquidation should happen
-                    let health = liquidation_threshold / ltv;
-
-                    // If health is below threshold, compute how much collateral must be liquidated
-                    let collateral_to_liquidate = if (health > 1.0) null else {
-                        let numerator = loan - target_loan;
-
-                        // Exact formula from algebric resolution gives: P * (1 / (1 + penalty) - target_ltv)
-                        let denominator = price * (1 / (1 + liquidation_penalty) - target_ltv);
-
-                        if (denominator <= 0.0) {
-                            Debug.trap("BorrowPositionner: Invalid liquidation math: denominator <= 0");
-                        };
-
-                        var liquidation_amount = numerator / denominator;
-                        liquidation_amount := Float.min(liquidation_amount, collateral * close_factor);
-
-                        ?Int.abs(Math.ceil_to_int(liquidation_amount));
-                    };
-
-                    ?{
-                        account = position.account;
-                        raw_borrowed = b.raw_amount;
-                        loan;
-                        collateral = position.collateral.amount;
-                        ltv;
-                        required_repayment;
-                        health;
-                        collateral_to_liquidate;
-                        liquidation_penalty;
-                    };
+            let loan = switch(position.borrow){
+                case(null) { null; };
+                case(?borrow) { 
+                    to_loan({ 
+                        collateral_amount = position.collateral.amount;
+                        borrow;
+                        index;
+                    }); 
                 };
+            };
+
+            {
+                account = position.account;
+                collateral = position.collateral.amount;
+                loan;
+            };
+        };
+
+        func to_loan({
+            collateral_amount: Nat;
+            borrow: Borrow;
+            index: Index;
+        }) : ?Loan {
+
+            // Protocol parameters for risk and liquidation
+            let { liquidation_threshold; target_ltv; liquidation_penalty; close_factor; } = parameters;
+
+            // Compute the up-to-date amount owed, including accrued interest
+            let current_owed = Borrow.get_current_owed(borrow, index).accrued_amount;
+
+            if (current_owed <= 0.0) {
+                return null; // No loan to report
+            };
+
+            // Get current spot price of the collateral (in borrow asset units)
+            let price = collateral_price_tracker.get_price();
+
+            // Convert integer collateral amount to float
+            let collateral = Float.fromInt(collateral_amount);
+
+            // Compute the value of collateral
+            let collateral_value = collateral * price;
+
+            // Sanity checks to ensure LTV denominator will be valid
+            if (collateral_value <= 0.0) {
+                Debug.trap("BorrowPositionner: LTV denominator is zero or negative, cannot compute LTV");
+            };
+
+            // Compute LTV
+            let ltv = current_owed / collateral_value;
+
+            if (ltv < 0.0) {
+                Debug.trap("BorrowPositionner: LTV is negative, this should not happen");
+            };
+
+            // Compute the max debt that would keep the position within the target LTV
+            let target_owed = collateral * price * target_ltv;
+
+            // How much repayment is required to bring the position back to target
+            let required_repayment = if (current_owed <= target_owed) 0 else {
+                Int.abs(Math.ceil_to_int(current_owed - target_owed));
+            };
+
+            // Health factor: how close the position is to liquidation
+            // < 1.0 means liquidation should happen
+            let health = liquidation_threshold / ltv;
+
+            // If health is below threshold, compute how much collateral must be liquidated
+            let collateral_to_liquidate = if (health > 1.0) null else {
+                let numerator = current_owed - target_owed;
+
+                // Exact formula from algebric resolution gives: P * (1 / (1 + penalty) - target_ltv)
+                let denominator = price * (1 / (1 + liquidation_penalty) - target_ltv);
+
+                if (denominator <= 0.0) {
+                    Debug.trap("BorrowPositionner: Invalid liquidation math: denominator <= 0");
+                };
+
+                var liquidation_amount = numerator / denominator;
+                liquidation_amount := Float.min(liquidation_amount, collateral * close_factor);
+
+                ?Int.abs(Math.ceil_to_int(liquidation_amount));
+            };
+
+            ?{
+                raw_borrowed = borrow.raw_amount;
+                current_owed;
+                ltv;
+                required_repayment;
+                health;
+                collateral_to_liquidate;
+                liquidation_penalty;
             };
         };
     };

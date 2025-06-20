@@ -151,8 +151,8 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         await* getFacade().repay({ caller; subaccount; repayment; });
     };
 
-    public query({caller}) func get_loan({ subaccount: ?Blob; }) : async ?Types.Loan {
-        getFacade().get_loan({ caller; subaccount; });
+    public query func get_loan_position(account: Types.Account) : async Types.LoanPosition {
+        getFacade().get_loan_position(account);
     };
 
     func getFacade() : SharedFacade.SharedFacade {

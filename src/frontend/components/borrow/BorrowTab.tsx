@@ -6,8 +6,23 @@ import { useCurrencyContext } from "../CurrencyContext";
 import { fromNullableExt } from "../../utils/conversions/nullable";
 import TokenLabel from "../common/TokenLabel";
 import BorrowButton from "./BorrowButton";
+import { Result } from "../../../declarations/protocol/protocol.did";
+import { useMemo } from "react";
+import { useAuth } from "@ic-reactor/react";
+import { Account } from "@/declarations/ck_btc/ck_btc.did";
 
 const BorrowTab = () => {
+
+  const { identity } = useAuth({});
+
+  if (!identity) {
+    return null;
+  }
+
+  const account : Account= useMemo(() => ({
+    owner: identity?.getPrincipal(),
+    subaccount: []
+  }), [identity]);
 
   const { data: usdtMetadata } = ckUsdtActor.useQueryCall({
     functionName: 'icrc1_metadata'
@@ -17,23 +32,55 @@ const BorrowTab = () => {
     functionName: 'icrc1_metadata'
   });
 
-  const { data: loan } = protocolActor.useQueryCall({
-    functionName: 'get_loan'
+  const { data: loanPosition } = protocolActor.useQueryCall({
+    functionName: 'get_loan_position',
+    args: [account]
   });
+
+  const { call: supply } = protocolActor.useUpdateCall({
+    functionName: 'supply_collateral',
+  });
+  const { call: withdraw } = protocolActor.useUpdateCall({
+    functionName: 'withdraw_collateral',
+  });
+  const { call: borrow } = protocolActor.useUpdateCall({
+    functionName: 'borrow',
+  });
+  const { call: repay } = protocolActor.useUpdateCall({
+    functionName: 'repay',
+  });
+
+  const supplyFunction = (amount: bigint) : Promise<Result | undefined>=> {
+    return supply([{ amount, subaccount: [] }]);
+  };
+  const withdrawFunction = (amount: bigint) : Promise<Result | undefined> => {
+    return withdraw([{ amount, subaccount: [] }]);
+  };
+  const borrowFunction = (amount: bigint) : Promise<Result | undefined> => {
+    return borrow([{ amount, subaccount: [] }]);
+  };
+  // @todo: Ideally we would like to have a repay function that accepts both full and partial repayments.
+  const repayFunction = (amount: bigint) : Promise<Result | undefined> => {
+    return repay([{ repayment: { "PARTIAL" : amount }, subaccount: [] }]);
+  };
 
   const { satoshisToCurrency } = useCurrencyContext(); // @todo: not gonna work for usdt
 
-  const loanData = fromNullableExt(loan);
+  const test = useMemo(() => {
 
-  const test = {
-    collateral: loanData?.collateral ?? 0n,
-    raw_borrowed: loanData?.raw_borrowed ?? 0,
-    loan: loanData?.loan ?? 0,
-    ltv: loanData?.ltv,
-    health: loanData?.health,
-    required_repayment: loanData?.required_repayment,
-    collateral_to_liquidate: loanData?.collateral_to_liquidate,
-  };
+    console.log("loanPosition", loanPosition);
+
+    let loan = fromNullableExt(loanPosition?.loan);
+
+    return {
+      collateral: loanPosition?.collateral ?? 0n,
+      raw_borrowed: loan?.raw_borrowed ?? 0,
+      current_owed: loan?.current_owed ?? 0,
+      ltv: loan?.ltv ?? 0,
+      health: loan?.health ?? 0,
+      required_repayment: loan?.required_repayment ?? 0,
+    };
+  }, [loanPosition]);
 
   // @todo: if loan data is undefined, use 0 as amountCollateral and amountBorrowed; do not display LTV nor health factor.
 
@@ -48,8 +95,8 @@ const BorrowTab = () => {
             <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(test.collateral), "$")} </span>
           </div>
           <span>{/*spacer*/}</span>
-          <BorrowButton title="Supply" tokenMetadata={usdtMetadata}/>
-          <BorrowButton title="Withdraw" tokenMetadata={usdtMetadata}/>
+          <BorrowButton title="Supply" tokenMetadata={usdtMetadata} onConfirm={supplyFunction}/>
+          <BorrowButton title="Withdraw" tokenMetadata={usdtMetadata} onConfirm={withdrawFunction}/>
         </div>
       </div>
       <div className="border-b border-gray-300 dark:border-gray-700 w-full"></div>
@@ -62,8 +109,8 @@ const BorrowTab = () => {
             <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(test.raw_borrowed), "$")} </span>
           </div>
           <span>{/*spacer*/}</span>
-          <BorrowButton title="Borrow" tokenMetadata={btcMetadata}/>
-          <BorrowButton title="Repay" tokenMetadata={btcMetadata}/>
+          <BorrowButton title="Borrow" tokenMetadata={btcMetadata} onConfirm={borrowFunction}/>
+          <BorrowButton title="Repay" tokenMetadata={btcMetadata} onConfirm={repayFunction}/>
         </div>
       </div>
     </div>

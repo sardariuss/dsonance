@@ -48,7 +48,7 @@ module {
     type Duration = Types.Duration;
     type YieldState = Types.YieldState;
     type PutBallotError = Types.PutBallotError;
-    type Loan = Types.Loan;
+    type LoanPosition = Types.LoanPosition;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -204,8 +204,8 @@ module {
             await* borrow_registry.repay({ account; repayment; });
         };
 
-        public func get_loan(account: Account) : ?Loan {
-            borrow_registry.get_loan(account);
+        public func get_loan_position(account: Account) : LoanPosition {
+            borrow_registry.get_loan_position(account);
         };
 
         public func run() : async* Result<(), Text> {

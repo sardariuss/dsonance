@@ -162,12 +162,15 @@ module {
         tx: [BorrowPositionTx];
     };
 
-    public type Loan = {
+    public type LoanPosition = {
         account: Account;
         collateral: Nat;
-        // from here useless if collateral is 0
+        loan: ?Loan;
+    };
+
+    public type Loan = {
         raw_borrowed: Float;
-        loan: Float;
+        current_owed: Float;
         ltv: Float; // 0 if no borrow
         health: Float; // infinity if no borrow
         required_repayment: Nat;
