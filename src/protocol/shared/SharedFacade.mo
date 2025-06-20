@@ -32,6 +32,7 @@ module {
     type BallotPreview = Types.BallotPreview;
     type SBallotPreview = Types.SBallotPreview;
     type SYieldState = Types.SYieldState;
+    type Loan = Types.Loan;
 
     public class SharedFacade({
         controller: Controller.Controller;
@@ -163,6 +164,10 @@ module {
                 account = { owner = caller; subaccount; };
                 repayment;
             });
+        };
+
+        public func get_loan({caller: Principal; subaccount: ?Blob; }) : ?Loan {
+            controller.get_loan({owner = caller; subaccount; });
         };
 
         // @int: commented out for now, will be implemented later

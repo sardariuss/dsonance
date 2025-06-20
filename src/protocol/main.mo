@@ -65,7 +65,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     // ⚠️ THIS IS INTENTIONALLY A QUERY FUNCTION
-    // DO NOT CHANGE IT TO A SHARED FUNCTION OTHERWISE THE PREVIEW WILL UPDATE THE STATE
+    // DO NOT CHANGE IT TO A SHARED FUNCTION OTHERWISE THE PREVIEW WILL PUT AN ACTUAL BALLOT
     public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.PutBallotResult {
         getFacade().put_ballot_for_free({ args with caller; });
     };
@@ -149,6 +149,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
 
     public shared({caller}) func repay({ subaccount: ?Blob; repayment: { #PARTIAL: Nat; #FULL; }; }) : async Result.Result<(), Text> {
         await* getFacade().repay({ caller; subaccount; repayment; });
+    };
+
+    public query({caller}) func get_loan({ subaccount: ?Blob; }) : async ?Types.Loan {
+        getFacade().get_loan({ caller; subaccount; });
     };
 
     func getFacade() : SharedFacade.SharedFacade {

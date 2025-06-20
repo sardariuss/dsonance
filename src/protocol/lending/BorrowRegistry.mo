@@ -298,7 +298,7 @@ module {
             #ok;
         };
 
-        public func query_loan({ account: Account; }) : ?Loan {
+        public func get_loan(account: Account) : ?Loan {
 
             let index = indexer.get_state().borrow_index;
 

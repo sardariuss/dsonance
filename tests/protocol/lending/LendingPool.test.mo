@@ -359,7 +359,7 @@ await suite("LendingPool", func(): async() {
         ignore indexer.get_state();
 
         // Check health before price crash (should be healthy)
-        let before_liquidation = borrow_registry.query_loan({ account = borrower });
+        let before_liquidation = borrow_registry.get_loan(borrower);
         switch (before_liquidation) {
             case (?loan) {
                 verify(loan.health, 1.0, Testify.float.greaterThan);
@@ -380,7 +380,7 @@ await suite("LendingPool", func(): async() {
         ignore indexer.get_state();
 
         // Check health after price crash (should be unhealthy)
-        let after_crash = borrow_registry.query_loan({ account = borrower });
+        let after_crash = borrow_registry.get_loan(borrower);
         switch (after_crash) {
             case (?loan) {
                 verify(loan.health, 1.0, Testify.float.lessThan);
@@ -395,7 +395,7 @@ await suite("LendingPool", func(): async() {
         verify(liquidation, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
 
         // After liquidation, the collateral should have been partially liquidated
-        let after_liquidation = borrow_registry.query_loan({ account = borrower });
+        let after_liquidation = borrow_registry.get_loan(borrower);
         switch (after_liquidation) {
             case null { assert(false); }; // Not full liquidation, should still have a position
             case (?loan) {

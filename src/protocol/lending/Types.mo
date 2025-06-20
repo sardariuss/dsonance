@@ -164,11 +164,12 @@ module {
 
     public type Loan = {
         account: Account;
+        collateral: Nat;
+        // from here useless if collateral is 0
         raw_borrowed: Float;
         loan: Float;
-        collateral: Nat;
-        ltv: Float;
-        health: Float;
+        ltv: Float; // 0 if no borrow
+        health: Float; // infinity if no borrow
         required_repayment: Nat;
         collateral_to_liquidate: ?Nat;
         liquidation_penalty: Float;

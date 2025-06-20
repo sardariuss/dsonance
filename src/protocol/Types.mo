@@ -236,6 +236,18 @@ module {
         clock: SClockParameters;
     };
 
+    public type Loan = {
+        account: Account;
+        raw_borrowed: Float;
+        loan: Float;
+        collateral: Nat;
+        ltv: Float;
+        health: Float;
+        required_repayment: Nat;
+        collateral_to_liquidate: ?Nat;
+        liquidation_penalty: Float;
+    };
+
     // CUSTOM TYPES
 
     public type AgeBonusParameters = {
@@ -299,12 +311,9 @@ module {
     public type InsuficientAmountError   = { #InsufficientAmount: { amount: Nat; minimum: Nat; }; };
     public type NewVoteError             = { #VoteAlreadyExists: { vote_id: UUID; }; } or TransferFromError;
     public type BallotAlreadyExistsError = { #BallotAlreadyExists: { ballot_id: UUID; }; };
-    public type PreviewBallotError       = VoteNotFoundError or InsuficientAmountError;
     public type PutBallotError           = VoteNotFoundError or InsuficientAmountError or BallotAlreadyExistsError or TransferFromError;
     public type PutBallotResult          = Result<SBallotType, PutBallotError>;
     public type NewVoteResult            = Result<VoteType, NewVoteError>;
     public type SNewVoteResult           = Result<SVoteType, NewVoteError>;
-    public type PreviewBallotResult      = Result<BallotPreview, PreviewBallotError>;
-    public type SPreviewBallotResult     = Result<SBallotPreview, PreviewBallotError>;
 
 };
