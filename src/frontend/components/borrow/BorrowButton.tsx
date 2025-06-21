@@ -18,6 +18,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onCon
 
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [inputValue, setInputValue] = useState<string>("");
   const [amount, setAmount] = useState<bigint>(0n);
 
   const fullTitle = useMemo(
@@ -27,7 +28,13 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onCon
   const { satoshisToCurrency } = useCurrencyContext(); // @todo: not gonna work for usdt
 
   const onClick = () => {
+    
+    if (amount === 0n) {
+      throw new Error("Amount must be greater than zero");
+    };
+
     setLoading(true);
+
     onConfirm(amount).then((result) => {
       if (result !== undefined && "ok" in result) {
         setIsVisible(false);
@@ -57,14 +64,43 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onCon
             <div className="grid grid-cols-[auto_auto] border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1">
               <div className="grid grid-rows-[5fr_3fr]">
                 <input
-                  type="number"
+                  type="text"
                   placeholder="0.00"
-                  className="w-full h-9 appearance-none bg-transparent text-lg"
+                  className="w-full h-9 appearance-none outline-none focus:ring-0 focus:outline-none bg-transparent text-lg"
+                  value={inputValue}
                   onChange={(e) => {
                     const value = e.target.value;
-                    setAmount(value ? BigInt(Math.floor(Number(value) * 1e6)) : 0n);
+                    // Only allow numbers and at most one decimal point
+                    if (/^\d*\.?\d*$/.test(value)) {
+                      setInputValue(value);
+
+                      const parsed = Number(value);
+                      if (!isNaN(parsed)) {
+                        const test = BigInt(Math.floor(parsed * 1e6));
+                        console.log("Parsed amount:", test);
+                        setAmount(BigInt(Math.floor(parsed * 1e6)));
+                      } else {
+                        setAmount(0n);
+                      }
+                    }
                   }}
-                  value={amount > 0n ? (Number(amount) / 1e6).toFixed(6) : ""}
+                  onKeyDown={(e) => {
+                    const allowedKeys = [
+                      "Backspace", "Delete", "ArrowLeft", "ArrowRight",
+                      "Home", "End", "Tab", ".", // dot for decimal
+                    ];
+
+                    // Allow numbers (0–9), or listed keys
+                    if (
+                      (e.key.length === 1 && e.key >= "0" && e.key <= "9") ||
+                      allowedKeys.includes(e.key)
+                    ) {
+                      // allow
+                      return;
+                    }
+
+                    e.preventDefault(); // block everything else
+                  }}
                 />
                 <span className="text-xs text-gray-600 dark:text-gray-400">
                   {formatCurrency(satoshisToCurrency(0), "$")}
@@ -86,9 +122,9 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onCon
             </div>
           </div>
           <button 
-            className="button-blue text-base w-full"
+            className={`button-blue text-base w-full`}
             onClick={() => onClick()}
-            disabled={loading}
+            disabled={loading || amount === 0n} // Disable if loading or no amount
           >
             <div className="flex items-center justify-center space-x-2">
               { loading ? <Spinner size={"25px"}/> : <span>{fullTitle}</span> }

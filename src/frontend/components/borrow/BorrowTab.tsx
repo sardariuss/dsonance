@@ -24,6 +24,8 @@ const BorrowTab = () => {
     subaccount: []
   }), [identity]);
 
+  const { satoshisToCurrency } = useCurrencyContext(); // @todo: not gonna work for usdt
+
   const { data: usdtMetadata } = ckUsdtActor.useQueryCall({
     functionName: 'icrc1_metadata'
   });
@@ -32,7 +34,7 @@ const BorrowTab = () => {
     functionName: 'icrc1_metadata'
   });
 
-  const { data: loanPosition } = protocolActor.useQueryCall({
+  const { data: loanPosition, call: refreshLoanPosition } = protocolActor.useQueryCall({
     functionName: 'get_loan_position',
     args: [account]
   });
@@ -51,24 +53,40 @@ const BorrowTab = () => {
   });
 
   const supplyFunction = (amount: bigint) : Promise<Result | undefined>=> {
-    return supply([{ amount, subaccount: [] }]);
+    return supply([{ amount, subaccount: [] }]).then((result) =>{
+      if (result !== undefined && "ok" in result) {
+        refreshLoanPosition(); // Refresh the loan position after supply
+      }
+      return result;
+    });
   };
   const withdrawFunction = (amount: bigint) : Promise<Result | undefined> => {
-    return withdraw([{ amount, subaccount: [] }]);
+    return withdraw([{ amount, subaccount: [] }]).then((result) =>{
+      if (result !== undefined && "ok" in result) {
+        refreshLoanPosition(); // Refresh the loan position after supply
+      }
+      return result;
+    });
   };
   const borrowFunction = (amount: bigint) : Promise<Result | undefined> => {
-    return borrow([{ amount, subaccount: [] }]);
+    return borrow([{ amount, subaccount: [] }]).then((result) =>{
+      if (result !== undefined && "ok" in result) {
+        refreshLoanPosition(); // Refresh the loan position after supply
+      }
+      return result;
+    });
   };
   // @todo: Ideally we would like to have a repay function that accepts both full and partial repayments.
   const repayFunction = (amount: bigint) : Promise<Result | undefined> => {
-    return repay([{ repayment: { "PARTIAL" : amount }, subaccount: [] }]);
+    return repay([{ repayment: { "PARTIAL" : amount }, subaccount: [] }]).then((result) =>{
+      if (result !== undefined && "ok" in result) {
+        refreshLoanPosition(); // Refresh the loan position after supply
+      }
+      return result;
+    });
   };
 
-  const { satoshisToCurrency } = useCurrencyContext(); // @todo: not gonna work for usdt
-
   const test = useMemo(() => {
-
-    console.log("loanPosition", loanPosition);
 
     let loan = fromNullableExt(loanPosition?.loan);
 
