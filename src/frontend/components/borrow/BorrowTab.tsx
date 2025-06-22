@@ -4,12 +4,13 @@ import { ckBtcActor } from "../../actors/CkBtcActor";
 import { formatCurrency, fromFixedPoint } from "../../utils/conversions/token";
 import { useCurrencyContext } from "../CurrencyContext";
 import { fromNullableExt } from "../../utils/conversions/nullable";
-import TokenLabel from "../common/TokenLabel";
+import { TokenLabel } from "../common/TokenLabel";
 import BorrowButton from "./BorrowButton";
 import { Result } from "../../../declarations/protocol/protocol.did";
 import { useMemo } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { Account } from "@/declarations/ck_btc/ck_btc.did";
+import { a } from "vitest/dist/chunks/suite.d.FvehnV49";
 
 const BorrowTab = () => {
 
@@ -86,7 +87,7 @@ const BorrowTab = () => {
     });
   };
 
-  const test = useMemo(() => {
+  const { collateral, raw_borrowed, current_owed, ltv, health, required_repayment } = useMemo(() => {
 
     let loan = fromNullableExt(loanPosition?.loan);
 
@@ -109,12 +110,12 @@ const BorrowTab = () => {
         <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
           <TokenLabel metadata={usdtMetadata}/>
           <div className="relative flex flex-col">
-            <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(test.collateral, 6), "")} </span>
-            <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(test.collateral), "$")} </span>
+            <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(collateral, 6), "")} </span>
+            <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(fromFixedPoint(collateral, 6), "$") } </span>
           </div>
           <span>{/*spacer*/}</span>
-          <BorrowButton title="Supply" tokenMetadata={usdtMetadata} onConfirm={supplyFunction}/>
-          <BorrowButton title="Withdraw" tokenMetadata={usdtMetadata} onConfirm={withdrawFunction}/>
+          <BorrowButton title="Supply" tokenMetadata={usdtMetadata} onConfirm={supplyFunction} tokenDecimals={6} amountInUsd={amount => fromFixedPoint(amount, 6)}/>
+          <BorrowButton title="Withdraw" tokenMetadata={usdtMetadata} onConfirm={withdrawFunction} tokenDecimals={6} amountInUsd={amount => fromFixedPoint(amount, 6)}/>
         </div>
       </div>
       <div className="border-b border-gray-300 dark:border-gray-700 w-full"></div>
@@ -123,12 +124,12 @@ const BorrowTab = () => {
         <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
           <TokenLabel metadata={btcMetadata}/>
           <div className="relative flex flex-col">
-            <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(test.raw_borrowed, 8), "")} </span>
-            <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(test.raw_borrowed), "$")} </span>
+            <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(raw_borrowed, 8), "")} </span>
+            <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(raw_borrowed), "$")} </span>
           </div>
           <span>{/*spacer*/}</span>
-          <BorrowButton title="Borrow" tokenMetadata={btcMetadata} onConfirm={borrowFunction}/>
-          <BorrowButton title="Repay" tokenMetadata={btcMetadata} onConfirm={repayFunction}/>
+          <BorrowButton title="Borrow" tokenMetadata={btcMetadata} onConfirm={borrowFunction} tokenDecimals={8} amountInUsd={amount => satoshisToCurrency(amount)}/>
+          <BorrowButton title="Repay" tokenMetadata={btcMetadata} onConfirm={repayFunction} tokenDecimals={8} amountInUsd={amount => satoshisToCurrency(amount)}/>
         </div>
       </div>
     </div>

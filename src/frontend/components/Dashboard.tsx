@@ -1,9 +1,16 @@
+import { ckBtcActor } from "../actors/CkBtcActor";
 import { protocolActor } from "../actors/ProtocolActor";
+import { formatCurrency } from "../utils/conversions/token";
 import BorrowInfoPanel from "./borrow/BorrowInfoPanel";
 import InterestRateModel from "./borrow/InterestRateModel";
 import SupplyInfoPanel from "./borrow/SupplyInfoPanel";
+import DualLabel from "./common/DualLabel";
+import { FullTokenLabel } from "./common/TokenLabel";
+import { useCurrencyContext } from "./CurrencyContext";
 
 const Dashboard = () => {
+
+  const { satoshisToCurrency, priceBtcInUsd } = useCurrencyContext(); // @todo: only works for btc
 
   const { data: lendingParams } = protocolActor.useQueryCall({
     functionName: 'get_lending_parameters',
@@ -13,14 +20,39 @@ const Dashboard = () => {
     functionName: 'get_indexer_state',
   });
 
+  const { data: btcMetadata } = ckBtcActor.useQueryCall({
+    functionName: 'icrc1_metadata'
+  });
+
   if (!lendingParams || !indexerState) {
     return <div className="text-center text-gray-500">Loading...</div>;
   }
 
   return (
-    <div className="flex flex-col justify-center bg-slate-200 dark:bg-gray-800 rounded mt-4 p-6 space-y-6">
-      <div className="text-xl font-semibold">Reserve status & configuration</div>
-      <div className="grid grid-cols-[150px_1fr] gap-y-4 gap-x-6 w-full max-w-5xl">
+    <div className="flex flex-col justify-center my-4 p-6 space-y-6">
+      <div className="flex flex-row text-center text-gray-800 dark:text-gray-200 px-6 space-x-8 items-center">
+        <FullTokenLabel
+          metadata={btcMetadata}
+        />
+        <div className="border-r border-gray-300 dark:border-gray-700 h-full"></div>
+        <DualLabel
+          top="Reserve Size"
+          bottom={formatCurrency(satoshisToCurrency(indexerState.utilization.raw_supplied), "$")}
+        />
+        <DualLabel
+          top="Available liquidity"
+          bottom={formatCurrency(satoshisToCurrency(indexerState.utilization.raw_supplied * (1 - indexerState.utilization.ratio)), "$")}
+        />
+        <DualLabel
+          top="Utilization Rate"
+          bottom= {`${(indexerState.utilization.ratio * 100).toFixed(2)}%`}
+        />
+        <DualLabel
+          top="Liquidity pool price"
+          bottom= {`${formatCurrency(priceBtcInUsd, "$")}`}
+        />
+      </div>
+      <div className="grid grid-cols-[150px_1fr] gap-y-4 gap-x-6 w-full max-w-5xl bg-slate-200 dark:bg-gray-800 rounded p-6">
         <span className="text-base font-semibold text-white self-start">
           Supply info
         </span>

@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 import Modal from "../common/Modal";
 import { MetaDatum } from "../../../declarations/ck_btc/ck_btc.did";
-import TokenLabel from "../common/TokenLabel";
+import { TokenLabel } from "../common/TokenLabel";
 import { formatCurrency } from "../../utils/conversions/token";
-import { useCurrencyContext } from "../CurrencyContext";
 import { getTokenName } from "../../utils/metadata";
 import { Result } from "@/declarations/protocol/protocol.did";
 import Spinner from "../Spinner";
@@ -12,9 +11,11 @@ interface BorrowButtonProps {
   title: string;
   tokenMetadata: MetaDatum[] | undefined;
   onConfirm: (amount: bigint) => Promise<Result | undefined>;
+  tokenDecimals: number;
+  amountInUsd: (amount: bigint) => number;
 }
 
-const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onConfirm }) => {
+const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onConfirm, tokenDecimals, amountInUsd }) => {
 
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -24,8 +25,6 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onCon
   const fullTitle = useMemo(
     () => `${title} ${getTokenName(tokenMetadata) ?? ""}`,
   [title, tokenMetadata]);
-
-  const { satoshisToCurrency } = useCurrencyContext(); // @todo: not gonna work for usdt
 
   const onClick = () => {
     
@@ -76,9 +75,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onCon
 
                       const parsed = Number(value);
                       if (!isNaN(parsed)) {
-                        const test = BigInt(Math.floor(parsed * 1e6));
-                        console.log("Parsed amount:", test);
-                        setAmount(BigInt(Math.floor(parsed * 1e6)));
+                        setAmount(BigInt(Math.floor(parsed * 10 ** tokenDecimals)));
                       } else {
                         setAmount(0n);
                       }
@@ -103,7 +100,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onCon
                   }}
                 />
                 <span className="text-xs text-gray-600 dark:text-gray-400">
-                  {formatCurrency(satoshisToCurrency(0), "$")}
+                  { formatCurrency(amountInUsd(amount), "$")}
                 </span>
               </div>
               <div className="grid grid-rows-[5fr_3fr]">

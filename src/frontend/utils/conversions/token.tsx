@@ -24,11 +24,15 @@ export const fromFixedPoint = (amount: bigint | number, decimals: number): numbe
 
 export const formatCurrency = (currencyAmount: number, currencySymbol: string, decimals?: number) => {
 
+    if (isNaN(currencyAmount) || currencyAmount < 0) {
+        return `${currencySymbol}0.00`;
+    }
+
     let precision = decimals ?? 2;
 
     const [balance, unit] =
         currencyAmount < 1_000 ?             [currencyAmount,                      ""] :
-        currencyAmount < 1_000_000 ?         [currencyAmount / 1_000,             "k"] :
+        currencyAmount < 1_000_000 ?         [currencyAmount / 1_000,             "K"] :
         currencyAmount < 1_000_000_000 ?     [currencyAmount / 1_000_000,         "M"] :
         currencyAmount < 1_000_000_000_000 ? [currencyAmount / 1_000_000_000,     "B"] :
                                              [currencyAmount / 1_000_000_000_000, "T"];

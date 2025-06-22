@@ -5,13 +5,12 @@ import { ckBtcActor } from '../actors/CkBtcActor';
 import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
 import { ckUsdtActor } from '../actors/CkUsdtActor';
-import { formatBalanceE8s, formatCurrency, fromFixedPoint, toE8s } from '../utils/conversions/token';
+import { formatCurrency, fromFixedPoint, toE8s } from '../utils/conversions/token';
 import { minterActor } from '../actors/MinterActor';
 import { useCurrencyContext } from './CurrencyContext';
 import { useAllowanceContext } from './AllowanceContext';
-import { MetaDatum } from '@/declarations/ck_btc/ck_btc.did';
-import { getTokenLogo, getTokenName, getTokenSymbol } from '../utils/metadata';
-import TokenLabel from './common/TokenLabel';
+import { getTokenSymbol } from '../utils/metadata';
+import { TokenLabel } from './common/TokenLabel';
 
 const Wallet = () => {
 

@@ -21,6 +21,7 @@ interface CurrencyContextType {
   currencyToSatoshis: (amount: number) => bigint | undefined;
   satoshisToCurrency: (amountE8s: bigint | number) => number | undefined;
   formatSatoshis: (amountE8s: bigint,  omit_unit?: boolean) => string | undefined;
+  priceBtcInUsd?: number;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
@@ -115,7 +116,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, currencySymbol, currencyToSatoshis, satoshisToCurrency, formatSatoshis }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, currencySymbol, currencyToSatoshis, satoshisToCurrency, formatSatoshis, priceBtcInUsd }}>
       {children}
     </CurrencyContext.Provider>
   );
