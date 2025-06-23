@@ -51,6 +51,7 @@ module {
     type PutBallotError = Types.PutBallotError;
     type LoanPosition = LendingTypes.LoanPosition;
     type BorrowOperation = LendingTypes.BorrowOperation;
+    type BorrowOperationArgs = LendingTypes.BorrowOperationArgs;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -175,36 +176,12 @@ module {
             });
         };
 
-        public func supply_collateral({ account: Account; amount: Nat; }) : async* Result<BorrowOperation, Text> {
-            await* borrow_registry.supply_collateral({ account; amount; });
+        public func run_borrow_operation(args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {
+            await* borrow_registry.run_operation(args);
         };
 
-        public func preview_supply_collateral({ account: Account; amount: Nat; }) : Result<BorrowOperation, Text> {
-            borrow_registry.preview_supply_collateral({ account; amount; });
-        };
-
-        public func withdraw_collateral({ account: Account; amount: Nat; }) : async* Result<BorrowOperation, Text> {
-            await* borrow_registry.withdraw_collateral({ account; amount; });
-        };
-
-        public func preview_withdraw_collateral({ account: Account; amount: Nat; }) : Result<BorrowOperation, Text> {
-            borrow_registry.preview_withdraw_collateral({ account; amount; });
-        };
-
-        public func borrow({ account: Account; amount: Nat; }) : async* Result<BorrowOperation, Text> {
-            await* borrow_registry.borrow({ account; amount; });
-        };
-
-        public func preview_borrow({ account: Account; amount: Nat; }) : Result<BorrowOperation, Text> {
-            borrow_registry.preview_borrow({ account; amount; });
-        };
-
-        public func repay({ account: Account; repayment: { #PARTIAL: Nat; #FULL; }; }) : async* Result<BorrowOperation, Text> {
-            await* borrow_registry.repay({ account; repayment; });
-        };
-
-        public func preview_repay({ account: Account; repayment: { #PARTIAL: Nat; #FULL; }; }) : Result<BorrowOperation, Text> {
-            borrow_registry.preview_repay({ account; repayment; });
+        public func run_borrow_operation_for_free(args: BorrowOperationArgs) : Result<BorrowOperation, Text> {
+            borrow_registry.run_operation_for_free(args);
         };
 
         public func get_loan_position(account: Account) : LoanPosition {

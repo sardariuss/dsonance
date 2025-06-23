@@ -38,7 +38,8 @@ module {
     type BorrowPositionTx      = LendingTypes.BorrowPositionTx;
     type BorrowOperation       = LendingTypes.BorrowOperation;
     type CommonBorrowArgs      = LendingTypes.CommonBorrowArgs;
-    type BorrowOperationType   = LendingTypes.BorrowOperationType;
+    type BorrowOperationArgs   = LendingTypes.BorrowOperationArgs;
+    type OperationKindArgs     = LendingTypes.OperationKindArgs;
     type Liquidation = {
         raw_borrowed: Float;
         total_collateral: Nat;
@@ -71,18 +72,20 @@ module {
             Map.vals(register.borrow_positions);
         };
 
-        public func execute_borrow_operation(operation: BorrowOperationType) : async* Result<BorrowOperation, Text> {
+        public func run_operation(args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {
 
-            let { to_transfer; finalize; } = switch(prepare_operation(operation)){
+            let { account; } = args;
+
+            let { to_transfer; finalize; } = switch(prepare_operation(args)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
 
-            let transfer = switch(operation){
-                case(#PROVIDE_COLLATERAL ({account})) {  await* collateral.pull    ({ from = account; amount = to_transfer; });         };
-                case(#WITHDRAW_COLLATERAL({account})) { (await* collateral.transfer({ to = account;   amount = to_transfer; })).result; };
-                case(#BORROW_SUPPLY      ({account})) {  await* supply.transfer    ({ to = account;   amount = to_transfer; });         };
-                case(#REPAY_SUPPLY       ({account})) {  await* supply.pull        ({ from = account; amount = to_transfer; });         };
+            let transfer = switch(args.kind){
+                case(#PROVIDE_COLLATERAL (_)) {  await* collateral.pull    ({ from = account; amount = to_transfer; });         };
+                case(#WITHDRAW_COLLATERAL(_)) { (await* collateral.transfer({ to = account;   amount = to_transfer; })).result; };
+                case(#BORROW_SUPPLY      (_)) {  await* supply.transfer    ({ to = account;   amount = to_transfer; });         };
+                case(#REPAY_SUPPLY       (_)) {  await* supply.pull        ({ from = account; amount = to_transfer; });         };
             };
 
             let tx = switch(transfer){
@@ -90,145 +93,30 @@ module {
                 case(#ok(tx_index)) { tx_index; };
             };
 
-            #ok(finalize(tx));
+            let to_return = finalize(tx);
+
+            switch(args.kind){
+                case(#REPAY_SUPPLY(_)) {
+                    // Once a position is repaid, it might allow to process pending withdrawal of supply
+                    ignore await* withdrawal_queue.process_pending_withdrawals();
+                };
+                case(_) {}; // No need to process pending withdrawals for other operations
+            };
+
+            #ok(to_return);
         };
 
-        public func preview_borrow_operation(operation: BorrowOperationType) : Result<BorrowOperation, Text> {
+        public func run_operation_for_free(args: BorrowOperationArgs) : Result<BorrowOperation, Text> {
 
-            let { finalize; } = switch(prepare_operation(operation)){
+            let { finalize; } = switch(prepare_operation(args)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
 
-            #ok(finalize(0));
-        };
+            // Intentionnally not calling withdrawal_queue.process_pending_withdrawals()
+            // as this is a free operation and the intention is to not modify the state
 
-        public func supply_collateral({
-            account: Account;
-            amount: Nat;
-        }) : async* Result<BorrowOperation, Text> {
-
-            let { to_transfer; finalize; } = switch(prepare_supply_collateral({ account; amount; })){
-                case(#err(err)) { return #err(err); };
-                case(#ok(p)) { p; };
-            };
-
-            // Transfer the collateral from the user account
-            let tx = switch(await* collateral.pull({ from = account; amount = to_transfer; })){
-                case(#err(_)) { return #err("Failed to transfer collateral from the user account"); };
-                case(#ok(tx)) { tx; };
-            };
-
-            #ok(finalize(tx));
-        };
-
-        public func preview_supply_collateral({
-            account: Account;
-            amount: Nat;
-        }) : Result<BorrowOperation, Text> {
-            let { finalize } = switch(prepare_supply_collateral({ account; amount; })){
-                case(#err(err)) { return #err(err); };
-                case(#ok(p)) { p; };
-            };
-            #ok(finalize(0));
-        };
-
-        public func withdraw_collateral({
-            account: Account;
-            amount: Nat;
-        }) : async* Result<BorrowOperation, Text> {
-
-            // Remove the collateral from the borrow position
-            let { to_transfer; finalize; } = switch(prepare_withdraw_collateral({ account; amount; })){
-                case(#err(err)) { return #err(err); };
-                case(#ok(p)) { p; };
-            };
-
-            // Transfer the collateral to the user account
-            let tx = switch((await* collateral.transfer({ to = account; amount = to_transfer; })).result){
-                case(#err(_)) { return #err("Failed to transfer the collateral to the user account"); };
-                case(#ok(tx)) { tx; };
-            };
-
-            #ok(finalize(tx));
-        };
-
-        public func preview_withdraw_collateral({
-            account: Account;
-            amount: Nat;
-        }) : Result<BorrowOperation, Text> {
-            let { finalize } = switch(prepare_withdraw_collateral({ account; amount; })){
-                case(#err(err)) { return #err(err); };
-                case(#ok(p)) { p; };
-            };
-            #ok(finalize(0));
-        };
-
-        public func borrow({
-            account: Account;
-            amount: Nat;
-        }) : async* Result<BorrowOperation, Text> {
-
-            let { to_transfer; finalize; } = switch(prepare_borrow({ account; amount; })){
-                case(#err(err)) { return #err(err); };
-                case(#ok(p)) { p; };
-            };
-            
-            // Transfer the borrow amount to the user account
-            let tx = switch(await* supply.transfer({ to = account; amount = to_transfer; })){
-                case(#err(err)) { return #err("Failed to transfer borrow amount to the user account: " # debug_show(err)); };
-                case(#ok(tx)) { tx; };
-            };
-
-            #ok(finalize(tx));
-        };
-
-        public func preview_borrow({
-            account: Account;
-            amount: Nat;
-        }) : Result<BorrowOperation, Text> {
-            let { finalize; } = switch(prepare_borrow({ account; amount; })){
-                case(#err(err)) { return #err(err); };
-                case(#ok(p)) { p; };
-            };
-            #ok(finalize(0));
-        };
-
-        public func repay({
-            account: Account;
-            repayment: Repayment;
-        }) : async* Result<BorrowOperation, Text> {
-
-            let { to_transfer; finalize; } = switch(prepare_repay({ account; repayment; })){
-                case(#err(err)) { return #err(err); };
-                case(#ok(p)) { p; };
-            };
-
-            // Transfer the repayment from the user
-            let tx = switch(await* supply.pull({ from = account; amount = to_transfer; })){
-                case(#err(_)) { return #err("Transfer failed"); };
-                case(#ok(tx)) { tx; };
-            };
-
-            let payload = finalize(tx);
-
-            // Once a position is repaid, it might allow to process pending withdrawal of supply
-            ignore await* withdrawal_queue.process_pending_withdrawals();
-
-            #ok(payload);
-        };
-
-        public func preview_repay({
-            account: Account;
-            repayment: Repayment;
-        }) : Result<BorrowOperation, Text> {
-
-            let { finalize; } = switch(prepare_repay({ account; repayment; })){
-                case(#err(err)) { return #err(err); };
-                case(#ok(p)) { p; };
-            };
-
-            #ok(finalize(0));
+            #ok(finalize(0)); // TxIndex is arbitrarily set to 0 for preview
         };
 
         /// Liquidate borrow positions if their health factor is below 1.0.
@@ -343,7 +231,7 @@ module {
             };
         };
 
-        public func get_loans() : Map.Map<Account, Loan> {
+        func get_loans() : Map.Map<Account, Loan> {
 
             let index = indexer.get_index().borrow_index;
 
@@ -352,13 +240,13 @@ module {
             });
         };
 
-        func prepare_operation(operation: BorrowOperationType) : Result<PreparedOperation, Text> {
+        func prepare_operation(args: BorrowOperationArgs) : Result<PreparedOperation, Text> {
 
-            switch(operation){
-                case(#PROVIDE_COLLATERAL (args)) { prepare_supply_collateral(args);   };
-                case(#WITHDRAW_COLLATERAL(args)) { prepare_withdraw_collateral(args); };
-                case(#BORROW_SUPPLY      (args)) { prepare_borrow(args);              };
-                case(#REPAY_SUPPLY       (args)) { prepare_repay(args);               };
+            switch(args.kind){
+                case(#PROVIDE_COLLATERAL (kind_args)) { prepare_supply_collateral   ({ kind_args with account = args.account; }) };
+                case(#WITHDRAW_COLLATERAL(kind_args)) { prepare_withdraw_collateral ({ kind_args with account = args.account; }) };
+                case(#BORROW_SUPPLY      (kind_args)) { prepare_borrow              ({ kind_args with account = args.account; }) };
+                case(#REPAY_SUPPLY       (kind_args)) { prepare_repay               ({ kind_args with account = args.account; }) };
             };
         };
 

@@ -14,7 +14,6 @@ import { test; suite; } "mo:test/async";
 import Map "mo:map/Map";
 import Set "mo:map/Set";
 import Fuzz "mo:fuzz";
-import Debug "mo:base/Debug";
 import Result "mo:base/Result";
 
 import { verify; Testify; } = "../../utils/Testify";
@@ -164,20 +163,14 @@ await suite("LendingPool", func(): async() {
         // === Collateral Flow ===
 
         // Borrower supplies 5000 worth of collateral
-        let collateral_1_result = await* borrow_registry.supply_collateral({
-            account = borrower;
-            amount = 5000;
-        });
+        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #PROVIDE_COLLATERAL({ amount = 5000 }); });
         verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // === Borrow Flow ===
 
         // Borrower borrows 200 tokens
-        let borrow_1_result = await* borrow_registry.borrow({
-            account = borrower;
-            amount = 200;
-        });
+        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #BORROW_SUPPLY({ amount = 200 }); });
         verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
 
         // 200 tokens have left the pool
@@ -209,10 +202,7 @@ await suite("LendingPool", func(): async() {
         // === Borrower Repayment ===
 
         // Borrower repays FULL amount, got to 201 tokens to account for accrued interest
-        let repay_result = await* borrow_registry.repay({
-            account = borrower;
-            repayment = #FULL;
-        });
+        let repay_result = await* borrow_registry.run_operation({ account = borrower; kind = #REPAY_SUPPLY({ repayment = #FULL }); });
         verify(Result.isOk(repay_result), true, Testify.bool.equal);
 
         // Protocol should receive more tokens than it lent out due to interest
@@ -244,9 +234,9 @@ await suite("LendingPool", func(): async() {
         // === Collateral Withdrawal ===
 
         // Borrower withdraw 5000 worth of collateral
-        let collateral_withdrawal_result = await* borrow_registry.withdraw_collateral({
-            account = borrower;
-            amount = 5000;
+        let collateral_withdrawal_result = await* borrow_registry.run_operation({ 
+            account = borrower; 
+            kind = #WITHDRAW_COLLATERAL({ amount = 5000 });
         });
         verify(Result.isOk(collateral_withdrawal_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (protocol, 0), (lender, 0), (borrower, 5_000) ], equal_balances);
@@ -356,18 +346,12 @@ await suite("LendingPool", func(): async() {
         verify(supply_accounting.balances(), [ (dex, 2_000), (protocol, 1_000), (lender, 9_000), (borrower, 10_000) ], equal_balances);
         
         // Borrower supplies 2000 worth of collateral
-        let collateral_1_result = await* borrow_registry.supply_collateral({
-            account = borrower;
-            amount = 2000;
-        });
+        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #PROVIDE_COLLATERAL({ amount = 2000 }); });
         verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (dex, 0), (protocol, 2_000), (lender, 0), (borrower, 8_000) ], equal_balances);
 
         // Borrower borrows 500 tokens
-        let borrow_1_result = await* borrow_registry.borrow({
-            account = borrower;
-            amount = 500;
-        });
+        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #BORROW_SUPPLY({ amount = 500 }); });
         verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
         verify(supply_accounting.balances(), [ (dex, 2_000), (protocol, 500), (lender, 9_000), (borrower, 10_500) ], equal_balances);
 
@@ -524,18 +508,12 @@ await suite("LendingPool", func(): async() {
         verify(supply_accounting.balances(), [ (protocol, 1_000), (lender, 0), (borrower, 1_000) ], equal_balances);
 
         // Borrower supplies 5000 worth of collateral
-        let collateral_1_result = await* borrow_registry.supply_collateral({
-            account = borrower;
-            amount = 5000;
-        });
+        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #PROVIDE_COLLATERAL({ amount = 5000 }); });
         verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // Borrower borrows 900 tokens (almost all liquidity)
-        let borrow_1_result = await* borrow_registry.borrow({
-            account = borrower;
-            amount = 900;
-        });
+        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #BORROW_SUPPLY({ amount = 900 }); });
         verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
         verify(supply_accounting.balances(), [ (protocol, 100), (lender, 0), (borrower, 1_900) ], equal_balances);
 
@@ -568,10 +546,7 @@ await suite("LendingPool", func(): async() {
 
         // Now, borrower repays 900 tokens
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(3)))), #repeatedly);
-        let repay_result = await* borrow_registry.repay({
-            account = borrower;
-            repayment = #FULL;
-        });
+        let repay_result = await* borrow_registry.run_operation({ account = borrower; kind = #REPAY_SUPPLY({ repayment = #FULL }); });
         verify(Result.isOk(repay_result), true, Testify.bool.equal);
 
         // After repayment, the withdrawal queue should have processed the rest

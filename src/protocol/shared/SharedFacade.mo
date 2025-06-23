@@ -35,6 +35,7 @@ module {
     type SYieldState = Types.SYieldState;
     type LoanPosition = LendingTypes.LoanPosition;
     type BorrowOperation = LendingTypes.BorrowOperation;
+    type OperationKindArgs = LendingTypes.OperationKindArgs;
 
     public class SharedFacade({
         controller: Controller.Controller;
@@ -121,24 +122,20 @@ module {
             queries.get_lending_index();
         };
 
-        public func supply_collateral({ caller: Principal; subaccount: ?Blob; amount: Nat; }) : async* Result<BorrowOperation, Text> {
-            await* controller.supply_collateral({ account = { owner = caller; subaccount; }; amount; });
+        public func run_borrow_operation({
+            caller: Principal;
+            subaccount: ?Blob;
+            args: OperationKindArgs;
+        }) : async* Result<BorrowOperation, Text> {
+            await* controller.run_borrow_operation( { account = { owner = caller; subaccount; }; kind = args; } );
         };
 
-        public func preview_supply_collateral({ caller: Principal; subaccount: ?Blob; amount: Nat; }) : Result<BorrowOperation, Text> {
-           controller.preview_supply_collateral({ account = { owner = caller; subaccount; }; amount; });
-        };
-
-        public func withdraw_collateral({ caller: Principal; subaccount: ?Blob; amount: Nat; }) : async* Result<BorrowOperation, Text> {
-            await* controller.withdraw_collateral({ account = { owner = caller; subaccount; }; amount; });
-        };
-
-        public func borrow({ caller: Principal; subaccount: ?Blob; amount: Nat; }) : async* Result<BorrowOperation, Text> {
-            await* controller.borrow({ account = { owner = caller; subaccount; }; amount; });
-        };
-
-        public func repay({ caller: Principal; subaccount: ?Blob; repayment: { #PARTIAL: Nat; #FULL; }; }) : async* Result<BorrowOperation, Text> {
-            await* controller.repay({ account = { owner = caller; subaccount; }; repayment; });
+        public func run_borrow_operation_for_free({
+            caller: Principal;
+            subaccount: ?Blob;
+            args: OperationKindArgs;
+        }) : Result<BorrowOperation, Text> {
+            controller.run_borrow_operation_for_free( { account = { owner = caller; subaccount; }; kind = args; } );
         };
 
         public func get_loan_position(account: Account) : LoanPosition {

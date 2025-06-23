@@ -143,18 +143,21 @@ module {
     };
 
     public type CommonBorrowArgs = {
-        account: Account;
         amount: Nat;
     };
 
-    public type BorrowOperation = {
+    public type OperationKindArgs = {
         #PROVIDE_COLLATERAL: CommonBorrowArgs;
         #WITHDRAW_COLLATERAL: CommonBorrowArgs;
         #BORROW_SUPPLY: CommonBorrowArgs;
         #REPAY_SUPPLY: {
-            account: Account;
             repayment: Repayment;
         };
+    };
+
+    public type BorrowOperationArgs = {
+        account: Account;
+        kind: OperationKindArgs;
     };
 
     public type RepaymentInfo = {
