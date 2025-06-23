@@ -142,6 +142,21 @@ module {
         #FULL;
     };
 
+    public type CommonBorrowArgs = {
+        account: Account;
+        amount: Nat;
+    };
+
+    public type BorrowOperation = {
+        #PROVIDE_COLLATERAL: CommonBorrowArgs;
+        #WITHDRAW_COLLATERAL: CommonBorrowArgs;
+        #BORROW_SUPPLY: CommonBorrowArgs;
+        #REPAY_SUPPLY: {
+            account: Account;
+            repayment: Repayment;
+        };
+    };
+
     public type RepaymentInfo = {
         amount: Nat;
         raw_repaid: Float;

@@ -123,28 +123,6 @@ module {
         state: LockState;
     };
 
-    type CommonBorrowArgs = {
-        account: Account;
-        subaccount: ?Blob;
-        amount: Nat;
-    };
-
-    public type Repayment  = {
-        #PARTIAL: Nat;
-        #FULL;
-    };
-
-    public type BorrowOperation = {
-        #PROVIDE_COLLATERAL: CommonBorrowArgs;
-        #WITHDRAW_COLLATERAL: CommonBorrowArgs;
-        #BORROW_SUPPLY: CommonBorrowArgs;
-        #REPAY_SUPPLY: {
-            account: Account;
-            subaccount: ?Blob;
-            repayment: Repayment;
-        };
-    };
-
     // SHARED TYPES
 
     public type SYieldState = {

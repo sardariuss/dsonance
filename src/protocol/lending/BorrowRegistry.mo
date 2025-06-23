@@ -37,6 +37,8 @@ module {
     type BorrowParameters      = LendingTypes.BorrowParameters;
     type BorrowPositionTx      = LendingTypes.BorrowPositionTx;
     type BorrowOperation       = LendingTypes.BorrowOperation;
+    type CommonBorrowArgs      = LendingTypes.CommonBorrowArgs;
+    type BorrowOperationType   = LendingTypes.BorrowOperationType;
     type Liquidation = {
         raw_borrowed: Float;
         total_collateral: Nat;
@@ -69,12 +71,47 @@ module {
             Map.vals(register.borrow_positions);
         };
 
+        public func execute_borrow_operation(operation: BorrowOperationType) : async* Result<BorrowOperation, Text> {
+
+            let { to_transfer; finalize; } = switch(prepare_operation(operation)){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
+
+            let transfer = switch(operation){
+                case(#PROVIDE_COLLATERAL ({account})) {  await* collateral.pull    ({ from = account; amount = to_transfer; });         };
+                case(#WITHDRAW_COLLATERAL({account})) { (await* collateral.transfer({ to = account;   amount = to_transfer; })).result; };
+                case(#BORROW_SUPPLY      ({account})) {  await* supply.transfer    ({ to = account;   amount = to_transfer; });         };
+                case(#REPAY_SUPPLY       ({account})) {  await* supply.pull        ({ from = account; amount = to_transfer; });         };
+            };
+
+            let tx = switch(transfer){
+                case(#err(err)) { return #err("Failed to perform transfer: " # debug_show(err)); };
+                case(#ok(tx_index)) { tx_index; };
+            };
+
+            #ok(finalize(tx));
+        };
+
+        public func preview_borrow_operation(operation: BorrowOperationType) : Result<BorrowOperation, Text> {
+
+            let { finalize; } = switch(prepare_operation(operation)){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
+
+            #ok(finalize(0));
+        };
+
         public func supply_collateral({
             account: Account;
             amount: Nat;
         }) : async* Result<BorrowOperation, Text> {
 
-            let { to_transfer; finalize; } = prepare_supply_collateral({ account; amount; });
+            let { to_transfer; finalize; } = switch(prepare_supply_collateral({ account; amount; })){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
 
             // Transfer the collateral from the user account
             let tx = switch(await* collateral.pull({ from = account; amount = to_transfer; })){
@@ -89,7 +126,10 @@ module {
             account: Account;
             amount: Nat;
         }) : Result<BorrowOperation, Text> {
-            let { finalize; } = prepare_supply_collateral({ account; amount; });
+            let { finalize } = switch(prepare_supply_collateral({ account; amount; })){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
             #ok(finalize(0));
         };
 
@@ -312,6 +352,16 @@ module {
             });
         };
 
+        func prepare_operation(operation: BorrowOperationType) : Result<PreparedOperation, Text> {
+
+            switch(operation){
+                case(#PROVIDE_COLLATERAL (args)) { prepare_supply_collateral(args);   };
+                case(#WITHDRAW_COLLATERAL(args)) { prepare_withdraw_collateral(args); };
+                case(#BORROW_SUPPLY      (args)) { prepare_borrow(args);              };
+                case(#REPAY_SUPPLY       (args)) { prepare_repay(args);               };
+            };
+        };
+
         func common_finalize({
             account: Account;
             position: BorrowPosition; 
@@ -330,7 +380,7 @@ module {
         func prepare_supply_collateral({
             account: Account;
             amount: Nat;
-        }) : PreparedOperation {
+        }) : Result<PreparedOperation, Text> {
 
             let position = Map.get(register.borrow_positions, MapUtils.acchash, account);
             let update = borrow_positionner.provide_collateral({ position; account; amount; });
@@ -343,7 +393,7 @@ module {
                 });
             };
 
-            { to_transfer = amount; finalize; };
+            #ok({ to_transfer = amount; finalize; });
         };
 
         func prepare_withdraw_collateral({
