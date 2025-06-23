@@ -17,7 +17,7 @@ const Dashboard = () => {
   });
 
   const { data: indexerState } = protocolActor.useQueryCall({
-    functionName: 'get_indexer_state',
+    functionName: 'get_lending_index',
   });
 
   const { data: btcMetadata } = ckBtcActor.useQueryCall({

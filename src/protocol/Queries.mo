@@ -187,8 +187,8 @@ module {
             state.lending.parameters;
         };
 
-        public func get_indexer_state() : Types.IndexerState {
-            state.lending.state;
+        public func get_lending_index() : Types.LendingIndex {
+            state.lending.index.value;
         };
 
     };

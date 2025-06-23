@@ -33,8 +33,6 @@ module {
     type SVoteType = Types.SVoteType;
     type YieldState = Types.YieldState;
     type SYieldState = Types.SYieldState;
-    type IndexerState = Types.IndexerState;
-    type SIndexerState = Types.SIndexerState;
 
     public func shareOpt<T, S>(opt: ?T, f: T -> S) : ?S {
         Option.map(opt, f);
@@ -131,21 +129,6 @@ module {
                     aggregate = shareTimeline(v.aggregate);
                     tvl = v.tvl;
                 });
-            };
-        };
-    };
-
-    public func shareIndexerState(indexer_state: IndexerState) : SIndexerState {
-        {
-            utilization = indexer_state.utilization;
-            supply_index = { value = indexer_state.supply_index; timestamp = indexer_state.last_update_timestamp };
-            borrow_index = { value = indexer_state.borrow_index; timestamp = indexer_state.last_update_timestamp };
-            last_update_timestamp = indexer_state.last_update_timestamp;
-            borrow_rate = indexer_state.borrow_rate;
-            supply_rate = indexer_state.supply_rate;
-            accrued_interests = {
-                fees = indexer_state.accrued_interests.fees;
-                supply = indexer_state.accrued_interests.supply;
             };
         };
     };

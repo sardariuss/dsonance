@@ -32,7 +32,7 @@ module {
         
         public func get_balance() : Nat {
             let supply_balance = ledger_account.get_local_balance();
-            let interest_fees = Math.ceil_to_int(indexer.get_state().accrued_interests.fees);
+            let interest_fees = Math.ceil_to_int(indexer.get_index().accrued_interests.fees);
             if (supply_balance <= interest_fees) {
                 Debug.print("Not enough balance to transfer withdrawals, available balance: " # Int.toText(supply_balance) # ", fees: " # Int.toText(interest_fees));
                 return 0;
@@ -53,7 +53,7 @@ module {
         };
 
         public func get_available_fees() : Nat {
-            Int.abs(Float.toInt(indexer.get_state().accrued_interests.fees));
+            Int.abs(Float.toInt(indexer.get_index().accrued_interests.fees));
         };
 
         public func withdraw_fees({

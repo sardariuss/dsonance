@@ -9,6 +9,7 @@ import VoteTypeController      "votes/VoteTypeController";
 import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
 import ProtocolTimer           "ProtocolTimer";
+import LendingTypes            "lending/Types";
 import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
@@ -48,7 +49,8 @@ module {
     type Duration = Types.Duration;
     type YieldState = Types.YieldState;
     type PutBallotError = Types.PutBallotError;
-    type LoanPosition = Types.LoanPosition;
+    type LoanPosition = LendingTypes.LoanPosition;
+    type BorrowOperation = LendingTypes.BorrowOperation;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -173,35 +175,36 @@ module {
             });
         };
 
-        public func supply_collateral({
-            account: Account;
-            amount: Nat;
-        }) : async* Result<(), Text> {
+        public func supply_collateral({ account: Account; amount: Nat; }) : async* Result<BorrowOperation, Text> {
             await* borrow_registry.supply_collateral({ account; amount; });
         };
 
-        public func withdraw_collateral({
-            account: Account;
-            amount: Nat;
-        }) : async* Result<(), Text> {
+        public func preview_supply_collateral({ account: Account; amount: Nat; }) : Result<BorrowOperation, Text> {
+            borrow_registry.preview_supply_collateral({ account; amount; });
+        };
+
+        public func withdraw_collateral({ account: Account; amount: Nat; }) : async* Result<BorrowOperation, Text> {
             await* borrow_registry.withdraw_collateral({ account; amount; });
         };
 
-        public func borrow({
-            account: Account;
-            amount: Nat;
-        }) : async* Result<(), Text> {
+        public func preview_withdraw_collateral({ account: Account; amount: Nat; }) : Result<BorrowOperation, Text> {
+            borrow_registry.preview_withdraw_collateral({ account; amount; });
+        };
+
+        public func borrow({ account: Account; amount: Nat; }) : async* Result<BorrowOperation, Text> {
             await* borrow_registry.borrow({ account; amount; });
         };
 
-        public func repay({
-            account: Account;
-            repayment: {
-                #PARTIAL: Nat;
-                #FULL;
-            };
-        }) : async* Result<(), Text> {
+        public func preview_borrow({ account: Account; amount: Nat; }) : Result<BorrowOperation, Text> {
+            borrow_registry.preview_borrow({ account; amount; });
+        };
+
+        public func repay({ account: Account; repayment: { #PARTIAL: Nat; #FULL; }; }) : async* Result<BorrowOperation, Text> {
             await* borrow_registry.repay({ account; repayment; });
+        };
+
+        public func preview_repay({ account: Account; repayment: { #PARTIAL: Nat; #FULL; }; }) : Result<BorrowOperation, Text> {
+            borrow_registry.preview_repay({ account; repayment; });
         };
 
         public func get_loan_position(account: Account) : LoanPosition {

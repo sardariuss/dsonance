@@ -1,4 +1,5 @@
 import Types          "Types";
+import LendingTypes   "lending/Types";
 import SharedFacade   "shared/SharedFacade";
 import Factory        "Factory";
 import MigrationTypes "migrations/Types";
@@ -131,27 +132,27 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_lending_parameters();
     };
 
-    public query func get_indexer_state() : async Types.SIndexerState {
-        getFacade().get_indexer_state();
+    public query func get_lending_index() : async Types.LendingIndex {
+        getFacade().get_lending_index();
     };
 
-    public shared({caller}) func supply_collateral({ subaccount: ?Blob; amount: Nat; }) : async Result.Result<(), Text> {
+    public shared({caller}) func supply_collateral({ subaccount: ?Blob; amount: Nat; }) : async Result.Result<LendingTypes.BorrowOperation, Text> {
         await* getFacade().supply_collateral({ caller; subaccount; amount; });
     };
 
-    public shared({caller}) func withdraw_collateral({ subaccount: ?Blob; amount: Nat; }) : async Result.Result<(), Text> {
+    public shared({caller}) func withdraw_collateral({ subaccount: ?Blob; amount: Nat; }) : async Result.Result<LendingTypes.BorrowOperation, Text> {
         await* getFacade().withdraw_collateral({ caller; subaccount; amount; });
     };
 
-    public shared({caller}) func borrow({ subaccount: ?Blob; amount: Nat; }) : async Result.Result<(), Text> {
+    public shared({caller}) func borrow({ subaccount: ?Blob; amount: Nat; }) : async Result.Result<LendingTypes.BorrowOperation, Text> {
         await* getFacade().borrow({ caller; subaccount; amount; });
     };
 
-    public shared({caller}) func repay({ subaccount: ?Blob; repayment: { #PARTIAL: Nat; #FULL; }; }) : async Result.Result<(), Text> {
+    public shared({caller}) func repay({ subaccount: ?Blob; repayment: { #PARTIAL: Nat; #FULL; }; }) : async Result.Result<LendingTypes.BorrowOperation, Text> {
         await* getFacade().repay({ caller; subaccount; repayment; });
     };
 
-    public query func get_loan_position(account: Types.Account) : async Types.LoanPosition {
+    public query func get_loan_position(account: Types.Account) : async LendingTypes.LoanPosition {
         getFacade().get_loan_position(account);
     };
 

@@ -41,7 +41,10 @@ module {
         };
 
         // ⚠️ This function is only for preview purposes, it does not perform the transfer.
+        // It is intended to be used in a query for previewing the supply position.
         // No check are done to ensure that the supply cap is not reached.
+        // It is required to do the add_raw_supplied to update the indexer in order to notify the
+        // foresight updater which is an observer of the indexer.
         public func add_position_without_transfer(input: SupplyInput) : Result<Nat, Text> {
 
             let { id; supplied; } = input;
@@ -62,7 +65,7 @@ module {
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
-            if (indexer.get_state().utilization.raw_supplied + Float.fromInt(supplied) > Float.fromInt(parameters.supply_cap)){
+            if (indexer.get_index().utilization.raw_supplied + Float.fromInt(supplied) > Float.fromInt(parameters.supply_cap)){
                 return #err("Cannot add position, the supply cap of " # debug_show(parameters.supply_cap) # " is reached");
             };
 

@@ -61,7 +61,7 @@ module {
     public type TransferError      = Types.Current.TransferError;
     public type Index              = Types.Current.Index;
     public type Utilization        = Types.Current.Utilization;
-    public type IndexerState       = Types.Current.IndexerState;
+    public type LendingIndex       = Types.Current.LendingIndex;
 
     // CANISTER ARGS
 
@@ -123,20 +123,29 @@ module {
         state: LockState;
     };
 
-    // SHARED TYPES
-
-    public type SIndexerState = {
-        utilization: Utilization;
-        supply_rate: Float;
-        borrow_rate: Float;
-        accrued_interests: {
-            fees: Float;
-            supply: Float;
-        };
-        borrow_index: Index;
-        supply_index: Index;
-        last_update_timestamp: Nat;
+    type CommonBorrowArgs = {
+        account: Account;
+        subaccount: ?Blob;
+        amount: Nat;
     };
+
+    public type Repayment  = {
+        #PARTIAL: Nat;
+        #FULL;
+    };
+
+    public type BorrowOperation = {
+        #PROVIDE_COLLATERAL: CommonBorrowArgs;
+        #WITHDRAW_COLLATERAL: CommonBorrowArgs;
+        #BORROW_SUPPLY: CommonBorrowArgs;
+        #REPAY_SUPPLY: {
+            account: Account;
+            subaccount: ?Blob;
+            repayment: Repayment;
+        };
+    };
+
+    // SHARED TYPES
 
     public type SYieldState = {
         tvl: Nat;
@@ -234,22 +243,6 @@ module {
             time_init: Nat;
         };
         clock: SClockParameters;
-    };
-
-    public type LoanPosition = {
-        account: Account;
-        collateral: Nat;
-        loan: ?Loan;
-    };
-
-    public type Loan = {
-        raw_borrowed: Float;
-        current_owed: Float;
-        ltv: Float; // 0 if no borrow
-        health: Float; // infinity if no borrow
-        required_repayment: Nat;
-        collateral_to_liquidate: ?Nat;
-        liquidation_penalty: Float;
     };
 
     // CUSTOM TYPES

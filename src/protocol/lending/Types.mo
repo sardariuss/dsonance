@@ -162,6 +162,11 @@ module {
         tx: [BorrowPositionTx];
     };
 
+    public type BorrowOperation = {
+        position: LoanPosition;
+        index: LendingIndex;
+    };
+
     public type LoanPosition = {
         account: Account;
         collateral: Nat;
@@ -221,20 +226,7 @@ module {
         ratio: Float; // Utilization ratio (0.0 to 1.0)
     };
 
-    public type IndexerState = {
-        var utilization: Utilization;
-        var borrow_rate: Float; // borrow rate (ratio)
-        var supply_rate: Float; // supply rate (ratio)
-        var accrued_interests: {
-            fees: Float;
-            supply: Float;
-        };
-        var borrow_index: Float; // growing value, starts at 1.0
-        var supply_index: Float; // growing value, starts at 1.0
-        var last_update_timestamp: Nat; // last time the rates were updated
-    };
-
-    public type SIndexerState = {
+    public type LendingIndex = {
         utilization: Utilization;
         borrow_rate: Float;
         supply_rate: Float;
@@ -244,7 +236,7 @@ module {
         };
         borrow_index: Index;
         supply_index: Index;
-        last_update_timestamp: Nat;
+        timestamp: Nat;
     };
 
     public type LendingRegister = BorrowRegister and SupplyRegister and WithdrawalRegister;

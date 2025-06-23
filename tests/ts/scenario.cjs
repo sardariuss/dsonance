@@ -253,7 +253,7 @@ async function callCanisterMethod() {
 
         // Borrow
         const { principal, actors } = getRandomUser(userActors);
-        const utilization = (await actors.protocol.get_indexer_state()).utilization;
+        const utilization = (await actors.protocol.get_lending_index()).utilization;
         const availableToBorrow = Math.max((utilization.raw_supplied * (1.0 - RESERVE_LIQUIDITY) - utilization.raw_borrowed), 0.0);
         const collateralRequired = Math.floor(availableToBorrow * PRICE_BTC / TARGET_LTV);
         const usdtBalance = await actors.usdt.icrc1_balance_of({ owner: principal, subaccount: [] });

@@ -9,7 +9,7 @@ No need for a callback on the lock_scheduler anymore, as long as try_unlock retu
 the shares can be removed on by one.
 What was preventing me from removing the obs?
  - the fact that it was used in the add_lock, not only try_unlock
- - weird logic on last_update_timestamp in LockScheduler
+ - weird logic on timestamp in LockScheduler
 
 Clock issue: it is not possible to update the indexer "in the past" because the indexer has its own clock.
 
@@ -21,7 +21,6 @@ Incovenients:
  - small gain loss
  - indexer needs to have its own clock
  - requires an observer in LockScheduler
-
 
 Problem: with current logic to get active_locks, some locks might be missed if the ballot.release_date is before
 indexer.last_update. Current logic to get active_locks suck because its based on timestamps, try_unlock should return the remaning active locks

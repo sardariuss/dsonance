@@ -16,7 +16,7 @@ import Result             "mo:base/Result";
 
 module {
 
-    type IndexerState        = LendingTypes.IndexerState;
+    type LendingIndex        = LendingTypes.LendingIndex;
     type LendingRegister     = LendingTypes.LendingRegister;
     type LendingParameters   = LendingTypes.LendingParameters;
     type ILedgerAccount      = LedgerTypes.ILedgerAccount;
@@ -30,7 +30,7 @@ module {
 
     public func build({
         parameters: LendingParameters;
-        state: IndexerState;
+        index: { var value: LendingIndex; };
         register: LendingRegister;
         admin: Principal;
         protocol_info: ProtocolInfo;
@@ -53,7 +53,7 @@ module {
         let indexer = Indexer.Indexer({
             clock;
             parameters;
-            state;
+            index;
             utilization_updater;
             interest_rate_curve = InterestRateCurve.InterestRateCurve(
                 parameters.interest_rate_curve

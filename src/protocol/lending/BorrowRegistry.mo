@@ -28,18 +28,27 @@ module {
     type BorrowPosition        = LendingTypes.BorrowPosition;
     type Loan                  = LendingTypes.Loan;
     type LoanPosition          = LendingTypes.LoanPosition;
+    type LendingIndex          = LendingTypes.LendingIndex;
     type BorrowRegister        = LendingTypes.BorrowRegister;
     type Borrow                = LendingTypes.Borrow;
     type IDex                  = LedgerTypes.IDex;
     type ILedgerAccount        = LedgerTypes.ILedgerAccount;
     type ISwapPayable          = LedgerTypes.ISwapPayable;
     type BorrowParameters      = LendingTypes.BorrowParameters;
+    type BorrowPositionTx      = LendingTypes.BorrowPositionTx;
+    type BorrowOperation       = LendingTypes.BorrowOperation;
     type Liquidation = {
         raw_borrowed: Float;
         total_collateral: Nat;
     };
+    type PreparedOperation = {
+        to_transfer: Nat;
+        finalize: (TxIndex) -> BorrowOperation;
+    };
 
     // @todo: function to delete positions repaid that are too old
+    // @todo: check reentry risks on borrow, repay, supply_collateral, withdraw_collateral!
+    // @todo: check if OK to update of index before/after transfer
     public class BorrowRegistry({
         register: BorrowRegister;
         supply: SupplyAccount.SupplyAccount;
@@ -63,153 +72,129 @@ module {
         public func supply_collateral({
             account: Account;
             amount: Nat;
-        }) : async* Result<(), Text> {
+        }) : async* Result<BorrowOperation, Text> {
+
+            let { to_transfer; finalize; } = prepare_supply_collateral({ account; amount; });
 
             // Transfer the collateral from the user account
-            let tx = switch(await* collateral.pull({ from = account; amount; })){
+            let tx = switch(await* collateral.pull({ from = account; amount = to_transfer; })){
                 case(#err(_)) { return #err("Failed to transfer collateral from the user account"); };
                 case(#ok(tx)) { tx; };
             };
 
-            let position =  Map.get(register.borrow_positions, MapUtils.acchash, account);
+            #ok(finalize(tx));
+        };
 
-            // Create or update the borrow position
-            var update = borrow_positionner.provide_collateral({ position; account; amount; });
-            update := BorrowPositionner.add_tx({ position = update; tx = #COLLATERAL_PROVIDED(tx); });
-            Map.set(register.borrow_positions, MapUtils.acchash, account, update);
-
-            #ok;
+        public func preview_supply_collateral({
+            account: Account;
+            amount: Nat;
+        }) : Result<BorrowOperation, Text> {
+            let { finalize; } = prepare_supply_collateral({ account; amount; });
+            #ok(finalize(0));
         };
 
         public func withdraw_collateral({
             account: Account;
             amount: Nat;
-        }) : async* Result<(), Text> {
-
-            let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
-                case(null) { return #err("No position found for account " # debug_show(account)); };
-                case(?p) { p; };
-            };
-
-            let index = indexer.get_state().borrow_index;
+        }) : async* Result<BorrowOperation, Text> {
 
             // Remove the collateral from the borrow position
-            var update = switch(borrow_positionner.withdraw_collateral({ position; amount; index; })){
+            let { to_transfer; finalize; } = switch(prepare_withdraw_collateral({ account; amount; })){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
 
             // Transfer the collateral to the user account
-            let tx = switch((await* collateral.transfer({ to = account; amount; })).result){
+            let tx = switch((await* collateral.transfer({ to = account; amount = to_transfer; })).result){
                 case(#err(_)) { return #err("Failed to transfer the collateral to the user account"); };
                 case(#ok(tx)) { tx; };
             };
 
-            update := BorrowPositionner.add_tx({ position = update; tx = #COLLATERAL_WITHDRAWNED(tx); });
-            Map.set(register.borrow_positions, MapUtils.acchash, account, update);
+            #ok(finalize(tx));
+        };
 
-            #ok;
+        public func preview_withdraw_collateral({
+            account: Account;
+            amount: Nat;
+        }) : Result<BorrowOperation, Text> {
+            let { finalize } = switch(prepare_withdraw_collateral({ account; amount; })){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
+            #ok(finalize(0));
         };
 
         public func borrow({
             account: Account;
             amount: Nat;
-        }) : async* Result<(), Text> {
+        }) : async* Result<BorrowOperation, Text> {
 
-            let supply_balance = supply.get_balance();
-            if (supply_balance < amount){
-                return #err("Available liquidity " # debug_show(supply_balance) # " is less than the requested amount " # debug_show(amount));
-            };
-            
-            let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
-                case(null) { return #err("No borrow position found for account " # debug_show(account)); };
-                case(?p) { p; };
-            };
-
-            // @todo: should add to a map of <Account, Nat> the amount concurrent borrows that could 
-            // increase the utilization ratio more than 1.0
-
-            // Verify the utilization does not exceed the allowed limit
-            let utilization = switch(utilization_updater.add_raw_borrow(indexer.get_state().utilization, amount)){
-                case(#err(err)) { return #err("Failed to update utilization: " # err); };
-                case(#ok(u)) { u; };
-            };
-            if (utilization.ratio > 1.0) {
-                return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
-            };
-            if (utilization.raw_borrowed > Float.fromInt(parameters.borrow_cap)){
-                return #err("Borrow cap of " # debug_show(parameters.borrow_cap) # " exceeded with current utilization " # debug_show(utilization));
-            };
-
-            let index = indexer.get_state().borrow_index;
-
-            var update = switch(borrow_positionner.borrow_supply({ position; index; amount; })){
+            let { to_transfer; finalize; } = switch(prepare_borrow({ account; amount; })){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
             
-            // Capture the borrow index before initiating the transfer.
-            // Note: There may be a slight time drift (~1–2 seconds) between capturing the index
-            // and updating the user's position, due to the await on the transfer.
-            // This means the position will be recorded with a slightly stale index.
-            // In practice, this has negligible impact on accuracy since the interest accrued
-            // over a few seconds is minimal. This tradeoff is acceptable to preserve
-            // consistency in how interest is calculated and avoid retroactive index shifts.
-            
             // Transfer the borrow amount to the user account
-            let tx = switch(await* supply.transfer({ to = account; amount; })){
+            let tx = switch(await* supply.transfer({ to = account; amount = to_transfer; })){
                 case(#err(err)) { return #err("Failed to transfer borrow amount to the user account: " # debug_show(err)); };
                 case(#ok(tx)) { tx; };
             };
 
-            // Update the borrow position
-            update := BorrowPositionner.add_tx({ position = update; tx = #SUPPLY_BORROWED(tx); });
-            Map.set(register.borrow_positions, MapUtils.acchash, account, update);
-            indexer.add_raw_borrow({ amount; });
+            #ok(finalize(tx));
+        };
 
-            #ok;
+        public func preview_borrow({
+            account: Account;
+            amount: Nat;
+        }) : Result<BorrowOperation, Text> {
+            let { finalize; } = switch(prepare_borrow({ account; amount; })){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
+            #ok(finalize(0));
         };
 
         public func repay({
             account: Account;
             repayment: Repayment;
-        }) : async* Result<(), Text> {
-            
-            let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
-                case(null) { return #err("No position found for account " # debug_show(account)); };
-                case(?p) { p; };
-            };
+        }) : async* Result<BorrowOperation, Text> {
 
-            let index = indexer.get_state().borrow_index;
-
-            let { amount; raw_repaid; remaining; } = switch(borrow_positionner.repay_supply({ position; index; repayment; })){
+            let { to_transfer; finalize; } = switch(prepare_repay({ account; repayment; })){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
 
             // Transfer the repayment from the user
-            let tx = switch(await* supply.pull({ from = account; amount; })){
+            let tx = switch(await* supply.pull({ from = account; amount = to_transfer; })){
                 case(#err(_)) { return #err("Transfer failed"); };
                 case(#ok(tx)) { tx; };
             };
 
-            // Update the borrow position
-            var update = { position with borrow = remaining; };
-            update := BorrowPositionner.add_tx({ position = update; tx = #SUPPLY_REPAID(tx); });
-            Map.set(register.borrow_positions, MapUtils.acchash, account, update);
+            let payload = finalize(tx);
 
-            indexer.remove_raw_borrow({ amount = raw_repaid });
-
-            // Once a position is repaid, it might allow the unlock withdrawal of supply
+            // Once a position is repaid, it might allow to process pending withdrawal of supply
             ignore await* withdrawal_queue.process_pending_withdrawals();
 
-            #ok;
+            #ok(payload);
+        };
+
+        public func preview_repay({
+            account: Account;
+            repayment: Repayment;
+        }) : Result<BorrowOperation, Text> {
+
+            let { finalize; } = switch(prepare_repay({ account; repayment; })){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
+
+            #ok(finalize(0));
         };
 
         /// Liquidate borrow positions if their health factor is below 1.0.
         public func check_all_positions_and_liquidate() : async* Result<(), Text> {
 
-            let index = indexer.get_state().borrow_index;
+            let index = indexer.get_index().borrow_index;
             let loans = get_loans();
 
             let total_to_liquidate = IterUtils.fold_left(Map.vals(loans), 0, func (sum: Nat, loan: Loan): Nat {
@@ -291,6 +276,7 @@ module {
                 total_raw_repaid += raw_repaid;
             };
 
+            // @todo: does this still make sense? remove_raw_borrow is already called before
             indexer.remove_raw_borrow({ amount = total_raw_repaid });
 
             // Once positions are liquidated, it might allow the unlock withdrawal of supply
@@ -301,7 +287,7 @@ module {
 
         public func get_loan_position(account: Account) : LoanPosition {
 
-            let index = indexer.get_state().borrow_index;
+            let index = indexer.get_index().borrow_index;
 
             switch (Map.get(register.borrow_positions, MapUtils.acchash, account)){
                 case(null) { 
@@ -319,11 +305,154 @@ module {
 
         public func get_loans() : Map.Map<Account, Loan> {
 
-            let index = indexer.get_state().borrow_index;
+            let index = indexer.get_index().borrow_index;
 
             Map.mapFilter<Account, BorrowPosition, Loan>(register.borrow_positions, MapUtils.acchash, func (account: Account, position: BorrowPosition) : ?Loan {
                 borrow_positionner.to_loan_position({ position; index; }).loan;
             });
+        };
+
+        func common_finalize({
+            account: Account;
+            position: BorrowPosition; 
+            tx: BorrowPositionTx;
+        }) : BorrowOperation {
+            // Add the transaction to the position
+            let update = BorrowPositionner.add_tx({ position; tx; });
+            Map.set(register.borrow_positions, MapUtils.acchash, account, update);
+            let index = indexer.get_index();
+            {
+                position = borrow_positionner.to_loan_position({ position = update; index = index.borrow_index; });
+                index = indexer.get_index();
+            };
+        };
+
+        func prepare_supply_collateral({
+            account: Account;
+            amount: Nat;
+        }) : PreparedOperation {
+
+            let position = Map.get(register.borrow_positions, MapUtils.acchash, account);
+            let update = borrow_positionner.provide_collateral({ position; account; amount; });
+
+            let finalize = func(tx: TxIndex) : BorrowOperation {
+                common_finalize({
+                    account;
+                    position = update;
+                    tx = #COLLATERAL_PROVIDED(tx);
+                });
+            };
+
+            { to_transfer = amount; finalize; };
+        };
+
+        func prepare_withdraw_collateral({
+            account: Account;
+            amount: Nat;
+        }) : Result<PreparedOperation, Text> {
+
+            let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
+                case(null) { return #err("No position found for account " # debug_show(account)); };
+                case(?p) { p; };
+            };
+
+            let index = indexer.get_index().borrow_index;
+
+            // Remove the collateral from the borrow position
+            let update = switch(borrow_positionner.withdraw_collateral({ position; amount; index; })){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
+
+            let finalize = func(tx: TxIndex) : BorrowOperation {
+                common_finalize({
+                    account;
+                    position = update;
+                    tx = #COLLATERAL_WITHDRAWNED(tx);
+                });
+            };
+
+            #ok({ to_transfer = amount; finalize; });
+        };
+
+        func prepare_borrow({
+            account: Account;
+            amount: Nat;
+        }) : Result<PreparedOperation, Text> {
+
+            let supply_balance = supply.get_balance();
+            if (supply_balance < amount){
+                return #err("Available liquidity " # debug_show(supply_balance) # " is less than the requested amount " # debug_show(amount));
+            };
+
+            let index = indexer.get_index();
+
+            // @todo: should add to a map of <Account, Nat> the amount concurrent borrows that could 
+            // increase the utilization ratio more than 1.0
+
+            // Verify the utilization does not exceed the allowed limit
+            let utilization = switch(utilization_updater.add_raw_borrow(index.utilization, amount)){
+                case(#err(err)) { return #err("Failed to update utilization: " # err); };
+                case(#ok(u)) { u; };
+            };
+            if (utilization.ratio > 1.0) {
+                return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
+            };
+            if (utilization.raw_borrowed > Float.fromInt(parameters.borrow_cap)){
+                return #err("Borrow cap of " # debug_show(parameters.borrow_cap) # " exceeded with current utilization " # debug_show(utilization));
+            };
+
+            let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
+                case(null) { return #err("No borrow position found for account " # debug_show(account)); };
+                case(?p) { p; };
+            };
+
+            let update = switch(borrow_positionner.borrow_supply({ position; index = index.borrow_index; amount; })){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
+
+            let finalize = func(tx: TxIndex) : BorrowOperation {
+                indexer.add_raw_borrow({ amount; });
+                common_finalize({
+                    account;
+                    position = update;
+                    tx = #SUPPLY_BORROWED(tx);
+                });
+            };
+
+            #ok({ to_transfer = amount; finalize; });
+        };
+
+        func prepare_repay({
+            account: Account;
+            repayment: Repayment;
+        }) : Result<PreparedOperation, Text> {
+
+            let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
+                case(null) { return #err("No position found for account " # debug_show(account)); };
+                case(?p) { p; };
+            };
+
+            let index = indexer.get_index().borrow_index;
+
+            let { amount; raw_repaid; remaining; } = switch(borrow_positionner.repay_supply({ position; index; repayment; })){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
+
+            let update = { position with borrow = remaining; };
+
+            let finalize = func(tx: TxIndex) : BorrowOperation {
+                indexer.remove_raw_borrow({ amount = raw_repaid });
+                common_finalize({
+                    account;
+                    position = update;
+                    tx = #SUPPLY_REPAID(tx);
+                });
+            };
+
+            #ok({ to_transfer = amount; finalize; });
         };
 
     };

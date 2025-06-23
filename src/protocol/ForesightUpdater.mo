@@ -15,7 +15,6 @@ module {
     type Foresight = Types.Foresight;
     type YesNoVote = Types.YesNoVote;
     type Timeline<T> = Types.Timeline<T>;
-    type SIndexerState = Types.SIndexerState;
 
     type Iter<T> = Map.Iter<T>;
 
@@ -32,7 +31,7 @@ module {
     public type SupplyInfo = { 
         accrued_interests: Float;
         interests_rate: Float;
-        last_update_timestamp: Nat;
+        timestamp: Nat;
     };
 
     public type ForesightItem = {
@@ -64,11 +63,11 @@ module {
 
         public func update_foresights() {
 
-            let { accrued_interests; interests_rate; last_update_timestamp; } = supply_info;
+            let { accrued_interests; interests_rate; timestamp; } = supply_info;
 
-            // Filter out the inactive items: take only the one which timeline intersects with the last_update_timestamp
+            // Filter out the inactive items: take only the one which timeline intersects with the timestamp
             let active_items = IterUtils.filter<ForesightItem>(get_items(), func(item: ForesightItem) : Bool {
-                item.timestamp <= last_update_timestamp and item.release_date >= last_update_timestamp;
+                item.timestamp <= timestamp and item.release_date >= timestamp;
             });
             
             // Compute the contribution of each item
@@ -82,7 +81,7 @@ module {
                 };
                 {   
                     item with contrib = {
-                        cumulated = weight * Float.fromInt(last_update_timestamp - item.timestamp);
+                        cumulated = weight * Float.fromInt(timestamp - item.timestamp);
                         current = weight;
                     };
                 };
@@ -106,7 +105,7 @@ module {
 
                 let { cumulated; current; } = item.contrib;
 
-                let remaining_duration = Duration.toAnnual(Duration.getDuration({ from = last_update_timestamp; to = item.release_date; }));
+                let remaining_duration = Duration.toAnnual(Duration.getDuration({ from = timestamp; to = item.release_date; }));
                 let lock_duration = Duration.toAnnual(Duration.getDuration({ from = item.timestamp; to = item.release_date; }));
                 
                 
@@ -142,7 +141,7 @@ module {
                         potential = item_apr / item.consent;
                     };
                 };
-                item.update_foresight(foresight, last_update_timestamp);
+                item.update_foresight(foresight, timestamp);
             };
         };
 

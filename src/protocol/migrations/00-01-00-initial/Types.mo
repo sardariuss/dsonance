@@ -586,17 +586,17 @@ module {
         ratio: Float; // Utilization ratio (0.0 to 1.0)
     };
 
-    public type IndexerState = {
-        var utilization: Utilization;
-        var borrow_rate: Float; // borrow rate (ratio)
-        var supply_rate: Float; // supply rate (ratio)
-        var accrued_interests: {
+    public type LendingIndex = {
+        utilization: Utilization;
+        borrow_rate: Float; // borrow rate (ratio)
+        supply_rate: Float; // supply rate (ratio)
+        accrued_interests: {
             fees: Float;
             supply: Float;
         };
-        var borrow_index: Float; // growing value, starts at 1.0
-        var supply_index: Float; // growing value, starts at 1.0
-        var last_update_timestamp: Nat; // last time the rates were updated
+        borrow_index: Index; // growing value, starts at 1.0
+        supply_index: Index; // growing value, starts at 1.0
+        timestamp: Nat; // last time the rates were updated
     };
 
     public type ProtocolParameters = {
@@ -661,7 +661,7 @@ module {
         accounts: ProtocolAccounts;
         lending: {
             parameters: LendingParameters;
-            state: IndexerState;
+            index: { var value: LendingIndex; };
             register: LendingRegister;
         };
     };

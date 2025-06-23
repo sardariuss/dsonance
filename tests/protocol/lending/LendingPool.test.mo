@@ -15,6 +15,7 @@ import Map "mo:map/Map";
 import Set "mo:map/Set";
 import Fuzz "mo:fuzz";
 import Debug "mo:base/Debug";
+import Result "mo:base/Result";
 
 import { verify; Testify; } = "../../utils/Testify";
 
@@ -57,20 +58,28 @@ await suite("LendingPool", func(): async() {
         // Set time to Day 1
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
-        let state = {
-            var borrow_rate = 0.0;
-            var supply_rate = 0.0;
-            var accrued_interests = {
-                fees = 0.0;
-                supply = 0.0;
-            };
-            var borrow_index = 1.0;
-            var supply_index = 1.0;
-            var last_update_timestamp = clock.get_time();  // Day 1
-            var utilization = {
-                raw_supplied = 0.0;
-                raw_borrowed = 0.0;
-                ratio = 0.0;
+        let index = { 
+            var value = {
+                borrow_rate = 0.0;
+                supply_rate = 0.0;
+                accrued_interests = {
+                    fees = 0.0;
+                    supply = 0.0;
+                };
+                borrow_index = {
+                    value = 1.0; 
+                    timestamp = clock.get_time();
+                };
+                supply_index = {
+                    value = 1.0; 
+                    timestamp = clock.get_time();
+                };
+                timestamp = clock.get_time();  // Day 1
+                utilization = {
+                    raw_supplied = 0.0;
+                    raw_borrowed = 0.0;
+                    ratio = 0.0;
+                };
             };
         };
 
@@ -113,7 +122,7 @@ await suite("LendingPool", func(): async() {
             admin;
             protocol_info;
             parameters;
-            state;
+            index;
             register;
             supply_ledger;
             collateral_ledger;
@@ -124,7 +133,7 @@ await suite("LendingPool", func(): async() {
 
         // === Initial Assertions ===
         
-        verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
         verify(supply_accounting.balances(), [ (protocol, 0), (lender, 1_000), (borrower, 1_000) ], equal_balances);
         verify(collateral_accounting.balances(), [ (protocol, 0), (lender, 0), (borrower, 5_000) ], equal_balances);
 
@@ -139,11 +148,11 @@ await suite("LendingPool", func(): async() {
         verify(supply_1_result, #ok(1), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
         // Expect raw_supplied to reflect the supply
-        verify(indexer.get_state().utilization.raw_supplied, 1000.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index().utilization.raw_supplied, 1000.0, Testify.float.equalEpsilon9);
 
         // No interest has accrued yet (same timestamp), so indexes should be unchanged
-        verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
-        verify(indexer.get_state().supply_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index().supply_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // Tokens moved into the pool
         verify(supply_accounting.balances(), [ (protocol, 1_000), (lender, 0), (borrower, 1_000) ], equal_balances);
@@ -159,7 +168,7 @@ await suite("LendingPool", func(): async() {
             account = borrower;
             amount = 5000;
         });
-        verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // === Borrow Flow ===
@@ -169,7 +178,7 @@ await suite("LendingPool", func(): async() {
             account = borrower;
             amount = 200;
         });
-        verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
 
         // 200 tokens have left the pool
         verify(supply_accounting.balances(), [ (protocol, 800), (lender, 0), (borrower, 1200) ], equal_balances);
@@ -179,17 +188,17 @@ await suite("LendingPool", func(): async() {
         // A borrow has occurred, so utilization > 0 → non-zero borrow rate is established
         // But supply interest was calculated *before* the rate was updated (still 0%)
         // So the borrow index has increased slightly due to non-zero rate, but:
-        verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.greaterThan);
+        verify(indexer.get_index().borrow_index.value, 1.0, Testify.float.greaterThan);
 
         // Supply rate became non-zero only after this update — not enough time passed for interest
         // So supply_index is still 1.0 — this is correct behavior!
-        verify(indexer.get_state().supply_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index().supply_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // === Advance Time to Day 100 (interest should accrue) ===
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(100)))), #repeatedly);
 
         // Trigger an index update by reading state
-        let state_day100 = indexer.get_state();
+        let state_day100 = indexer.get_index();
 
         // Borrow index should have increased more due to time and utilization
         verify(state_day100.borrow_index.value, 1.0, Testify.float.greaterThan);
@@ -204,14 +213,14 @@ await suite("LendingPool", func(): async() {
             account = borrower;
             repayment = #FULL;
         });
-        verify(repay_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(Result.isOk(repay_result), true, Testify.bool.equal);
 
         // Protocol should receive more tokens than it lent out due to interest
         verify(supply_accounting.balances(), [ (protocol, 1_004), (lender, 0), (borrower, 996) ], equal_balances);
 
         // Utilization should return to 0
-        verify(indexer.get_state().utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
-        verify(indexer.get_state().utilization.ratio, 0.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index().utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index().utilization.ratio, 0.0, Testify.float.equalEpsilon9);
 
         // === Lender Withdrawal ===
 
@@ -225,7 +234,7 @@ await suite("LendingPool", func(): async() {
         verify(supply_accounting.balances(), [ (protocol, 1), (lender, 1_003), (borrower, 996) ], equal_balances);
 
         // Final state checks: indexes still increasing, no liquidation, clean balances
-        let final_state = indexer.get_state();
+        let final_state = indexer.get_index();
         verify(final_state.borrow_index.value, 1.0, Testify.float.greaterThan);
         verify(final_state.supply_index.value, 1.0, Testify.float.greaterThan);
 
@@ -239,7 +248,7 @@ await suite("LendingPool", func(): async() {
             account = borrower;
             amount = 5000;
         });
-        verify(collateral_withdrawal_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(Result.isOk(collateral_withdrawal_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (protocol, 0), (lender, 0), (borrower, 5_000) ], equal_balances);
     });
 
@@ -250,20 +259,28 @@ await suite("LendingPool", func(): async() {
         let clock = ClockMock.ClockMock();
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
-        let state = {
-            var borrow_rate = 0.0;
-            var supply_rate = 0.0;
-            var accrued_interests = {
-                fees = 0.0;
-                supply = 0.0;
-            };
-            var borrow_index = 1.0;
-            var supply_index = 1.0;
-            var last_update_timestamp = clock.get_time();  // Day 1
-            var utilization = {
-                raw_supplied = 0.0;
-                raw_borrowed = 0.0;
-                ratio = 0.0;
+        let index = { 
+            var value = {
+                borrow_rate = 0.0;
+                supply_rate = 0.0;
+                accrued_interests = {
+                    fees = 0.0;
+                    supply = 0.0;
+                };
+                borrow_index = {
+                    value = 1.0; 
+                    timestamp = clock.get_time();
+                };
+                supply_index = {
+                    value = 1.0; 
+                    timestamp = clock.get_time();
+                };
+                timestamp = clock.get_time();  // Day 1
+                utilization = {
+                    raw_supplied = 0.0;
+                    raw_borrowed = 0.0;
+                    ratio = 0.0;
+                };
             };
         };
 
@@ -317,7 +334,7 @@ await suite("LendingPool", func(): async() {
             collateral_price_tracker;
             protocol_info;
             parameters;
-            state;
+            index;
             register;
             supply_ledger;
             collateral_ledger;
@@ -327,7 +344,7 @@ await suite("LendingPool", func(): async() {
 
         // === Initial Assertions ===
         
-        verify(indexer.get_state().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // Lender supplies 1000 tokens
         let supply_1_result = await* supply_registry.add_position({
@@ -343,7 +360,7 @@ await suite("LendingPool", func(): async() {
             account = borrower;
             amount = 2000;
         });
-        verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (dex, 0), (protocol, 2_000), (lender, 0), (borrower, 8_000) ], equal_balances);
 
         // Borrower borrows 500 tokens
@@ -351,16 +368,16 @@ await suite("LendingPool", func(): async() {
             account = borrower;
             amount = 500;
         });
-        verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
         verify(supply_accounting.balances(), [ (dex, 2_000), (protocol, 500), (lender, 9_000), (borrower, 10_500) ], equal_balances);
 
         // Advance time to accrue some interest
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(100)))), #repeatedly);
-        ignore indexer.get_state();
+        ignore indexer.get_index();
 
         // Check health before price crash (should be healthy)
-        let before_liquidation = borrow_registry.get_loan(borrower);
-        switch (before_liquidation) {
+        let before_liquidation = borrow_registry.get_loan_position(borrower);
+        switch (before_liquidation.loan) {
             case (?loan) {
                 verify(loan.health, 1.0, Testify.float.greaterThan);
             };
@@ -377,11 +394,11 @@ await suite("LendingPool", func(): async() {
 
         // Advance time to ensure state update uses new price
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(101)))), #repeatedly);
-        ignore indexer.get_state();
+        ignore indexer.get_index();
 
         // Check health after price crash (should be unhealthy)
-        let after_crash = borrow_registry.get_loan(borrower);
-        switch (after_crash) {
+        let after_crash = borrow_registry.get_loan_position(borrower);
+        switch (after_crash.loan) {
             case (?loan) {
                 verify(loan.health, 1.0, Testify.float.lessThan);
             };
@@ -392,15 +409,15 @@ await suite("LendingPool", func(): async() {
 
         // Call liquidation
         let liquidation = await* borrow_registry.check_all_positions_and_liquidate();
-        verify(liquidation, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(Result.isOk(liquidation), true, Testify.bool.equal);
 
         // After liquidation, the collateral should have been partially liquidated
-        let after_liquidation = borrow_registry.get_loan(borrower);
-        switch (after_liquidation) {
+        let after_liquidation = borrow_registry.get_loan_position(borrower);
+        verify(after_liquidation.collateral, 1_030, Testify.nat.equal); // 2000 - 970 (liquidated)
+        switch (after_liquidation.loan) {
             case null { assert(false); }; // Not full liquidation, should still have a position
             case (?loan) {
                 verify(loan.health, 1.0, Testify.float.greaterThan);
-                verify(loan.collateral, 1_030, Testify.nat.equal); // 2000 - 970 (liquidated)
             };
         };
 
@@ -425,20 +442,28 @@ await suite("LendingPool", func(): async() {
         let clock = ClockMock.ClockMock();
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
-        let state = {
-            var borrow_rate = 0.0;
-            var supply_rate = 0.0;
-            var accrued_interests = {
-                fees = 0.0;
-                supply = 0.0;
-            };
-            var borrow_index = 1.0;
-            var supply_index = 1.0;
-            var last_update_timestamp = clock.get_time();  // Day 1
-            var utilization = {
-                raw_supplied = 0.0;
-                raw_borrowed = 0.0;
-                ratio = 0.0;
+        let index = { 
+            var value = {
+                borrow_rate = 0.0;
+                supply_rate = 0.0;
+                accrued_interests = {
+                    fees = 0.0;
+                    supply = 0.0;
+                };
+                borrow_index = {
+                    value = 1.0; 
+                    timestamp = clock.get_time();
+                };
+                supply_index = {
+                    value = 1.0; 
+                    timestamp = clock.get_time();
+                };
+                timestamp = clock.get_time();  // Day 1
+                utilization = {
+                    raw_supplied = 0.0;
+                    raw_borrowed = 0.0;
+                    ratio = 0.0;
+                };
             };
         };
 
@@ -482,7 +507,7 @@ await suite("LendingPool", func(): async() {
             collateral_price_tracker;
             protocol_info;
             parameters;
-            state;
+            index;
             register;
             supply_ledger;
             collateral_ledger;
@@ -503,7 +528,7 @@ await suite("LendingPool", func(): async() {
             account = borrower;
             amount = 5000;
         });
-        verify(collateral_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // Borrower borrows 900 tokens (almost all liquidity)
@@ -511,7 +536,7 @@ await suite("LendingPool", func(): async() {
             account = borrower;
             amount = 900;
         });
-        verify(borrow_1_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
         verify(supply_accounting.balances(), [ (protocol, 100), (lender, 0), (borrower, 1_900) ], equal_balances);
 
         // Lender tries to withdraw full position
@@ -547,7 +572,7 @@ await suite("LendingPool", func(): async() {
             account = borrower;
             repayment = #FULL;
         });
-        verify(repay_result, #ok, Testify.result(Testify.void.equal, Testify.text.equal).equal);
+        verify(Result.isOk(repay_result), true, Testify.bool.equal);
 
         // After repayment, the withdrawal queue should have processed the rest
         let withdrawal_after = Map.get(register.withdrawals, Map.thash, "supply1");

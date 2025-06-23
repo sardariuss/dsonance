@@ -2,6 +2,7 @@ import Types             "../Types";
 import Controller        "../Controller";
 import Queries           "../Queries";
 import SharedConversions "SharedConversions";
+import LendingTypes      "../lending/Types";
 
 import Result            "mo:base/Result";
 
@@ -32,7 +33,8 @@ module {
     type BallotPreview = Types.BallotPreview;
     type SBallotPreview = Types.SBallotPreview;
     type SYieldState = Types.SYieldState;
-    type LoanPosition = Types.LoanPosition;
+    type LoanPosition = LendingTypes.LoanPosition;
+    type BorrowOperation = LendingTypes.BorrowOperation;
 
     public class SharedFacade({
         controller: Controller.Controller;
@@ -115,55 +117,28 @@ module {
             queries.find_ballot(ballot_id);
         };
 
-        public func get_indexer_state() : Types.SIndexerState {
-            SharedConversions.shareIndexerState(queries.get_indexer_state());
+        public func get_lending_index() : Types.LendingIndex {
+            queries.get_lending_index();
         };
 
-        public func supply_collateral({
-            caller: Principal;
-            subaccount: ?Blob;
-            amount: Nat;
-        }) : async* Result<(), Text> {
-            await* controller.supply_collateral({ 
-                account = { owner = caller; subaccount; };
-                amount;
-            });
+        public func supply_collateral({ caller: Principal; subaccount: ?Blob; amount: Nat; }) : async* Result<BorrowOperation, Text> {
+            await* controller.supply_collateral({ account = { owner = caller; subaccount; }; amount; });
         };
 
-        public func withdraw_collateral({
-            caller: Principal;
-            subaccount: ?Blob;
-            amount: Nat;
-        }) : async* Result<(), Text> {
-            await* controller.withdraw_collateral({ 
-                account = { owner = caller; subaccount; };
-                amount;
-            });
+        public func preview_supply_collateral({ caller: Principal; subaccount: ?Blob; amount: Nat; }) : Result<BorrowOperation, Text> {
+           controller.preview_supply_collateral({ account = { owner = caller; subaccount; }; amount; });
         };
 
-        public func borrow({
-            caller: Principal;
-            subaccount: ?Blob;
-            amount: Nat;
-        }) : async* Result<(), Text> {
-            await* controller.borrow({ 
-                account = { owner = caller; subaccount; };
-                amount;
-            });
+        public func withdraw_collateral({ caller: Principal; subaccount: ?Blob; amount: Nat; }) : async* Result<BorrowOperation, Text> {
+            await* controller.withdraw_collateral({ account = { owner = caller; subaccount; }; amount; });
         };
 
-        public func repay({
-            caller: Principal;
-            subaccount: ?Blob;
-            repayment: {
-                #PARTIAL: Nat;
-                #FULL;
-            };
-        }) : async* Result<(), Text> {
-            await* controller.repay({ 
-                account = { owner = caller; subaccount; };
-                repayment;
-            });
+        public func borrow({ caller: Principal; subaccount: ?Blob; amount: Nat; }) : async* Result<BorrowOperation, Text> {
+            await* controller.borrow({ account = { owner = caller; subaccount; }; amount; });
+        };
+
+        public func repay({ caller: Principal; subaccount: ?Blob; repayment: { #PARTIAL: Nat; #FULL; }; }) : async* Result<BorrowOperation, Text> {
+            await* controller.repay({ account = { owner = caller; subaccount; }; repayment; });
         };
 
         public func get_loan_position(account: Account) : LoanPosition {

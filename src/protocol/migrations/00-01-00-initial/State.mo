@@ -100,21 +100,29 @@ module {
             };
             lending = {
                 parameters = parameters.lending;
-                state = {
-                    var utilization = {
-                        raw_supplied = 0.0;
-                        raw_borrowed = 0.0;
-                        ratio = 0.0;
+                index = {
+                    var value = {
+                        utilization = {
+                            raw_supplied = 0.0;
+                            raw_borrowed = 0.0;
+                            ratio = 0.0;
+                        };
+                        borrow_rate = 0.0;
+                        supply_rate = 0.0;
+                        accrued_interests = {
+                            fees = 0.0;
+                            supply = 0.0;
+                        };
+                        borrow_index = {
+                            value = 1.0;
+                            timestamp = now;
+                        };
+                        supply_index =  {
+                            value = 1.0;
+                            timestamp = now;
+                        };
+                        timestamp = now;
                     };
-                    var borrow_rate = 0.0;
-                    var supply_rate = 0.0;
-                    var accrued_interests = {
-                        fees = 0.0;
-                        supply = 0.0;
-                    };
-                    var borrow_index = 1.0;
-                    var supply_index = 1.0;
-                    var last_update_timestamp = now;
                 };
                 register = {
                     borrow_positions = Map.new<Account, BorrowPosition>();

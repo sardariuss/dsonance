@@ -84,7 +84,7 @@ module {
         });
 
         let foresight_updater = ForesightUpdater.ForesightUpdater({
-            initial_supply_info = to_supply_info(indexer.get_state());
+            initial_supply_info = to_supply_info(indexer.get_index());
             get_items = func() : Iter<ForesightUpdater.ForesightItem> {
                 // Map the ballots to foresight items
                 map_ballots_to_foresight_items(ballot_register.ballots, parameters);
@@ -92,8 +92,8 @@ module {
         });
 
         // Update the foresights when the indexer state is updated
-        indexer.add_observer(func(indexer_state: Types.SIndexerState) {
-            foresight_updater.set_supply_info(to_supply_info(indexer_state));
+        indexer.add_observer(func(lending_index: Types.LendingIndex) {
+            foresight_updater.set_supply_info(to_supply_info(lending_index));
         });
         
         // @int: the foresight_updater should directly listen to the Indexer updates instead of the LockScheduler
@@ -238,11 +238,11 @@ module {
         });
     };
 
-    func to_supply_info(indexer_state: Types.SIndexerState) : ForesightUpdater.SupplyInfo {
+    func to_supply_info(lending_index: Types.LendingIndex) : ForesightUpdater.SupplyInfo {
         {
-            accrued_interests = indexer_state.accrued_interests.supply;
-            interests_rate = indexer_state.supply_rate;
-            last_update_timestamp = indexer_state.last_update_timestamp;
+            accrued_interests = lending_index.accrued_interests.supply;
+            interests_rate = lending_index.supply_rate;
+            timestamp = lending_index.timestamp;
         };
     };
 

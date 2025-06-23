@@ -1,4 +1,4 @@
-import { LendingParameters, SIndexerState } from "../../../declarations/protocol/protocol.did";
+import { LendingParameters, SLendingIndex } from "../../../declarations/protocol/protocol.did";
 import { formatCurrency, fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
 import React from "react";
 import { useCurrencyContext } from "../CurrencyContext";
