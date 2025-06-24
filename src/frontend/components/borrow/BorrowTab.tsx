@@ -6,11 +6,12 @@ import { useCurrencyContext } from "../CurrencyContext";
 import { fromNullableExt } from "../../utils/conversions/nullable";
 import { TokenLabel } from "../common/TokenLabel";
 import BorrowButton from "./BorrowButton";
-import { Result } from "../../../declarations/protocol/protocol.did";
+import { OperationKindArgs, Result_1 } from "../../../declarations/protocol/protocol.did";
 import { useMemo } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { Account } from "@/declarations/ck_btc/ck_btc.did";
-import { a } from "vitest/dist/chunks/suite.d.FvehnV49";
+import DualLabel from "../common/DualLabel";
+import { aprToApy, getHealthColor } from "../../utils/lending";
 
 const BorrowTab = () => {
 
@@ -35,101 +36,129 @@ const BorrowTab = () => {
     functionName: 'icrc1_metadata'
   });
 
+  const { data: indexerState, call: refreshIndexerState } = protocolActor.useQueryCall({
+    functionName: 'get_lending_index',
+  });
+
   const { data: loanPosition, call: refreshLoanPosition } = protocolActor.useQueryCall({
     functionName: 'get_loan_position',
     args: [account]
   });
 
-  const { call: supply } = protocolActor.useUpdateCall({
-    functionName: 'supply_collateral',
-  });
-  const { call: withdraw } = protocolActor.useUpdateCall({
-    functionName: 'withdraw_collateral',
-  });
-  const { call: borrow } = protocolActor.useUpdateCall({
-    functionName: 'borrow',
-  });
-  const { call: repay } = protocolActor.useUpdateCall({
-    functionName: 'repay',
+  const { call: previewBorrowOperation } = protocolActor.useUpdateCall({
+    functionName: 'preview_borrow_operation',
   });
 
-  const supplyFunction = (amount: bigint) : Promise<Result | undefined>=> {
-    return supply([{ amount, subaccount: [] }]).then((result) =>{
+  const { call: runBorrowOperation } = protocolActor.useUpdateCall({
+    functionName: 'run_borrow_operation',
+  });
+
+  const previewOperation = (args: OperationKindArgs) : Promise<Result_1 | undefined> => {
+    return previewBorrowOperation([{ subaccount: [], args }]);
+  }
+
+  const runOperation = (args: OperationKindArgs) : Promise<Result_1 | undefined>=> {
+    return runBorrowOperation([{ subaccount: [], args }]).then((result) => {
       if (result !== undefined && "ok" in result) {
         refreshLoanPosition(); // Refresh the loan position after supply
-      }
-      return result;
-    });
-  };
-  const withdrawFunction = (amount: bigint) : Promise<Result | undefined> => {
-    return withdraw([{ amount, subaccount: [] }]).then((result) =>{
-      if (result !== undefined && "ok" in result) {
-        refreshLoanPosition(); // Refresh the loan position after supply
-      }
-      return result;
-    });
-  };
-  const borrowFunction = (amount: bigint) : Promise<Result | undefined> => {
-    return borrow([{ amount, subaccount: [] }]).then((result) =>{
-      if (result !== undefined && "ok" in result) {
-        refreshLoanPosition(); // Refresh the loan position after supply
-      }
-      return result;
-    });
-  };
-  // @todo: Ideally we would like to have a repay function that accepts both full and partial repayments.
-  const repayFunction = (amount: bigint) : Promise<Result | undefined> => {
-    return repay([{ repayment: { "PARTIAL" : amount }, subaccount: [] }]).then((result) =>{
-      if (result !== undefined && "ok" in result) {
-        refreshLoanPosition(); // Refresh the loan position after supply
+        refreshIndexerState(); // Refresh the indexer state after supply
       }
       return result;
     });
   };
 
-  const { collateral, raw_borrowed, current_owed, ltv, health, required_repayment } = useMemo(() => {
+  const { collateral, rawBorrowed, currentOwed, ltv, health, requiredRepayment } = useMemo(() => {
 
     let loan = fromNullableExt(loanPosition?.loan);
 
     return {
       collateral: loanPosition?.collateral ?? 0n,
-      raw_borrowed: loan?.raw_borrowed ?? 0,
-      current_owed: loan?.current_owed ?? 0,
+      rawBorrowed: loan?.raw_borrowed ?? 0,
+      currentOwed: loan?.current_owed ?? 0,
       ltv: loan?.ltv ?? 0,
       health: loan?.health ?? 0,
-      required_repayment: loan?.required_repayment ?? 0,
+      requiredRepayment: loan?.required_repayment ?? 0,
     };
   }, [loanPosition]);
+
+  const borrowApy = useMemo(() => {
+    return indexerState?.borrow_rate ? aprToApy(indexerState?.borrow_rate) : 0;
+  }, [indexerState]);
+
+  const { netWorth, apy } = useMemo(() => {
+    const netWorth = fromFixedPoint(collateral, 6) - satoshisToCurrency(rawBorrowed);
+    const apy = -(satoshisToCurrency(rawBorrowed) * borrowApy) / netWorth;
+    return { netWorth, apy };
+  }, [collateral, borrowApy, rawBorrowed]);
 
   // @todo: if loan data is undefined, use 0 as amountCollateral and amountBorrowed; do not display LTV nor health factor.
 
   return (
-    <div className="flex flex-col justify-center bg-slate-200 dark:bg-gray-800 rounded mt-4 p-6 space-y-6">
-      <div className="flex flex-col justify-center w-full">
-        <span className="text-xl font-semibold">Your collateral</span>
-        <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
-          <TokenLabel metadata={usdtMetadata}/>
-          <div className="relative flex flex-col">
-            <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(collateral, 6), "")} </span>
-            <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(fromFixedPoint(collateral, 6), "$") } </span>
-          </div>
-          <span>{/*spacer*/}</span>
-          <BorrowButton title="Supply" tokenMetadata={usdtMetadata} onConfirm={supplyFunction} tokenDecimals={6} amountInUsd={amount => fromFixedPoint(amount, 6)}/>
-          <BorrowButton title="Withdraw" tokenMetadata={usdtMetadata} onConfirm={withdrawFunction} tokenDecimals={6} amountInUsd={amount => fromFixedPoint(amount, 6)}/>
-        </div>
+    <div className="flex flex-col justify-center mt-4">
+      <div className="flex flex-row items-center p-6 space-x-4">
+        <DualLabel top="Net worth" bottom={formatCurrency(netWorth, "$")} />
+        <DualLabel top="APY" bottom={`${(apy * 100).toFixed(2)}%`} />
+        <DualLabel top="Health factor" bottom={health.toFixed(2)} bottomClassName={`${getHealthColor(health)}`}/>
       </div>
-      <div className="border-b border-gray-300 dark:border-gray-700 w-full"></div>
-      <div className="flex flex-col justify-center w-full">
-        <span className="text-xl font-semibold">Your borrow</span>
-        <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
-          <TokenLabel metadata={btcMetadata}/>
-          <div className="relative flex flex-col">
-            <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(raw_borrowed, 8), "")} </span>
-            <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(raw_borrowed), "$")} </span>
+      <div className="flex flex-col justify-center bg-slate-200 dark:bg-gray-800 rounded p-6 space-y-6">
+        <div className="flex flex-col justify-center w-full">
+          <span className="text-xl font-semibold">Your collateral</span>
+          <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
+            <TokenLabel metadata={usdtMetadata}/>
+            <div className="relative flex flex-col">
+              <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(collateral, 6), "")} </span>
+              <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(fromFixedPoint(collateral, 6), "$") } </span>
+            </div>
+            <span>{/*spacer*/}</span>
+            <BorrowButton 
+              title="Supply"
+              tokenMetadata={usdtMetadata}
+              previewOperation={(amount) => previewOperation({ "PROVIDE_COLLATERAL": { amount } })}
+              runOperation={(amount) => runOperation({ "PROVIDE_COLLATERAL": { amount } })}
+              tokenDecimals={6}
+              amountInUsd={amount => fromFixedPoint(amount, 6)}
+              health={health}
+            />
+            <BorrowButton 
+              title="Withdraw"
+              tokenMetadata={usdtMetadata}
+              previewOperation={(amount) => previewOperation({ "WITHDRAW_COLLATERAL": { amount } })}
+              runOperation={(amount) => runOperation({ "WITHDRAW_COLLATERAL": { amount } })}
+              tokenDecimals={6}
+              amountInUsd={amount => fromFixedPoint(amount, 6)}
+              health={health}
+            />
           </div>
-          <span>{/*spacer*/}</span>
-          <BorrowButton title="Borrow" tokenMetadata={btcMetadata} onConfirm={borrowFunction} tokenDecimals={8} amountInUsd={amount => satoshisToCurrency(amount)}/>
-          <BorrowButton title="Repay" tokenMetadata={btcMetadata} onConfirm={repayFunction} tokenDecimals={8} amountInUsd={amount => satoshisToCurrency(amount)}/>
+        </div>
+        <div className="border-b border-gray-300 dark:border-gray-700 w-full"></div>
+        <div className="flex flex-col justify-center w-full">
+          <span className="text-xl font-semibold">Your borrow</span>
+          <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
+            <TokenLabel metadata={btcMetadata}/>
+            <div className="relative flex flex-col">
+              <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(rawBorrowed, 8), "")} </span>
+              <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(rawBorrowed), "$")} </span>
+            </div>
+            <span>{/*spacer*/}</span>
+            <BorrowButton 
+              title="Borrow"
+              tokenMetadata={btcMetadata}
+              previewOperation={(amount) => previewOperation({ "BORROW_SUPPLY": { amount } })}
+              runOperation={(amount) => runOperation({ "BORROW_SUPPLY": { amount } })}
+              tokenDecimals={8}
+              amountInUsd={amount => satoshisToCurrency(amount)}
+              health={health}
+            />
+            <BorrowButton 
+              title="Repay"
+              tokenMetadata={btcMetadata}
+              previewOperation={(amount) => previewOperation({ "REPAY_SUPPLY": { repayment: { "PARTIAL" : amount } } })}
+              runOperation={(amount) => runOperation({ "REPAY_SUPPLY": { repayment: { "PARTIAL" : amount } } })}
+              tokenDecimals={8}
+              amountInUsd={amount => satoshisToCurrency(amount)}
+              health={health}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -136,6 +136,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_lending_index();
     };
 
+    public query func get_loan_position(account: Types.Account) : async LendingTypes.LoanPosition {
+        getFacade().get_loan_position(account);
+    };
+
     public shared({caller}) func run_borrow_operation({ 
         subaccount: ?Blob;
         args: LendingTypes.OperationKindArgs;

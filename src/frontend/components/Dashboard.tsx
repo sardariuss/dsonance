@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ckBtcActor } from "../actors/CkBtcActor";
 import { protocolActor } from "../actors/ProtocolActor";
 import { formatCurrency } from "../utils/conversions/token";
@@ -7,22 +8,29 @@ import SupplyInfoPanel from "./borrow/SupplyInfoPanel";
 import DualLabel from "./common/DualLabel";
 import { FullTokenLabel } from "./common/TokenLabel";
 import { useCurrencyContext } from "./CurrencyContext";
+import { aprToApy } from "../utils/lending";
 
 const Dashboard = () => {
 
   const { satoshisToCurrency, priceBtcInUsd } = useCurrencyContext(); // @todo: only works for btc
 
-  const { data: lendingParams } = protocolActor.useQueryCall({
+  const { data: lendingParams, call: refreshLendingParams } = protocolActor.useQueryCall({
     functionName: 'get_lending_parameters',
   });
 
-  const { data: indexerState } = protocolActor.useQueryCall({
+  const { data: indexerState, call: refreshIndexerState } = protocolActor.useQueryCall({
     functionName: 'get_lending_index',
   });
 
-  const { data: btcMetadata } = ckBtcActor.useQueryCall({
+  const { data: btcMetadata, call: refreshBtcMetadata } = ckBtcActor.useQueryCall({
     functionName: 'icrc1_metadata'
   });
+
+  useEffect(() => {
+    refreshLendingParams();
+    refreshIndexerState();
+    refreshBtcMetadata();
+  }, []);
 
   if (!lendingParams || !indexerState) {
     return <div className="text-center text-gray-500">Loading...</div>;
@@ -80,10 +88,6 @@ const Dashboard = () => {
       </div>
     </div>
   );
-}
-
-function aprToApy(rate: number, compoundingPerYear = 365 * 24 * 60 * 60): number {
-  return Math.pow(1 + rate / compoundingPerYear, compoundingPerYear) - 1;
 }
 
 export default Dashboard;

@@ -1,26 +1,31 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Modal from "../common/Modal";
 import { MetaDatum } from "../../../declarations/ck_btc/ck_btc.did";
 import { TokenLabel } from "../common/TokenLabel";
 import { formatCurrency } from "../../utils/conversions/token";
 import { getTokenName } from "../../utils/metadata";
-import { Result } from "@/declarations/protocol/protocol.did";
+import { Result_1 } from "@/declarations/protocol/protocol.did";
 import Spinner from "../Spinner";
+import { getHealthColor } from "../../utils/lending";
+import { fromNullable } from "@dfinity/utils";
 
 interface BorrowButtonProps {
   title: string;
   tokenMetadata: MetaDatum[] | undefined;
-  onConfirm: (amount: bigint) => Promise<Result | undefined>;
+  previewOperation: (amount: bigint) => Promise<Result_1 | undefined>;
+  runOperation: (amount: bigint) => Promise<Result_1 | undefined>;
   tokenDecimals: number;
   amountInUsd: (amount: bigint) => number;
+  health: number;
 }
 
-const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onConfirm, tokenDecimals, amountInUsd }) => {
+const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, previewOperation, runOperation, tokenDecimals, amountInUsd, health }) => {
 
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState<string>("");
   const [amount, setAmount] = useState<bigint>(0n);
+  const [healthPreview, setHealthPreview] = useState<number | undefined>(health);
 
   const fullTitle = useMemo(
     () => `${title} ${getTokenName(tokenMetadata) ?? ""}`,
@@ -34,7 +39,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onCon
 
     setLoading(true);
 
-    onConfirm(amount).then((result) => {
+    runOperation(amount).then((result) => {
       if (result !== undefined && "ok" in result) {
         setIsVisible(false);
       } else {
@@ -46,6 +51,24 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onCon
       setLoading(false);
     });
   };
+
+  useEffect(() => {
+    if (amount > 0n) {
+      previewOperation(amount).then((result) => {
+        if (result !== undefined && "ok" in result) {
+          let loan = fromNullable(result.ok.position.loan);
+          setHealthPreview(loan?.health);
+        } else {
+          throw new Error("Preview operation failed: " + (result?.err || "Unknown error"));
+        }
+      }).catch((error) => {
+        console.error("Error during preview operation:", error);
+        setHealthPreview(undefined);
+      });
+    } else {
+      setHealthPreview(health);
+    }
+  }, [amount, health, previewOperation]);
 
   return (
     <>
@@ -115,7 +138,9 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, onCon
             <span className="text-gray-600 dark:text-gray-400 text-sm">Transaction overview</span>
             <div className="grid grid-cols-[auto_auto] border border-gray-300 dark:border-gray-700 rounded-md p-2">
               <span className="text-base">Health factor</span>
-              <span className="text-base justify-self-end">1.54</span>
+              <span className={`text-base justify-self-end font-semibold ${healthPreview && getHealthColor(healthPreview)}`}>
+                { healthPreview ? healthPreview.toFixed(2) : "Error" }
+              </span>
             </div>
           </div>
           <button 
