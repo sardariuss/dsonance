@@ -67,29 +67,30 @@ const BorrowTab = () => {
     });
   };
 
-  const { collateral, rawBorrowed, currentOwed, ltv, health, requiredRepayment } = useMemo(() => {
+  const { collateral, rawBorrowed, health, netWorth, netApy } = useMemo(() => {
 
-    let loan = fromNullableExt(loanPosition?.loan);
+    const collateral = loanPosition?.collateral ?? 0n;
+
+    const loan = fromNullableExt(loanPosition?.loan);
+    const rawBorrowed = loan?.raw_borrowed ?? 0n;
+    const health = loan?.health ?? 0;
+    const currentOwed = loan?.current_owed ?? 0;
+    const ltv = loan?.ltv ?? 0;
+    const requiredRepayment = loan?.required_repayment ?? 0;
+    
+    const netWorth = fromFixedPoint(collateral, 6) - satoshisToCurrency(rawBorrowed);
+
+    const borrowApy = indexerState?.borrow_rate ? aprToApy(indexerState?.borrow_rate) : 0;
+    const netApy = -(satoshisToCurrency(rawBorrowed) * borrowApy) / netWorth;
 
     return {
-      collateral: loanPosition?.collateral ?? 0n,
-      rawBorrowed: loan?.raw_borrowed ?? 0,
-      currentOwed: loan?.current_owed ?? 0,
-      ltv: loan?.ltv ?? 0,
-      health: loan?.health ?? 0,
-      requiredRepayment: loan?.required_repayment ?? 0,
+      collateral,
+      rawBorrowed,
+      health,
+      netWorth,
+      netApy
     };
-  }, [loanPosition]);
-
-  const borrowApy = useMemo(() => {
-    return indexerState?.borrow_rate ? aprToApy(indexerState?.borrow_rate) : 0;
-  }, [indexerState]);
-
-  const { netWorth, apy } = useMemo(() => {
-    const netWorth = fromFixedPoint(collateral, 6) - satoshisToCurrency(rawBorrowed);
-    const apy = -(satoshisToCurrency(rawBorrowed) * borrowApy) / netWorth;
-    return { netWorth, apy };
-  }, [collateral, borrowApy, rawBorrowed]);
+  }, [loanPosition, indexerState]);
 
   // @todo: if loan data is undefined, use 0 as amountCollateral and amountBorrowed; do not display LTV nor health factor.
 
@@ -97,7 +98,7 @@ const BorrowTab = () => {
     <div className="flex flex-col justify-center mt-4">
       <div className="flex flex-row items-center p-6 space-x-4">
         <DualLabel top="Net worth" bottom={formatCurrency(netWorth, "$")} />
-        <DualLabel top="APY" bottom={`${(apy * 100).toFixed(2)}%`} />
+        <DualLabel top="Net APY" bottom={`${(netApy * 100).toFixed(2)}%`} />
         <DualLabel top="Health factor" bottom={health.toFixed(2)} bottomClassName={`${getHealthColor(health)}`}/>
       </div>
       <div className="flex flex-col justify-center bg-slate-200 dark:bg-gray-800 rounded p-6 space-y-6">

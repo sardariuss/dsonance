@@ -8,6 +8,7 @@ import { Result_1 } from "@/declarations/protocol/protocol.did";
 import Spinner from "../Spinner";
 import { getHealthColor } from "../../utils/lending";
 import { fromNullable } from "@dfinity/utils";
+import useBorrowOperationPreview from "../hooks/useBorrowOperationPreview";
 
 interface BorrowButtonProps {
   title: string;
@@ -25,7 +26,6 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, previ
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState<string>("");
   const [amount, setAmount] = useState<bigint>(0n);
-  const [healthPreview, setHealthPreview] = useState<number | undefined>(health);
 
   const fullTitle = useMemo(
     () => `${title} ${getTokenName(tokenMetadata) ?? ""}`,
@@ -52,23 +52,18 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, previ
     });
   };
 
-  useEffect(() => {
-    if (amount > 0n) {
-      previewOperation(amount).then((result) => {
-        if (result !== undefined && "ok" in result) {
-          let loan = fromNullable(result.ok.position.loan);
-          setHealthPreview(loan?.health);
-        } else {
-          throw new Error("Preview operation failed: " + (result?.err || "Unknown error"));
-        }
-      }).catch((error) => {
-        console.error("Error during preview operation:", error);
-        setHealthPreview(undefined);
-      });
-    } else {
-      setHealthPreview(health);
+  const { preview, loading: loadingPreview } = useBorrowOperationPreview({
+    amount,
+    previewOperation,
+  });
+
+  const healthPreview = useMemo(() => {
+    if (preview && "ok" in preview) {
+      let loan = fromNullable(preview.ok.position.loan);
+      return loan?.health;
     }
-  }, [amount, health, previewOperation]);
+    return undefined;
+  }, [preview]);
 
   return (
     <>
@@ -138,8 +133,14 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, previ
             <span className="text-gray-600 dark:text-gray-400 text-sm">Transaction overview</span>
             <div className="grid grid-cols-[auto_auto] border border-gray-300 dark:border-gray-700 rounded-md p-2">
               <span className="text-base">Health factor</span>
-              <span className={`text-base justify-self-end font-semibold ${healthPreview && getHealthColor(healthPreview)}`}>
-                { healthPreview ? healthPreview.toFixed(2) : "Error" }
+              <span className="justify-self-end">
+                { 
+                  loadingPreview ? <Spinner size={"25px"}/> : 
+                  healthPreview === undefined ? "N/A" :
+                    <span className={`text-base justify-self-end font-semibold ${getHealthColor(healthPreview)}`}>
+                      { healthPreview.toFixed(2) }
+                    </span>
+                }
               </span>
             </div>
           </div>
