@@ -1,4 +1,5 @@
 import Types          "Types";
+import LendingTypes   "lending/Types";
 import SharedFacade   "shared/SharedFacade";
 import Factory        "Factory";
 import MigrationTypes "migrations/Types";
@@ -21,24 +22,29 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     // Unfortunately the principal of the canister cannot be used at the construction of the actor
     // because of the compiler error "cannot use self before self has been defined".
     // Therefore, one need to use an init method to initialize the facade.
-    public shared({caller}) func init_facade() : async () {
+    public shared({caller}) func init_facade() : async Result.Result<(), Text> {
 
         if (not Principal.equal(caller, admin)) {
-            Debug.trap("Only the admin can initialize the facade");
+            return #err("Only the admin can initialize the facade");
         };
 
         if (Option.isSome(_facade)) {
-            Debug.trap("The facade is already initialized");
+            return #err("The facade is already initialized");
         };
 
-        switch(_state){
-            case(#v0_1_0(stable_data)) {
-                _facade := ?SharedFacade.SharedFacade(Factory.build({stable_data with 
-                    provider = Principal.fromActor(this);
-                    admin;
-                }));
-            };
+        let #v0_1_0(state) = _state;
+        let { controller; queries; initialize; } = Factory.build({
+            state;
+            protocol = Principal.fromActor(this);
+            admin;
+        });
+        switch(await* initialize()) {
+            case (#err(e)) { return #err("Protocol.init_facade: " # e); };
+            case (#ok) {};
         };
+        
+        _facade := ?SharedFacade.SharedFacade({ controller; queries; });
+        #ok;
     };
 
     // Create a new vote
@@ -59,23 +65,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().find_vote(args);
     };
 
-    // TODO: rename, this is specific to DSN
-    public query func get_debt_info(debt_id: Types.UUID) : async ?Types.SDebtInfo {
-        getFacade().get_debt_info(debt_id);
-    };
-
-    // TODO: rename, this is specific to DSN
-    public query func get_debt_infos(ids: [Types.UUID]) : async [Types.SDebtInfo] {
-        getFacade().get_debt_infos(ids);
-    };
-
-    // TODO: rename, this is specific to DSN
-    public func get_mined_by_author({ author: Types.Account }) : async Types.DebtRecord {
-        getFacade().get_mined_by_author({ author; });
-    };
-
-    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.SPreviewBallotResult {
-        getFacade().preview_ballot({ args with caller; });
+    // ⚠️ THIS IS INTENTIONALLY A QUERY FUNCTION
+    // DO NOT CHANGE IT TO A SHARED FUNCTION OTHERWISE THE PREVIEW WILL PUT AN ACTUAL BALLOT
+    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.PutBallotResult {
+        getFacade().put_ballot_for_free({ args with caller; });
     };
 
     // Add a ballot on the given vote identified by its vote_id
@@ -84,7 +77,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     // Run the protocol
-    public func run() : async () {
+    public func run() : async Result.Result<(), Text> {
         await* getFacade().run();
     };
 
@@ -135,8 +128,33 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_parameters();
     };
 
-    public query func get_yield_state() : async Types.SYieldState {
-        getFacade().get_yield_state();
+    public query func get_lending_parameters() : async Types.LendingParameters {
+        getFacade().get_lending_parameters();
+    };
+
+    public query func get_lending_index() : async Types.LendingIndex {
+        getFacade().get_lending_index();
+    };
+
+    public query func get_loan_position(account: Types.Account) : async LendingTypes.LoanPosition {
+        getFacade().get_loan_position(account);
+    };
+
+    public shared({caller}) func run_borrow_operation({ 
+        subaccount: ?Blob;
+        args: LendingTypes.OperationKindArgs;
+    }) : async Result.Result<LendingTypes.BorrowOperation, Text> {
+        await* getFacade().run_borrow_operation({ caller; subaccount; args; });
+    };
+
+    // ⚠️ THIS IS INTENTIONALLY A QUERY FUNCTION
+    // DO NOT CHANGE IT TO A SHARED FUNCTION OTHERWISE 
+    // THE PREVIEW WILL ACTUALLY RUN THE BORROW OPERATION
+    public query({caller}) func preview_borrow_operation({
+        subaccount: ?Blob;
+        args: LendingTypes.OperationKindArgs;
+    }) : async Result.Result<LendingTypes.BorrowOperation, Text> {
+        getFacade().run_borrow_operation_for_free({ caller; subaccount; args; });
     };
 
     func getFacade() : SharedFacade.SharedFacade {

@@ -1,6 +1,8 @@
 import Types             "../Types";
 import Controller        "../Controller";
+import Queries           "../Queries";
 import SharedConversions "SharedConversions";
+import LendingTypes      "../lending/Types";
 
 import Result            "mo:base/Result";
 
@@ -11,14 +13,11 @@ module {
     type VoteType = Types.VoteType;
     type BallotType = Types.BallotType;
     type PutBallotResult = Types.PutBallotResult;
-    type PreviewBallotResult = Types.PreviewBallotResult;
-    type SPreviewBallotResult = Types.SPreviewBallotResult;
     type NewVoteArgs = Types.NewVoteArgs;
     type PutBallotArgs = Types.PutBallotArgs;
     type GetBallotArgs = Types.GetBallotArgs;
     type Account = Types.Account;
     type SBallotType = Types.SBallotType;
-    type PreviewBallotError = Types.PreviewBallotError;
     type Duration = Types.Duration;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type SNewVoteResult = Types.SNewVoteResult;
@@ -34,22 +33,28 @@ module {
     type BallotPreview = Types.BallotPreview;
     type SBallotPreview = Types.SBallotPreview;
     type SYieldState = Types.SYieldState;
+    type LoanPosition = LendingTypes.LoanPosition;
+    type BorrowOperation = LendingTypes.BorrowOperation;
+    type OperationKindArgs = LendingTypes.OperationKindArgs;
 
-    public class SharedFacade(controller: Controller.Controller) {
+    public class SharedFacade({
+        controller: Controller.Controller;
+        queries: Queries.Queries;
+    }) {
 
         public func new_vote(args: NewVoteArgs and { origin: Principal; }) : async* SNewVoteResult {
             await* controller.new_vote(args);
         };
 
-        public func preview_ballot(args: PutBallotArgs and { caller: Principal; }) : SPreviewBallotResult {
-            Result.mapOk<BallotPreview, SBallotPreview, PreviewBallotError>(controller.preview_ballot(args), SharedConversions.shareBallotPreview);
+        public func put_ballot_for_free(args: PutBallotArgs and { caller: Principal; }) : PutBallotResult {
+            controller.put_ballot_for_free(args);
         };
 
         public func put_ballot(args: PutBallotArgs and { caller: Principal; }) : async* PutBallotResult {
             await* controller.put_ballot(args);
         };
 
-        public func run() : async* () {
+        public func run() : async* Result<(), Text> {
             await* controller.run();
         };
 
@@ -76,54 +81,79 @@ module {
         public func get_info() : SProtocolInfo {
             SharedConversions.shareProtocolInfo(controller.get_info());
         };
-
+        
         public func get_parameters() : SProtocolParameters {
             SharedConversions.shareProtocolParameters(controller.get_parameters());
         };
 
+        public func get_lending_parameters() : Types.LendingParameters {
+            queries.get_lending_parameters();
+        };
+
         public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
-            controller.get_queries().get_vote_ballots(vote_id);
+            queries.get_vote_ballots(vote_id);
         };
 
         public func get_votes({origin: Principal; previous: ?UUID; limit: Nat }) : [SVoteType] {
-            controller.get_queries().get_votes({origin; previous; limit; });
+            queries.get_votes({origin; previous; limit; });
         };
         
         public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; }) : [SVoteType] {
-            controller.get_queries().get_votes_by_author({author; previous; limit;});
+            queries.get_votes_by_author({author; previous; limit;});
         };
         
         public func find_vote({vote_id: UUID;}) : ?SVoteType {
-            controller.get_queries().find_vote(vote_id);
+            queries.find_vote(vote_id);
         };
         
         public func get_ballots(args: GetBallotArgs) : [SBallotType] {
-            controller.get_queries().get_ballots(args);
+            queries.get_ballots(args);
         };
         
         public func get_locked_amount({ account: Account; }) : Nat {
-            controller.get_queries().get_locked_amount({account});
+            queries.get_locked_amount({account});
         };
         
         public func find_ballot(ballot_id: UUID) : ?SBallotType {
-            controller.get_queries().find_ballot(ballot_id);
+            queries.find_ballot(ballot_id);
         };
 
-        public func get_debt_info(debt_id: UUID) : ?SDebtInfo {
-            controller.get_queries().get_debt_info(debt_id);
-        };
-        
-        public func get_debt_infos(ids: [UUID]) : [SDebtInfo] {
-            controller.get_queries().get_debt_infos(ids);
+        public func get_lending_index() : Types.LendingIndex {
+            queries.get_lending_index();
         };
 
-        public func get_mined_by_author({ author: Account }) : DebtRecord {
-            controller.get_queries().get_mined_by_author({author});
+        public func run_borrow_operation({
+            caller: Principal;
+            subaccount: ?Blob;
+            args: OperationKindArgs;
+        }) : async* Result<BorrowOperation, Text> {
+            await* controller.run_borrow_operation( { account = { owner = caller; subaccount; }; kind = args; } );
         };
 
-        public func get_yield_state() : SYieldState {
-            SharedConversions.shareYieldState(controller.get_yield_state());
+        public func run_borrow_operation_for_free({
+            caller: Principal;
+            subaccount: ?Blob;
+            args: OperationKindArgs;
+        }) : Result<BorrowOperation, Text> {
+            controller.run_borrow_operation_for_free( { account = { owner = caller; subaccount; }; kind = args; } );
         };
+
+        public func get_loan_position(account: Account) : LoanPosition {
+            controller.get_loan_position(account);
+        };
+
+        // @int: commented out for now, will be implemented later
+//        public func get_debt_info(debt_id: UUID) : ?SDebtInfo {
+//            queries.get_debt_info(debt_id);
+//        };
+//        
+//        public func get_debt_infos(ids: [UUID]) : [SDebtInfo] {
+//            queries.get_debt_infos(ids);
+//        };
+//
+//        public func get_mined_by_author({ author: Account }) : DebtRecord {
+//            queries.get_mined_by_author({author});
+//        };
         
     };
 };

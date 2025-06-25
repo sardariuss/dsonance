@@ -8,6 +8,7 @@ const { Principal } = require('@dfinity/principal');
 // v4 from UUID
 const { v4: uuidv4 } = require('uuid');
 const seedrandom = require('seedrandom');
+const { sub } = require('date-fns');
 
 const VOTES_TO_OPEN = [
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
@@ -33,15 +34,18 @@ const VOTES_TO_OPEN = [
 ];
 
 const NUM_USERS = 10;
-const BTC_USER_BALANCE = 100_000_000n;
-const DSN_USER_BALANCE = 100_000_000_000n;
-const MEAN_BALLOT_AMOUNT = 20_000;
+const BTC_USER_BALANCE = 100_000_000n; // 8 decimals, so 1 BTC
+const USDT_USER_BALANCE = 100_000_000_000n; // 6 decimals, so 100k USDT
+const MEAN_BALLOT_AMOUNT = 100_000; // 100_000 satoshis, so approximately 55 USDT at current rates
 const NUM_VOTES = 5;
 const SCENARIO_DURATION = { 'DAYS': 18n };
 const SCENARIO_TICK_DURATION = { 'DAYS': 3n };
+const PRICE_BTC = 110_000.0; // 110k USD
+const TARGET_LTV = 0.6; // 60% LTV
+const RESERVE_LIQUIDITY = 0.0; // 20% reserve liquidity
 
-const CKBTC_FEE = 10n;
-const DSN_FEE = 1_000n;
+const BTC_FEE = 10n;
+const USDT_FEE = 10_000n; // 6 decimals, so 1 cent USDT
 
 const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -56,10 +60,13 @@ const generateDeterministicRandom = (voteId) => {
     return rng(); // Returns a number between 0 and 1
 }
 
-const getRandomUserActor = (userActors) => {
+const getRandomUser = (userActors) => {
     let randomUser = Math.floor(Math.random() * NUM_USERS);
     let randomUserPrincipal = Array.from(userActors.keys())[randomUser];
-    return userActors.get(randomUserPrincipal);
+    return {
+        principal: randomUserPrincipal,
+        actors: userActors.get(randomUserPrincipal)
+    };
 }
   
 // Example function to call a canister method
@@ -69,15 +76,15 @@ async function callCanisterMethod() {
     const { idlFactory: protocolFactory } = await import("../../.dfx/local/canisters/protocol/service.did.js");
     const { idlFactory: minterFactory } = await import("../../.dfx/local/canisters/minter/service.did.js");
     const { idlFactory: backendFactory } = await import("../../.dfx/local/canisters/backend/service.did.js");
-    const { idlFactory: ckBtcFactory } = await import("../../.dfx/local/canisters/ck_btc/service.did.js");
-    const { idlFactory: dsnLedgerFactory } = await import("../../.dfx/local/canisters/dsn_ledger/service.did.js");
+    const { idlFactory: btcFactory } = await import("../../.dfx/local/canisters/ck_btc/service.did.js");
+    const { idlFactory: usdtFactory } = await import("../../.dfx/local/canisters/ck_usdt/service.did.js");
 
     // Retrieve canister ID from environment variables
     const protocolCanisterId = process.env.CANISTER_ID_PROTOCOL;
     const minterCanisterId = process.env.CANISTER_ID_MINTER;
     const backendCanisterId = process.env.CANISTER_ID_BACKEND;
-    const ckBtcCanisterId = process.env.CANISTER_ID_CK_BTC;
-    const dsnLedgerCanisterId = process.env.CANISTER_ID_DSN_LEDGER;
+    const btcCanisterId = process.env.CANISTER_ID_CK_BTC;
+    const usdtCanisterId = process.env.CANISTER_ID_CK_USDT;
 
     if (!protocolCanisterId){
         throw new Error("Protocol canister ID is missing");
@@ -88,11 +95,11 @@ async function callCanisterMethod() {
     if (!backendCanisterId){
         throw new Error("Backend canister ID is missing");
     }
-    if (!ckBtcCanisterId){
+    if (!btcCanisterId){
         throw new Error("ckBTC canister ID is missing");
     }
-    if (!dsnLedgerCanisterId){
-        throw new Error("DSN Ledger canister ID is missing");
+    if (!usdtCanisterId){
+        throw new Error("ckUSDT canister ID is missing");
     }
 
     // Simulation actors
@@ -128,34 +135,34 @@ async function callCanisterMethod() {
         if (backendActor === null) {
             throw new Error("Backend actor is null");
         }
-        let ckbtcActor = await getActor(ckBtcCanisterId, ckBtcFactory, identity);
-        if (ckbtcActor === null) {
+        let btcActor = await getActor(btcCanisterId, btcFactory, identity);
+        if (btcActor === null) {
             throw new Error("ckBTC actor is null");
         }
-        let dsnLedgerActor = await getActor(dsnLedgerCanisterId, dsnLedgerFactory, identity);
-        if (dsnLedgerActor === null) {
-            throw new Error("DSN Ledger actor is null");
+        let usdtActor = await getActor(usdtCanisterId, usdtFactory, identity);
+        if (usdtActor === null) {
+            throw new Error("USDT actor is null");
         }
-        userActors.set(identity.getPrincipal(), { "protocol": protocolActor, "backend": backendActor, "ckbtc": ckbtcActor, "dsn_ledger": dsnLedgerActor });
+        userActors.set(identity.getPrincipal(), { "protocol": protocolActor, "backend": backendActor, "btc": btcActor, "usdt": usdtActor });
     }
 
-    // Mint ckBTC and DSN to each user
+    // Mint ckBTC and USDT to each user
     let mintPromises = [];
     for (let [principal, _] of userActors) {
         mintPromises.push(minterActor.mint_btc({to: { owner: principal, subaccount: [] }, amount: BTC_USER_BALANCE}));
-        mintPromises.push(minterActor.mint_dsn({to: { owner: principal, subaccount: [] }, amount: DSN_USER_BALANCE}));
+        mintPromises.push(minterActor.mint_usdt({to: { owner: principal, subaccount: [] }, amount: USDT_USER_BALANCE}));
     }
     await Promise.all(mintPromises);
 
-    // Approve ckBTC and DSN for each user
+    // Approve ckBTC and USDT for each user
     let approvePromises = [];
     for (let [_, actors] of userActors) {
-        approvePromises.push(actors.ckbtc.icrc2_approve({
+        approvePromises.push(actors.btc.icrc2_approve({
             fee: [],
             memo: [],
             from_subaccount: [],
             created_at_time: [],
-            amount: BTC_USER_BALANCE - CKBTC_FEE,
+            amount: BTC_USER_BALANCE - BTC_FEE,
             expected_allowance: [],
             expires_at: [],
             spender: {
@@ -163,12 +170,12 @@ async function callCanisterMethod() {
               subaccount: []
             },
         }));
-        approvePromises.push(actors.dsn_ledger.icrc2_approve({
+        approvePromises.push(actors.usdt.icrc2_approve({
             fee: [],
             memo: [],
             from_subaccount: [],
             created_at_time: [],
-            amount: DSN_USER_BALANCE - DSN_FEE,
+            amount: USDT_USER_BALANCE - USDT_FEE,
             expected_allowance: [],
             expires_at: [],
             spender: {
@@ -186,9 +193,9 @@ async function callCanisterMethod() {
     // A random user opens up a new vote
     for (let i = 0; i < NUM_VOTES; i++) {
         const args = { text: VOTES_TO_OPEN[i], id: uuidv4(), thumbnail: new Uint8Array(), from_subaccount: [] };
-        getRandomUserActor(userActors).backend.new_vote(args).then((result) => {
+        getRandomUser(userActors).actors.backend.new_vote(args).then((result) => {
             if ('ok' in result) {
-                console.log('New vote added successfully');
+                console.log('New vote added: ', args.text);
             } else {
                 console.error('Error adding new vote:', result.err);
             }
@@ -205,10 +212,9 @@ async function callCanisterMethod() {
 
         // Retrieve all votes
         let votes = await backendSimActor.get_votes( { previous: [], limit: 100 } );
-        console.log(votes);
-
         let putBallotPromises = [];
 
+        // Put ballots loop
         for (let [_, actors] of userActors) {
 
             for (let vote of votes) {
@@ -243,8 +249,45 @@ async function callCanisterMethod() {
                 }
             }
         }
-
         await Promise.all(putBallotPromises);
+
+        // Borrow
+        const { principal, actors } = getRandomUser(userActors);
+        const utilization = (await actors.protocol.get_lending_index()).utilization;
+        const availableToBorrow = Math.max((utilization.raw_supplied * (1.0 - RESERVE_LIQUIDITY) - utilization.raw_borrowed), 0.0);
+        const collateralRequired = Math.floor(availableToBorrow * PRICE_BTC / TARGET_LTV);
+        const usdtBalance = await actors.usdt.icrc1_balance_of({ owner: principal, subaccount: [] });
+        // Borrow up to the maximum available to borrow
+        const collateralAmount =  Math.random() * Math.min(collateralRequired, Number(usdtBalance));
+        const toBorrow = collateralAmount * TARGET_LTV / PRICE_BTC;
+        
+        if (collateralAmount > 0.0) {
+            
+            // Supply enough ckUSDT collateral to reach the target LTV
+            await actors.protocol.run_borrow_operation({
+                subaccount: [],
+                args: { "PROVIDE_COLLATERAL": { amount: BigInt(Math.floor(collateralAmount)) } },
+            }).then((result) => {
+                if ('err' in result) {
+                    console.error('Error supplying collateral:', result.err);
+                } else {
+                    console.log('Collateral supplied successfully');
+                }
+            })
+
+            // Borrow ckBTC
+            await actors.protocol.run_borrow_operation({
+                subaccount: [],
+                args: { "BORROW_SUPPLY": { amount: BigInt(Math.floor(toBorrow)) } },
+            }).then((result) => {
+                if ('err' in result) {
+                    console.error('Error borrowing:', result.err);
+                } else {
+                    console.log('Borrowed successfully');
+                }
+            })
+        };
+
         await protocolActor.add_clock_offset(SCENARIO_TICK_DURATION);
         await protocolActor.run();
         tick++;

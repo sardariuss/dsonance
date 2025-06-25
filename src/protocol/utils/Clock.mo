@@ -14,7 +14,11 @@ module {
 
     type ClockParameters = Types.ClockParameters;
 
-    public class Clock(params: ClockParameters) {
+    public type IClock = {
+        get_time() : Nat;
+    };
+
+    public class Clock(params: ClockParameters) : IClock {
 
         public func get_parameters() : ClockParameters {
             params;

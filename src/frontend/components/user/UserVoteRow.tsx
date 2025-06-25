@@ -1,12 +1,7 @@
-import { DSONANCE_COIN_SYMBOL, MOBILE_MAX_WIDTH_QUERY } from "../../constants";
-import { fromNullable } from "@dfinity/utils";
-import { formatBalanceE8s } from "../../utils/conversions/token";
+import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
 
-import { useEffect, useMemo } from "react";
-import { protocolActor } from "../../actors/ProtocolActor";
+import { useMemo } from "react";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
-import DurationChart, { CHART_COLORS } from "../charts/DurationChart";
-import { map_timeline_hack } from "../../utils/timeline";
 import { useMediaQuery } from "react-responsive";
 
 interface Props {
@@ -18,21 +13,22 @@ const UserVoteRow = ({ vote, selected }: Props) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  const { data: debt_info, call: refreshDebtInfo } = protocolActor.useQueryCall({
-    functionName: "get_debt_info",
-    args: [vote.vote_id],
-  });
-
-  useEffect(() => {
-    refreshDebtInfo();
-  }
-  , [vote]);
-
-  const mined_dsn = useMemo(() => { 
-      return debt_info ? fromNullable(debt_info) : undefined;
-    },
-    [debt_info]
-  );
+  // @int
+//  const { data: debt_info, call: refreshDebtInfo } = protocolActor.useQueryCall({
+//    functionName: "get_debt_info",
+//    args: [vote.vote_id],
+//  });
+//
+//  useEffect(() => {
+//    refreshDebtInfo();
+//  }
+//  , [vote]);
+//
+//  const mined_dsn = useMemo(() => { 
+//      return debt_info ? fromNullable(debt_info) : undefined;
+//    },
+//    [debt_info]
+//  );
 
   const thumbnail = useMemo(() => {
     const byteArray = new Uint8Array(vote.info.thumbnail);
@@ -54,18 +50,18 @@ const UserVoteRow = ({ vote, selected }: Props) => {
         <div className="flex items-center h-[4.5em] sm:h-[3em]">
           <span className="line-clamp-3 sm:line-clamp-2 overflow-hidden"> {vote.info.text} </span>
         </div>
-
-        { mined_dsn && <div className="grid grid-rows-2 w-full justify-items-end">
+        
+        { /*mined_dsn && <div className="grid grid-rows-2 w-full justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">Mining earned</span>
           <span>
             {formatBalanceE8s(BigInt(Math.trunc(mined_dsn.amount.current.data.earned)), DSONANCE_COIN_SYMBOL, 2)}
           </span>
-        </div> }
+        </div> */}
 
       </div>
 
       {
-        mined_dsn && selected &&
+        /*mined_dsn && selected &&
           <div className={`w-2/3 ${isMobile ? "h-[200px]" : "h-[300px]"}`}>
             <DurationChart
               duration_timelines={new Map([
@@ -82,6 +78,7 @@ const UserVoteRow = ({ vote, selected }: Props) => {
               fillArea={true}
             />
           </div>
+          */
         }
 
     </div>

@@ -1,27 +1,27 @@
 import Types                  "Types";
 import Controller             "Controller";
-import Yielder                "Yielder";
 import Queries                "Queries";
 import Decay                  "duration/Decay";
 import DurationCalculator     "duration/DurationCalculator";
 import VoteFactory            "votes/VoteFactory";
 import VoteTypeController     "votes/VoteTypeController";
 import LockInfoUpdater        "locks/LockInfoUpdater";
-import LedgerFacade           "payement/LedgerFacade";
 import LockScheduler          "LockScheduler";
 import Clock                  "utils/Clock";
-import Timeline               "utils/Timeline";
-import DebtProcessor          "DebtProcessor";
-import TokenMinter            "TokenMinter"; 
+import Timeline               "utils/Timeline"; 
 import IterUtils              "utils/Iter";
 import ForesightUpdater       "ForesightUpdater";
 import Incentives             "votes/Incentives";
 import ProtocolTimer          "ProtocolTimer";
+import LendingFactory         "lending/LendingFactory";
+import LedgerFungible         "ledger/LedgerFungible";
+import Dex                    "ledger/Dex";
+import PriceTracker           "ledger/PriceTracker";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
-import Float                  "mo:base/Float";
 import Map                    "mo:map/Map";
+import Result                 "mo:base/Result";
 
 module {
 
@@ -34,92 +34,90 @@ module {
     type LockEvent   = Types.LockEvent;
     type BallotType  = Types.BallotType;
     type VoteType    = Types.VoteType;
-    type LockState   = Types.LockState; 
+    type LockState   = Types.LockState;
     
     type Iter<T>     = Map.Iter<T>;
     type Map<K, V>   = Map.Map<K, V>;
     type Time        = Int;
 
-    public func build(args: State and { provider: Principal; admin: Principal; }) : Controller.Controller {
+    type BuildOutput = {
+        controller: Controller.Controller;
+        queries: Queries.Queries;
+        initialize: () -> async* Result.Result<(), Text>;
+    };
 
-        let { vote_register; ballot_register; lock_scheduler_state; btc; dsn; parameters; provider; yield_state; admin; } = args;
-        let { nominal_lock_duration; decay; minter_parameters; } = parameters;
+    public func build({
+        state: State;
+        protocol: Principal;
+        admin: Principal;
+    }) : BuildOutput {
 
-        let btc_ledger = LedgerFacade.LedgerFacade({ btc with provider; });
-        let dsn_ledger = LedgerFacade.LedgerFacade({ dsn with provider; });
+        let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_price_in_supply; } = state;
+        let { nominal_lock_duration; decay; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
 
-        let btc_debt = DebtProcessor.DebtProcessor({
-            ledger = btc_ledger;
-            register = btc.debt_register;
+        let supply_ledger = LedgerFungible.LedgerFungible(state.supply_ledger);
+        let collateral_ledger = LedgerFungible.LedgerFungible(state.collateral_ledger);
+
+        let dex = Dex.Dex(state.dex);
+
+        let collateral_price_tracker = PriceTracker.PriceTracker({
+            dex;
+            tracked_price = collateral_price_in_supply;
+            pay_ledger = collateral_ledger;
+            receive_ledger = supply_ledger;
         });
 
-        let dsn_debt = DebtProcessor.DebtProcessor({
-            ledger = dsn_ledger;
-            register = dsn.debt_register;
+        let { supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
+            lending with
+            collateral_price_tracker;
+            protocol_info = {
+                accounts with
+                principal = protocol;
+            };
+            admin;
+            supply_ledger;
+            collateral_ledger;
+            dex;
+            clock;
         });
-
-        let minter = TokenMinter.TokenMinter({
-            parameters = minter_parameters;
-            dsn_debt;
-        });
-
-        let yielder = Yielder.Yielder(yield_state);
 
         let foresight_updater = ForesightUpdater.ForesightUpdater({
-            get_yield = func () : { earned: Float; apr: Float; time_last_update: Nat; } {
-                {
-                    earned = yield_state.interest.earned;
-                    apr = yield_state.apr;
-                    time_last_update = yield_state.interest.time_last_update;
-                }
+            initial_supply_info = to_supply_info(indexer.get_index());
+            get_items = func() : Iter<ForesightUpdater.ForesightItem> {
+                // Map the ballots to foresight items
+                map_ballots_to_foresight_items(ballot_register.ballots, parameters);
             };
         });
+
+        // Update the foresights when the indexer state is updated
+        indexer.add_observer(func(lending_index: Types.LendingIndex) {
+            foresight_updater.set_supply_info(to_supply_info(lending_index));
+        });
         
+        // @int: the foresight_updater should directly listen to the Indexer updates instead of the LockScheduler
         let lock_scheduler = LockScheduler.LockScheduler({
             state = lock_scheduler_state;
-            before_change = func({ time: Nat; state: LockState; }){
-                
-                // Mint the tokens until time
-                minter.mint({
-                    time;
-                    locked_ballots = map_locks_to_pair(state.locks, ballot_register.ballots, vote_register.votes);
-                    tvl = state.tvl;
-                });
-            };
+            before_change = func({ time: Nat; state: LockState; }){};
             after_change = func({ time: Nat; event: LockEvent; state: LockState; }){
                 
-                // Refresh the yield
-                yielder.update_tvl({ new_tvl = state.tvl; time; });
-                
-                // Update the ballots foresights
-                foresight_updater.update_foresights(map_ballots_to_foresight_items(ballot_register.ballots, parameters));
+                // Update the bal lots foresights
+                foresight_updater.update_foresights();
 
                 let { ballot; diff; } = switch(event){
                     case(#LOCK_ADDED({id; amount;})){
                         { ballot = get_ballot(ballot_register.ballots, id); diff = amount; };
                     };
                     case(#LOCK_REMOVED({id; amount;})){
-                        
+
                         let ballot = get_ballot(ballot_register.ballots, id);
-                        let ballot_interest = Timeline.current(ballot.foresight).reward;
-
-                        // Refresh the yield
-                        yielder.remove_from_earned({ to_remove = ballot_interest; time; });
-
-                        // Update the ballots foresights
-                        foresight_updater.update_foresights(map_ballots_to_foresight_items(ballot_register.ballots, parameters));
                         
-                        // Initiate the transfer of the locked BTC and yield
-                        btc_debt.increase_debt({ 
+                        // TODO: what if it returns an error?
+                        ignore supply_registry.remove_position({
                             id;
-                            account = ballot.from;
-                            amount = Float.fromInt(ballot.amount + ballot_interest);
-                            pending = 0.0;
-                            time;
+                            share = Timeline.current(ballot.foresight).share;
                         });
-
                         { ballot; diff = -amount; };
                     };
                 };
@@ -151,35 +149,46 @@ module {
             yes_no_controller;
         });
 
-        let queries = Queries.Queries({
-            vote_register;
-            ballot_register;
-            dsn_debt_register = dsn.debt_register;
-            clock;
-        });
-
         let protocol_timer = ProtocolTimer.ProtocolTimer({
             admin;
             parameters = parameters.timer;
         });
 
-        Controller.Controller({
-            clock;
-            vote_register;
-            ballot_register;
-            lock_scheduler;
-            vote_type_controller;
-            btc_debt;
-            dsn_debt;
-            queries;
-            protocol_timer;
-            minter;
-            parameters;
-            yielder;
-        });
+        {
+            controller = Controller.Controller({
+                clock;
+                vote_register;
+                ballot_register;
+                lock_scheduler;
+                vote_type_controller;
+                supply_registry;
+                borrow_registry;
+                withdrawal_queue;
+                collateral_price_tracker;
+                protocol_timer;
+                parameters;
+            });
+            queries = Queries.Queries({
+                state;
+                clock;
+            });
+            initialize = func() : async* Result.Result<(), Text> {
+                switch(await* supply_ledger.initialize()) {
+                    case(#err(e)) { return #err("Failed to initialize supply ledger: " # e); };
+                    case(#ok(_)) {};
+                };
+                switch(await* collateral_ledger.initialize()) {
+                    case(#err(e)) { return #err("Failed to initialize collateral ledger: " # e); };
+                    case(#ok(_)) {};
+                };
+                switch(await* collateral_price_tracker.fetch_price()) {
+                    case(#err(error)) { return #err("Failed to update collateral price: " # error); };
+                    case(#ok(_)) {};
+                };
+                #ok;
+            };
+        };
     };
-
-    // TODO: remove duplicate (see Controller)
 
     func get_ballot(ballots: Map<UUID, BallotType>, id: UUID) : YesNoBallot {
         switch(Map.get(ballots, Map.thash, id)) {
@@ -199,14 +208,7 @@ module {
         };
     };
 
-    func map_locks_to_pair(locks: Iter<Lock>, ballots: Map<UUID, BallotType>, votes: Map<UUID, VoteType>) : Iter<(YesNoBallot, YesNoVote)> {
-        IterUtils.map<Lock, (YesNoBallot, YesNoVote)>(locks, func(lock: Lock) : (YesNoBallot, YesNoVote) {
-            let ballot = get_ballot(ballots, lock.id);
-            let vote = get_vote(votes, ballot.vote_id);
-            (ballot, vote);
-        });
-    };
-
+    // @todo: could return only the items which release_date is in the future, it would avoid to do it in the ForesightUpdater
     func map_ballots_to_foresight_items(ballots: Map<UUID, BallotType>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {
         IterUtils.map(Map.vals(ballots), func(ballot_type: BallotType) : ForesightUpdater.ForesightItem {
             switch(ballot_type){
@@ -234,6 +236,14 @@ module {
                 };
             };
         });
+    };
+
+    func to_supply_info(lending_index: Types.LendingIndex) : ForesightUpdater.SupplyInfo {
+        {
+            accrued_interests = lending_index.accrued_interests.supply;
+            interests_rate = lending_index.supply_rate;
+            timestamp = lending_index.timestamp;
+        };
     };
 
 };

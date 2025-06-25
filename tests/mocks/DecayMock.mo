@@ -46,7 +46,7 @@ module {
         });
 
         public func compute_decay(_: Time) : Float {
-            let arg = base.pop_expected_call(#compute_decay);
+            let arg = base.next_call(#compute_decay);
             switch(arg){
                 case(#compute_decay(#returns(value))) {
                     return value;
@@ -55,12 +55,8 @@ module {
             Debug.trap("Unexpected argument for compute_decay!");
         };
 
-        public func expect_call(arg: Return) {
-            base.expect_call(arg);
-        };
-
-        public func expect_calls(args: [Return]) {
-            base.expect_calls(args);
+        public func expect_call(arg: Return, times: MockTypes.Times) {
+            base.expect_call(arg, times);
         };
 
         public func teardown() {

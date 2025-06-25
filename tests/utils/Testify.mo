@@ -1,4 +1,5 @@
-import Types       "../../src/protocol/Types";
+import Types        "../../src/protocol/Types";
+import LendingTypes "../../src/protocol/lending/Types";
 
 import Array       "mo:base/Array";
 import Debug       "mo:base/Debug";
@@ -82,6 +83,13 @@ module {
     /// https://github.com/dfinity/motoko/blob/master/src/protocol/prelude/prelude.mo
     public module Testify {
 
+        public let void = {
+            equal : Testify<()> = {
+                toText = func (v : ()) : Text { "()" };
+                compare = func (x : (), y : ()) : Bool { true };
+            };
+        };
+
         public let bool = {
             equal : Testify<Bool> = {
                 toText = func (t : Bool) : Text { if (t) { "true" } else { "false" } };
@@ -137,6 +145,22 @@ module {
             equal : Testify<Nat> = {
                 toText = intToText;
                 compare = func (x : Nat, y : Nat) : Bool { x == y };
+            };
+            greaterThan : Testify<Nat> = {
+                toText = intToText;
+                compare = func (x : Nat, y : Nat) : Bool { x > y };
+            };
+            greaterThanOrEqual : Testify<Nat> = {
+                toText = intToText;
+                compare = func (x : Nat, y : Nat) : Bool { x >= y };
+            };
+            lessThan : Testify<Nat> = {
+                toText = intToText;
+                compare = func (x : Nat, y : Nat) : Bool { x < y };
+            };
+            lessThanOrEqual : Testify<Nat> = {
+                toText = intToText;
+                compare = func (x : Nat, y : Nat) : Bool { x <= y };
             };
         };
 
@@ -278,6 +302,71 @@ module {
                     x.reward    == y.reward                                and 
                     Float.equalWithin(x.apr.current, y.apr.current, 1e-12) and 
                     Float.equalWithin(x.apr.potential, y.apr.potential, 1e-12);
+                };
+            };
+        };
+
+        public let utilization = {
+            equal : Testify<LendingTypes.Utilization> = {
+                toText = func (u : LendingTypes.Utilization) : Text {
+                    "Utilization { raw_supplied = " # Float.toText(u.raw_supplied) # 
+                    ", raw_borrowed = " # Float.toText(u.raw_borrowed) # 
+                    ", ratio = " # Float.toText(u.ratio) # " }";
+                };
+                compare = func (x : LendingTypes.Utilization, y : LendingTypes.Utilization) : Bool {
+                    Float.equalWithin(x.raw_supplied, y.raw_supplied, FLOAT_EPSILON) and
+                    Float.equalWithin(x.raw_borrowed, y.raw_borrowed, FLOAT_EPSILON) and
+                    Float.equalWithin(x.ratio, y.ratio, FLOAT_EPSILON);
+                };
+            };
+        };
+
+        public let owed = {
+            equal : Testify<LendingTypes.Owed> = {
+                toText = func (o : LendingTypes.Owed) : Text {
+                    "Owed { accrued_amount = " # Float.toText(o.accrued_amount) # 
+                    ", index = " # index.equal.toText(o.index) # " }";
+                };
+                compare = func (x : LendingTypes.Owed, y : LendingTypes.Owed) : Bool {
+                    Float.equalWithin(x.accrued_amount, y.accrued_amount, FLOAT_EPSILON) and
+                    index.equal.compare(x.index, y.index);
+                };
+            };
+        };
+
+        public let index = {
+            equal : Testify<LendingTypes.Index> = {
+                toText = func (i : LendingTypes.Index) : Text {
+                    "Index { value = " # Float.toText(i.value) # 
+                    ", timestamp = " # Nat.toText(i.timestamp) # " }";
+                };
+                compare = func (x : LendingTypes.Index, y : LendingTypes.Index) : Bool {
+                    Float.equalWithin(x.value, y.value, FLOAT_EPSILON) and
+                    x.timestamp == y.timestamp;
+                };
+            };
+        };
+
+        public let collateral = {
+            equal : Testify<LendingTypes.Collateral> = {
+                toText = func (c : LendingTypes.Collateral) : Text {
+                    "Collateral { amount = " # Nat.toText(c.amount) # " } ";
+                };
+                compare = func (x : LendingTypes.Collateral, y : LendingTypes.Collateral) : Bool {
+                    x.amount == y.amount;
+                };
+            };
+        };
+
+        public let borrow = {
+            equal : Testify<LendingTypes.Borrow> = {
+                toText = func (b : LendingTypes.Borrow) : Text {
+                    "Borrow { raw_amount = " # Float.toText(b.raw_amount) # 
+                    ", owed = " # owed.equal.toText(b.owed) # " }";
+                };
+                compare = func (x : LendingTypes.Borrow, y : LendingTypes.Borrow) : Bool {
+                    Float.equalWithin(x.raw_amount, y.raw_amount, FLOAT_EPSILON) and
+                    owed.equal.compare(x.owed, y.owed);
                 };
             };
         };

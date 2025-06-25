@@ -4,6 +4,7 @@ import ExperimentalCycles "mo:base/ExperimentalCycles";
 
 import Principal "mo:base/Principal";
 import Time "mo:base/Time";
+import Nat8 "mo:base/Nat8";
 
 import CertifiedData "mo:base/CertifiedData";
 import CertTree "mo:cert/CertTree";
@@ -352,8 +353,45 @@ shared ({ caller = _owner }) actor class Token  (args: ?{
       icrc1().fee();
   };
 
+  func unwrapText(val: ?Text) : Text {
+    switch(val){
+      case(null) { D.trap("Expected Text, got null") };
+      case(?v) v;
+    };
+  };
+
+  func unwrapFee(fee: ?ICRC1.Fee) : Nat {
+    switch(fee){
+      case(null) { D.trap("Expected Nat, got null") };
+      case(?f) {
+        switch(f){
+          case(#Environment) { D.trap("Expected Nat, got Environment") };
+          case(#Fixed(v)) { v; };
+        };
+      };
+    };
+  };
+
+  // Sardariuss 2025-06-18: Use a hack because there is a bug in icrc_fungible implementation: when calling 
+  // icrc1_metadata after calling an icrc2 update function, the icrc1 metadata returns icrc2_metadata.
   public shared query func icrc1_metadata() : async [ICRC1.MetaDatum] {
-      icrc1().metadata()
+      switch(args){
+        case(null) { D.trap("ICRC1 metadata not initialized") };
+        case(?args) {
+          switch(args.icrc1){
+            case(null) { D.trap("ICRC1 metadata not initialized") };
+            case(?val) { 
+              [
+                ("icrc1:name",     #Text(unwrapText(val.name)   )),
+                ("icrc1:fee",      #Nat (unwrapFee(val.fee)     )),
+                ("icrc1:symbol",   #Text(unwrapText(val.symbol) )),
+                ("icrc1:decimals", #Nat(Nat8.toNat(val.decimals))),
+                ("icrc1:logo",     #Text(unwrapText(val.logo)   )),
+              ];
+            };
+          };
+        };
+      };
   };
 
   public shared query func icrc1_total_supply() : async ICRC1.Balance {

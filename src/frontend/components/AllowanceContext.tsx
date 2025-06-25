@@ -1,16 +1,16 @@
 import { createContext, useContext, useMemo } from "react";
 import { ckBtcActor } from "../actors/CkBtcActor";
 import { useAuth } from "@ic-reactor/react";
-import { Account__1 } from "@/declarations/ck_btc/ck_btc.did";
+import { Account } from "@/declarations/ck_btc/ck_btc.did";
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
-import { dsonanceLedgerActor } from "../actors/DsonanceLedgerActor";
+import { ckUsdtActor } from "../actors/CkUsdtActor";
 
 interface AllowanceContextType {
   btcAllowance: bigint | undefined;
-  dsnAllowance: bigint | undefined;
+  usdtAllowance: bigint | undefined;
   refreshBtcAllowance: () => void;
-  refreshDsnAllowance: () => void;
+  refreshUsdtAllowance: () => void;
 }
 
 const AllowanceContext = createContext<AllowanceContextType | undefined>(undefined);
@@ -23,7 +23,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return null;
   };
 
-  const account : Account__1 = useMemo(() => ({
+  const account : Account = useMemo(() => ({
     owner: identity.getPrincipal(),
     subaccount: []
   }), [identity]);
@@ -43,7 +43,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     btcRefresh();
   };
 
-  const { call: dsnRefresh, data: dsnAllowance } = dsonanceLedgerActor.useQueryCall({
+  const { call: usdtRefresh, data: usdtAllowance } = ckUsdtActor.useQueryCall({
     functionName: 'icrc2_allowance',
     args: [{
       account,
@@ -54,12 +54,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }]
   });
 
-  const refreshDsnAllowance = () => {
-    dsnRefresh();
+  const refreshUsdtAllowance = () => {
+    usdtRefresh();
   }
 
   return (
-    <AllowanceContext.Provider value={{ btcAllowance: btcAllowance?.allowance, dsnAllowance: dsnAllowance?.allowance, refreshBtcAllowance, refreshDsnAllowance }}>
+    <AllowanceContext.Provider value={{ btcAllowance: btcAllowance?.allowance, usdtAllowance: usdtAllowance?.allowance, refreshBtcAllowance, refreshUsdtAllowance }}>
       {children}
     </AllowanceContext.Provider>
   );

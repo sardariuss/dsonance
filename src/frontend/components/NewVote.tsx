@@ -7,8 +7,7 @@ import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { useAllowanceContext } from "./AllowanceContext";
 import { Link, useNavigate } from "react-router-dom";
-import { DOCS_URL, DSONANCE_COIN_SYMBOL, NEW_VOTE_PLACEHOLDER, VOTE_MAX_CHARACTERS } from "../constants";
-import { formatBalanceE8s } from "../utils/conversions/token";
+import { DOCS_URL, NEW_VOTE_PLACEHOLDER, VOTE_MAX_CHARACTERS } from "../constants";
 import BackArrowIcon from "./icons/BackArrowIcon";
 
 function NewVote() {
@@ -182,10 +181,15 @@ function NewVote() {
       <span className="grow">{/* spacer */}</span>
 
       <div className="flex flex-row gap-x-2 w-full items-center sm:items-center justify-end">
+        
+        {
+          // @int: DSN minted temporarily disabled
+        /*
         <div className="flex flex-row gap-x-2">
           <span className="text-sm text-gray-600 dark:text-gray-400">Fee:</span>
           {formatBalanceE8s(5_000_000_000n, DSONANCE_COIN_SYMBOL, 2)}
         </div>
+        */}
         <button className={`button-simple text-lg`} 
                 onClick={openVote}
                 disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS || thumbnail === null}>

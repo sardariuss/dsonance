@@ -63,25 +63,6 @@ module {
             };
         };
 
-        public func preview_ballot(vote: Vote<A, B>, choice: B, args: PutBallotArgs) : BallotPreview<B> {
-
-            let { vote_id } = vote;
-            let { amount; timestamp; } = args;
-            let time = timestamp;
-            
-            let outcome = ballot_aggregator.compute_outcome({ aggregate = vote.aggregate.current.data; choice; amount; time; });
-            let { dissent; consent } = outcome.ballot;
-
-            let ballot = init_ballot({vote_id; choice; args; dissent; consent; });
-            let ballots_copy = vote_ballots_copy(vote);
-            lock_info_updater.add(ballot, ballots_copy, time);
-
-            {
-                new = ballot;
-                previous = Iter.toArray(ballots_copy);
-            };
-        };
-
         public func put_ballot(vote: Vote<A, B>, choice: B, args: PutBallotArgs) : Ballot<B> {
 
             let { vote_id } = vote;
@@ -156,7 +137,7 @@ module {
                 choice;
                 dissent;
                 consent = Timeline.initialize<Float>(timestamp, consent);
-                foresight = Timeline.initialize<Foresight>(timestamp, { reward = 0; apr = { current = 0.0; potential = 0.0; }; });
+                foresight = Timeline.initialize<Foresight>(timestamp, { share = 0.0; reward = 0; apr = { current = 0.0; potential = 0.0; }; });
                 decay = decay_model.compute_decay(timestamp);
                 var hotness = 0.0;
                 var lock : ?LockInfo = null;

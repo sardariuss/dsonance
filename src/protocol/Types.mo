@@ -50,6 +50,7 @@ module {
     public type BallotRegister     = Types.Current.BallotRegister;
     public type ProtocolParameters = Types.Current.ProtocolParameters;
     public type TimerParameters    = Types.Current.TimerParameters;
+    public type LendingParameters  = Types.Current.LendingParameters;
     public type Foresight          = Types.Current.Foresight;
     public type Register<T>        = Types.Current.Register<T>;
     public type DebtRegister       = Types.Current.DebtRegister;
@@ -57,6 +58,10 @@ module {
     public type MinterParameters   = Types.Current.MinterParameters;
     public type LockSchedulerState = Types.Current.LockSchedulerState;
     public type YieldState         = Types.Current.YieldState;
+    public type TransferError      = Types.Current.TransferError;
+    public type Index              = Types.Current.Index;
+    public type Utilization        = Types.Current.Utilization;
+    public type LendingIndex       = Types.Current.LendingIndex;
 
     // CANISTER ARGS
 
@@ -209,7 +214,8 @@ module {
         dissent_steepness: Float;
         consent_steepness: Float;
         author_fee: Nat;
-        minter_parameters: SMinterParameters;
+        // @int: commented out for now, will be implemented later
+        //minter_parameters: SMinterParameters;
         decay: {
             half_life: Duration;
             time_init: Nat;
@@ -280,12 +286,9 @@ module {
     public type InsuficientAmountError   = { #InsufficientAmount: { amount: Nat; minimum: Nat; }; };
     public type NewVoteError             = { #VoteAlreadyExists: { vote_id: UUID; }; } or TransferFromError;
     public type BallotAlreadyExistsError = { #BallotAlreadyExists: { ballot_id: UUID; }; };
-    public type PreviewBallotError       = VoteNotFoundError or InsuficientAmountError;
     public type PutBallotError           = VoteNotFoundError or InsuficientAmountError or BallotAlreadyExistsError or TransferFromError;
     public type PutBallotResult          = Result<SBallotType, PutBallotError>;
     public type NewVoteResult            = Result<VoteType, NewVoteError>;
     public type SNewVoteResult           = Result<SVoteType, NewVoteError>;
-    public type PreviewBallotResult      = Result<BallotPreview, PreviewBallotError>;
-    public type SPreviewBallotResult     = Result<SBallotPreview, PreviewBallotError>;
 
 };

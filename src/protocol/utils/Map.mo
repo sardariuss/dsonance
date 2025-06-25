@@ -38,6 +38,19 @@ module {
         func(a, b) = a.owner == b.owner and a.subaccount == b.subaccount,
     );
 
+    public func compare<K, V>(map1: Map<K, V>, map2: Map<K, V>, hash: HashUtils<K>, eq: (V, V) -> Bool) : Bool {
+        if (Map.size(map1) != Map.size(map2)) {
+            return false;
+        };
+        for ((k, v1) in Map.entries(map1)) {
+            switch(Map.get(map2, hash, k)){
+                case(null) { return false; };
+                case(?v2) { if (not eq(v1, v2)) { return false; }; };
+            };
+        };
+        true;
+    };
+
     public func getOrTrap<K, V>(map: Map<K, V>, hash: HashUtils<K>, key: K) : V {
         switch(Map.get(map, hash, key)){
             case(null) { Debug.trap("Key not found"); };

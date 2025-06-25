@@ -88,8 +88,8 @@ const VoteList = () => {
           {votes.map((vote: SYesNoVote, index) => (
             computeDecay && vote.info.visible && info &&
               <div 
-                key={index} 
-                ref={(el) => (voteRefs.current.set(vote.vote_id, el))} 
+                key={index}
+                ref={(el) => { voteRefs.current.set(vote.vote_id, el); }}
                 className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-3 hover:cursor-pointer border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all duration-200 ease-in-out"
                 onClick={() => { setSearchParams({ voteId: vote.vote_id }); navigate(`/vote/${vote.vote_id}`); }}
               >

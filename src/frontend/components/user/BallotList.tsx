@@ -186,7 +186,7 @@ const BallotList = () => {
           {
             /* Size of the header is 26 on mobile and 22 on desktop */
             ballotEntries.ballots.map((ballot, index) => (
-              <li key={index} ref={(el) => (ballotRefs.current.set(ballot.YES_NO.ballot_id, el))} 
+              <li key={index} ref={(el) => {ballotRefs.current.set(ballot.YES_NO.ballot_id, el)}} 
                 className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]" 
                 onClick={(e) => { selectBallot(ballot.YES_NO.ballot_id); navigate(`/ballot/${ballot.YES_NO.ballot_id}`); }}>
                 <BallotRow 

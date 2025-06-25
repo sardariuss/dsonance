@@ -45,6 +45,9 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/"}>
             Vote
           </Link>
+          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/borrow"}>
+            Borrow
+          </Link>
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/dashboard"}>
             Dashboard
           </Link>
@@ -143,6 +146,16 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 onClick={() => setShowMenu(false)}
               >
                 Vote
+              </Link>
+            </div>
+            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/borrow' ? 'bg-purple-700 text-white' : ''}`}>
+              <span />
+              <Link
+                className="cols-span-11 overflow-visible whitespace-nowrap"
+                to="/borrow"
+                onClick={() => setShowMenu(false)}
+              >
+                Borrow
               </Link>
             </div>
             <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/dashboard' ? 'bg-purple-700 text-white' : ''}`}>

@@ -1,8 +1,6 @@
 import { formatDuration } from "../utils/conversions/durationUnit";
-import { DSONANCE_COIN_SYMBOL } from "../constants";
 import { get_current } from "../utils/timeline";
 import { unwrapLock } from "../utils/conversions/ballot";
-import { formatBalanceE8s } from "../utils/conversions/token";
 import { SBallot } from "@/declarations/protocol/protocol.did";
 
 interface PutBallotPreviewProps {
@@ -22,16 +20,17 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ ballotPreview }) =>
         { label: "Dissent", value: ballotPreview ? ballotPreview.dissent.toFixed(3) : defaultValue },
         {
           label: "APR (current)",
-          value: ballotPreview ? ballotPreview.foresight.current.data.apr.current.toFixed(2) + "%" : defaultValue,
+          value: ballotPreview ? (ballotPreview.foresight.current.data.apr.current * 100).toFixed(2) + "%" : defaultValue,
         },
         {
           label: "APR (potential)",
-          value: ballotPreview ? ballotPreview.foresight.current.data.apr.potential.toFixed(2) + "%" : defaultValue,
+          value: ballotPreview ? (ballotPreview.foresight.current.data.apr.potential * 100).toFixed(2) + "%" : defaultValue,
         },
-        {
-          label: "Mining reward",
-          value: ballotPreview ? formatBalanceE8s(BigInt(Math.trunc(0)), DSONANCE_COIN_SYMBOL, 0) : defaultValue,
-        },
+        // @int: DSN minted temporarily disabled
+        //{
+          //label: "Mining reward",
+          //value: ballotPreview ? formatBalanceE8s(BigInt(Math.trunc(0)), DSONANCE_COIN_SYMBOL, 0) : defaultValue,
+        //},
         {
           label: "Time left",
           value: ballotPreview ?

@@ -22,8 +22,8 @@ const OpenChatIcon = () => (
             <path
                 transform="matrix(1.031731, 0.000001, 0, 1.020801, -703.597412, -67.455116)"
                 d="M 958.327234958 100.664699414 A 175.433 175.433 0 0 1 958.327234958 388.077300586 L 913.296322517 323.766492741 A 96.924 96.924 0 0 0 913.296322517 164.975507259 Z"
-                stroke-width="0"
-                paint-order="stroke"
+                strokeWidth="0"
+                paintOrder="stroke"
                 className="fill-black dark:fill-white"
             ></path>
         </svg>

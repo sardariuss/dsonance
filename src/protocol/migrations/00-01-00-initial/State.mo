@@ -29,16 +29,27 @@ module {
     type YesNoChoice   = Types.YesNoChoice;
     type VoteType      = Types.VoteType;
     type BallotType    = Types.BallotType;
+    type BorrowPosition = Types.BorrowPosition;
+    type SupplyPosition = Types.SupplyPosition;
+    type Withdrawal     = Types.Withdrawal;
+    type DexActor      = Types.DexActor;
+    type TrackedPrice  = Types.TrackedPrice;
     type Set<K>        = Set.Set<K>;
 
     let BTREE_ORDER = 8;
 
     public func init(args: InitArgs) : State {
 
-        let { btc; dsn; minter; parameters; } = args;
+        let { canister_ids; parameters; } = args;
         let now = Int.abs(Time.now());
 
         #v0_1_0({
+            supply_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.supply_ledger));
+            collateral_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.collateral_ledger));
+            dex : DexActor = actor(Principal.toText(canister_ids.dex));
+            collateral_price_in_supply : TrackedPrice = {
+                var value = null;
+            };
             vote_register = { 
                 votes = Map.new<UUID, VoteType>();
                 by_origin = Map.new<Principal, Set<UUID>>();
@@ -48,34 +59,10 @@ module {
                 ballots = Map.new<UUID, BallotType>();
                 by_account = Map.new<Account, Set<UUID>>();
             };
-            btc = {
-                ledger : ICRC1 and ICRC2 = actor(Principal.toText(btc.ledger));
-                fee = btc.fee;
-                debt_register = {
-                    debts = Map.new<UUID, DebtInfo>();
-                    pending_transfer = Set.new<UUID>();
-                };
-            };
-            dsn = {
-                ledger : ICRC1 and ICRC2 = actor(Principal.toText(dsn.ledger));
-                fee = dsn.fee;
-                debt_register = {
-                    debts = Map.new<UUID, DebtInfo>();
-                    pending_transfer = Set.new<UUID>();
-                };
-            };
             lock_scheduler_state = {
                 btree = BTree.init<Lock, ()>(?BTREE_ORDER);
                 map = Map.new<Text, Lock>();
                 tvl = Timeline.initialize<Nat>(now, 0);
-            };
-            yield_state = {
-                var tvl = 0;
-                var apr = 10;
-                interest = {
-                    var earned = 0;
-                    var time_last_update = now;
-                };
             };
             parameters = { parameters with
                 max_age = Duration.toTime(parameters.max_age);
@@ -96,11 +83,52 @@ module {
                         });
                     };
                 };
-                minter_parameters = {
-                    var contribution_per_day = minter.contribution_per_day;
-                    var author_share = minter.author_share;
-                    var time_last_mint = now; // @todo: shall be null instead
-                    amount_minted = Timeline.initialize<Float>(now, 0);
+            };
+            accounts = {
+                supply = {
+                    subaccount = null;
+                    local_balance = {
+                        var value = 0;
+                    };
+                };
+                collateral = {
+                    subaccount = null;
+                    local_balance = {
+                        var value = 0;
+                    };
+                };
+            };
+            lending = {
+                parameters = parameters.lending;
+                index = {
+                    var value = {
+                        utilization = {
+                            raw_supplied = 0.0;
+                            raw_borrowed = 0.0;
+                            ratio = 0.0;
+                        };
+                        borrow_rate = 0.0;
+                        supply_rate = 0.0;
+                        accrued_interests = {
+                            fees = 0.0;
+                            supply = 0.0;
+                        };
+                        borrow_index = {
+                            value = 1.0;
+                            timestamp = now;
+                        };
+                        supply_index =  {
+                            value = 1.0;
+                            timestamp = now;
+                        };
+                        timestamp = now;
+                    };
+                };
+                register = {
+                    borrow_positions = Map.new<Account, BorrowPosition>();
+                    supply_positions = Map.new<Text, SupplyPosition>();
+                    withdrawals = Map.new<Text, Withdrawal>();
+                    withdraw_queue = Set.new<Text>();
                 };
             };
         });

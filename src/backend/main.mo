@@ -9,7 +9,6 @@ import Debug         "mo:base/Debug";
 
 import Protocol      "canister:protocol";
 
-
 shared({ caller = admin }) actor class Backend() = this {
 
     type YesNoAggregate = ProtocolTypes.YesNoAggregate;

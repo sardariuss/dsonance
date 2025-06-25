@@ -97,8 +97,9 @@ module {
 
     public func shareProtocolParameters(protocol_parameters: ProtocolParameters) : SProtocolParameters {
         {
-            protocol_parameters with 
-            minter_parameters = shareMinterParameters(protocol_parameters.minter_parameters);
+            protocol_parameters with
+            // @int: commented out for now, will be implemented later
+            //minter_parameters = shareMinterParameters(protocol_parameters.minter_parameters);
             clock = shareClockParameters(protocol_parameters.clock);
         };
     };
@@ -128,17 +129,6 @@ module {
                     aggregate = shareTimeline(v.aggregate);
                     tvl = v.tvl;
                 });
-            };
-        };
-    };
-
-    public func shareYieldState(yield_state: YieldState) : SYieldState {
-        {
-            tvl = yield_state.tvl;
-            apr = yield_state.apr;
-            interest = {
-                earned = yield_state.interest.earned;
-                time_last_update = yield_state.interest.time_last_update;
             };
         };
     };

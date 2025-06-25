@@ -9,10 +9,14 @@ import Int "mo:base/Int";
 import Debug "mo:base/Debug";
 import Option "mo:base/Option";
 import Nat "mo:base/Nat";
+import Buffer "mo:base/Buffer";
+
+import Set "mo:map/Set";
 
 module {
 
     type Lock = Types.Lock;
+    type Set<T> = Set.Set<T>;
     type Map<K, V> = Map.Map<K, V>;
     type BTree<K, V> = BTree.BTree<K, V>;
     type Order = Order.Order;
@@ -40,8 +44,6 @@ module {
 
         public func add(new: Lock, previous: Iter<Lock>, time: Nat) {
 
-            try_unlock(time);
-
             before_change({ time; state = get_state(); });
 
             // Add the new lock
@@ -50,7 +52,7 @@ module {
             };
             add_lock(new);
 
-            // Update the previous locks
+            // Update the previous locks because their release date might have changed
             for (prev in previous){
                 // Update the lock only if it exists
                 Option.iterate(remove_lock(prev.id), func(old: Lock) {
@@ -69,19 +71,26 @@ module {
             after_change({ time; event = #LOCK_ADDED(new); state = get_state();});
         };
 
-        public func try_unlock(time: Nat) {
+        public func try_unlock(time: Nat) : Set<Text> {
 
-            while (true) {
+            let removed = Set.new<Text>();
+
+            label remove_expired while (true) {
                 switch(BTree.min(state.btree)) {
-                    case(null) { return; };
+                    case(null) { break remove_expired; };
                     case(?(lock, _)) {
                         
                         // Stop here if release date is greater than now
-                        if (lock.release_date > time) { return; };
+                        if (lock.release_date > time) { break remove_expired; };
 
                         before_change({ time = lock.release_date; state = get_state(); });
 
-                        ignore remove_lock(lock.id);
+                        switch(remove_lock(lock.id)){
+                            case(null) {}; // Lock not found, continue
+                            case(_) {
+                                ignore Set.put<Text>(removed, Set.thash, lock.id);
+                            };
+                        };
                         
                         let new_tvl = do {
                             let diff : Int = Timeline.current(state.tvl) - lock.amount;
@@ -98,6 +107,8 @@ module {
                     };
                 };
             };
+
+            removed;
         };
 
         func remove_lock(lock_id: Text) : ?Lock {

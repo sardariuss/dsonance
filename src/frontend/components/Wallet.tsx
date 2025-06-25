@@ -4,22 +4,21 @@ import { useAuth } from '@ic-reactor/react';
 import { ckBtcActor } from '../actors/CkBtcActor';
 import { Principal } from '@dfinity/principal';
 import { canisterId as protocolCanisterId } from "../../declarations/protocol"
-import { dsonanceLedgerActor } from '../actors/DsonanceLedgerActor';
-import { formatBalanceE8s, toE8s } from '../utils/conversions/token';
-import { DSONANCE_COIN_SYMBOL } from '../constants';
+import { ckUsdtActor } from '../actors/CkUsdtActor';
+import { formatCurrency, fromFixedPoint, toE8s } from '../utils/conversions/token';
 import { minterActor } from '../actors/MinterActor';
-import BitcoinIcon from './icons/BitcoinIcon';
-import DsnCoinIcon from './icons/DsnCoinIcon';
 import { useCurrencyContext } from './CurrencyContext';
 import { useAllowanceContext } from './AllowanceContext';
+import { getTokenSymbol } from '../utils/metadata';
+import { TokenLabel } from './common/TokenLabel';
 
 const Wallet = () => {
 
   const { authenticated, identity } = useAuth({});
   const { formatSatoshis, currencySymbol, currencyToSatoshis } = useCurrencyContext();
-  const { btcAllowance, dsnAllowance, refreshBtcAllowance, refreshDsnAllowance } = useAllowanceContext();
+  const { btcAllowance, usdtAllowance, refreshBtcAllowance, refreshUsdtAllowance } = useAllowanceContext();
   const [btcToApprove, setBtcToApprove] = useState<bigint>(0n);
-  const [dsnToApprove, setDsnToApprove] = useState<bigint>(0n);
+  const [usdtToApprove, setUsdtToApprove] = useState<bigint>(0n);
   const inputRef = useRef<HTMLInputElement>(null);
 
   if (!authenticated || identity === null) {
@@ -33,14 +32,22 @@ const Wallet = () => {
     subaccount: []
   }), [identity]);
 
-  const { data: dsnBalance, call: refreshDsnBalance } = dsonanceLedgerActor.useQueryCall({
+  const { data: usdtBalance, call: refreshUsdtBalance } = ckUsdtActor.useQueryCall({
     functionName: 'icrc1_balance_of',
     args: [account]
+  });
+
+  const { data: usdtMetadata } = ckUsdtActor.useQueryCall({
+    functionName: 'icrc1_metadata'
   });
 
   const { data: btcBalance, call: refreshBtcBalance } = ckBtcActor.useQueryCall({
     functionName: 'icrc1_balance_of',
     args: [account]
+  });
+
+  const { data: btcMetadata } = ckBtcActor.useQueryCall({
+    functionName: 'icrc1_metadata'
   });
 
   const { call: getBtcAirdrop, loading: btcAirdroping } = minterActor.useUpdateCall({
@@ -61,20 +68,20 @@ const Wallet = () => {
     );
   }
 
-  const { call: getDsnAirdrop, loading: dsnAirdroping } = minterActor.useUpdateCall({
-    functionName: 'dsn_airdrop_user',
+  const { call: getUsdtAirdrop, loading: usdtAirdroping } = minterActor.useUpdateCall({
+    functionName: 'usdt_airdrop_user',
   });
 
-  const { call: refreshDsnAirdropAvailable, data: dsnAirdropAvailable } = minterActor.useQueryCall({
-    functionName: 'is_dsn_airdrop_available',
+  const { call: refreshUsdtAirdropAvailable, data: usdtAirdropAvailable } = minterActor.useQueryCall({
+    functionName: 'is_usdt_airdrop_available',
   });
 
-  const triggerDsnAirdrop = () => {
-    getDsnAirdrop().catch((error) => {
+  const triggerUsdtAirdrop = () => {
+    getUsdtAirdrop().catch((error) => {
       console.error(error);
     }).finally(() => {
-        refreshDsnBalance();
-        refreshDsnAirdropAvailable();
+        refreshUsdtBalance();
+        refreshUsdtAirdropAvailable();
       }
     );
   }
@@ -96,14 +103,14 @@ const Wallet = () => {
     }]
   });
 
-  const { call: dsnApprove, loading: dsnApproving } = dsonanceLedgerActor.useUpdateCall({
+  const { call: usdtApprove, loading: usdtApproving } = ckUsdtActor.useUpdateCall({
     functionName: 'icrc2_approve',
     args: [{
       fee: [],
       memo: [],
       from_subaccount: [],
       created_at_time: [],
-      amount: dsnToApprove,
+      amount: usdtToApprove,
       expected_allowance: [],
       expires_at: [],
       spender: {
@@ -122,11 +129,11 @@ const Wallet = () => {
     );
   }
 
-  const triggerDsnApprove = () => {
-    dsnApprove().catch((error) => {
+  const triggerUsdtApprove = () => {
+    usdtApprove().catch((error) => {
       console.error(error);
     }).finally(() => {
-        refreshDsnAllowance()
+        refreshUsdtAllowance()
       }
     );
   }
@@ -135,8 +142,8 @@ const Wallet = () => {
   useEffect(() => {
     refreshBtcBalance();
     refreshBtcAllowance();
-    refreshDsnBalance();
-    refreshDsnAllowance();
+    refreshUsdtBalance();
+    refreshUsdtAllowance();
   }, [authenticated, identity]);
 
   return (
@@ -145,8 +152,7 @@ const Wallet = () => {
     {/* Bitcoin Section */}
     <div className="w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
       <div className="flex items-center space-x-2 mb-2">
-        <BitcoinIcon/>
-        <span className="text-gray-700 dark:text-white text-lg">Bitcoin</span>
+        <TokenLabel metadata={btcMetadata} />
       </div>
 
       {/* Bitcoin Balance */}
@@ -171,13 +177,13 @@ const Wallet = () => {
 
       {/* Allowance Input & Approve Button */}
       <div className="flex justify-end w-full space-x-2 mt-3">
-        <div className="flex items-center space-x-1">
-          <span>{currencySymbol}</span>
+        <div className="flex items-center space-x-2">
+          <span>{getTokenSymbol(btcMetadata) ?? ""}</span>
           <input
             ref={inputRef}
             onChange={(e) => setBtcToApprove(currencyToSatoshis(Number(e.target.value)) ?? 0n)}
             type="number"
-            className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900"
+            className="sm:w-32 w-full h-9 border dark:border-gray-300 border-gray-900 rounded appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900"
           />
         </div>
         <button
@@ -190,46 +196,45 @@ const Wallet = () => {
       </div>
     </div>
 
-    {/* Dsonance Section */}
+    {/* USDT Section */}
     <div className="w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
       <div className="flex items-center space-x-2 mb-2">
-        <DsnCoinIcon/>
-        <span className="text-gray-700 dark:text-white text-lg">Dsonance</span>
+        <TokenLabel metadata={usdtMetadata} />
       </div>
 
-      {/* Dsonance Balance */}
+      {/* USDT Balance */}
       <div className="flex justify-between w-full">
         <span className="font-medium">Balance:</span>
         <span className="text-md font-semibold">
-          {formatBalanceE8s(dsnBalance ?? 0n, DSONANCE_COIN_SYMBOL)}
+          {formatCurrency(fromFixedPoint(usdtBalance ?? 0n, 6), "")}
         </span>
       </div>
 
-      {/* DSN Allowance */}
+      {/* USDT Allowance */}
       <div className="flex justify-between w-full mt-1">
         <span className="font-medium">Allowance:</span>
-        {dsnAllowance !== undefined && (
+        {usdtAllowance !== undefined && (
           <span className="text-md font-semibold">
-            {formatBalanceE8s(dsnAllowance, DSONANCE_COIN_SYMBOL)}
+            {formatCurrency(fromFixedPoint(usdtAllowance, 6), "")}
           </span>
         )}
       </div>
 
       {/* Allowance Input & Approve Button */}
       <div className="flex justify-end w-full space-x-2 mt-3">
-        <div className="flex items-center space-x-1">
-          <span>{DSONANCE_COIN_SYMBOL}</span>
+        <div className="flex items-center space-x-2">
+          <span>{getTokenSymbol(usdtMetadata) ?? ""}</span>
           <input
             ref={inputRef}
-            onChange={(e) => setDsnToApprove(toE8s(Number(e.target.value)) ?? 0n)}
+            onChange={(e) => setUsdtToApprove(toE8s(Number(e.target.value)) ?? 0n)}
             type="number"
-            className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900"
+            className="sm:w-32 w-full h-9 border dark:border-gray-300 border-gray-900 rounded appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900"
           />
         </div>
         <button
           className="button-simple text-base"
-          onClick={() => triggerDsnApprove()}
-          disabled={dsnApproving}
+          onClick={() => triggerUsdtApprove()}
+          disabled={usdtApproving}
         >
           Update allowance
         </button>
@@ -247,14 +252,14 @@ const Wallet = () => {
       </button>
     )}
 
-    {/* DSN Airdrop Button */}
-    {dsnAirdropAvailable && (
+    {/* USDT Airdrop Button */}
+    {usdtAirdropAvailable && (
       <button
         className="px-10 button-simple h-10 justify-center items-center text-lg"
-        onClick={triggerDsnAirdrop}
-        disabled={!dsnAirdropAvailable || dsnAirdroping}
+        onClick={triggerUsdtAirdrop}
+        disabled={!usdtAirdropAvailable || usdtAirdroping}
       >
-        Airdrop DSN tokens
+        Airdrop USDT tokens
       </button>
     )}
 

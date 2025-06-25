@@ -150,6 +150,127 @@ module {
         icrc2_allowance : query (AllowanceArgs) -> async (Allowance);
     };
 
+    // FROM LEDGER TYPES
+
+    public type SwapAmountsTxReply = {
+        pool_symbol: Text;
+        pay_chain: Text;
+        pay_symbol: Text;
+        pay_address: Text;
+        pay_amount: Nat;
+        receive_chain: Text;
+        receive_symbol: Text;
+        receive_address: Text;
+        receive_amount: Nat;
+        price: Float;
+        lp_fee: Nat;
+        gas_fee: Nat;
+    };
+    public type SwapAmountsReply = {
+        pay_chain: Text;
+        pay_symbol: Text;
+        pay_address: Text;
+        pay_amount: Nat;
+        receive_chain: Text;
+        receive_symbol: Text;
+        receive_address: Text;
+        receive_amount: Nat;
+        price: Float;
+        mid_price: Float;
+        slippage: Float;
+        txs: [SwapAmountsTxReply];
+    };
+    public type SwapAmountsResult = { 
+        #Ok: SwapAmountsReply;
+        #Err: Text; 
+    };
+
+    public type ICTransferReply = {
+        chain : Text;
+        symbol : Text;
+        is_send : Bool;
+        amount : Nat;
+        canister_id : Text;
+        block_index : Nat;
+    };
+    public type TransferReply = {
+        #IC : ICTransferReply;
+    };
+    public type TransferIdReply = {
+        transfer_id : Nat64;
+        transfer : TransferReply
+    };
+
+    public type TxId = {
+        BlockIndex : Nat;
+        TransactionId : Text;
+    };
+
+    public type SwapArgs = {
+        pay_token: Text;
+        pay_amount: Nat;
+        pay_tx_id: ?TxId;
+        receive_token: Text;
+        receive_amount: ?Nat;
+        receive_address: ?Text;
+        max_slippage: ?Float;
+        referred_by: ?Text;
+    };
+
+    public type SwapTxReply = {
+        pool_symbol : Text;
+        pay_chain : Text;
+        pay_address : Text;
+        pay_symbol : Text;
+        pay_amount : Nat;
+        receive_chain : Text;
+        receive_address : Text;
+        receive_symbol : Text;
+        receive_amount : Nat;
+        price : Float;
+        lp_fee : Nat;
+        gas_fee : Nat;
+        ts : Nat64;
+    };
+    public type SwapReply = {
+        tx_id : Nat64;
+        request_id : Nat64;
+        status : Text;
+        pay_chain : Text;
+        pay_address : Text;
+        pay_symbol : Text;
+        pay_amount : Nat;
+        receive_chain : Text;
+        receive_address : Text;
+        receive_symbol : Text;
+        receive_amount : Nat;
+        mid_price : Float;
+        price : Float;
+        slippage : Float;
+        txs : [SwapTxReply];
+        transfer_ids : [TransferIdReply];
+        claim_ids : [Nat64];
+        ts : Nat64;
+    };
+    public type SwapResult = { 
+        #Ok : SwapReply;
+        #Err : Text;
+    };
+
+    public type PriceArgs = {
+        pay_token: Text;
+        receive_token: Text;
+    };
+
+    public type DexActor = actor {
+        swap_amounts: shared (Text, Nat, Text) -> async SwapAmountsResult;
+        swap: shared SwapArgs -> async SwapResult;
+    };
+
+    public type TrackedPrice = {
+        var value: ?Float;
+    };
+
     // FROM PROTOCOL ITSELF
 
     public type UUID = Text;
@@ -234,7 +355,8 @@ module {
     };
 
     public type Foresight = {
-        reward: Nat;
+        share: Float;
+        reward: Int;
         apr: {
             current: Float;
             potential: Float;
@@ -269,7 +391,11 @@ module {
 
     public type TransferResult = {
         #ok: TxIndex;
-        #err: Icrc1TransferError or { #Trapped : { error_code: Error.ErrorCode; }};
+        #err: TransferError;
+    };
+
+    public type TransferError = Icrc1TransferError or { 
+        #Trapped : { error_code: Error.ErrorCode; }
     };
 
     public type Duration = {
@@ -334,6 +460,145 @@ module {
         amount_minted: Timeline<Float>;
     };
 
+     type Var<V> = {
+        var value: V;
+    };
+
+    public type ProtocolAccounts = {
+        supply: {
+            subaccount: ?Subaccount;
+            local_balance: Var<Nat>;
+        };
+        collateral: {
+            subaccount: ?Subaccount;
+            local_balance: Var<Nat>;
+        };
+    };
+
+    // FROM LENDING
+
+    public type CurvePoint = {
+        utilization: Float; // Utilization ratio (0.0 to 1.0)
+        rate: Float; // Annual Percentage Rate (APR) at this utilization (e.g., 0.05 for 5%)
+    };
+
+    public type UtilizationParameters = {
+        reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
+    };
+
+    public type IndexerParameters = {
+        lending_fee_ratio: Float; // portion of the supply interest reserved as a fee for the protocol
+    };
+
+    public type SupplyParameters = {
+        supply_cap: Nat;
+    };
+
+    public type BorrowParameters = {
+        borrow_cap: Nat;
+        target_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
+        max_ltv: Float; // ratio, between 0 and 1, e.g. 0.75
+        liquidation_threshold: Float; // ratio, between 0 and 1, e.g. 0.85
+        liquidation_penalty: Float; // ratio, between 0 and 1, e.g. 0.10
+        close_factor: Float; // ratio, between 0 and 1, e.g. 0.50, used
+                              // to determine how much of the borrow can be repaid
+                              // in a single transaction, e.g. 50% of the borrow
+                              // can be repaid in a single transaction
+        max_slippage: Float;
+    };
+
+    public type LendingParameters = IndexerParameters and SupplyParameters and BorrowParameters and UtilizationParameters and {
+        interest_rate_curve: [CurvePoint];
+    };
+
+    public type Owed = {
+        index: Index;
+        accrued_amount: Float;
+    };
+
+    public type Borrow = {
+        // original borrowed, unaffected by index growth
+        // used to scale linearly based on repayment proportion
+        raw_amount: Float; 
+        owed: Owed;
+    };
+
+    public type Collateral = {
+        amount: Nat;
+    };
+
+    public type BorrowPositionTx = {
+        #COLLATERAL_PROVIDED: TxIndex;
+        #COLLATERAL_WITHDRAWNED: TxIndex;
+        #SUPPLY_BORROWED: TxIndex;
+        #SUPPLY_REPAID: TxIndex;
+    };
+
+    public type BorrowPosition = {
+        account: Account;
+        collateral: Collateral;
+        borrow: ?Borrow;
+        tx: [BorrowPositionTx];
+    };
+
+    public type Index = {
+        timestamp: Nat;
+        value: Float;
+    };
+
+    public type SupplyInput = {
+        id: Text;
+        account: Account;
+        supplied: Nat;
+    };
+
+    public type SupplyPosition = SupplyInput and {
+        tx: TxIndex;
+    };
+
+    public type Withdrawal = {
+        id: Text;
+        account: Account;
+        supplied: Nat;
+        due: Nat;
+        var transferred: Nat;
+        var transfers: [TransferResult]; // TODO: need to limit the number of transfers
+    };
+
+    public type BorrowRegister = {
+        borrow_positions: Map.Map<Account, BorrowPosition>;
+    };
+
+    public type SupplyRegister = {
+        supply_positions: Map.Map<Text, SupplyPosition>;
+    };
+
+    public type WithdrawalRegister = {
+        withdrawals: Map.Map<Text, Withdrawal>;
+        withdraw_queue: Set.Set<Text>;
+    };
+
+    public type LendingRegister = BorrowRegister and SupplyRegister and WithdrawalRegister;
+
+    public type Utilization = {
+        raw_supplied: Float;
+        raw_borrowed: Float;
+        ratio: Float; // Utilization ratio (0.0 to 1.0)
+    };
+
+    public type LendingIndex = {
+        utilization: Utilization;
+        borrow_rate: Float; // borrow rate (ratio)
+        supply_rate: Float; // supply rate (ratio)
+        accrued_interests: {
+            fees: Float;
+            supply: Float;
+        };
+        borrow_index: Index; // growing value, starts at 1.0
+        supply_index: Index; // growing value, starts at 1.0
+        timestamp: Nat; // last time the rates were updated
+    };
+
     public type ProtocolParameters = {
         nominal_lock_duration: Duration;
         minimum_ballot_amount: Nat;
@@ -342,7 +607,8 @@ module {
         age_coefficient: Float;
         max_age: Nat;
         author_fee: Nat;
-        minter_parameters: MinterParameters;
+        // @int: commented out for now, will be implemented later
+        //minter_parameters: MinterParameters; 
         timer: TimerParameters;
         decay: {
             half_life: Duration;
@@ -359,15 +625,11 @@ module {
     };
 
     public type InitArgs = {
-        btc: {
-            ledger: Principal;
-            fee: Nat;
+        canister_ids: {
+            supply_ledger: Principal;
+            collateral_ledger: Principal;
+            dex: Principal;
         };
-        dsn: {
-            ledger: Principal;
-            fee: Nat;
-        };
-        minter: MinterArgs;
         parameters: {
             age_coefficient: Float;
             max_age: Duration;
@@ -379,6 +641,7 @@ module {
             author_fee: Nat;
             timer_interval_s: Nat;
             clock: ClockInitArgs;
+            lending: LendingParameters;
         };
     };
     public type UpgradeArgs = {
@@ -387,21 +650,20 @@ module {
     };
 
     public type State = {
+        supply_ledger: ICRC1 and ICRC2;
+        collateral_ledger: ICRC1 and ICRC2;
+        dex: DexActor;
+        collateral_price_in_supply: TrackedPrice;
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
         lock_scheduler_state: LockSchedulerState;
-        yield_state: YieldState;
-        btc: {
-            ledger: ICRC1 and ICRC2;
-            fee: Nat;
-            debt_register: DebtRegister;
-        };
-        dsn: {
-            ledger: ICRC1 and ICRC2;
-            fee: Nat;
-            debt_register: DebtRegister;
-        };
         parameters: ProtocolParameters;
+        accounts: ProtocolAccounts;
+        lending: {
+            parameters: LendingParameters;
+            index: { var value: LendingIndex; };
+            register: LendingRegister;
+        };
     };
   
 };
