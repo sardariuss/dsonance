@@ -5,13 +5,14 @@ import { formatCurrency, fromFixedPoint } from "../../utils/conversions/token";
 import { useCurrencyContext } from "../CurrencyContext";
 import { fromNullableExt } from "../../utils/conversions/nullable";
 import { TokenLabel } from "../common/TokenLabel";
-import BorrowButton from "./BorrowButton";
+import BorrowButton, { MaxChoiceType } from "./BorrowButton";
 import { OperationKindArgs, Result_1 } from "../../../declarations/protocol/protocol.did";
 import { useMemo } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { Account } from "@/declarations/ck_btc/ck_btc.did";
 import DualLabel from "../common/DualLabel";
 import { aprToApy, getHealthColor } from "../../utils/lending";
+import { useAllowanceContext } from "../AllowanceContext";
 
 const BorrowTab = () => {
 
@@ -53,6 +54,8 @@ const BorrowTab = () => {
     functionName: 'run_borrow_operation',
   });
 
+  const { btcAllowance, usdtAllowance } = useAllowanceContext();
+
   const previewOperation = (args: OperationKindArgs) : Promise<Result_1 | undefined> => {
     return previewBorrowOperation([{ subaccount: [], args }]);
   }
@@ -92,6 +95,8 @@ const BorrowTab = () => {
     };
   }, [loanPosition, indexerState]);
 
+  // @todo: need to add "remaining collateral" for withdraw
+  // @todo: need to add "remaning debt" for repay
   // @todo: if loan data is undefined, use 0 as amountCollateral and amountBorrowed; do not display LTV nor health factor.
 
   return (
@@ -119,6 +124,7 @@ const BorrowTab = () => {
               tokenDecimals={6}
               amountInUsd={amount => fromFixedPoint(amount, 6)}
               health={health}
+              maxChoice={{type: MaxChoiceType.WalletBalance, value: usdtAllowance ?? 0n, formatValue: (value) => formatCurrency(fromFixedPoint(value, 6), "$")}}
             />
             <BorrowButton 
               title="Withdraw"
@@ -128,6 +134,7 @@ const BorrowTab = () => {
               tokenDecimals={6}
               amountInUsd={amount => fromFixedPoint(amount, 6)}
               health={health}
+              maxChoice={{type: MaxChoiceType.Available, value: usdtAllowance ?? 0n, formatValue: (value) => formatCurrency(fromFixedPoint(value, 6), "$")/* @todo: not use allowance*/}}
             />
           </div>
         </div>
@@ -149,6 +156,7 @@ const BorrowTab = () => {
               tokenDecimals={8}
               amountInUsd={amount => satoshisToCurrency(amount)}
               health={health}
+              maxChoice={{type: MaxChoiceType.Available, value: btcAllowance ?? 0n, formatValue: (value) => formatCurrency(fromFixedPoint(value, 8), "") /* @todo: not use allowance*/}}
             />
             <BorrowButton 
               title="Repay"
@@ -158,6 +166,7 @@ const BorrowTab = () => {
               tokenDecimals={8}
               amountInUsd={amount => satoshisToCurrency(amount)}
               health={health}
+              maxChoice={{type: MaxChoiceType.WalletBalance, value: btcAllowance ?? 0n, formatValue: (value) => formatCurrency(fromFixedPoint(value, 8), "")}}
             />
           </div>
         </div>

@@ -1,14 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Modal from "../common/Modal";
 import { MetaDatum } from "../../../declarations/ck_btc/ck_btc.did";
 import { TokenLabel } from "../common/TokenLabel";
-import { formatCurrency } from "../../utils/conversions/token";
+import { formatCurrency, fromFixedPoint } from "../../utils/conversions/token";
 import { getTokenName } from "../../utils/metadata";
 import { Result_1 } from "@/declarations/protocol/protocol.did";
 import Spinner from "../Spinner";
 import { getHealthColor } from "../../utils/lending";
 import { fromNullable } from "@dfinity/utils";
 import useBorrowOperationPreview from "../hooks/useBorrowOperationPreview";
+
+export  enum MaxChoiceType {
+  WalletBalance = 0,
+  Available = 1,
+}
+
+type MaxChoice =
+  | { type: MaxChoiceType.WalletBalance; value: bigint; formatValue: (amount: bigint) => string }
+  | { type: MaxChoiceType.Available;     value: bigint; formatValue: (amount: bigint) => string };
 
 interface BorrowButtonProps {
   title: string;
@@ -18,9 +27,19 @@ interface BorrowButtonProps {
   tokenDecimals: number;
   amountInUsd: (amount: bigint) => number;
   health: number;
+  maxChoice: MaxChoice;
 }
 
-const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, previewOperation, runOperation, tokenDecimals, amountInUsd, health }) => {
+const BorrowButton: React.FC<BorrowButtonProps> = ({
+  title,
+  tokenMetadata,
+  previewOperation,
+  runOperation,
+  tokenDecimals,
+  amountInUsd,
+  health,
+  maxChoice,
+}) => {
 
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -58,7 +77,10 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, previ
   });
 
   const healthPreview = useMemo(() => {
-    if (preview && "ok" in preview) {
+    if (preview === undefined) {
+      return health;
+    }
+    if ("ok" in preview) {
       let loan = fromNullable(preview.ok.position.loan);
       return loan?.health;
     }
@@ -71,8 +93,8 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, previ
         {title}
       </button>
       <Modal
-        isVisible={isVisible} // Replace with actual state to control modal visibility
-        onClose={() => setIsVisible(false) } // Replace with actual close handler
+        isVisible={isVisible}
+        onClose={() => setIsVisible(false) }
         title={fullTitle}
       >
         <div className="flex flex-col w-full text-black dark:text-white space-y-4">
@@ -121,11 +143,23 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({ title, tokenMetadata, previ
                   { formatCurrency(amountInUsd(amount), "$")}
                 </span>
               </div>
-              <div className="grid grid-rows-[5fr_3fr]">
+              <div className="grid grid-rows-[5fr_3fr] justify-items-end">
                 <TokenLabel metadata={tokenMetadata}/>
-                <span className="text-xs text-gray-600 dark:text-gray-400 justify-self-end">
-                  test
-                </span>
+                <div className="flex flex-row items-center justify-center space-x-1 text-xs text-gray-600 dark:text-gray-400">
+                  <span>{ maxChoice.type === MaxChoiceType.WalletBalance ? "Wallet balance" : "Available" }</span>
+                  <span>{ maxChoice.formatValue(maxChoice.value) }</span>
+                  <button 
+                    className="font-semibold hover:bg-gray-300 dark:hover:bg-gray-700 hover:text-black hover:dark:text-white rounded p-1"
+                    onClick={() => {
+                      console.log("Setting max amount:", (Number(maxChoice) / (10 ** tokenDecimals)).toString());
+                      setInputValue((Number(maxChoice.value) / (10 ** tokenDecimals)).toString());
+                      setAmount(maxChoice.value);
+                    }}
+                    disabled={loading || maxChoice.value === 0n} // Disable if loading or no balance
+                  >
+                    MAX
+                  </button>
+                </div>
               </div>
             </div>
           </div>
