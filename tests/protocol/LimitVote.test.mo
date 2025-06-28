@@ -1,6 +1,4 @@
 import Float "mo:base/Float";
-import Int "mo:base/Int";
-import Iter "mo:base/Iter";
 import Debug "mo:base/Debug";
 
 import Types "../../src/protocol/Types";
@@ -11,26 +9,38 @@ import { verify; Testify; } = "../utils/Testify";
 
 suite("Limit vote", func(){
 
-    test("From chatGPT", func(){
+    test("From chatGPT", func () {
+
+        let MIN_DISSENT = 1e-3;
+        let MAX_ITERATIONS = 100;
 
         func compute_dissent({
             steepness: Float;
             choice: Types.YesNoChoice;
             amount: Float;
-            total_yes: Float; 
+            total_yes: Float;
             total_no: Float;
         }) : Float {
 
-            let { same; opposit; } = switch(choice){
-                case(#YES) { { same = total_yes; opposit = total_no; }; };
-                case(#NO) { { same = total_no; opposit = total_yes; }; };
+            let { same; opposit; } = switch (choice) {
+                case (#YES) { { same = total_yes; opposit = total_no; }; };
+                case (#NO) { { same = total_no; opposit = total_yes; }; };
             };
 
             let x = amount;
             let p = steepness;
             let total = same + opposit;
 
-            if (amount <= 0) return 0;
+            if (Float.abs(1.0 - p) < 1e-8) {
+                Debug.trap("steepness (p) = 1 is not supported due to division by zero");
+            };
+
+            if (x <= 0) return 0;
+
+            // Guard: p = 1 leads to division by zero
+            if (Float.abs(1.0 - p) < 1e-8) {
+                Debug.trap("steepness (p) = 1 is not supported due to division by zero");
+            };
 
             let numerator = Float.pow(opposit, p);
             let denomFactor = 1.0 - p;
@@ -42,7 +52,6 @@ suite("Limit vote", func(){
 
         let amount_searched = 180000000.0;
 
-        // Example input
         let input = {
             total_yes = 200.0;
             total_no = 300.0;
@@ -51,58 +60,69 @@ suite("Limit vote", func(){
             amount = amount_searched;
         };
         let targetDissent = compute_dissent(input);
-        Debug.print("Target dissent for input " # debug_show(input) # ": " # Float.toText(targetDissent));
+        Debug.print("Target dissent for input " # debug_show(input) # ": " # debug_show(targetDissent));
 
-        // Find x such that compute_dissent(x) ≈ targetDissent
         func find_amount_for_dissent(dissent: Float) : Float {
-
             var target = dissent;
 
-            // Todo: low amount will always be 1, so compute dissent for 1 and verify given dissent is lower than that
-            //       high amount needs to bounded, the minimum dissent should be close enough to 0, like 1e-6, need to compute the 
-            //       amount corresponding to that dissent and use it as high bound
-            
-            let maximumDissent = compute_dissent({ input with amount = 1.0; });
+            // Compute dissent at amount = 1 to define maximum possible dissent
+            let maximumDissent = compute_dissent({ input with amount = 1.0 });
             if (target > maximumDissent) {
-                Debug.trap("The target dissent is too high, maximum dissent is " # Float.toText(maximumDissent));
+                Debug.trap("The target dissent is too high, maximum is " # debug_show(maximumDissent));
             };
 
-            let minimumDissent = 1e-3;
-            if (target < minimumDissent) {
-                Debug.print("The target dissent is too low, use " # Float.toText(minimumDissent) # " as target instead.");
-                target := minimumDissent;
+            // Clamp low dissent to MIN_DISSENT to avoid flattening edge cases
+            if (target < MIN_DISSENT) {
+                Debug.print("Target dissent too low, clamping to " # debug_show(MIN_DISSENT));
+                target := MIN_DISSENT;
             };
 
-            // Find the limit range to start the binary search
-            // Watchout, this assumes that the dissent is a monotonically decreasing function of the amount
+            // Establish search bounds
             var low = 1.0;
             var high = 1e3;
-            var lastDissent = compute_dissent({ input with amount = high; });
-            while (lastDissent > target) {
+            var lastDissent = compute_dissent({ input with amount = high });
+
+            var expandIter = 0;
+            // NOTE: Works because the dissent function is strictly decreasing with respect to amount
+            while (lastDissent > target and expandIter < MAX_ITERATIONS) {
                 low := high;
                 high := high * 1e3;
-                lastDissent := compute_dissent({ input with amount = high; });
+                lastDissent := compute_dissent({ input with amount = high });
+                expandIter += 1;
+            };
+            if (expandIter == MAX_ITERATIONS) {
+                Debug.trap("Failed to find upper bound for amount in " # debug_show(MAX_ITERATIONS) # " iterations");
             };
 
-            Debug.print("Searching for amount in range [" # Float.toText(low) # ", " # Float.toText(high) # "]");
+            Debug.print("Searching for amount in range [" # debug_show(low) # ", " # debug_show(high) # "]");
 
             let tolerance : Float = 1e-3;
             var mid : Float = 0;
+            var searchIter = 0;
 
-            while (high - low > tolerance) {
+            while (high - low > tolerance and searchIter < MAX_ITERATIONS) {
                 mid := (low + high) / 2.0;
-                let value = compute_dissent({ input with amount = mid; });
-                if (value > dissent) {
+                let value = compute_dissent({ input with amount = mid });
+                if (value > target) {
                     low := mid;
                 } else {
                     high := mid;
                 };
+                searchIter += 1;
+            };
+
+            if (searchIter == MAX_ITERATIONS) {
+                Debug.print("Warning: max binary search iterations reached. Result may be approximate.");
             };
 
             return (low + high) / 2.0;
         };
 
-        verify<Float>(find_amount_for_dissent(targetDissent), amount_searched, Testify.float.equalEpsilon3);
-
+        verify<Float>(
+            find_amount_for_dissent(targetDissent),
+            amount_searched,
+            Testify.float.equalEpsilon3
+        );
     });
+
 });
