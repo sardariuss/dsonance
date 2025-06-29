@@ -11,6 +11,7 @@ import Option      "mo:base/Option";
 import Buffer      "mo:base/Buffer";
 import Iter        "mo:base/Iter";
 import Debug       "mo:base/Debug";
+import Float       "mo:base/Float";
 
 module {
 
@@ -31,6 +32,7 @@ module {
     type DebtRecord = Types.DebtRecord;
     type State = Types.State;
     type LendingParameters = Types.LendingParameters;
+    type UserSupply = Types.UserSupply;
 
     public class Queries({
         clock: Clock.Clock;
@@ -75,12 +77,13 @@ module {
             Option.map<VoteType, SVoteType>(Map.get(state.vote_register.votes, Map.thash, vote_id), SharedConversions.shareVoteType);
         };
 
-        public func get_locked_amount({ account: Account; }) : Nat {
+        public func get_user_supply({ account: Account; }) : UserSupply {
             let timestamp = clock.get_time();
             switch(Map.get(state.ballot_register.by_account, MapUtils.acchash, account)){
-                case(null) { 0; };
+                case(null) {};
                 case(?ids) { 
-                    var total = 0;
+                    var amount = 0;
+                    var sum_apr = 0.0;
                     for (ballot_id in Set.keys(ids)){
                         switch(Map.get(state.ballot_register.ballots, Map.thash, ballot_id)){
                             case(null) {};
@@ -89,16 +92,20 @@ module {
                                     case(#YES_NO(b)) {
                                         let lock = BallotUtils.unwrap_lock_info(b);
                                         if (lock.release_date > timestamp){
-                                            total += b.amount;
+                                            amount += b.amount;
+                                            sum_apr += (b.foresight.current.data.apr.current * Float.fromInt(b.amount));
                                         };
                                     };
                                 };
                             };
                         };
                     };
-                    total;
+                    if (amount > 0){
+                        return { amount; apr = sum_apr / Float.fromInt(amount); };
+                    };
                 };
             };
+            return { amount = 0; apr = 0.0; }; 
         };
 
         public func get_votes({origin: Principal; previous: ?UUID; limit: Nat;}) : [SVoteType] {

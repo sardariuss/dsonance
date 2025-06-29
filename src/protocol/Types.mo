@@ -123,6 +123,11 @@ module {
         state: LockState;
     };
 
+    public type UserSupply = {
+        amount: Nat;
+        apr: Float;
+    };
+
     // SHARED TYPES
 
     public type SYieldState = {

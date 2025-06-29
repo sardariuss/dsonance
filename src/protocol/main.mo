@@ -86,8 +86,8 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_ballots(args);
     };
 
-    public query func get_locked_amount({ account: Types.Account; }) : async Nat {
-        getFacade().get_locked_amount({ account; });
+    public query func get_user_supply({ account: Types.Account; }) : async Types.UserSupply {
+        getFacade().get_user_supply({ account; });
     };
 
     // Get the ballots of the given vote

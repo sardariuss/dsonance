@@ -33,6 +33,7 @@ module {
     type BallotPreview = Types.BallotPreview;
     type SBallotPreview = Types.SBallotPreview;
     type SYieldState = Types.SYieldState;
+    type UserSupply = Types.UserSupply;
     type LoanPosition = LendingTypes.LoanPosition;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type OperationKindArgs = LendingTypes.OperationKindArgs;
@@ -110,8 +111,8 @@ module {
             queries.get_ballots(args);
         };
         
-        public func get_locked_amount({ account: Account; }) : Nat {
-            queries.get_locked_amount({account});
+        public func get_user_supply({ account: Account; }) : UserSupply {
+            queries.get_user_supply({account});
         };
         
         public func find_ballot(ballot_id: UUID) : ?SBallotType {

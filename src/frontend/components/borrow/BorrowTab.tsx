@@ -54,6 +54,11 @@ const BorrowTab = () => {
     functionName: 'run_borrow_operation',
   });
 
+  const { data: lockedAmount, call: refreshLockedAmount } = protocolActor.useQueryCall({
+    functionName: "get_locked_amount",
+    args: [{ account }],
+  });
+
   const { btcAllowance, usdtAllowance } = useAllowanceContext();
 
   const previewOperation = (args: OperationKindArgs) : Promise<Result_1 | undefined> => {
@@ -100,11 +105,23 @@ const BorrowTab = () => {
   // @todo: if loan data is undefined, use 0 as amountCollateral and amountBorrowed; do not display LTV nor health factor.
 
   return (
-    <div className="flex flex-col justify-center mt-4">
-      <div className="flex flex-row items-center p-6 space-x-4">
+    <div className="flex flex-col justify-center mt-4 space-y-4">
+      <div className="flex flex-row items-center p-2 space-x-4">
         <DualLabel top="Net worth" bottom={formatCurrency(netWorth, "$")} />
         <DualLabel top="Net APY" bottom={`${(netApy * 100).toFixed(2)}%`} />
         <DualLabel top="Health factor" bottom={health.toFixed(2)} bottomClassName={`${getHealthColor(health)}`}/>
+      </div>
+      <div className="flex flex-col justify-center bg-slate-200 dark:bg-gray-800 rounded p-6 space-y-6">
+        <div className="flex flex-col justify-center w-full">
+          <span className="text-xl font-semibold">Your supply</span>
+          <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
+            <TokenLabel metadata={btcMetadata}/>
+            <div className="relative flex flex-col">
+              <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(lockedAmount, 8), "")} </span>
+              <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(lockedAmount), "$") } </span>
+            </div>
+          </div>
+        </div>
       </div>
       <div className="flex flex-col justify-center bg-slate-200 dark:bg-gray-800 rounded p-6 space-y-6">
         <div className="flex flex-col justify-center w-full">
