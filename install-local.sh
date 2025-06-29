@@ -55,23 +55,22 @@ dfx deploy minter --argument '( record {
     ck_usdt = principal "'${CK_USDT_PRINCIPAL}'";
   }; 
 })' &
-dfx deploy icp_coins &
+dfx deploy icp_coins --argument '( record {
+  btc_price_usd = 110000.0;
+})' &
 wait
 
-# Deploy protocol with dependencies
-# Hundred million e8s contribution per day
-# With a discernment factor of 9, it leads to max one trillion e8s per day (probably more 400 billions per day)
-# minimum_ballot_amount shall be greater than 0
+# Deploy protocol canister
 # https://www.desmos.com/calculator/8iww2wlp2t
-# dissent_steepness be between 0 and 1, the closer to 1 the steepest (the less the majority is rewarded)
-# consent_steepness be between 0 and 0.25, the closer to 0 the steepest
+# dissent_steepness be in [0; 1[ - the closer to 1 the steepest (the less the majority is rewarded)
+# consent_steepness be in [0; 0.25] - the closer to 0 the steepest
 # 216 seconds timer interval, with a 100x dilation factor, means 6 hours in simulated time
-# @todo: set the supply cap to 1M$ and borrow cap to 800k$ (80% of the supply cap)
+# Supply cap is set to 1M ckUSDT and borrow cap to 800k ckUSDT
 dfx deploy protocol --argument '( variant { 
   init = record {
     canister_ids = record {
-      supply_ledger = principal "'${CK_BTC_PRINCIPAL}'";
-      collateral_ledger = principal "'${CK_USDT_PRINCIPAL}'";
+      supply_ledger = principal "'${CK_USDT_PRINCIPAL}'";
+      collateral_ledger = principal "'${CK_BTC_PRINCIPAL}'";
       dex = principal "'${DEX_PRINCIPAL}'";
     };
     parameters = record {
@@ -82,12 +81,11 @@ dfx deploy protocol --argument '( variant {
       minimum_ballot_amount = 100;
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
-      author_fee = 5_000_000_000;
       timer_interval_s = 216;
       clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
       lending = record {
-        supply_cap = 1_000_000_000;
-        borrow_cap = 800_000_000;
+        supply_cap = 1_000_000_000_000;
+        borrow_cap = 800_000_000_000;
         lending_fee_ratio = 0.35;
         reserve_liquidity = 0.0;
         target_ltv = 0.60;
@@ -115,6 +113,8 @@ dfx deps init
 dfx deps deploy internet_identity
 
 # Transfer liquidity to the dex canister
+# WATCHOUT: The protocol uses the dex spot price (swap_amounts function) to calculate the price of ckUSDT in ckBTC
+# So, the ckUSDT/ckBTC price will depend on the relative amounts of ckBTC and ckUSDT transferred to the dex canister
 # Transfer 10 ckBTC (e8s)
 dfx canister call minter mint_btc '( record {
   amount = 1_000_000_000;
@@ -123,7 +123,8 @@ dfx canister call minter mint_btc '( record {
     subaccount = null;
   };
 })'
-# Transfer 1_100_000 ckUSDT (e6s)
+# Transfer 1.1M ckUSDT (e6s), so the price will be 1.1M ckUSDT / 10 ckBTC = 110k ckUSDT/ckBTC
+# to match with btc_price_usd set in icp_coins canister
 dfx canister call minter mint_usdt '( record {
   amount = 1_100_000_000_000;
   to = record {

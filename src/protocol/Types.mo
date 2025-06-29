@@ -212,8 +212,8 @@ module {
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
-        author_fee: Nat;
         // @int: commented out for now, will be implemented later
+        //author_fee: Nat;
         //minter_parameters: SMinterParameters;
         decay: {
             half_life: Duration;

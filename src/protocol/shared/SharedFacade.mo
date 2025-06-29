@@ -36,6 +36,7 @@ module {
     type LoanPosition = LendingTypes.LoanPosition;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type OperationKindArgs = LendingTypes.OperationKindArgs;
+    type ProtocolInfo = Types.ProtocolInfo;
 
     public class SharedFacade({
         controller: Controller.Controller;

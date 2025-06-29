@@ -1,14 +1,15 @@
 import Debug "mo:base/Debug";
 
-shared({caller = admin}) actor class IcpCoins() {
+shared({caller = admin}) actor class IcpCoins({ btc_price_usd: Float}) {
 
     type TokenId = Nat;
-
     type LatestTokenRow = ( (TokenId, TokenId), Text, Float );
 
-    stable var btc_price = 82980.01;
+    stable var btc_price = btc_price_usd;
 
     public shared query func get_latest(): async [LatestTokenRow] {
+        // Somehow, the live neutrinite canister returns a pair BTC/USD and ckBTC/USD (not ckBTC/ckUSD)
+        // This might be a problem when querying prices from token name
         [
             ((1, 0), "BTC/USD", btc_price)
         ];

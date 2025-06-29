@@ -606,8 +606,8 @@ module {
         consent_steepness: Float;
         age_coefficient: Float;
         max_age: Nat;
-        author_fee: Nat;
         // @int: commented out for now, will be implemented later
+        //author_fee: Nat;
         //minter_parameters: MinterParameters; 
         timer: TimerParameters;
         decay: {
@@ -638,7 +638,6 @@ module {
             minimum_ballot_amount: Nat;
             dissent_steepness: Float;
             consent_steepness: Float;
-            author_fee: Nat;
             timer_interval_s: Nat;
             clock: ClockInitArgs;
             lending: LendingParameters;
