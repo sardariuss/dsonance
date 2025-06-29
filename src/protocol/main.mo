@@ -120,7 +120,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().stop_timer({ caller; });
     };
 
-    public query func get_info() : async Types.SProtocolInfo {
+    public query func get_info() : async Types.ProtocolInfo {
         getFacade().get_info();
     };
 

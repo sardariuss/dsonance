@@ -189,12 +189,6 @@ module {
         tvl: Nat;
     };
 
-    public type SProtocolInfo = {
-        current_time: Nat;
-        last_run: Nat;
-        btc_locked: STimeline<Nat>;
-    };
-
     public type SClockParameters = {
         #REAL;
         #SIMULATED: {
@@ -238,7 +232,6 @@ module {
     public type ProtocolInfo = {
         current_time: Nat;
         last_run: Nat;
-        btc_locked: Timeline<Nat>;
     };
 
     public type LockEvent = {

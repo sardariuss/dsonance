@@ -26,7 +26,6 @@ module {
     type ProtocolParameters = Types.ProtocolParameters;
     type SProtocolParameters = Types.SProtocolParameters;
     type ProtocolInfo = Types.ProtocolInfo;
-    type SProtocolInfo = Types.SProtocolInfo;
     type BallotPreview = Types.BallotPreview;
     type SBallotPreview = Types.SBallotPreview;
     type VoteType = Types.VoteType;
@@ -85,14 +84,6 @@ module {
             time_last_mint = minter_parameters.time_last_mint;
             amount_minted = shareTimeline(minter_parameters.amount_minted);
         };
-    };
-
-    public func shareProtocolInfo(protocol_info: ProtocolInfo) : SProtocolInfo {
-        {
-            current_time = protocol_info.current_time;
-            last_run = protocol_info.last_run;
-            btc_locked = shareTimeline(protocol_info.btc_locked);
-        }
     };
 
     public func shareProtocolParameters(protocol_parameters: ProtocolParameters) : SProtocolParameters {

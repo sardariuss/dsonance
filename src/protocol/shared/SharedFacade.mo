@@ -22,7 +22,6 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type SNewVoteResult = Types.SNewVoteResult;
     type NewVoteError = Types.NewVoteError;
-    type SProtocolInfo = Types.SProtocolInfo;
     type TimerParameters = Types.TimerParameters;
     type STimeline<T> = Types.STimeline<T>;
     type ProtocolParameters = Types.ProtocolParameters;
@@ -79,8 +78,8 @@ module {
             controller.get_clock().set_dilation_factor(dilation_factor);
         };
 
-        public func get_info() : SProtocolInfo {
-            SharedConversions.shareProtocolInfo(controller.get_info());
+        public func get_info() : ProtocolInfo {
+            controller.get_info();
         };
         
         public func get_parameters() : SProtocolParameters {

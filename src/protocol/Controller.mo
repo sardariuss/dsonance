@@ -237,7 +237,6 @@ module {
             {
                 current_time = clock.get_time();
                 last_run = 0; // @todo: use minter instead
-                btc_locked = Timeline.initialize<Nat>(0, 0); // @todo
             };
         };
 
