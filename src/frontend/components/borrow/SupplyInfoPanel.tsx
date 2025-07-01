@@ -1,7 +1,5 @@
-import { LendingParameters, SLendingIndex } from "../../../declarations/protocol/protocol.did";
-import { formatCurrency, fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
 import React from "react";
-import { useCurrencyContext } from "../CurrencyContext";
+import { Currency } from "../hooks/useFungibleLedger";
 
 interface SupplyInfoProps {
   supplyCap: number; // e.g., 3_000_000
@@ -10,6 +8,7 @@ interface SupplyInfoProps {
   maxLtv: number;
   liquidationThreshold: number;
   liquidationPenalty: number;
+  formatAmount: (amount: bigint | number | undefined, currency?: Currency) => string | undefined;
 }
 
 const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
@@ -19,14 +18,13 @@ const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
   maxLtv,
   liquidationThreshold,
   liquidationPenalty,
+  formatAmount,
 }) => {
 
   const usagePercent = (totalSupplied / supplyCap) * 100;
 
-  const { satoshisToCurrency } = useCurrencyContext();
-
   return (
-    <div className="flex flex-col text-white px-6 max-w-3xl w-full space-y-6">
+    <div className="flex flex-col px-6 max-w-3xl w-full space-y-6">
       <div className="flex flex-row items-center justify-start gap-6">
         {/* Left circle */}
         <div className="flex items-center space-x-4">
@@ -58,14 +56,12 @@ const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
         </div>
 
         <div className="grid grid-rows-3 gap-1 h-full">
-          <span className="text-sm text-gray-400">Total supplied</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">Total supplied</span>
           <span className="text-lg font-bold">
-            <span>{ formatCurrency(fromFixedPoint(totalSupplied, 8), "")} </span>
-            <span> of </span>
-            <span> { formatCurrency(fromFixedPoint(supplyCap, 8), "") }</span>
+            { `${formatAmount(totalSupplied)} of ${formatAmount(supplyCap)}` }
           </span>
-          <span className="text-xs text-gray-400">
-            { formatCurrency(satoshisToCurrency(totalSupplied), "$")} of {formatCurrency(satoshisToCurrency(supplyCap), "$") }
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            { `${formatAmount(totalSupplied, Currency.USD)} of ${formatAmount(supplyCap, Currency.USD)}` }
           </span>
         </div>
 
@@ -73,7 +69,7 @@ const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
 
         {/* Right APY */}
         <div className="grid grid-rows-3 gap-1 h-full">
-          <span className="text-sm text-gray-400">APY</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">APY</span>
           <span className="text-lg font-bold">{(apy * 100).toFixed(2)}%</span>
           <span></span>
         </div>
@@ -82,15 +78,15 @@ const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
       {/* Risk parameters */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
         <div className="p-4 rounded-md flex flex-col border border-gray-700">
-          <span className="text-gray-400">Max LTV</span>
+          <span className="text-gray-500 dark:text-gray-400">Max LTV</span>
           <span className="font-semibold">{(maxLtv * 100).toFixed(2)}%</span>
         </div>
         <div className="p-4 rounded-md flex flex-col border border-gray-700">
-          <span className="text-gray-400">Liquidation threshold</span>
+          <span className="text-gray-500 dark:text-gray-400">Liquidation threshold</span>
           <span className="font-semibold">{(liquidationThreshold * 100).toFixed(2)}%</span>
         </div>
         <div className="p-4 rounded-md flex flex-col border border-gray-700">
-          <span className="text-gray-400">Liquidation penalty</span>
+          <span className="text-gray-500 dark:text-gray-400">Liquidation penalty</span>
           <span className="font-semibold">{(liquidationPenalty * 100).toFixed(2)}%</span>
         </div>
       </div>

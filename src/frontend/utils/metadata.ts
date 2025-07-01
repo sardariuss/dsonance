@@ -32,3 +32,14 @@ export const getTokenSymbol = (metadata: MetaDatum[] | undefined) : string | und
   }
   return undefined;
 }
+
+export const getTokenDecimals = (metadata: MetaDatum[] | undefined) : number | undefined => {
+  if (!metadata) {
+    return undefined;
+  }
+  const decimals = metadata.find((item) => item[0] === "icrc1:decimals");
+  if (decimals !== undefined && "Nat" in decimals?.[1]) {
+    return Number(decimals?.[1].Nat);
+  }
+  return undefined;
+}

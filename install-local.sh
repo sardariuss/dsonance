@@ -55,8 +55,13 @@ dfx deploy minter --argument '( record {
     ck_usdt = principal "'${CK_USDT_PRINCIPAL}'";
   }; 
 })' &
+# Prices taken from the neutrinite canister on 2025-07-01
+# https://dashboard.internetcomputer.org/canister/u45jl-liaaa-aaaam-abppa-cai#get_latest
 dfx deploy icp_coins --argument '( record {
-  btc_price_usd = 110000.0;
+  initial_prices =  record {
+    ck_btc = 106075.52614260835;
+    ck_usdt = 0.9937106157584112;
+  };
 })' &
 wait
 

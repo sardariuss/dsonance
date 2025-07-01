@@ -24,42 +24,70 @@ export const fromFixedPoint = (amount: bigint | number, decimals: number): numbe
 
 export const formatCurrency = (currencyAmount: number, currencySymbol: string, decimals?: number) => {
 
-    if (isNaN(currencyAmount) || currencyAmount < 0) {
-        return `${currencySymbol}0.00`;
-    }
+  if (isNaN(currencyAmount) || currencyAmount < 0) {
+    return `${currencySymbol}0.${"0".repeat(decimals ?? 2)}`;
+  }
 
-    let precision = decimals ?? 2;
+  const [balance, unit] =
+    currencyAmount < 1_000 ?       [currencyAmount,            ""] :
+    currencyAmount < 1_000_000 ?     [currencyAmount / 1_000,       "K"] :
+    currencyAmount < 1_000_000_000 ?   [currencyAmount / 1_000_000,     "M"] :
+    currencyAmount < 1_000_000_000_000 ? [currencyAmount / 1_000_000_000,   "B"] :
+                       [currencyAmount / 1_000_000_000_000, "T"];
 
-    const [balance, unit] =
-        currencyAmount < 1_000 ?             [currencyAmount,                      ""] :
-        currencyAmount < 1_000_000 ?         [currencyAmount / 1_000,             "K"] :
-        currencyAmount < 1_000_000_000 ?     [currencyAmount / 1_000_000,         "M"] :
-        currencyAmount < 1_000_000_000_000 ? [currencyAmount / 1_000_000_000,     "B"] :
-                                             [currencyAmount / 1_000_000_000_000, "T"];
-
-    return `${currencySymbol}${balance.toFixed(precision)}${unit}`;
+  return `${currencySymbol}${balance.toFixed(decimals ?? 2)}${unit}`;
 }
 
 export const toE8s = (amount: number) : bigint | undefined => {
-    if (isNaN(amount) || amount < 0) {
-        return undefined;
-    }
-    return BigInt(Math.round(amount * 100_000_000));
+  if (isNaN(amount) || amount < 0) {
+    return undefined;
+  }
+  return BigInt(Math.round(amount * 100_000_000));
 }
 
 export const fromE8s = (amountE8s: bigint) => Number(amountE8s) / 100_000_000;
 
 export const formatBalanceE8s = (amountE8s: bigint, currencySymbol: string, decimals?: number) => {
-    if (decimals !== undefined) {
-        return `${fromE8s(amountE8s).toFixed(decimals)} ${currencySymbol}`
-    }
-    return `${fromE8s(amountE8s).toString()} ${currencySymbol}`
+  if (decimals !== undefined) {
+    return `${fromE8s(amountE8s).toFixed(decimals)} ${currencySymbol}`
+  }
+  return `${fromE8s(amountE8s).toString()} ${currencySymbol}`
 };
 
 export const currencyToE8s = (amount: number, priceUnit: number) => {
-    return BigInt(Math.round(amount * 100_000_000 / priceUnit));
+  return BigInt(Math.round(amount * 100_000_000 / priceUnit));
 }
 
 export const e8sToCurrency = (amountE8s: bigint | number, priceUnit: number) => {
-    return Number(amountE8s) * priceUnit / 100_000_000;
+  return Number(amountE8s) * priceUnit / 100_000_000;
+}
+
+export function formatAmountCompact(
+  amount: number,
+  significantDigits = 2
+): string {
+
+  let value = amount;
+  let unit = "";
+
+  if (value >= 1_000_000_000_000) {
+    value = value / 1_000_000_000_000;
+    unit = "T";
+  } else if (value >= 1_000_000_000) {
+    value = value / 1_000_000_000;
+    unit = "B";
+  } else if (value >= 1_000_000) {
+    value = value / 1_000_000;
+    unit = "M";
+  } else if (value >= 1_000) {
+    value = value / 1_000;
+    unit = "K";
+  }
+
+  const formatted = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: significantDigits,
+  }).format(value);
+
+  return `${formatted}${unit}`;
 }

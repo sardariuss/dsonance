@@ -1,25 +1,32 @@
 import Debug "mo:base/Debug";
 
-shared({caller = admin}) actor class IcpCoins({ btc_price_usd: Float}) {
+shared({caller = admin}) actor class IcpCoins({ initial_prices: { ck_btc : Float; ck_usdt: Float; } }) {
 
     type TokenId = Nat;
     type LatestTokenRow = ( (TokenId, TokenId), Text, Float );
 
-    stable var btc_price = btc_price_usd;
+    stable var prices = initial_prices;
 
     public shared query func get_latest(): async [LatestTokenRow] {
-        // Somehow, the live neutrinite canister returns a pair BTC/USD and ckBTC/USD (not ckBTC/ckUSD)
-        // This might be a problem when querying prices from token name
+        // Uses same indexes as returned by the neutrinite canister (tried on 2025-07-01)
         [
-            ((1, 0), "BTC/USD", btc_price)
+            ((7, 0),  "ckBTC/USD",  prices.ck_btc),
+            ((64, 0), "ckUSDT/USD", prices.ck_usdt),
         ];
     };
 
-    public shared({caller}) func set_btc_price(price: Float) : async () {
+    public shared({caller}) func set_price(price: { #CK_BTC: Float; #CK_USDT: Float; }) : async () {
         if (caller != admin) {
-            Debug.trap("Only the admin can set the BTC price");
+            Debug.trap("Only the admin can set the prices");
         };
-        btc_price := price;
+        switch(price) {
+            case (#CK_BTC(p)) {
+                prices := { prices with ck_btc = p; };
+            };
+            case (#CK_USDT(p)) {
+                prices := { prices with ck_usdt = p; };
+            };
+        };
     };
 
 };

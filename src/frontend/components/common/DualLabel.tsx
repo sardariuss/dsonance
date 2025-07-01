@@ -1,8 +1,8 @@
 
 interface DualLabel {
-  top: string;
+  top: string | undefined;
   topClassName?: string;
-  bottom: string;
+  bottom: string | undefined;
   bottomClassName?: string;
 };
 
