@@ -79,7 +79,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
 
   useEffect(() => {
     fetchLatestPrices();
-  }, [fetchLatestPrices]);
+  }, []);
 
   const tokenDecimals = getTokenDecimals(metadata);
 
@@ -164,7 +164,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
 
   const [userBalance, setUserBalance] = useState<bigint | undefined>(undefined);
 
-  useEffect(() => {
+  const refreshUserBalance = () => {
     if (account) {
       icrc1BalanceOf([account]).then(balance => {
         setUserBalance(balance);
@@ -175,7 +175,11 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     } else {
       setUserBalance(undefined);
     }
-  }, [account, icrc1BalanceOf]);
+  }
+
+  useEffect(() => {
+    refreshUserBalance();
+  }, [account]);
 
   const { call: mintToken, loading: mintLoading } = minterActor.useUpdateCall({
     functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : 'mint_btc',
@@ -205,7 +209,8 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
       if ("err" in mintResult) {
         throw new Error(`Failed to mint ${amount}: ${mintResult.err}`);
       }
-      await icrc1BalanceOf([account]);
+      // Refresh user balance after minting
+      refreshUserBalance();
       return true;
     } catch (error) {
       console.error("Error in mint:", error);
