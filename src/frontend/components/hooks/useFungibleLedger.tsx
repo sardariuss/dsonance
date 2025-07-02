@@ -1,12 +1,14 @@
 import { ckBtcActor } from "../../actors/CkBtcActor";
 import { ckUsdtActor } from "../../actors/CkUsdtActor";
 import { icpCoinsActor } from "../../actors/IcpCoinsActor";
-import { formatAmountCompact, fromFixedPoint } from "../../utils/conversions/token";
-import { getTokenDecimals, getTokenLogo, getTokenName, getTokenSymbol } from "../../utils/metadata";
-import { useEffect, useState } from "react";
+import { minterActor } from "../../actors/MinterActor";
+import { formatAmountCompact, fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
+import { getTokenDecimals } from "../../utils/metadata";
+import { useEffect, useState, useCallback } from "react";
 import { canisterId as protocolCanisterId } from "../../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
 import { Account, MetaDatum } from "@/declarations/ck_btc/ck_btc.did";
+import { useAuth } from "@ic-reactor/react";
 
 export enum LedgerType {
   SUPPLY = 'supply',
@@ -19,13 +21,30 @@ export interface FungibleLedger {
   tokenDecimals: number | undefined;
   formatAmount: (amountFixedPoint: bigint | number | undefined) => string | undefined;
   convertToUsd: (amountFixedPoint: bigint | number | undefined) => number | undefined;
-  approveIfNeeded: (account: Account, amount: bigint) => Promise<boolean>;
+  approveIfNeeded: (amount: bigint) => Promise<boolean>;
   userBalance: bigint | undefined;
+  mint: (amount: number) => Promise<boolean>;
+  mintLoading: boolean;
 }
 
-export const useFungibleLedger = (ledgerType: LedgerType, userAccount?: Account) : FungibleLedger => {
+export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
 
   const actor = ledgerType === LedgerType.SUPPLY ? ckUsdtActor : ckBtcActor;
+
+  const { authenticated, identity } = useAuth({});
+
+  const [account, setAccount] = useState<Account | undefined>(undefined);
+
+  useEffect(() => {
+    if (authenticated && identity) {
+      setAccount({
+        owner: identity.getPrincipal(),
+        subaccount: []
+      });
+    } else {
+      setAccount(undefined);
+    }
+  }, [authenticated, identity]);
   
   const { data: metadata } = actor.useQueryCall({
     functionName: 'icrc1_metadata'
@@ -65,7 +84,6 @@ export const useFungibleLedger = (ledgerType: LedgerType, userAccount?: Account)
   const tokenDecimals = getTokenDecimals(metadata);
 
   const formatAmount = (amount: bigint | number | undefined) => {
-    
     if (amount === undefined || tokenDecimals === undefined) {
       return undefined;
     }
@@ -86,15 +104,16 @@ export const useFungibleLedger = (ledgerType: LedgerType, userAccount?: Account)
     functionName: 'icrc2_allowance',
   });
 
-  const approveIfNeeded = async (account: Account, amount: bigint) => {
-  
+  const approveIfNeeded = async (amount: bigint) => {
+    if (!account) {
+      console.warn("User account is not provided.");
+      return false;
+    }
     if (amount <= 0n) {
       console.warn("Amount to approve must be greater than zero.");
       return false;
     }
-
     try {
-      // Step 1: Check current allowance
       const allowanceResult = await icrc2Allowance([
         {
           account,
@@ -104,19 +123,13 @@ export const useFungibleLedger = (ledgerType: LedgerType, userAccount?: Account)
           },
         },
       ]);
-
       if (allowanceResult === undefined) {
         throw new Error(`Failed to fetch allowance`);
       }
-
       const currentAllowance: bigint = allowanceResult.allowance;
-
-      // Step 2: Only approve if not enough
       if (currentAllowance >= amount) {
-        return true; // Enough allowance, no need to approve
+        return true;
       }
-
-      // Step 3: Approve only the delta or full amount (your choice)
       const approveResult = await icrc2Approve([
         {
           fee: [],
@@ -124,7 +137,7 @@ export const useFungibleLedger = (ledgerType: LedgerType, userAccount?: Account)
           from_subaccount: [],
           created_at_time: [],
           amount,
-          expected_allowance: [], // optional safety check
+          expected_allowance: [],
           expires_at: [],
           spender: {
             owner: Principal.fromText(protocolCanisterId),
@@ -132,7 +145,6 @@ export const useFungibleLedger = (ledgerType: LedgerType, userAccount?: Account)
           },
         },
       ]);
-
       if (approveResult === undefined) {
         throw new Error(`Failed to approve ${amount}: icrc2_approve returned an undefined result`);
       } 
@@ -140,7 +152,6 @@ export const useFungibleLedger = (ledgerType: LedgerType, userAccount?: Account)
         throw new Error(`Failed to approve ${amount}: ${approveResult.err}`);
       } 
       return true;
-
     } catch (error) {
       console.error("Error in approveIfNeeded:", error);
       return false;
@@ -154,8 +165,8 @@ export const useFungibleLedger = (ledgerType: LedgerType, userAccount?: Account)
   const [userBalance, setUserBalance] = useState<bigint | undefined>(undefined);
 
   useEffect(() => {
-    if (userAccount) {
-      icrc1BalanceOf([userAccount]).then(balance => {
+    if (account) {
+      icrc1BalanceOf([account]).then(balance => {
         setUserBalance(balance);
       }).catch(error => {
         console.error("Error fetching user balance:", error);
@@ -164,7 +175,43 @@ export const useFungibleLedger = (ledgerType: LedgerType, userAccount?: Account)
     } else {
       setUserBalance(undefined);
     }
-  }, [userAccount, icrc1BalanceOf]);
+  }, [account, icrc1BalanceOf]);
+
+  const { call: mintToken, loading: mintLoading } = minterActor.useUpdateCall({
+    functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : 'mint_btc',
+  });
+
+  const mint = async(amount: number) => {
+    if (isNaN(amount) || amount <= 0) {
+      console.error("Invalid amount to mint:", amount);
+      return false;
+    }
+    if (tokenDecimals === undefined){
+      console.error("Token decimals are not defined.");
+      return false;
+    }
+    if (!account) {
+      console.warn("User account is not provided.");
+      return false;
+    }
+    try {
+      const mintResult = await mintToken([{
+        amount: toFixedPoint(amount, tokenDecimals) ?? 0n,
+        to: account,
+      }]);
+      if (mintResult === undefined) {
+        throw new Error(`Failed to mint ${amount}: mintToken returned an undefined result`);
+      }
+      if ("err" in mintResult) {
+        throw new Error(`Failed to mint ${amount}: ${mintResult.err}`);
+      }
+      await icrc1BalanceOf([account]);
+      return true;
+    } catch (error) {
+      console.error("Error in mint:", error);
+      return false;
+    }
+  };
 
   return {
     metadata,
@@ -174,6 +221,7 @@ export const useFungibleLedger = (ledgerType: LedgerType, userAccount?: Account)
     convertToUsd,
     approveIfNeeded,
     userBalance,
+    mint,
+    mintLoading,
   };
-  
 };

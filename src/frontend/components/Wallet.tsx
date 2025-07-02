@@ -5,13 +5,11 @@ import { ckBtcActor } from '../actors/CkBtcActor';
 import { ckUsdtActor } from '../actors/CkUsdtActor';
 import { fromFixedPoint, toFixedPoint } from '../utils/conversions/token';
 import { minterActor } from '../actors/MinterActor';
-import { useCurrencyContext } from './CurrencyContext';
 import { TokenLabel } from './common/TokenLabel';
 
 const Wallet = () => {
 
   const { authenticated, identity } = useAuth({});
-  const { formatSatoshis  } = useCurrencyContext();
   const [btcMintAmount, setBtcMintAmount] = useState<string>("");
   const [usdtMintAmount, setUsdtMintAmount] = useState<string>("");
 
@@ -112,7 +110,6 @@ const Wallet = () => {
         <input
           type="number"
           min="0"
-          placeholder="Amount to mint"
           value={btcMintAmount}
           onChange={e => setBtcMintAmount(e.target.value)}
           className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900 text-right"
@@ -145,7 +142,6 @@ const Wallet = () => {
         <input
           type="number"
           min="0"
-          placeholder="Amount to mint"
           value={usdtMintAmount}
           onChange={e => setUsdtMintAmount(e.target.value)}
           className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900 text-right"
