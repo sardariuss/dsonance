@@ -1,25 +1,17 @@
 import { Account } from '@/declarations/protocol/protocol.did';
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useAuth } from '@ic-reactor/react';
 import { ckBtcActor } from '../actors/CkBtcActor';
-import { Principal } from '@dfinity/principal';
-import { canisterId as protocolCanisterId } from "../../declarations/protocol"
 import { ckUsdtActor } from '../actors/CkUsdtActor';
 import { formatCurrency, fromFixedPoint, toE8s } from '../utils/conversions/token';
 import { minterActor } from '../actors/MinterActor';
 import { useCurrencyContext } from './CurrencyContext';
-import { useAllowanceContext } from './AllowanceContext';
-import { getTokenSymbol } from '../utils/metadata';
 import { TokenLabel } from './common/TokenLabel';
 
 const Wallet = () => {
 
   const { authenticated, identity } = useAuth({});
-  const { formatSatoshis, currencySymbol, currencyToSatoshis } = useCurrencyContext();
-  const { btcAllowance, usdtAllowance, refreshBtcAllowance, refreshUsdtAllowance } = useAllowanceContext();
-  const [btcToApprove, setBtcToApprove] = useState<bigint>(0n);
-  const [usdtToApprove, setUsdtToApprove] = useState<bigint>(0n);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const { formatSatoshis  } = useCurrencyContext();
 
   if (!authenticated || identity === null) {
     return (
@@ -86,64 +78,9 @@ const Wallet = () => {
     );
   }
 
-  const { call: btcApprove, loading: btcApproving } = ckBtcActor.useUpdateCall({
-    functionName: 'icrc2_approve',
-    args: [{
-      fee: [],
-      memo: [],
-      from_subaccount: [],
-      created_at_time: [],
-      amount: btcToApprove,
-      expected_allowance: [],
-      expires_at: [],
-      spender: {
-        owner: Principal.fromText(protocolCanisterId),
-        subaccount: []
-      },
-    }]
-  });
-
-  const { call: usdtApprove, loading: usdtApproving } = ckUsdtActor.useUpdateCall({
-    functionName: 'icrc2_approve',
-    args: [{
-      fee: [],
-      memo: [],
-      from_subaccount: [],
-      created_at_time: [],
-      amount: usdtToApprove,
-      expected_allowance: [],
-      expires_at: [],
-      spender: {
-        owner: Principal.fromText(protocolCanisterId),
-        subaccount: []
-      },
-    }]
-  });
-
-  const triggerBtcApprove = () => {
-    btcApprove().catch((error) => {
-      console.error(error);
-    }).finally(() => {
-        refreshBtcAllowance()
-      }
-    );
-  }
-
-  const triggerUsdtApprove = () => {
-    usdtApprove().catch((error) => {
-      console.error(error);
-    }).finally(() => {
-        refreshUsdtAllowance()
-      }
-    );
-  }
-
-  // Hook to refresh balance and allowance when account changes
   useEffect(() => {
     refreshBtcBalance();
-    refreshBtcAllowance();
     refreshUsdtBalance();
-    refreshUsdtAllowance();
   }, [authenticated, identity]);
 
   return (
@@ -164,36 +101,6 @@ const Wallet = () => {
           </span>
         )}
       </div>
-
-      {/* Bitcoin Allowance */}
-      <div className="flex justify-between w-full mt-1">
-        <span className="font-medium">Allowance:</span>
-        {btcAllowance !== undefined && (
-          <span className="text-md font-semibold">
-            {formatSatoshis(btcAllowance)}
-          </span>
-        )}
-      </div>
-
-      {/* Allowance Input & Approve Button */}
-      <div className="flex justify-end w-full space-x-2 mt-3">
-        <div className="flex items-center space-x-2">
-          <span>{getTokenSymbol(btcMetadata) ?? ""}</span>
-          <input
-            ref={inputRef}
-            onChange={(e) => setBtcToApprove(currencyToSatoshis(Number(e.target.value)) ?? 0n)}
-            type="number"
-            className="sm:w-32 w-full h-9 border dark:border-gray-300 border-gray-900 rounded appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900"
-          />
-        </div>
-        <button
-          className="button-simple text-base"
-          onClick={() => triggerBtcApprove()}
-          disabled={btcApproving}
-        >
-          Update allowance
-        </button>
-      </div>
     </div>
 
     {/* USDT Section */}
@@ -208,36 +115,6 @@ const Wallet = () => {
         <span className="text-md font-semibold">
           {formatCurrency(fromFixedPoint(usdtBalance ?? 0n, 6), "")}
         </span>
-      </div>
-
-      {/* USDT Allowance */}
-      <div className="flex justify-between w-full mt-1">
-        <span className="font-medium">Allowance:</span>
-        {usdtAllowance !== undefined && (
-          <span className="text-md font-semibold">
-            {formatCurrency(fromFixedPoint(usdtAllowance, 6), "")}
-          </span>
-        )}
-      </div>
-
-      {/* Allowance Input & Approve Button */}
-      <div className="flex justify-end w-full space-x-2 mt-3">
-        <div className="flex items-center space-x-2">
-          <span>{getTokenSymbol(usdtMetadata) ?? ""}</span>
-          <input
-            ref={inputRef}
-            onChange={(e) => setUsdtToApprove(toE8s(Number(e.target.value)) ?? 0n)}
-            type="number"
-            className="sm:w-32 w-full h-9 border dark:border-gray-300 border-gray-900 rounded appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900"
-          />
-        </div>
-        <button
-          className="button-simple text-base"
-          onClick={() => triggerUsdtApprove()}
-          disabled={usdtApproving}
-        >
-          Update allowance
-        </button>
       </div>
     </div>
 
