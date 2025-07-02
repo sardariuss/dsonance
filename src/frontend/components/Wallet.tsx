@@ -1,9 +1,9 @@
 import { Account } from '@/declarations/protocol/protocol.did';
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from '@ic-reactor/react';
 import { ckBtcActor } from '../actors/CkBtcActor';
 import { ckUsdtActor } from '../actors/CkUsdtActor';
-import { formatCurrency, fromFixedPoint, toE8s } from '../utils/conversions/token';
+import { fromFixedPoint, toFixedPoint } from '../utils/conversions/token';
 import { minterActor } from '../actors/MinterActor';
 import { useCurrencyContext } from './CurrencyContext';
 import { TokenLabel } from './common/TokenLabel';
@@ -12,6 +12,8 @@ const Wallet = () => {
 
   const { authenticated, identity } = useAuth({});
   const { formatSatoshis  } = useCurrencyContext();
+  const [btcMintAmount, setBtcMintAmount] = useState<string>("");
+  const [usdtMintAmount, setUsdtMintAmount] = useState<string>("");
 
   if (!authenticated || identity === null) {
     return (
@@ -42,41 +44,45 @@ const Wallet = () => {
     functionName: 'icrc1_metadata'
   });
 
-  const { call: getBtcAirdrop, loading: btcAirdroping } = minterActor.useUpdateCall({
-    functionName: 'btc_airdrop_user',
+  const { call: mintBtc, loading: mintBtcLoading } = minterActor.useUpdateCall({
+    functionName: 'mint_btc',
   });
 
-  const { call: refreshBtcAirdropAvailable, data: btcAirdropAvailable } = minterActor.useQueryCall({
-    functionName: 'is_btc_airdrop_available',
+  const { call: mintUsdt, loading: mintUsdtLoading } = minterActor.useUpdateCall({
+    functionName: 'mint_usdt',
   });
 
-  const triggerBtcAirdrop = () => {
-    getBtcAirdrop().catch((error) => {
+  const triggerBtcMint = () => {
+    const amount = Number(btcMintAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid BTC amount to mint.");
+      return;
+    }
+    mintBtc([{
+      amount: toFixedPoint(amount, 8) ?? 0n,
+      to: account,
+    }]).catch((error) => {
       console.error(error);
     }).finally(() => {
-        refreshBtcBalance();
-        refreshBtcAirdropAvailable();
-      }
-    );
-  }
+      refreshBtcBalance();
+    });
+  };
 
-  const { call: getUsdtAirdrop, loading: usdtAirdroping } = minterActor.useUpdateCall({
-    functionName: 'usdt_airdrop_user',
-  });
-
-  const { call: refreshUsdtAirdropAvailable, data: usdtAirdropAvailable } = minterActor.useQueryCall({
-    functionName: 'is_usdt_airdrop_available',
-  });
-
-  const triggerUsdtAirdrop = () => {
-    getUsdtAirdrop().catch((error) => {
+  const triggerUsdtMint = () => {
+    const amount = Number(usdtMintAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid USDT amount to mint.");
+      return;
+    }
+    mintUsdt([{
+      amount: toFixedPoint(amount, 6) ?? 0n,
+      to: account,
+    }]).catch((error) => {
       console.error(error);
     }).finally(() => {
-        refreshUsdtBalance();
-        refreshUsdtAirdropAvailable();
-      }
-    );
-  }
+      refreshUsdtBalance();
+    });
+  };
 
   useEffect(() => {
     refreshBtcBalance();
@@ -97,9 +103,27 @@ const Wallet = () => {
         <span className="font-medium">Balance:</span>
         {btcBalance !== undefined && (
           <span className="text-md font-semibold">
-            {formatSatoshis(btcBalance ?? 0n)}
+            { fromFixedPoint(btcBalance, 8) ?? 0 }
           </span>
         )}
+      </div>
+      {/* BTC Mint Input & Button */}
+      <div className="flex flex-row items-center space-x-2 mt-3">
+        <input
+          type="number"
+          min="0"
+          placeholder="Amount to mint"
+          value={btcMintAmount}
+          onChange={e => setBtcMintAmount(e.target.value)}
+          className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900 text-right"
+        />
+        <button
+          className="px-10 button-simple h-10 justify-center items-center text-lg"
+          onClick={triggerBtcMint}
+          disabled={mintBtcLoading}
+        >
+          Mint BTC
+        </button>
       </div>
     </div>
 
@@ -113,35 +137,29 @@ const Wallet = () => {
       <div className="flex justify-between w-full">
         <span className="font-medium">Balance:</span>
         <span className="text-md font-semibold">
-          {formatCurrency(fromFixedPoint(usdtBalance ?? 0n, 6), "")}
+          { fromFixedPoint(usdtBalance ?? 0n, 6) }
         </span>
       </div>
+      {/* USDT Mint Input & Button */}
+      <div className="flex flex-row items-center space-x-2 mt-3">
+        <input
+          type="number"
+          min="0"
+          placeholder="Amount to mint"
+          value={usdtMintAmount}
+          onChange={e => setUsdtMintAmount(e.target.value)}
+          className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900 text-right"
+        />
+        <button
+          className="px-10 button-simple h-10 justify-center items-center text-lg"
+          onClick={triggerUsdtMint}
+          disabled={mintUsdtLoading}
+        >
+          Mint USDT
+        </button>
+      </div>
     </div>
-
-    {/* BTC Airdrop Button */}
-    {btcAirdropAvailable && (
-      <button
-        className="px-10 button-simple h-10 justify-center items-center text-lg"
-        onClick={triggerBtcAirdrop}
-        disabled={!btcAirdropAvailable || btcAirdroping}
-      >
-        Mint fake Bitcoins
-      </button>
-    )}
-
-    {/* USDT Airdrop Button */}
-    {usdtAirdropAvailable && (
-      <button
-        className="px-10 button-simple h-10 justify-center items-center text-lg"
-        onClick={triggerUsdtAirdrop}
-        disabled={!usdtAirdropAvailable || usdtAirdroping}
-      >
-        Airdrop USDT tokens
-      </button>
-    )}
-
-  </div>
-
+    </div>
   );
 }
 
