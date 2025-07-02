@@ -1,24 +1,25 @@
+import { formatAmountUsd } from "../../utils/conversions/token";
 import React from "react";
-import { Currency } from "../hooks/useFungibleLedger";
+import { FungibleLedger } from "../hooks/useFungibleLedger";
 
 interface SupplyInfoProps {
+  ledger: FungibleLedger;
   supplyCap: number; // e.g., 3_000_000
   totalSupplied: number; // e.g., 2_640_000
   apy: number; // e.g., 1.93
   maxLtv: number;
   liquidationThreshold: number;
   liquidationPenalty: number;
-  formatAmount: (amount: bigint | number | undefined, currency?: Currency) => string | undefined;
 }
 
 const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
+  ledger,
   supplyCap,
   totalSupplied,
   apy,
   maxLtv,
   liquidationThreshold,
   liquidationPenalty,
-  formatAmount,
 }) => {
 
   const usagePercent = (totalSupplied / supplyCap) * 100;
@@ -58,10 +59,10 @@ const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
         <div className="grid grid-rows-3 gap-1 h-full">
           <span className="text-sm text-gray-500 dark:text-gray-400">Total supplied</span>
           <span className="text-lg font-bold">
-            { `${formatAmount(totalSupplied)} of ${formatAmount(supplyCap)}` }
+            { `${ledger.formatAmount(totalSupplied)} of ${ledger.formatAmount(supplyCap)}` }
           </span>
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            { `${formatAmount(totalSupplied, Currency.USD)} of ${formatAmount(supplyCap, Currency.USD)}` }
+            { `${formatAmountUsd(ledger.convertToUsd(totalSupplied))} of ${formatAmountUsd(ledger.convertToUsd(supplyCap))}` }
           </span>
         </div>
 

@@ -1,20 +1,21 @@
 import React from "react";
-import { Currency } from "../hooks/useFungibleLedger";
+import { FungibleLedger } from "../hooks/useFungibleLedger";
+import { formatAmountUsd } from "../../utils/conversions/token";
 
 interface BorrowInfoProps {
+  ledger: FungibleLedger;
   borrowCap: number; // e.g., 2_700_000
   totalBorrowed: number; // e.g., 2_290_000
   apy: number; // e.g., 2.63
   reserveFactor: number; // e.g., 15.0
-  formatAmount: (amount: bigint | number | undefined, currency?: Currency) => string | undefined;
 }
 
 const BorrowInfoPanel: React.FC<BorrowInfoProps> = ({
+  ledger,
   borrowCap,
   totalBorrowed,
   apy,
   reserveFactor,
-  formatAmount,
 }) => {
 
   const usagePercent = (totalBorrowed / borrowCap) * 100;
@@ -55,10 +56,10 @@ const BorrowInfoPanel: React.FC<BorrowInfoProps> = ({
         <div className="grid grid-rows-3 gap-1 h-full">
             <span className="text-sm text-gray-500 dark:text-gray-400">Total borrowed</span>
             <span className="text-lg font-bold">
-              {`${formatAmount(totalBorrowed)} of ${formatAmount(borrowCap)}`}
+              {`${ledger.formatAmount(totalBorrowed)} of ${ledger.formatAmount(borrowCap)}`}
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              {`${formatAmount(totalBorrowed, Currency.USD)} of ${formatAmount(borrowCap, Currency.USD)}`}
+              {`${formatAmountUsd(ledger.convertToUsd(totalBorrowed))} of ${formatAmountUsd(ledger.convertToUsd(borrowCap))}`}
             </span>
           </div>
 

@@ -1,8 +1,5 @@
-import { ckUsdtActor } from "../../actors/CkUsdtActor";
 import { protocolActor } from "../../actors/ProtocolActor";
-import { ckBtcActor } from "../../actors/CkBtcActor";
-import { formatCurrency, fromFixedPoint } from "../../utils/conversions/token";
-import { useCurrencyContext } from "../CurrencyContext";
+import { formatAmountUsd } from "../../utils/conversions/token";
 import { fromNullableExt } from "../../utils/conversions/nullable";
 import { TokenLabel } from "../common/TokenLabel";
 import BorrowButton, { MaxChoiceType } from "./BorrowButton";
@@ -12,7 +9,7 @@ import { useAuth } from "@ic-reactor/react";
 import { Account } from "@/declarations/ck_btc/ck_btc.did";
 import DualLabel from "../common/DualLabel";
 import { aprToApy, getHealthColor } from "../../utils/lending";
-import { useAllowanceContext } from "../AllowanceContext";
+import { LedgerType, useFungibleLedger } from "../hooks/useFungibleLedger";
 
 const BorrowTab = () => {
 
@@ -27,15 +24,8 @@ const BorrowTab = () => {
     subaccount: []
   }), [identity]);
 
-  const { satoshisToCurrency } = useCurrencyContext(); // @todo: not gonna work for usdt
-
-  const { data: usdtMetadata } = ckUsdtActor.useQueryCall({
-    functionName: 'icrc1_metadata'
-  });
-  
-  const { data: btcMetadata } = ckBtcActor.useQueryCall({
-    functionName: 'icrc1_metadata'
-  });
+  const supplyLedger = useFungibleLedger(LedgerType.SUPPLY);
+  const collateralLedger = useFungibleLedger(LedgerType.COLLATERAL);
 
   const { data: indexerState, call: refreshIndexerState } = protocolActor.useQueryCall({
     functionName: 'get_lending_index',
@@ -54,12 +44,10 @@ const BorrowTab = () => {
     functionName: 'run_borrow_operation',
   });
 
-  const { data: lockedAmount, call: refreshLockedAmount } = protocolActor.useQueryCall({
-    functionName: "get_locked_amount",
+  const { data: userSupply } = protocolActor.useQueryCall({
+    functionName: "get_user_supply",
     args: [{ account }],
   });
-
-  const { btcAllowance, usdtAllowance } = useAllowanceContext();
 
   const previewOperation = (args: OperationKindArgs) : Promise<Result_1 | undefined> => {
     return previewBorrowOperation([{ subaccount: [], args }]);
@@ -85,11 +73,17 @@ const BorrowTab = () => {
     const currentOwed = loan?.current_owed ?? 0;
     const ltv = loan?.ltv ?? 0;
     const requiredRepayment = loan?.required_repayment ?? 0;
-    
-    const netWorth = fromFixedPoint(collateral, 6) - satoshisToCurrency(rawBorrowed);
 
     const borrowApy = indexerState?.borrow_rate ? aprToApy(indexerState?.borrow_rate) : 0;
-    const netApy = -(satoshisToCurrency(rawBorrowed) * borrowApy) / netWorth;
+    
+    var netWorth = 0;
+    var netApy = 0;
+    const collateralUsd = collateralLedger.convertToUsd(collateral);
+    const borrowedUsd = supplyLedger.convertToUsd(rawBorrowed);
+    if (collateralUsd !== undefined && borrowedUsd !== undefined) {
+      netWorth = collateralUsd - borrowedUsd;
+      netApy = -(borrowedUsd * borrowApy) / netWorth;
+    }
 
     return {
       collateral,
@@ -107,7 +101,7 @@ const BorrowTab = () => {
   return (
     <div className="flex flex-col justify-center mt-4 space-y-4">
       <div className="flex flex-row items-center p-2 space-x-4">
-        <DualLabel top="Net worth" bottom={formatCurrency(netWorth, "$")} />
+        <DualLabel top="Net worth" bottom={formatAmountUsd(netWorth)} />
         <DualLabel top="Net APY" bottom={`${(netApy * 100).toFixed(2)}%`} />
         <DualLabel top="Health factor" bottom={health.toFixed(2)} bottomClassName={`${getHealthColor(health)}`}/>
       </div>
@@ -115,10 +109,10 @@ const BorrowTab = () => {
         <div className="flex flex-col justify-center w-full">
           <span className="text-xl font-semibold">Your supply</span>
           <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
-            <TokenLabel metadata={btcMetadata}/>
+            <TokenLabel metadata={supplyLedger.metadata}/>
             <div className="relative flex flex-col">
-              <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(lockedAmount, 8), "")} </span>
-              <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(lockedAmount), "$") } </span>
+              <span className="text-lg font-bold"> { supplyLedger.formatAmount(userSupply?.amount) } </span>
+              <span className="absolute top-6 text-xs text-gray-400"> { formatAmountUsd(supplyLedger.convertToUsd(userSupply?.amount)) } </span>
             </div>
           </div>
         </div>
@@ -127,31 +121,27 @@ const BorrowTab = () => {
         <div className="flex flex-col justify-center w-full">
           <span className="text-xl font-semibold">Your collateral</span>
           <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
-            <TokenLabel metadata={usdtMetadata}/>
+            <TokenLabel metadata={collateralLedger.metadata}/>
             <div className="relative flex flex-col">
-              <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(collateral, 6), "")} </span>
-              <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(fromFixedPoint(collateral, 6), "$") } </span>
+              <span className="text-lg font-bold"> { collateralLedger.formatAmount(collateral) } </span>
+              <span className="absolute top-6 text-xs text-gray-400"> { formatAmountUsd(collateralLedger.convertToUsd(collateral)) } </span>
             </div>
             <span>{/*spacer*/}</span>
             <BorrowButton 
               title="Supply"
-              tokenMetadata={usdtMetadata}
+              ledger={collateralLedger}
               previewOperation={(amount) => previewOperation({ "PROVIDE_COLLATERAL": { amount } })}
               runOperation={(amount) => runOperation({ "PROVIDE_COLLATERAL": { amount } })}
-              tokenDecimals={6}
-              amountInUsd={amount => fromFixedPoint(amount, 6)}
               health={health}
-              maxChoice={{type: MaxChoiceType.WalletBalance, value: usdtAllowance ?? 0n, formatValue: (value) => formatCurrency(fromFixedPoint(value, 6), "$")}}
+              maxChoice={{type: MaxChoiceType.WalletBalance, value: collateralLedger.userBalance ?? 0n }}
             />
             <BorrowButton 
               title="Withdraw"
-              tokenMetadata={usdtMetadata}
+              ledger={collateralLedger}
               previewOperation={(amount) => previewOperation({ "WITHDRAW_COLLATERAL": { amount } })}
               runOperation={(amount) => runOperation({ "WITHDRAW_COLLATERAL": { amount } })}
-              tokenDecimals={6}
-              amountInUsd={amount => fromFixedPoint(amount, 6)}
               health={health}
-              maxChoice={{type: MaxChoiceType.Available, value: usdtAllowance ?? 0n, formatValue: (value) => formatCurrency(fromFixedPoint(value, 6), "$")/* @todo: not use allowance*/}}
+              maxChoice={{type: MaxChoiceType.Available, value: collateralLedger.userBalance ?? 0n }} /* @todo: change with available to withdraw */
             />
           </div>
         </div>
@@ -159,31 +149,27 @@ const BorrowTab = () => {
         <div className="flex flex-col justify-center w-full">
           <span className="text-xl font-semibold">Your borrow</span>
           <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
-            <TokenLabel metadata={btcMetadata}/>
+            <TokenLabel metadata={supplyLedger.metadata}/>
             <div className="relative flex flex-col">
-              <span className="text-lg font-bold"> { formatCurrency(fromFixedPoint(rawBorrowed, 8), "")} </span>
-              <span className="absolute top-6 text-xs text-gray-400"> { formatCurrency(satoshisToCurrency(rawBorrowed), "$")} </span>
+              <span className="text-lg font-bold"> { supplyLedger.formatAmount(rawBorrowed)} </span>
+              <span className="absolute top-6 text-xs text-gray-400"> { formatAmountUsd(supplyLedger.convertToUsd(rawBorrowed)) } </span>
             </div>
             <span>{/*spacer*/}</span>
             <BorrowButton 
               title="Borrow"
-              tokenMetadata={btcMetadata}
+              ledger={supplyLedger}
               previewOperation={(amount) => previewOperation({ "BORROW_SUPPLY": { amount } })}
               runOperation={(amount) => runOperation({ "BORROW_SUPPLY": { amount } })}
-              tokenDecimals={8}
-              amountInUsd={amount => satoshisToCurrency(amount)}
               health={health}
-              maxChoice={{type: MaxChoiceType.Available, value: btcAllowance ?? 0n, formatValue: (value) => formatCurrency(fromFixedPoint(value, 8), "") /* @todo: not use allowance*/}}
+              maxChoice={{type: MaxChoiceType.Available, value: supplyLedger.userBalance ?? 0n }} /* @todo: change with available to borrow */
             />
             <BorrowButton 
               title="Repay"
-              tokenMetadata={btcMetadata}
+              ledger={supplyLedger}
               previewOperation={(amount) => previewOperation({ "REPAY_SUPPLY": { repayment: { "PARTIAL" : amount } } })}
               runOperation={(amount) => runOperation({ "REPAY_SUPPLY": { repayment: { "PARTIAL" : amount } } })}
-              tokenDecimals={8}
-              amountInUsd={amount => satoshisToCurrency(amount)}
               health={health}
-              maxChoice={{type: MaxChoiceType.WalletBalance, value: btcAllowance ?? 0n, formatValue: (value) => formatCurrency(fromFixedPoint(value, 8), "")}}
+              maxChoice={{type: MaxChoiceType.WalletBalance, value: supplyLedger.userBalance ?? 0n }}
             />
           </div>
         </div>

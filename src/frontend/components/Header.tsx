@@ -9,7 +9,6 @@ import Logo from "./icons/Logo";
 import { useMediaQuery } from "react-responsive";
 import { Identity } from "@dfinity/agent";
 import LinkIcon from "./icons/LinkIcon";
-import CurrencyConverter from "./CurrencyConverter";
 import ThemeToggle from "./ThemeToggle";
 
 interface HeaderProps {
@@ -41,7 +40,6 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
         
         {/* Right-aligned Profile and Theme Toggle */}
         <div className="flex flex-row items-center justify-end md:space-x-6 space-x-2">
-          <CurrencyConverter />
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/"}>
             Vote
           </Link>
@@ -50,9 +48,6 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
           </Link>
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/dashboard"}>
             Dashboard
-          </Link>
-          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={DOCS_URL} target="_blank" rel="noopener">
-            Docs
           </Link>
           { authenticated && identity && <BtcBalance/> }
           <div>
@@ -166,18 +161,6 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 onClick={() => setShowMenu(false)}
               >
                 Dashboard
-              </Link>
-            </div>
-            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg items-center ${location.pathname === DOCS_URL ? 'bg-purple-700 text-white' : ''}`}>
-              <LinkIcon/>
-              <Link
-                className="cols-span-11 overflow-visible whitespace-nowrap"
-                to={DOCS_URL}
-                onClick={() => setShowMenu(false)}
-                target="_blank"
-                rel="noopener"
-              >
-                Docs
               </Link>
             </div>
             <span />
