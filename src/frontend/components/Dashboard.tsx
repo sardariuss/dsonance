@@ -7,7 +7,6 @@ import SupplyInfoPanel from "./borrow/SupplyInfoPanel";
 import DualLabel from "./common/DualLabel";
 import { FullTokenLabel } from "./common/TokenLabel";
 import { aprToApy } from "../utils/lending";
-import { LedgerType, useFungibleLedger } from "./hooks/useFungibleLedger";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 
 const Dashboard = () => {

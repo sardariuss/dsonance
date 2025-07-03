@@ -15,8 +15,8 @@ import { useNavigate } from "react-router-dom";
 import { backendActor } from "../../actors/BackendActor";
 import { fromNullable } from "@dfinity/utils";
 import { toEnum } from "../../utils/conversions/yesnochoice";
-import { useCurrencyContext } from "../context/CurrencyContext";
 import ChoiceView from "../ChoiceView";
+import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 
 enum CHART_TOGGLE {
     DURATION,
@@ -199,7 +199,7 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const navigate = useNavigate();
-  const { formatSatoshis } = useCurrencyContext();
+  const { supplyLedger: { formatAmountUsd } } = useFungibleLedgerContext();
 
   const { data: vote, call: refreshVote } = backendActor.useQueryCall({
       functionName: 'get_vote',
@@ -270,7 +270,7 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
         </div>
         <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">Amount</span>
-          <span>{formatSatoshis(ballot.YES_NO.amount)}</span>
+          <span>{formatAmountUsd(ballot.YES_NO.amount)}</span>
         </div>
         <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">Choice</span>

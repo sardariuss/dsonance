@@ -4,7 +4,6 @@ import { backendActor } from "../../actors/BackendActor";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
 import { fromNullable } from "@dfinity/utils";
 import { unwrapLock } from "../../utils/conversions/ballot";
-import { useCurrencyContext } from "../context/CurrencyContext";
 import ChoiceView from "../ChoiceView";
 
 import { SBallotType } from "@/declarations/protocol/protocol.did";
@@ -14,6 +13,7 @@ import { useMemo } from "react";
 import { toEnum } from "../../utils/conversions/yesnochoice";
 import { useMediaQuery } from "react-responsive";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
+import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 
 interface VoteTextProps {
   vote: SYesNoVote | undefined;
@@ -49,7 +49,7 @@ interface BallotProps {
 // @int: debt_info is commented out
 const BallotRow = ({ ballot, now, selected }: BallotProps) => {
 
-  const { formatSatoshis } = useCurrencyContext();
+  const { supplyLedger: { formatAmountUsd } } = useFungibleLedgerContext();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
 //  const { data: debt_info } = protocolActor.useQueryCall({
@@ -114,7 +114,7 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
 
         { !isMobile && <div className="grid grid-rows-2 w-full justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">Amount</span>
-          <span>{formatSatoshis(ballot.YES_NO.amount)}</span>
+          <span>{formatAmountUsd(ballot.YES_NO.amount)}</span>
         </div> }
 
         { !isMobile && <div className="grid grid-rows-2 w-full justify-items-end">

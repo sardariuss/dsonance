@@ -1,8 +1,6 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { protocolActor } from "../../actors/ProtocolActor";
-import { useCurrencyContext } from "../context/CurrencyContext";
-import BitcoinIcon from "../icons/BitcoinIcon";
 
 import BallotRow from "./BallotRow";
 import { useProtocolContext } from "../context/ProtocolContext";
@@ -15,6 +13,8 @@ import AdaptiveInfiniteScroll from "../AdaptiveInfinitScroll";
 import IntervalPicker from "../charts/IntervalPicker";
 import { DurationUnit } from "../../utils/conversions/durationUnit";
 import LockChart from "../charts/LockChart";
+import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
+import Balance from "../Balance";
 
 type BallotEntries = {
   ballots: SBallotType[];
@@ -90,7 +90,7 @@ const BallotList = () => {
     fetchBallots(account, ballotEntries, filterActive).then(setBallotEntries);
   }
 
-  const { formatSatoshis } = useCurrencyContext();
+  const { supplyLedger } = useFungibleLedgerContext();
 
   const { info, refreshInfo } = useProtocolContext();
 
@@ -104,7 +104,7 @@ const BallotList = () => {
   }), [identity]);
 
   const { data: lockedAmount, call: refreshLockedAmount } = protocolActor.useQueryCall({
-    functionName: "get_locked_amount",
+    functionName: "get_user_supply",
     args: [{ account }],
   });
 
@@ -140,13 +140,7 @@ const BallotList = () => {
         <span>Total locked:</span>
         {
           lockedAmount !== undefined ?
-          <div className="flex flex-row items-baseline space-x-1">
-            <span className="text-lg">{ formatSatoshis(lockedAmount) }</span>
-            <div className="flex self-center">
-              <BitcoinIcon/>
-            </div>
-          </div>
-            :
+          <Balance ledger={supplyLedger} amount={lockedAmount.amount}/> :
           <span className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse self-center"/>
         }
       </div>

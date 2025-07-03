@@ -2,9 +2,7 @@ import { EYesNoChoice, toCandid } from '../utils/conversions/yesnochoice';
 import { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { BallotInfo } from './types';
-import { useCurrencyContext } from './context/CurrencyContext';
 import { useAllowanceContext } from './context/AllowanceContext';
-import BitcoinIcon from './icons/BitcoinIcon';
 import { useAuth } from '@ic-reactor/react';
 import { add_ballot, deduce_ballot, VoteDetails } from '../utils/conversions/votedetails';
 import { useProtocolContext } from './context/ProtocolContext';
@@ -13,6 +11,8 @@ import { protocolActor } from '../actors/ProtocolActor';
 import { useNavigate } from 'react-router-dom';
 import ResetIcon from './icons/ResetIcon';
 import { SBallot } from '@/declarations/protocol/protocol.did';
+import { useFungibleLedgerContext } from './context/FungibleLedgerContext';
+import { getTokenLogo } from '../utils/metadata';
 
 const CURSOR_HEIGHT = "0.3rem";
 const PREDEFINED_PERCENTAGES = [0.1, 0.25, 0.5, 1.0];
@@ -36,7 +36,7 @@ type Props = {
 
 const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview, onMouseUp, onMouseDown}: Props) => {
 
-  const { currencySymbol, currencyToSatoshis, formatSatoshis } = useCurrencyContext();
+  const { supplyLedger: { formatAmount, formatAmountUsd, metadata, convertToFixedPoint } } = useFungibleLedgerContext();
   const { btcAllowance, refreshBtcAllowance } = useAllowanceContext();
   const { authenticated, login } = useAuth();
   const { parameters } = useProtocolContext();
@@ -79,7 +79,7 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
   useEffect(() => {
   // Only update if input is not focused, meaning that it comes from an external stimulus
     if (customRef.current && !isCustomActive) {
-      let amount = formatSatoshis(ballot.amount, true);
+      let amount = formatAmount(ballot.amount);
       if (amount !== undefined) {
         customRef.current.value = amount;
       }
@@ -93,11 +93,6 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
     }
   },
   [ballot]);
-
-  useEffect(() => {
-    // Reset when currency changes
-    setBallot({ amount: 0n, choice: ballot.choice });
-  }, [currencySymbol]);
 
   const customRef = useRef<HTMLInputElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
@@ -158,18 +153,17 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
           <button className={`w-1/2 h-9 text-base rounded-lg ${ballot.choice === EYesNoChoice.Yes ? "bg-brand-true text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.Yes })}>True</button>
           <button className={`w-1/2 h-9 text-base rounded-lg ${ballot.choice === EYesNoChoice.No ? "bg-brand-false text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.No })}>False</button>
         </div>
-        <div className={`flex flex-col sm:flex-row space-y-2 sm:space-y-0 items-center w-full justify-around ${tooSmall ? "pb-2" : ""}`}>
-          <div className="flex flex-row items-center space-x-1 grow w-full">
+        <div className={`flex flex-col sm:flex-row space-y-2 sm:space-y-0 items-center w-full justify-around pb-2`}>
+          <div className="flex flex-row items-center space-x-1 flex-grow">
           {
             PREDEFINED_PERCENTAGES.map((percentage) => (
-              <button key={percentage} className={`rounded-lg sm:w-full h-9 text-base justify-center grow ${btcAllowance && ballot.amount === BigInt(Math.floor(percentage * Number(btcAllowance))) ? "bg-purple-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
+              <button key={percentage} className={`rounded-lg h-9 text-base justify-center sm:flex-grow ${btcAllowance && ballot.amount === BigInt(Math.floor(percentage * Number(btcAllowance))) ? "bg-purple-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
                 onClick={() => { if(!authenticated) { login() } else { setBallot({ amount: BigInt(Math.floor(percentage * Number(btcAllowance))), choice: ballot.choice })}}}>{percentage * 100}%</button>
             ))
           }
           </div>
           <div className="flex flex-row items-center space-x-1 self-end">
             <span className="px-2 sm:pl-2">Custom:</span>
-            <span>{currencySymbol}</span>
             <div className="relative">
               <input
                 ref={customRef}
@@ -181,20 +175,21 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
                   if (isCustomActive) {
                     setBallot({
                       choice: ballot.choice,
-                      amount: currencyToSatoshis(Number(e.target.value)) ?? 0n,
+                      amount: convertToFixedPoint(Number(e.target.value)) ?? 0n,
                     });
                   }
                 }}
               />
-              { parameters && tooSmall && (
+              { tooSmall ? parameters && 
                 <div className="text-red-500 text-sm absolute top-full left-1/2 -translate-x-1/2 truncate right">
-                  Minimum {formatSatoshis(parameters.minimum_ballot_amount)}
+                  Minimum {formatAmount(parameters.minimum_ballot_amount)}
+                </div> :
+                <div className="text-gray-500 text-sm absolute top-full left-1/2 -translate-x-1/2 truncate right">
+                  {formatAmountUsd(ballot.amount)}
                 </div>
-              )}
+              }
             </div>
-            <div className="w-5 h-5">
-              <BitcoinIcon />
-            </div>
+            <img src={getTokenLogo(metadata)} alt="Logo" className="size-[24px]" />
             <div className="pl-2" onClick={() => setBallot({ amount: 0n, choice: ballot.choice })}>
               <div className="w-5 h-5 hover:cursor-pointer fill-black dark:fill-white">
                 <ResetIcon />

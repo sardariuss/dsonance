@@ -83,7 +83,7 @@ dfx deploy protocol --argument '( variant {
       max_age = variant { YEARS = 4 };
       ballot_half_life = variant { YEARS = 1 };
       nominal_lock_duration = variant { DAYS = 3 };
-      minimum_ballot_amount = 100;
+      minimum_ballot_amount = 1_000_000;
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
       timer_interval_s = 216;

@@ -22,6 +22,8 @@ export interface FungibleLedger {
   formatAmount: (amountFixedPoint: bigint | number | undefined) => string | undefined;
   formatAmountUsd: (amountFixedPoint: bigint | number | undefined) => string | undefined;
   convertToUsd: (amountFixedPoint: bigint | number | undefined) => number | undefined;
+  convertToFixedPoint: (amount: number | undefined) => bigint | undefined;
+  convertToFloatingPoint: (amountFixedPoint: bigint | number | undefined) => number | undefined;
   approveIfNeeded: (amount: bigint) => Promise<boolean>;
   userBalance: bigint | undefined;
   mint: (amount: number) => Promise<boolean>;
@@ -106,6 +108,20 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     }
     return fromFixedPoint(amount, tokenDecimals) * price;
   }
+
+  const convertToFixedPoint = (amount: number | undefined) : bigint | undefined => {
+    if (amount === undefined || tokenDecimals === undefined) {
+      return undefined;
+    }
+    return toFixedPoint(amount, tokenDecimals);
+  };
+
+  const convertToFloatingPoint = (amount: bigint | number | undefined) : number | undefined => {
+    if (amount === undefined || tokenDecimals === undefined) {
+      return undefined;
+    }
+    return fromFixedPoint(amount, tokenDecimals);
+  };
 
   const { call: icrc2Approve } = actor.useUpdateCall({
     functionName: 'icrc2_approve',
@@ -240,6 +256,8 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     formatAmount,
     formatAmountUsd,
     convertToUsd,
+    convertToFixedPoint,
+    convertToFloatingPoint,
     approveIfNeeded,
     userBalance,
     mint,
