@@ -2,7 +2,6 @@ import { EYesNoChoice, toCandid } from '../utils/conversions/yesnochoice';
 import { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { BallotInfo } from './types';
-import { useAllowanceContext } from './context/AllowanceContext';
 import { useAuth } from '@ic-reactor/react';
 import { add_ballot, deduce_ballot, VoteDetails } from '../utils/conversions/votedetails';
 import { useProtocolContext } from './context/ProtocolContext';
@@ -36,30 +35,14 @@ type Props = {
 
 const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview, onMouseUp, onMouseDown}: Props) => {
 
-  const { supplyLedger: { formatAmount, formatAmountUsd, metadata, convertToFixedPoint } } = useFungibleLedgerContext();
-  const { btcAllowance, refreshBtcAllowance } = useAllowanceContext();
+  const { supplyLedger: { formatAmount, formatAmountUsd, metadata, convertToFixedPoint, approveIfNeeded, userBalance, refreshUserBalance } } = useFungibleLedgerContext();
   const { authenticated, login } = useAuth();
   const { parameters } = useProtocolContext();
+  const [putBallotLoading, setPutBallotLoading] = useState(false);
   const navigate = useNavigate();
   
-  const { call: putBallot, loading } = protocolActor.useUpdateCall({
+  const { call: putBallot } = protocolActor.useUpdateCall({
     functionName: "put_ballot",
-    onSuccess: (result) => {
-      if (result === undefined) {
-        return;
-      }
-      if ('err' in result) {
-        console.error(result.err);
-        return;
-      }
-      if (authenticated) {
-        refreshBtcAllowance();
-        navigate(`/?tab=ballots\&ballotId=${result.ok.YES_NO.ballot_id}`);
-      }
-    },
-    onError: (error) => {
-      console.error(error);
-    },
   });
 
   const triggerVote = () => {
@@ -67,19 +50,45 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
       login();
       return;
     }
-    putBallot([{
-      vote_id: id,
-      id: uuidv4(),
-      from_subaccount: [],
-      amount: ballot.amount,
-      choice_type: { YES_NO: toCandid(ballot.choice) },
-    }]);
+    if (putBallotLoading) {
+      console.warn("Put ballot is already in progress");
+      return;
+    }
+    setPutBallotLoading(true);
+    
+    approveIfNeeded(ballot.amount).then((approved) => {
+      if (!approved) {
+        throw new Error("Approval failed, cannot put ballot");
+      }
+      putBallot([{
+        vote_id: id,
+        id: uuidv4(),
+        from_subaccount: [],
+        amount: ballot.amount,
+        choice_type: { YES_NO: toCandid(ballot.choice) },
+      }]).then((result) => {
+        if (result === undefined) {
+          throw new Error("Put ballot returned undefined result");
+        }
+        if ('err' in result) {
+          console.error("Put ballot failed:", result.err);
+          throw new Error(`Put ballot failed: ${result.err.toString()}`);
+        }
+        refreshUserBalance();
+        // Ballot successfully put, navigate to the ballot page
+        navigate(`/?tab=your_ballots\&ballotId=${result.ok.YES_NO.ballot_id}`);
+      });
+    }).catch((error) => {
+      console.error("Error during put ballot:", error);
+    }).finally(() => {
+      setPutBallotLoading(false);
+    });
   };
 
   useEffect(() => {
   // Only update if input is not focused, meaning that it comes from an external stimulus
     if (customRef.current && !isCustomActive) {
-      let amount = formatAmount(ballot.amount);
+      let amount = formatAmount(ballot.amount, "standard");
       if (amount !== undefined) {
         customRef.current.value = amount;
       }
@@ -157,8 +166,8 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
           <div className="flex flex-row items-center space-x-1 flex-grow">
           {
             PREDEFINED_PERCENTAGES.map((percentage) => (
-              <button key={percentage} className={`rounded-lg h-9 text-base justify-center sm:flex-grow ${btcAllowance && ballot.amount === BigInt(Math.floor(percentage * Number(btcAllowance))) ? "bg-purple-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
-                onClick={() => { if(!authenticated) { login() } else { setBallot({ amount: BigInt(Math.floor(percentage * Number(btcAllowance))), choice: ballot.choice })}}}>{percentage * 100}%</button>
+              <button key={percentage} className={`rounded-lg h-9 text-base justify-center sm:flex-grow ${userBalance && ballot.amount === BigInt(Math.floor(percentage * Number(userBalance))) ? "bg-purple-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
+                onClick={() => { if(!authenticated) { login() } else { setBallot({ amount: BigInt(Math.floor(percentage * Number(userBalance))), choice: ballot.choice })}}}>{percentage * 100}%</button>
             ))
           }
           </div>
@@ -200,7 +209,7 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
       </div>
       <button 
         className="button-simple w-full h-9 justify-center items-center text-base"
-        disabled={loading || tooSmall || btcAllowance === undefined || ballot.amount > btcAllowance}
+        disabled={putBallotLoading || tooSmall}
         onClick={triggerVote}
       >
         Lock ballot

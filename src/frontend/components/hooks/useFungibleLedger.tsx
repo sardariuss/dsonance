@@ -19,13 +19,14 @@ export interface FungibleLedger {
   metadata: MetaDatum[] | undefined;
   price: number | undefined;
   tokenDecimals: number | undefined;
-  formatAmount: (amountFixedPoint: bigint | number | undefined) => string | undefined;
-  formatAmountUsd: (amountFixedPoint: bigint | number | undefined) => string | undefined;
+  formatAmount: (amountFixedPoint: bigint | number | undefined, notation?: "standard" | "compact") => string | undefined;
+  formatAmountUsd: (amountFixedPoint: bigint | number | undefined, notation?: "standard" | "compact") => string | undefined;
   convertToUsd: (amountFixedPoint: bigint | number | undefined) => number | undefined;
   convertToFixedPoint: (amount: number | undefined) => bigint | undefined;
   convertToFloatingPoint: (amountFixedPoint: bigint | number | undefined) => number | undefined;
   approveIfNeeded: (amount: bigint) => Promise<boolean>;
   userBalance: bigint | undefined;
+  refreshUserBalance: () => void;
   mint: (amount: number) => Promise<boolean>;
   mintLoading: boolean;
 }
@@ -87,19 +88,28 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   const tokenDecimals = getTokenDecimals(metadata);
   const tokenFee = getTokenFee(metadata);
 
-  const formatAmount = (amount: bigint | number | undefined) => {
+  const formatAmount = (amount: bigint | number | undefined, notation: "standard" | "compact" = "compact") => {
     if (amount === undefined || tokenDecimals === undefined) {
       return undefined;
     }
-    return `${formatAmountCompact(fromFixedPoint(amount, tokenDecimals), ledgerType === LedgerType.SUPPLY ? 2 : tokenDecimals)}`;
+    return new Intl.NumberFormat("en-US", {
+      notation,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: ledgerType === LedgerType.SUPPLY ? 2 : tokenDecimals,
+    }).format(fromFixedPoint(amount, tokenDecimals));
   };
 
-  const formatAmountUsd = (amount: bigint | number | undefined) => {
+  const formatAmountUsd = (amount: bigint | number | undefined, notation: "standard" | "compact" = "compact") => {
     let usdValue = convertToUsd(amount);
     if (usdValue === undefined) {
       return undefined;
     }
-    return `$${formatAmountCompact(usdValue, 2)}`;
+    let formattedValue = new Intl.NumberFormat("en-US", {
+      notation,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(usdValue);
+    return `$${formattedValue}`;
   };
 
   const convertToUsd = (amount: bigint | number | undefined) : number | undefined => {
@@ -196,8 +206,10 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   const [userBalance, setUserBalance] = useState<bigint | undefined>(undefined);
 
   const refreshUserBalance = () => {
+    console.log("Refreshing user balance for account:", account);
     if (account) {
       icrc1BalanceOf([account]).then(balance => {
+        console.log("Fetched user balance:", balance);
         setUserBalance(balance);
       }).catch(error => {
         console.error("Error fetching user balance:", error);
@@ -260,6 +272,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     convertToFloatingPoint,
     approveIfNeeded,
     userBalance,
+    refreshUserBalance,
     mint,
     mintLoading,
   };

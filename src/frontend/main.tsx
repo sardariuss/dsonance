@@ -10,7 +10,6 @@ import { CkBtcActorProvider }           from './actors/CkBtcActor';
 import { ProtocolActorProvider }        from './actors/ProtocolActor';
 import { CkUsdtActorProvider }          from './actors/CkUsdtActor';
 import { MinterActorProvider }          from './actors/MinterActor';
-import { WalletProvider }               from './components/context/AllowanceContext';
 import { ProtocolProvider }             from './components/context/ProtocolContext';
 import { FungibleLedgerProvider }       from './components/context/FungibleLedgerContext';
 import { IcpCoinsActorProvider }        from './actors/IcpCoinsActor';
@@ -24,13 +23,11 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
             <ProtocolActorProvider>
               <MinterActorProvider>
                 <IcpCoinsActorProvider>
-                  <WalletProvider>
-                    <ProtocolProvider>
-                      <FungibleLedgerProvider>
-                        <App/>
-                      </FungibleLedgerProvider>
-                    </ProtocolProvider>
-                  </WalletProvider>
+                  <ProtocolProvider>
+                    <FungibleLedgerProvider>
+                      <App/>
+                    </FungibleLedgerProvider>
+                  </ProtocolProvider>
                 </IcpCoinsActorProvider>
               </MinterActorProvider>
             </ProtocolActorProvider>

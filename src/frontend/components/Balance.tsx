@@ -11,7 +11,7 @@ const Balance: React.FC<BalanceProps> = ({ ledger, amount }) => {
 
   const { metadata, formatAmount, formatAmountUsd } = ledger;
 
-  if (!metadata) {
+  if (!metadata || amount === undefined) {
     return null; // @todo: or show a loading state?
   }
 

@@ -5,7 +5,6 @@ import pica from "pica";
 import { useState, useEffect } from "react";
 
 import { v4 as uuidv4 } from 'uuid';
-import { useAllowanceContext } from "./context/AllowanceContext";
 import { Link, useNavigate } from "react-router-dom";
 import { DOCS_URL, NEW_VOTE_PLACEHOLDER, VOTE_MAX_CHARACTERS } from "../constants";
 import BackArrowIcon from "./icons/BackArrowIcon";
@@ -20,7 +19,6 @@ function NewVote() {
   const [thumbnail, setThumbnail] = useState<Uint8Array | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
-  const { refreshBtcAllowance } = useAllowanceContext();
   const navigate = useNavigate();
 
   const { call: newVote, loading } = backendActor.useUpdateCall({
@@ -33,9 +31,7 @@ function NewVote() {
         console.error(result.err);
         return;
       }
-      refreshBtcAllowance();
       navigate(`/vote/${result.ok.vote_id}`);
-      
     },
     onError: (error) => {
       console.error(error);

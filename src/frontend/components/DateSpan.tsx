@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import { protocolActor } from "../actors/ProtocolActor";
 import { niceFormatDate, timeToDate } from "../utils/conversions/date";
-import { useProtocolContext } from "./ProtocolContext";
+import { useProtocolContext } from "./context/ProtocolContext";
 
 interface DateSpanProps {
     timestamp: bigint;
