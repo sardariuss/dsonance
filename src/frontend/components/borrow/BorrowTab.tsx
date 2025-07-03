@@ -103,7 +103,10 @@ const BorrowTab = () => {
       <div className="flex flex-row items-center p-2 space-x-4">
         <DualLabel top="Net worth" bottom={formatAmountUsd(netWorth)} />
         <DualLabel top="Net APY" bottom={`${(netApy * 100).toFixed(2)}%`} />
-        <DualLabel top="Health factor" bottom={health.toFixed(2)} bottomClassName={`${getHealthColor(health)}`}/>
+        <div className="grid grid-rows-[2fr_3fr] place-items-start">
+          <span className="text-gray-500 dark:text-gray-400 text-sm">Health factor</span>
+          <span className={`${getHealthColor(health)}`}>{health.toFixed(2)}</span>
+        </div>
       </div>
       <div className="flex flex-col justify-center bg-slate-200 dark:bg-gray-800 rounded p-6 space-y-6">
         <div className="flex flex-col justify-center w-full">

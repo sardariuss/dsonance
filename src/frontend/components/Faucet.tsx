@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useFungibleLedger, LedgerType } from "./hooks/useFungibleLedger";
 import { TokenLabel } from './common/TokenLabel';
 import { getTokenName } from "../utils/metadata";
+import DualLabel from "./common/DualLabel";
+import { formatAmountUsd } from "../utils/conversions/token";
 
 interface FaucetProps {
   ledgerType: LedgerType;
@@ -25,19 +27,18 @@ const Faucet = ({ ledgerType }: FaucetProps) => {
 
   return (
     
-    <div className="w-full rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
-      <div className="flex items-center space-x-2 mb-2">
-        <TokenLabel metadata={ledger.metadata} />
-      </div>
+    <div className="w-full flex flex-col rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
       { /* Balance Display */}
-      <div className="flex justify-between w-full">
-        <span className="font-medium">Balance:</span>
-        <span className="text-md font-semibold">
-          {ledger.formatAmount(ledger.userBalance)}
-        </span>
+      <div className="flex justify-between w-full items-start">
+        <TokenLabel metadata={ledger.metadata} />
+        <DualLabel 
+          top={ledger.formatAmount(ledger.userBalance)}
+          bottom={formatAmountUsd(ledger.convertToUsd(ledger.userBalance))}
+          mainLabel="top"
+        />
       </div>
       { /* Mint Input & Button */}
-      <div className="flex flex-row items-center space-x-2 mt-3">
+      <div className="flex flex-row items-center space-x-2 mt-3 justify-end">
         <input
           type="number"
           min="0"

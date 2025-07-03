@@ -1,15 +1,15 @@
 import { Link, useLocation, useNavigate }      from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@ic-reactor/react";
-import { DOCS_URL, MOBILE_MAX_WIDTH_QUERY } from "../constants";
+import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import UserIcon from "./icons/UserIcon";
 import LoginIcon from "./icons/LoginIcon";
-import BtcBalance from "./BtcBalance";
 import Logo from "./icons/Logo";
 import { useMediaQuery } from "react-responsive";
 import { Identity } from "@dfinity/agent";
-import LinkIcon from "./icons/LinkIcon";
 import ThemeToggle from "./ThemeToggle";
+import { LedgerType, useFungibleLedger } from "./hooks/useFungibleLedger";
+import Balance from "./Balance";
 
 interface HeaderProps {
   authenticated: boolean;
@@ -18,6 +18,10 @@ interface HeaderProps {
 }
 
 const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }) => {
+
+  const supplyLedger = useFungibleLedger(LedgerType.SUPPLY);
+  const collateralLedger = useFungibleLedger(LedgerType.COLLATERAL);
+
   // WATCHOUT: the size of the header is set to 22 (16 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
@@ -49,7 +53,8 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/dashboard"}>
             Dashboard
           </Link>
-          { authenticated && identity && <BtcBalance/> }
+          <Balance ledger={supplyLedger}/>
+          <Balance ledger={collateralLedger}/>
           <div>
           { authenticated && identity ? 
             <Link className="flex stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${identity.getPrincipal()}`}>
