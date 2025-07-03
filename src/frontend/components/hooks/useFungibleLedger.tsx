@@ -3,7 +3,7 @@ import { ckUsdtActor } from "../../actors/CkUsdtActor";
 import { icpCoinsActor } from "../../actors/IcpCoinsActor";
 import { minterActor } from "../../actors/MinterActor";
 import { formatAmountCompact, fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
-import { getTokenDecimals } from "../../utils/metadata";
+import { getTokenDecimals, getTokenFee } from "../../utils/metadata";
 import { useEffect, useState } from "react";
 import { canisterId as protocolCanisterId } from "../../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
@@ -82,6 +82,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   }, []);
 
   const tokenDecimals = getTokenDecimals(metadata);
+  const tokenFee = getTokenFee(metadata);
 
   const formatAmount = (amount: bigint | number | undefined) => {
     if (amount === undefined || tokenDecimals === undefined) {
@@ -109,6 +110,10 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
       console.warn("User account is not provided.");
       return false;
     }
+    if (tokenFee === undefined){
+      console.warn(`Token fee is undefined. Cannot proceed with approval.`);
+      return false;
+    }
     if (amount <= 0n) {
       console.warn("Amount to approve must be greater than zero.");
       return false;
@@ -127,7 +132,8 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
         throw new Error(`Failed to fetch allowance`);
       }
       const currentAllowance: bigint = allowanceResult.allowance;
-      if (currentAllowance >= amount) {
+      const requiredAllowance = amount + 2n * tokenFee; // @todo: verify why we need to add 2x fee
+      if (currentAllowance >= requiredAllowance) {
         return true;
       }
       const approveResult = await icrc2Approve([
@@ -136,7 +142,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
           memo: [],
           from_subaccount: [],
           created_at_time: [],
-          amount,
+          amount: requiredAllowance,
           expected_allowance: [],
           expires_at: [],
           spender: {

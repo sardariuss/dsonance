@@ -43,3 +43,14 @@ export const getTokenDecimals = (metadata: MetaDatum[] | undefined) : number | u
   }
   return undefined;
 }
+
+export const getTokenFee = (metadata: MetaDatum[] | undefined) : bigint | undefined => {
+  if (!metadata) {
+    return undefined;
+  }
+  const fee = metadata.find((item) => item[0] === "icrc1:fee");
+  if (fee !== undefined && "Nat" in fee?.[1]) {
+    return BigInt(fee?.[1].Nat);
+  }
+  return undefined;
+}

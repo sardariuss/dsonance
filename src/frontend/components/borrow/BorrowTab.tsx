@@ -52,13 +52,27 @@ const BorrowTab = () => {
     return previewBorrowOperation([{ subaccount: [], args }]);
   }
 
-  const runOperation = (args: OperationKindArgs) : Promise<Result_1 | undefined>=> {
-    return runBorrowOperation([{ subaccount: [], args }]).then((result) => {
-      if (result !== undefined && "ok" in result) {
-        refreshLoanPosition(); // Refresh the loan position after supply
-        refreshIndexerState(); // Refresh the indexer state after supply
+  const runOperation = (args: OperationKindArgs) : Promise<Result_1 | undefined> => {
+
+    let prerequisite : Promise<boolean> = Promise.resolve(true);
+
+    if ("PROVIDE_COLLATERAL" in args && args.PROVIDE_COLLATERAL.amount > 0n) {
+      prerequisite = collateralLedger.approveIfNeeded(args.PROVIDE_COLLATERAL.amount);
+    } else if ("BORROW_SUPPLY" in args && args.BORROW_SUPPLY.amount > 0n) {
+      prerequisite = supplyLedger.approveIfNeeded(args.BORROW_SUPPLY.amount);
+    }
+
+    return prerequisite.then((approved) => {
+      if (!approved) {
+        return undefined; // If approval failed, do not proceed with the operation
       }
-      return result;
+      return runBorrowOperation([{ subaccount: [], args }]).then((result) => {
+        if (result !== undefined && "ok" in result) {
+          refreshLoanPosition(); // Refresh the loan position after supply
+          refreshIndexerState(); // Refresh the indexer state after supply
+        }
+        return result;
+      });
     });
   };
 
