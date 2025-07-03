@@ -4,12 +4,12 @@ import { backendActor } from "../../actors/BackendActor";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
 import { fromNullable } from "@dfinity/utils";
 import { unwrapLock } from "../../utils/conversions/ballot";
-import { useCurrencyContext } from "../CurrencyContext";
+import { useCurrencyContext } from "../context/CurrencyContext";
 import ChoiceView from "../ChoiceView";
 
 import { SBallotType } from "@/declarations/protocol/protocol.did";
 import { compute_vote_details } from "../../utils/conversions/votedetails";
-import { useProtocolContext } from "../ProtocolContext";
+import { useProtocolContext } from "../context/ProtocolContext";
 import { useMemo } from "react";
 import { toEnum } from "../../utils/conversions/yesnochoice";
 import { useMediaQuery } from "react-responsive";

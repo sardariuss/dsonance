@@ -1,18 +1,16 @@
 import { useState } from "react";
-import { useFungibleLedger, LedgerType } from "./hooks/useFungibleLedger";
+import { useFungibleLedger, LedgerType, FungibleLedger } from "./hooks/useFungibleLedger";
 import { TokenLabel } from './common/TokenLabel';
 import { getTokenName } from "../utils/metadata";
 import DualLabel from "./common/DualLabel";
 import { formatAmountUsd } from "../utils/conversions/token";
 
 interface FaucetProps {
-  ledgerType: LedgerType;
+  ledger: FungibleLedger;
 }
 
-const Faucet = ({ ledgerType }: FaucetProps) => {
+const Faucet = ({ ledger }: FaucetProps) => {
   const [mintAmount, setMintAmount] = useState<string>("");
-  
-  const ledger = useFungibleLedger(ledgerType);
 
   const triggerMint = () => {
     const amount = Number(mintAmount);

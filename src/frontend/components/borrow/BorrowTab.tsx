@@ -9,7 +9,7 @@ import { useAuth } from "@ic-reactor/react";
 import { Account } from "@/declarations/ck_btc/ck_btc.did";
 import DualLabel from "../common/DualLabel";
 import { aprToApy, getHealthColor } from "../../utils/lending";
-import { LedgerType, useFungibleLedger } from "../hooks/useFungibleLedger";
+import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 
 const BorrowTab = () => {
 
@@ -24,8 +24,7 @@ const BorrowTab = () => {
     subaccount: []
   }), [identity]);
 
-  const supplyLedger = useFungibleLedger(LedgerType.SUPPLY);
-  const collateralLedger = useFungibleLedger(LedgerType.COLLATERAL);
+  const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
 
   const { data: indexerState, call: refreshIndexerState } = protocolActor.useQueryCall({
     functionName: 'get_lending_index',

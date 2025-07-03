@@ -8,8 +8,8 @@ import Logo from "./icons/Logo";
 import { useMediaQuery } from "react-responsive";
 import { Identity } from "@dfinity/agent";
 import ThemeToggle from "./ThemeToggle";
-import { LedgerType, useFungibleLedger } from "./hooks/useFungibleLedger";
 import Balance from "./Balance";
+import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 
 interface HeaderProps {
   authenticated: boolean;
@@ -19,8 +19,7 @@ interface HeaderProps {
 
 const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }) => {
 
-  const supplyLedger = useFungibleLedger(LedgerType.SUPPLY);
-  const collateralLedger = useFungibleLedger(LedgerType.COLLATERAL);
+  const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
 
   // WATCHOUT: the size of the header is set to 22 (16 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (

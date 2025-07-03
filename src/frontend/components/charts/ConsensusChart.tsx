@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { chartTheme, computeAdaptiveTicks } from '.';
 import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
 import { useContainerSize } from '../hooks/useContainerSize';
-import { useProtocolContext } from '../ProtocolContext';
+import { useProtocolContext } from '../context/ProtocolContext';
 
 type ChartProperties = {
   series : Serie[],

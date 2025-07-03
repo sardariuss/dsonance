@@ -1,9 +1,9 @@
 import { createContext, useContext } from "react";
 import { useAuth } from "@ic-reactor/react";
-import { protocolActor } from "../actors/ProtocolActor";
+import { protocolActor } from "../../actors/ProtocolActor";
 import { SProtocolInfo, SProtocolParameters } from "@/declarations/protocol/protocol.did";
-import { compute_decay } from "../utils/decay";
-import { durationToNs } from "../utils/conversions/duration";
+import { compute_decay } from "../../utils/decay";
+import { durationToNs } from "../../utils/conversions/duration";
 
 interface ProtocolContextType {
   parameters: SProtocolParameters | undefined;

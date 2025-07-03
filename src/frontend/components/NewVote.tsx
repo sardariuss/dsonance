@@ -5,7 +5,7 @@ import pica from "pica";
 import { useState, useEffect } from "react";
 
 import { v4 as uuidv4 } from 'uuid';
-import { useAllowanceContext } from "./AllowanceContext";
+import { useAllowanceContext } from "./context/AllowanceContext";
 import { Link, useNavigate } from "react-router-dom";
 import { DOCS_URL, NEW_VOTE_PLACEHOLDER, VOTE_MAX_CHARACTERS } from "../constants";
 import BackArrowIcon from "./icons/BackArrowIcon";

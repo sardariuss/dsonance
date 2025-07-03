@@ -1,10 +1,10 @@
 import { createContext, useContext, useMemo } from "react";
-import { ckBtcActor } from "../actors/CkBtcActor";
+import { ckBtcActor } from "../../actors/CkBtcActor";
 import { useAuth } from "@ic-reactor/react";
 import { Account } from "@/declarations/ck_btc/ck_btc.did";
-import { canisterId as protocolCanisterId } from "../../declarations/protocol"
+import { canisterId as protocolCanisterId } from "../../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
-import { ckUsdtActor } from "../actors/CkUsdtActor";
+import { ckUsdtActor } from "../../actors/CkUsdtActor";
 
 interface AllowanceContextType {
   btcAllowance: bigint | undefined;

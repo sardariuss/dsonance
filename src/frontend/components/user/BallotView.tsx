@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { backendActor } from "../../actors/BackendActor";
 import { fromNullable } from "@dfinity/utils";
 import { toEnum } from "../../utils/conversions/yesnochoice";
-import { useCurrencyContext } from "../CurrencyContext";
+import { useCurrencyContext } from "../context/CurrencyContext";
 import ChoiceView from "../ChoiceView";
 
 enum CHART_TOGGLE {

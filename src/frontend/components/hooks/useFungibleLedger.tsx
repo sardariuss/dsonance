@@ -4,7 +4,7 @@ import { icpCoinsActor } from "../../actors/IcpCoinsActor";
 import { minterActor } from "../../actors/MinterActor";
 import { formatAmountCompact, fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
 import { getTokenDecimals } from "../../utils/metadata";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { canisterId as protocolCanisterId } from "../../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
 import { Account, MetaDatum } from "@/declarations/ck_btc/ck_btc.did";

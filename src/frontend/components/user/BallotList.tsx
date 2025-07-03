@@ -1,11 +1,11 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { protocolActor } from "../../actors/ProtocolActor";
-import { useCurrencyContext } from "../CurrencyContext";
+import { useCurrencyContext } from "../context/CurrencyContext";
 import BitcoinIcon from "../icons/BitcoinIcon";
 
 import BallotRow from "./BallotRow";
-import { useProtocolContext } from "../ProtocolContext";
+import { useProtocolContext } from "../context/ProtocolContext";
 import { useAuth } from "@ic-reactor/react";
 import { Account, SBallotType } from "@/declarations/protocol/protocol.did";
 import { useMediaQuery } from "react-responsive";

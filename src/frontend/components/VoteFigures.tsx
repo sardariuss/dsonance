@@ -1,8 +1,8 @@
 import { useEffect, useMemo } from "react";
 import { BallotInfo } from "./types";
 import { add_ballot, VoteDetails } from "../utils/conversions/votedetails";
-import { useCurrencyContext } from "./CurrencyContext";
-import { useProtocolContext } from "./ProtocolContext";
+import { useCurrencyContext } from "./context/CurrencyContext";
+import { useProtocolContext } from "./context/ProtocolContext";
 import { formatDate, niceFormatDate, timeToDate } from "../utils/conversions/date";
 import InfoIcon from "./icons/InfoIcon";
 import { Link } from "react-router-dom";

@@ -1,5 +1,5 @@
 import { VoteDetails } from "../utils/conversions/votedetails";
-import { useCurrencyContext } from "./CurrencyContext";
+import { useCurrencyContext } from "./context/CurrencyContext";
 import ConsensusIndicator from "./ConsensusIndicator";
 import { useMemo } from "react";
 

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { currencyToE8s, e8sToCurrency, formatBalanceE8s, formatCurrency } from "../utils/conversions/token";
-import { BITCOIN_TOKEN_SYMBOL, SAT_TOKEN_SYMBOL, USD_TOKEN_SYMBOL } from "../constants";
-import { icpCoinsActor } from "../actors/IcpCoinsActor";
+import { currencyToE8s, e8sToCurrency, formatBalanceE8s, formatCurrency } from "../../utils/conversions/token";
+import { BITCOIN_TOKEN_SYMBOL, SAT_TOKEN_SYMBOL, USD_TOKEN_SYMBOL } from "../../constants";
+import { icpCoinsActor } from "../../actors/IcpCoinsActor";
 
 export enum SupportedCurrency {
   ckBTC = "ckBTC",

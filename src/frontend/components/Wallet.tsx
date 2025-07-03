@@ -1,12 +1,14 @@
-import { LedgerType } from "./hooks/useFungibleLedger";
 import Faucet from "./Faucet";
+import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 
 const Wallet = () => {
 
+  const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
+
   return (
     <div className="flex flex-col space-y-4 w-full items-center">
-      <Faucet ledgerType={LedgerType.SUPPLY} />
-      <Faucet ledgerType={LedgerType.COLLATERAL} />
+      <Faucet ledger={supplyLedger} />
+      <Faucet ledger={collateralLedger} />
     </div>
   );
 }
