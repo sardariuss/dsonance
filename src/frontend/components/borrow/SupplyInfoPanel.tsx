@@ -1,4 +1,3 @@
-import { formatAmountUsd } from "../../utils/conversions/token";
 import React from "react";
 import { FungibleLedger } from "../hooks/useFungibleLedger";
 
@@ -62,7 +61,7 @@ const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
             { `${ledger.formatAmount(totalSupplied)} of ${ledger.formatAmount(supplyCap)}` }
           </span>
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            { `${formatAmountUsd(ledger.convertToUsd(totalSupplied))} of ${formatAmountUsd(ledger.convertToUsd(supplyCap))}` }
+            { `${ledger.formatAmountUsd(totalSupplied)} of ${ledger.formatAmountUsd(supplyCap)}` }
           </span>
         </div>
 

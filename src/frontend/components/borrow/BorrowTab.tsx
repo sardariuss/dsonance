@@ -1,5 +1,4 @@
 import { protocolActor } from "../../actors/ProtocolActor";
-import { formatAmountUsd } from "../../utils/conversions/token";
 import { fromNullableExt } from "../../utils/conversions/nullable";
 import { TokenLabel } from "../common/TokenLabel";
 import BorrowButton, { MaxChoiceType } from "./BorrowButton";
@@ -10,6 +9,7 @@ import { Account } from "@/declarations/ck_btc/ck_btc.did";
 import DualLabel from "../common/DualLabel";
 import { aprToApy, getHealthColor } from "../../utils/lending";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
+import { formatAmountCompact } from "../../utils/conversions/token";
 
 const BorrowTab = () => {
 
@@ -114,7 +114,7 @@ const BorrowTab = () => {
   return (
     <div className="flex flex-col justify-center mt-4 space-y-4">
       <div className="flex flex-row items-center p-2 space-x-4">
-        <DualLabel top="Net worth" bottom={formatAmountUsd(netWorth)} />
+        <DualLabel top="Net worth" bottom={formatAmountCompact(netWorth, 2)} />
         <DualLabel top="Net APY" bottom={`${(netApy * 100).toFixed(2)}%`} />
         <div className="grid grid-rows-[2fr_3fr] place-items-start">
           <span className="text-gray-500 dark:text-gray-400 text-sm">Health factor</span>
@@ -128,7 +128,7 @@ const BorrowTab = () => {
             <TokenLabel metadata={supplyLedger.metadata}/>
             <div className="relative flex flex-col">
               <span className="text-lg font-bold"> { supplyLedger.formatAmount(userSupply?.amount) } </span>
-              <span className="absolute top-6 text-xs text-gray-400"> { formatAmountUsd(supplyLedger.convertToUsd(userSupply?.amount)) } </span>
+              <span className="absolute top-6 text-xs text-gray-400"> { supplyLedger.formatAmountUsd(userSupply?.amount) } </span>
             </div>
           </div>
         </div>
@@ -140,7 +140,7 @@ const BorrowTab = () => {
             <TokenLabel metadata={collateralLedger.metadata}/>
             <div className="relative flex flex-col">
               <span className="text-lg font-bold"> { collateralLedger.formatAmount(collateral) } </span>
-              <span className="absolute top-6 text-xs text-gray-400"> { formatAmountUsd(collateralLedger.convertToUsd(collateral)) } </span>
+              <span className="absolute top-6 text-xs text-gray-400"> { collateralLedger.formatAmountUsd(collateral) } </span>
             </div>
             <span>{/*spacer*/}</span>
             <BorrowButton 
@@ -168,7 +168,7 @@ const BorrowTab = () => {
             <TokenLabel metadata={supplyLedger.metadata}/>
             <div className="relative flex flex-col">
               <span className="text-lg font-bold"> { supplyLedger.formatAmount(rawBorrowed)} </span>
-              <span className="absolute top-6 text-xs text-gray-400"> { formatAmountUsd(supplyLedger.convertToUsd(rawBorrowed)) } </span>
+              <span className="absolute top-6 text-xs text-gray-400"> { supplyLedger.formatAmountUsd(rawBorrowed) } </span>
             </div>
             <span>{/*spacer*/}</span>
             <BorrowButton 

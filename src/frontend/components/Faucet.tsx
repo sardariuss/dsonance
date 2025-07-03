@@ -3,7 +3,6 @@ import { useFungibleLedger, LedgerType, FungibleLedger } from "./hooks/useFungib
 import { TokenLabel } from './common/TokenLabel';
 import { getTokenName } from "../utils/metadata";
 import DualLabel from "./common/DualLabel";
-import { formatAmountUsd } from "../utils/conversions/token";
 
 interface FaucetProps {
   ledger: FungibleLedger;
@@ -31,7 +30,7 @@ const Faucet = ({ ledger }: FaucetProps) => {
         <TokenLabel metadata={ledger.metadata} />
         <DualLabel 
           top={ledger.formatAmount(ledger.userBalance)}
-          bottom={formatAmountUsd(ledger.convertToUsd(ledger.userBalance))}
+          bottom={ledger.formatAmountUsd(ledger.userBalance)}
           mainLabel="top"
         />
       </div>

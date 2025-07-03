@@ -92,12 +92,3 @@ export function formatAmountCompact(
   return `${formatted}${unit}`;
 }
 
-export function formatAmountUsd(
-  amount: number | undefined,
-  significantDigits = 2
-): string {
-  if (amount === undefined || isNaN(amount) || amount < 0) {
-    return "$0.00";
-  }
-  return `$${formatAmountCompact(amount, significantDigits)}`;
-}

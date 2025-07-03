@@ -1,17 +1,17 @@
 import { FungibleLedger } from "./hooks/useFungibleLedger";
 import { getTokenLogo } from "../utils/metadata";
-import { formatAmountUsd } from "../utils/conversions/token";
 import DualLabel from "./common/DualLabel";
 
 interface BalanceProps {
   ledger: FungibleLedger;
+  amount: bigint | number | undefined;
 };
 
-const Balance: React.FC<BalanceProps> = ({ ledger }) => {
+const Balance: React.FC<BalanceProps> = ({ ledger, amount }) => {
 
-  const { userBalance, metadata, formatAmount, convertToUsd } = ledger;
+  const { metadata, formatAmount, formatAmountUsd } = ledger;
 
-  if (!metadata || !userBalance) {
+  if (!metadata) {
     return null; // @todo: or show a loading state?
   }
 
@@ -19,8 +19,8 @@ const Balance: React.FC<BalanceProps> = ({ ledger }) => {
     <div className="flex flex-row items-center justify-end space-x-2"> 
       <img src={getTokenLogo(metadata)} alt="Logo" className="size-[24px]" />
       <DualLabel 
-        top={formatAmount(userBalance)}
-        bottom={formatAmountUsd(convertToUsd(userBalance))}
+        top={formatAmount(amount)}
+        bottom={formatAmountUsd(amount)}
         mainLabel="top"
       />
     </div> 
@@ -28,3 +28,5 @@ const Balance: React.FC<BalanceProps> = ({ ledger }) => {
 }
 
 export default Balance;
+
+

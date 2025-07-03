@@ -1,6 +1,5 @@
 import React from "react";
 import { FungibleLedger } from "../hooks/useFungibleLedger";
-import { formatAmountUsd } from "../../utils/conversions/token";
 
 interface BorrowInfoProps {
   ledger: FungibleLedger;
@@ -59,7 +58,7 @@ const BorrowInfoPanel: React.FC<BorrowInfoProps> = ({
               {`${ledger.formatAmount(totalBorrowed)} of ${ledger.formatAmount(borrowCap)}`}
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              {`${formatAmountUsd(ledger.convertToUsd(totalBorrowed))} of ${formatAmountUsd(ledger.convertToUsd(borrowCap))}`}
+              {`${ledger.formatAmountUsd(totalBorrowed)} of ${ledger.formatAmountUsd(borrowCap)}`}
             </span>
           </div>
 

@@ -52,8 +52,8 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/dashboard"}>
             Dashboard
           </Link>
-          <Balance ledger={supplyLedger}/>
-          <Balance ledger={collateralLedger}/>
+          <Balance ledger={supplyLedger} amount={supplyLedger.userBalance}/>
+          <Balance ledger={collateralLedger} amount={collateralLedger.userBalance}/>
           <div>
           { authenticated && identity ? 
             <Link className="flex stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${identity.getPrincipal()}`}>

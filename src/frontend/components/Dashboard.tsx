@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { protocolActor } from "../actors/ProtocolActor";
-import { formatAmountCompact, formatAmountUsd } from "../utils/conversions/token";
+import { formatAmountCompact } from "../utils/conversions/token";
 import BorrowInfoPanel from "./borrow/BorrowInfoPanel";
 import InterestRateModel from "./borrow/InterestRateModel";
 import SupplyInfoPanel from "./borrow/SupplyInfoPanel";
@@ -40,11 +40,11 @@ const Dashboard = () => {
         <div className="border-r border-gray-300 dark:border-gray-700 h-full"></div>
         <DualLabel
           top="Reserve Size"
-          bottom={formatAmountUsd(supplyLedger.convertToUsd(indexerState.utilization.raw_supplied))}
+          bottom={supplyLedger.formatAmountUsd(indexerState.utilization.raw_supplied)}
         />
         <DualLabel
           top="Available liquidity"
-          bottom={formatAmountUsd(supplyLedger.convertToUsd(indexerState.utilization.raw_supplied * (1 - indexerState.utilization.ratio)))}
+          bottom={supplyLedger.formatAmountUsd(indexerState.utilization.raw_supplied * (1 - indexerState.utilization.ratio))}
         />
         <DualLabel
           top="Utilization Rate"

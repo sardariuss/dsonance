@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import Modal from "../common/Modal";
 import { TokenLabel } from "../common/TokenLabel";
-import { formatAmountUsd, fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
+import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
 import { getTokenName } from "../../utils/metadata";
 import { Result_1 } from "@/declarations/protocol/protocol.did";
 import Spinner from "../Spinner";
@@ -136,7 +136,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
                   }}
                 />
                 <span className="text-xs text-gray-600 dark:text-gray-400">
-                  { formatAmountUsd(ledger.convertToUsd(amount)) }
+                  { ledger.formatAmountUsd(amount) }
                 </span>
               </div>
               <div className="grid grid-rows-[5fr_3fr] justify-items-end">

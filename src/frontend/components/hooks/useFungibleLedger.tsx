@@ -20,6 +20,7 @@ export interface FungibleLedger {
   price: number | undefined;
   tokenDecimals: number | undefined;
   formatAmount: (amountFixedPoint: bigint | number | undefined) => string | undefined;
+  formatAmountUsd: (amountFixedPoint: bigint | number | undefined) => string | undefined;
   convertToUsd: (amountFixedPoint: bigint | number | undefined) => number | undefined;
   approveIfNeeded: (amount: bigint) => Promise<boolean>;
   userBalance: bigint | undefined;
@@ -89,6 +90,14 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
       return undefined;
     }
     return `${formatAmountCompact(fromFixedPoint(amount, tokenDecimals), ledgerType === LedgerType.SUPPLY ? 2 : tokenDecimals)}`;
+  };
+
+  const formatAmountUsd = (amount: bigint | number | undefined) => {
+    let usdValue = convertToUsd(amount);
+    if (usdValue === undefined) {
+      return undefined;
+    }
+    return `$${formatAmountCompact(usdValue, 2)}`;
   };
 
   const convertToUsd = (amount: bigint | number | undefined) : number | undefined => {
@@ -229,6 +238,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     price,
     tokenDecimals,
     formatAmount,
+    formatAmountUsd,
     convertToUsd,
     approveIfNeeded,
     userBalance,
