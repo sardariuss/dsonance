@@ -2,7 +2,7 @@ import { ckBtcActor } from "../../actors/CkBtcActor";
 import { ckUsdtActor } from "../../actors/CkUsdtActor";
 import { icpCoinsActor } from "../../actors/IcpCoinsActor";
 import { minterActor } from "../../actors/MinterActor";
-import { formatAmountCompact, fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
+import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
 import { getTokenDecimals, getTokenFee } from "../../utils/metadata";
 import { useEffect, useState } from "react";
 import { canisterId as protocolCanisterId } from "../../../declarations/protocol"
@@ -24,7 +24,8 @@ export interface FungibleLedger {
   convertToUsd: (amountFixedPoint: bigint | number | undefined) => number | undefined;
   convertToFixedPoint: (amount: number | undefined) => bigint | undefined;
   convertToFloatingPoint: (amountFixedPoint: bigint | number | undefined) => number | undefined;
-  approveIfNeeded: (amount: bigint) => Promise<boolean>;
+  subtractFee?: (amount: bigint) => bigint;
+  approveIfNeeded: (amount: bigint) => Promise<bigint>;
   userBalance: bigint | undefined;
   refreshUserBalance: () => void;
   mint: (amount: number) => Promise<boolean>;
@@ -35,7 +36,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
 
   const actor = ledgerType === LedgerType.SUPPLY ? ckUsdtActor : ckBtcActor;
 
-  const { authenticated, identity } = useAuth({});
+  const { authenticated, identity, login } = useAuth({});
 
   const [account, setAccount] = useState<Account | undefined>(undefined);
 
@@ -140,63 +141,79 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     functionName: 'icrc2_allowance',
   });
 
-  const approveIfNeeded = async (amount: bigint) => {
+  const subtractFee = tokenFee === undefined ? undefined : (amount: bigint) : bigint => {
+    if (amount < tokenFee) {
+      return 0n; // If amount is less than fee, return 0, transfer will fail anyway
+    }
+    return amount - tokenFee; // Subtract the token fee from the amount
+  };
+
+  /**
+   * Approves the specified amount for the protocol canister if needed.
+   * If the current allowance is sufficient, it returns the original amount 
+   * minus the token fee (required by the upcoming transfer).
+   * If the approval is successful, it returns the approved amount minus two 
+   * times the token fee (one for the approval and one required by the upcoming transfer).
+   * 
+   * @param {bigint} amount - The amount to approve.
+   * @returns {Promise<bigint>} - The approved amount minus the token fee.
+   */
+  const approveIfNeeded = async (amount: bigint) : Promise<bigint> =>  {
     if (!account) {
-      console.warn("User account is not provided.");
-      return false;
+      throw new Error("User account is not provided.");
     }
     if (tokenFee === undefined){
-      console.warn(`Token fee is undefined. Cannot proceed with approval.`);
-      return false;
+      throw new Error("Token fee is not defined.");
     }
-    if (amount <= 0n) {
-      console.warn("Amount to approve must be greater than zero.");
-      return false;
+    if (amount <= 0n || isNaN(Number(amount))) {
+      throw new Error("Amount must be greater than zero.");
     }
-    try {
-      const allowanceResult = await icrc2Allowance([
-        {
-          account,
-          spender: {
-            owner: Principal.fromText(protocolCanisterId),
-            subaccount: [],
-          },
+    if (amount < 2n * tokenFee) {
+      throw new Error(`Amount ${amount} is less than two times the token fee ${tokenFee}.`);
+    }
+    
+    const allowanceResult = await icrc2Allowance([
+      {
+        account,
+        spender: {
+          owner: Principal.fromText(protocolCanisterId),
+          subaccount: [],
         },
-      ]);
-      if (allowanceResult === undefined) {
-        throw new Error(`Failed to fetch allowance`);
-      }
-      const currentAllowance: bigint = allowanceResult.allowance;
-      const requiredAllowance = amount + 2n * tokenFee; // @todo: verify why we need to add 2x fee
-      if (currentAllowance >= requiredAllowance) {
-        return true;
-      }
-      const approveResult = await icrc2Approve([
-        {
-          fee: [],
-          memo: [],
-          from_subaccount: [],
-          created_at_time: [],
-          amount: requiredAllowance,
-          expected_allowance: [],
-          expires_at: [],
-          spender: {
-            owner: Principal.fromText(protocolCanisterId),
-            subaccount: [],
-          },
-        },
-      ]);
-      if (approveResult === undefined) {
-        throw new Error(`Failed to approve ${amount}: icrc2_approve returned an undefined result`);
-      } 
-      if ("err" in approveResult) {
-        throw new Error(`Failed to approve ${amount}: ${approveResult.err}`);
-      } 
-      return true;
-    } catch (error) {
-      console.error("Error in approveIfNeeded:", error);
-      return false;
+      },
+    ]);
+    if (allowanceResult === undefined) {
+      throw new Error(`Failed to fetch allowance`);
     }
+    const currentAllowance: bigint = allowanceResult.allowance;
+    console.log(`Current allowance for ${account.owner.toText()} is ${currentAllowance}, requested amount is ${amount}`);
+    if (currentAllowance >= amount) {
+      // Need to subtract the token fee that will be required by the transfer_from
+      return amount - tokenFee;
+    }
+    const approveResult = await icrc2Approve([
+      {
+        fee: [tokenFee],
+        memo: [],
+        from_subaccount: [],
+        created_at_time: [],
+        amount: amount - tokenFee,
+        expected_allowance: [],
+        expires_at: [],
+        spender: {
+          owner: Principal.fromText(protocolCanisterId),
+          subaccount: [],
+        },
+      },
+    ]);
+    if (approveResult === undefined) {
+      throw new Error(`Failed to approve ${amount}: icrc2_approve returned an undefined result`);
+    } 
+    if ("err" in approveResult) {
+      throw new Error(`Failed to approve ${amount}: ${approveResult.err}`);
+    }
+    // Need to subtract the token fee that will be required by the transfer_from
+    // and the fee that was charged for the approval
+    return amount - 2n * tokenFee;
   };
 
   const { call: icrc1BalanceOf } = actor.useQueryCall({
@@ -270,6 +287,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     convertToUsd,
     convertToFixedPoint,
     convertToFloatingPoint,
+    subtractFee,
     approveIfNeeded,
     userBalance,
     refreshUserBalance,

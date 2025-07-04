@@ -56,15 +56,12 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
     }
     setPutBallotLoading(true);
     
-    approveIfNeeded(ballot.amount).then((approved) => {
-      if (!approved) {
-        throw new Error("Approval failed, cannot put ballot");
-      }
+    approveIfNeeded(ballot.amount).then((amount) => {
       putBallot([{
         vote_id: id,
         id: uuidv4(),
         from_subaccount: [],
-        amount: ballot.amount,
+        amount,
         choice_type: { YES_NO: toCandid(ballot.choice) },
       }]).then((result) => {
         if (result === undefined) {

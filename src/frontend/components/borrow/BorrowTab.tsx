@@ -49,31 +49,53 @@ const BorrowTab = () => {
   });
 
   const previewOperation = (args: OperationKindArgs) : Promise<Result_1 | undefined> => {
-    return previewBorrowOperation([{ subaccount: [], args }]);
+    try {
+      return previewBorrowOperation([{ subaccount: [], args }]);
+    } catch (error) {
+      console.error("Error previewing borrow operation:", error);
+      return Promise.resolve(undefined);
+    }
   }
 
   const runOperation = (args: OperationKindArgs) : Promise<Result_1 | undefined> => {
 
-    let prerequisite : Promise<boolean> = Promise.resolve(true);
+    try {
 
-    if ("PROVIDE_COLLATERAL" in args && args.PROVIDE_COLLATERAL.amount > 0n) {
-      prerequisite = collateralLedger.approveIfNeeded(args.PROVIDE_COLLATERAL.amount);
-    } else if ("BORROW_SUPPLY" in args && args.BORROW_SUPPLY.amount > 0n) {
-      prerequisite = supplyLedger.approveIfNeeded(args.BORROW_SUPPLY.amount);
-    }
+      console.log("Original args:", args);
 
-    return prerequisite.then((approved) => {
-      if (!approved) {
-        return undefined; // If approval failed, do not proceed with the operation
-      }
-      return runBorrowOperation([{ subaccount: [], args }]).then((result) => {
-        if (result !== undefined && "ok" in result) {
-          refreshLoanPosition(); // Refresh the loan position after supply
-          refreshIndexerState(); // Refresh the indexer state after supply
+      const prerequisite = (() => {
+        if ("PROVIDE_COLLATERAL" in args && args.PROVIDE_COLLATERAL.amount > 0n) {
+          // If PROVIDE_COLLATERAL is specified, ensure collateralLedger has enough allowance
+          // to cover the amount being provided.
+          return collateralLedger.approveIfNeeded(args.PROVIDE_COLLATERAL.amount)
+            .then((amount) => ({ ...args, PROVIDE_COLLATERAL: { amount } }));
+        } else if ("BORROW_SUPPLY" in args && args.BORROW_SUPPLY.amount > 0n) {
+          // If BORROW_SUPPLY is specified, ensure supplyLedger has enough allowance
+          // to cover the amount being borrowed.
+          return supplyLedger.approveIfNeeded(args.BORROW_SUPPLY.amount)
+            .then((amount) => ({ ...args, BORROW_SUPPLY: { amount } }));
+        } else {
+          // If no specific operation requires approval, return the args as is.
+          return Promise.resolve(args);
         }
-        return result;
+      })();
+
+      return prerequisite.then((updated_args) => {
+        console.log("Final args:", updated_args);
+        return runBorrowOperation([{ subaccount: [], args: updated_args }]).then((result) => {
+          if (result !== undefined && "ok" in result) {
+            refreshLoanPosition(); // Refresh the loan position after supply
+            refreshIndexerState(); // Refresh the indexer state after supply
+            supplyLedger.refreshUserBalance(); // Refresh the supply ledger balance
+            collateralLedger.refreshUserBalance(); // Refresh the collateral ledger balance
+          }
+          return result;
+        });
       });
-    });
+    } catch (error) {
+      console.error("Error running borrow operation:", error);
+      return Promise.resolve(undefined);
+    }
   };
 
   const { collateral, rawBorrowed, health, netWorth, netApy } = useMemo(() => {
@@ -167,7 +189,7 @@ const BorrowTab = () => {
           <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
             <TokenLabel metadata={supplyLedger.metadata}/>
             <div className="relative flex flex-col">
-              <span className="text-lg font-bold"> { supplyLedger.formatAmount(rawBorrowed)} </span>
+              <span className="text-lg font-bold"> { supplyLedger.formatAmount(rawBorrowed) } </span>
               <span className="absolute top-6 text-xs text-gray-400"> { supplyLedger.formatAmountUsd(rawBorrowed) } </span>
             </div>
             <span>{/*spacer*/}</span>
