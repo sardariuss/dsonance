@@ -8,7 +8,6 @@ const { Principal } = require('@dfinity/principal');
 // v4 from UUID
 const { v4: uuidv4 } = require('uuid');
 const seedrandom = require('seedrandom');
-const { sub } = require('date-fns');
 
 const VOTES_TO_OPEN = [
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
@@ -36,11 +35,10 @@ const VOTES_TO_OPEN = [
 const NUM_USERS = 10;
 const BTC_USER_BALANCE = 100_000_000n; // 8 decimals, so 1 BTC
 const USDT_USER_BALANCE = 100_000_000_000n; // 6 decimals, so 100k USDT
-const MEAN_BALLOT_AMOUNT = 100_000; // 100_000 satoshis, so approximately 55 USDT at current rates
+const MEAN_BALLOT_AMOUNT = 50_000_000; // 50 USDT
 const NUM_VOTES = 5;
 const SCENARIO_DURATION = { 'DAYS': 18n };
 const SCENARIO_TICK_DURATION = { 'DAYS': 3n };
-const PRICE_BTC = 110_000.0; // 110k USD
 const TARGET_LTV = 0.6; // 60% LTV
 const RESERVE_LIQUIDITY = 0.0; // 20% reserve liquidity
 
@@ -78,6 +76,7 @@ async function callCanisterMethod() {
     const { idlFactory: backendFactory } = await import("../../.dfx/local/canisters/backend/service.did.js");
     const { idlFactory: btcFactory } = await import("../../.dfx/local/canisters/ck_btc/service.did.js");
     const { idlFactory: usdtFactory } = await import("../../.dfx/local/canisters/ck_usdt/service.did.js");
+    const { idlFactory: icpCoinsFactory } = await import("../../.dfx/local/canisters/icp_coins/service.did.js");
 
     // Retrieve canister ID from environment variables
     const protocolCanisterId = process.env.CANISTER_ID_PROTOCOL;
@@ -85,6 +84,7 @@ async function callCanisterMethod() {
     const backendCanisterId = process.env.CANISTER_ID_BACKEND;
     const btcCanisterId = process.env.CANISTER_ID_CK_BTC;
     const usdtCanisterId = process.env.CANISTER_ID_CK_USDT;
+    const icpCoinsCanisterId = process.env.CANISTER_ID_ICP_COINS;
 
     if (!protocolCanisterId){
         throw new Error("Protocol canister ID is missing");
@@ -100,6 +100,9 @@ async function callCanisterMethod() {
     }
     if (!usdtCanisterId){
         throw new Error("ckUSDT canister ID is missing");
+    }
+    if (!icpCoinsCanisterId){
+        throw new Error("ICP Coins canister ID is missing");
     }
 
     // Simulation actors
@@ -119,6 +122,11 @@ async function callCanisterMethod() {
     let minterActor = await getActor(minterCanisterId, minterFactory, simIdentity);
     if (minterActor === null) {
         throw new Error("ckBTC actor is null");
+    }
+
+    let icpCoinsActor = await getActor(icpCoinsCanisterId, icpCoinsFactory, simIdentity);
+    if (icpCoinsActor === null) {
+        throw new Error("ICP Coins actor is null");
     }
 
     // Get user actors for each principal in a Map<Principal, Map<string, Actor>>
@@ -254,19 +262,26 @@ async function callCanisterMethod() {
         // Borrow
         const { principal, actors } = getRandomUser(userActors);
         const utilization = (await actors.protocol.get_lending_index()).utilization;
-        const availableToBorrow = Math.max((utilization.raw_supplied * (1.0 - RESERVE_LIQUIDITY) - utilization.raw_borrowed), 0.0);
-        const collateralRequired = Math.floor(availableToBorrow * PRICE_BTC / TARGET_LTV);
-        const usdtBalance = await actors.usdt.icrc1_balance_of({ owner: principal, subaccount: [] });
+        const price_btc = await icpCoinsActor.get_latest().then((latest) => {
+            return Number(latest.at(0)[2]); // @todo: remove this hardcoded index
+        });
+        console.log(`BTC price: ${price_btc} USD`);
+        const usdtAvailableToBorrow = Math.max((utilization.raw_supplied * (1.0 - RESERVE_LIQUIDITY) - utilization.raw_borrowed), 0.0) / 1_000_000; // e6s
+        const btcCollateralRequired = (usdtAvailableToBorrow / price_btc) / TARGET_LTV;
+        console.log(`Available to borrow: ${usdtAvailableToBorrow.toPrecision(6)} USDT, collateral required: ${btcCollateralRequired.toPrecision(8)} BTC`);
+        const btcBalance = Number(await actors.btc.icrc1_balance_of({ owner: principal, subaccount: [] })) / 100_000_000; // e8s
         // Borrow up to the maximum available to borrow
-        const collateralAmount =  Math.random() * Math.min(collateralRequired, Number(usdtBalance));
-        const toBorrow = collateralAmount * TARGET_LTV / PRICE_BTC;
+        const collateralAmount =  Math.random() * Math.min(btcCollateralRequired, btcBalance);
+        console.log(`Borrowing with collateral amount: ${collateralAmount} BTC`);
+        const toBorrow = collateralAmount * TARGET_LTV * price_btc;
+        console.log(`To borrow: ${toBorrow} USD`);
         
         if (collateralAmount > 0.0) {
             
             // Supply enough ckUSDT collateral to reach the target LTV
             await actors.protocol.run_borrow_operation({
                 subaccount: [],
-                args: { "PROVIDE_COLLATERAL": { amount: BigInt(Math.floor(collateralAmount)) } },
+                args: { "PROVIDE_COLLATERAL": { amount: BigInt(Math.floor(collateralAmount * 100_000_000)) } },
             }).then((result) => {
                 if ('err' in result) {
                     console.error('Error supplying collateral:', result.err);
@@ -278,7 +293,7 @@ async function callCanisterMethod() {
             // Borrow ckBTC
             await actors.protocol.run_borrow_operation({
                 subaccount: [],
-                args: { "BORROW_SUPPLY": { amount: BigInt(Math.floor(toBorrow)) } },
+                args: { "BORROW_SUPPLY": { amount: BigInt(Math.floor(toBorrow * 1_000_000)) } },
             }).then((result) => {
                 if ('err' in result) {
                     console.error('Error borrowing:', result.err);

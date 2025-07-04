@@ -32,3 +32,25 @@ export const getTokenSymbol = (metadata: MetaDatum[] | undefined) : string | und
   }
   return undefined;
 }
+
+export const getTokenDecimals = (metadata: MetaDatum[] | undefined) : number | undefined => {
+  if (!metadata) {
+    return undefined;
+  }
+  const decimals = metadata.find((item) => item[0] === "icrc1:decimals");
+  if (decimals !== undefined && "Nat" in decimals?.[1]) {
+    return Number(decimals?.[1].Nat);
+  }
+  return undefined;
+}
+
+export const getTokenFee = (metadata: MetaDatum[] | undefined) : bigint | undefined => {
+  if (!metadata) {
+    return undefined;
+  }
+  const fee = metadata.find((item) => item[0] === "icrc1:fee");
+  if (fee !== undefined && "Nat" in fee?.[1]) {
+    return BigInt(fee?.[1].Nat);
+  }
+  return undefined;
+}

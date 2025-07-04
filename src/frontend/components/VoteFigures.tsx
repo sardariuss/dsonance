@@ -1,14 +1,14 @@
 import { useEffect, useMemo } from "react";
 import { BallotInfo } from "./types";
 import { add_ballot, VoteDetails } from "../utils/conversions/votedetails";
-import { useCurrencyContext } from "./CurrencyContext";
-import { useProtocolContext } from "./ProtocolContext";
+import { useProtocolContext } from "./context/ProtocolContext";
 import { formatDate, niceFormatDate, timeToDate } from "../utils/conversions/date";
 import InfoIcon from "./icons/InfoIcon";
 import { Link } from "react-router-dom";
 import { DOCS_EVP_URL, DOCS_TVL_URL, MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import ConsensusIndicator from "./ConsensusIndicator";
 import { useMediaQuery } from "react-responsive";
+import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 
 interface VoteFiguresProps {
   timestamp: bigint;
@@ -19,7 +19,7 @@ interface VoteFiguresProps {
 
 const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, ballot }) => {
 
-  const { formatSatoshis } = useCurrencyContext();
+  const { supplyLedger : { formatAmountUsd } } = useFungibleLedgerContext();
   const { info, refreshInfo } = useProtocolContext();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
@@ -56,7 +56,7 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, 
             <InfoIcon/>
           </Link>
         </span>
-        <span className={`self-center ${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatSatoshis(BigInt(Math.trunc(liveDetails.total)))}</span>
+        <span className={`self-center ${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatAmountUsd(liveDetails.total)}</span>
       </div>
       <div className="grid grid-rows-2 justify-items-center sm:justify-items-end h-16 gap-y-1">
         <span className="self-center flex flex-row gap-x-1 items-center">
@@ -65,7 +65,7 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, 
             <InfoIcon/>
           </Link>
         </span>
-        <span className={`self-center ${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{ formatSatoshis(tvl + (ballot?.amount ?? 0n)) }</span>
+        <span className={`self-center ${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{ formatAmountUsd(tvl + (ballot?.amount ?? 0n)) }</span>
       </div>
       <div className="grid grid-rows-2 justify-items-center sm:justify-items-end h-16 gap-y-1">
         <span className="self-center text-sm text-gray-600 dark:text-gray-400">Consensus</span>

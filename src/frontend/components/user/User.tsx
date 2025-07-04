@@ -5,7 +5,6 @@ import Wallet from "../Wallet";
 
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
-import CurrencyConverter from "../CurrencyConverter";
 import ThemeToggle from "../ThemeToggle";
 import { useAuth } from "@ic-reactor/react";
 import { Account } from "@/declarations/ck_btc/ck_btc.did";
@@ -85,7 +84,6 @@ const User = () => {
       {
         isMobile && 
           <div className="flex flex-row justify-center w-full p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
-            <CurrencyConverter/>
             <ThemeToggle/>
           </div>
       }

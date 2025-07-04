@@ -1,16 +1,15 @@
 import { Link, useLocation, useNavigate }      from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@ic-reactor/react";
-import { DOCS_URL, MOBILE_MAX_WIDTH_QUERY } from "../constants";
+import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import UserIcon from "./icons/UserIcon";
 import LoginIcon from "./icons/LoginIcon";
-import BtcBalance from "./BtcBalance";
 import Logo from "./icons/Logo";
 import { useMediaQuery } from "react-responsive";
 import { Identity } from "@dfinity/agent";
-import LinkIcon from "./icons/LinkIcon";
-import CurrencyConverter from "./CurrencyConverter";
 import ThemeToggle from "./ThemeToggle";
+import Balance from "./Balance";
+import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 
 interface HeaderProps {
   authenticated: boolean;
@@ -19,6 +18,9 @@ interface HeaderProps {
 }
 
 const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }) => {
+
+  const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
+
   // WATCHOUT: the size of the header is set to 22 (16 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full">
@@ -41,20 +43,18 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
         
         {/* Right-aligned Profile and Theme Toggle */}
         <div className="flex flex-row items-center justify-end md:space-x-6 space-x-2">
-          <CurrencyConverter />
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/"}>
             Vote
           </Link>
-          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/borrow"}>
+          { authenticated && identity && <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/borrow"}>
             Borrow
           </Link>
+          }
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/dashboard"}>
             Dashboard
           </Link>
-          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={DOCS_URL} target="_blank" rel="noopener">
-            Docs
-          </Link>
-          { authenticated && identity && <BtcBalance/> }
+          <Balance ledger={supplyLedger} amount={supplyLedger.userBalance}/>
+          <Balance ledger={collateralLedger} amount={collateralLedger.userBalance}/>
           <div>
           { authenticated && identity ? 
             <Link className="flex stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${identity.getPrincipal()}`}>
@@ -148,7 +148,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 Vote
               </Link>
             </div>
-            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/borrow' ? 'bg-purple-700 text-white' : ''}`}>
+            {authenticated && identity && <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/borrow' ? 'bg-purple-700 text-white' : ''}`}>
               <span />
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
@@ -158,6 +158,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 Borrow
               </Link>
             </div>
+            }
             <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/dashboard' ? 'bg-purple-700 text-white' : ''}`}>
               <span />
               <Link
@@ -166,18 +167,6 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 onClick={() => setShowMenu(false)}
               >
                 Dashboard
-              </Link>
-            </div>
-            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg items-center ${location.pathname === DOCS_URL ? 'bg-purple-700 text-white' : ''}`}>
-              <LinkIcon/>
-              <Link
-                className="cols-span-11 overflow-visible whitespace-nowrap"
-                to={DOCS_URL}
-                onClick={() => setShowMenu(false)}
-                target="_blank"
-                rel="noopener"
-              >
-                Docs
               </Link>
             </div>
             <span />

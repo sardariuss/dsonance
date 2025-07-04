@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import VoteCard from "./VoteCard"
-import { useProtocolContext } from "./ProtocolContext";
+import { useProtocolContext } from "./context/ProtocolContext";
 import { compute_vote_details } from "../utils/conversions/votedetails";
 import { toNullable } from "@dfinity/utils";
 import InfiniteScroll from "react-infinite-scroll-component";

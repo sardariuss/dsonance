@@ -5,7 +5,7 @@ import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import EvpChart from "./charts/EvpChart";
 import { BallotInfo } from "./types";
 import { add_ballot, compute_vote_details } from "../utils/conversions/votedetails";
-import { useProtocolContext } from "./ProtocolContext";
+import { useProtocolContext } from "./context/ProtocolContext";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import VoteFigures, { VoteFiguresSkeleton } from "./VoteFigures";

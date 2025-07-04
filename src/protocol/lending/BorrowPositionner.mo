@@ -117,7 +117,7 @@ module {
             };
             
             if (ltv > parameters.max_ltv) {
-                return #err("LTV ratio is above current allowed maximum");
+                return #err("LTV ratio '" # debug_show(ltv) # "' is above current allowed maximum of '" # Float.toText(parameters.max_ltv) # "'");
             };
 
             #ok(update);

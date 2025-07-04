@@ -46,7 +46,7 @@ module {
                 spender_subaccount = null;
                 from;
                 to = protocol_account;
-                amount = amount + ledger.fee();
+                amount;
                 fee = ?ledger.fee();
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
@@ -71,10 +71,18 @@ module {
             let args = {
                 to;
                 from_subaccount = null;
-                amount;
+                // Deduct the transfer fee from the amount to transfer
+                amount = Int.abs(Int.max(amount - ledger.fee(), 0));
                 fee = ?ledger.fee();
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            };
+
+            if (args.amount == 0) {
+                return { args; result = #err(#GenericError({ 
+                    error_code = 0; 
+                    message = "Amount " # debug_show(amount) # " is too low to cover the transfer fee"; })); 
+                };
             };
 
             // Perform the transfer

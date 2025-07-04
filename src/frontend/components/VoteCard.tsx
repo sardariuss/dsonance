@@ -1,7 +1,7 @@
 import { VoteDetails } from "../utils/conversions/votedetails";
-import { useCurrencyContext } from "./CurrencyContext";
 import ConsensusIndicator from "./ConsensusIndicator";
 import { useMemo } from "react";
+import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 
 interface VoteCardProps {
   tvl: bigint;
@@ -11,7 +11,7 @@ interface VoteCardProps {
 }
 
 const VoteCard: React.FC<VoteCardProps> = ({ tvl, voteDetails, text, thumbnail }) => {
-  const { formatSatoshis } = useCurrencyContext();
+  const { supplyLedger } = useFungibleLedgerContext();
 
   const thumbnailUrl = useMemo(() => {
     const byteArray = new Uint8Array(thumbnail);
@@ -45,8 +45,8 @@ const VoteCard: React.FC<VoteCardProps> = ({ tvl, voteDetails, text, thumbnail }
 
       {/* Bottom Row: EVP and TVL */}
       <div className="mt-auto flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 pt-4">
-        <span>EVP: {formatSatoshis(BigInt(Math.trunc(voteDetails.total)))}</span>
-        <span>TVL: {formatSatoshis(tvl)}</span>
+        <span>EVP: {supplyLedger.formatAmountUsd(voteDetails.total)}</span>
+        <span>TVL: {supplyLedger.formatAmountUsd(tvl)}</span>
       </div>
     </div>
   );

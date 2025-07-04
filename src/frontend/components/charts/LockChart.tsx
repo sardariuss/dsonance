@@ -6,14 +6,14 @@ import { computeAdaptiveTicks, computeNiceGridLines } from '.';
 import { nsToMs, timeToDate } from '../../utils/conversions/date';
 import { get_current } from '../../utils/timeline';
 import { unwrapLock } from '../../utils/conversions/ballot';
-import { useCurrencyContext } from '../CurrencyContext';
 import { ThemeContext } from '../App';
 import { useMediaQuery } from 'react-responsive';
 import { MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from '../../constants';
-import { useProtocolContext } from '../ProtocolContext';
+import { useProtocolContext } from '../context/ProtocolContext';
 import { EYesNoChoice, toEnum } from '../../utils/conversions/yesnochoice';
 import { format } from 'date-fns';
 import { useContainerSize } from '../hooks/useContainerSize';
+import { useFungibleLedgerContext } from '../context/FungibleLedgerContext';
 
 type LockRect = {
   id: string;
@@ -52,13 +52,13 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const { theme } = useContext(ThemeContext);
-  const { formatSatoshis, satoshisToCurrency } = useCurrencyContext();
+  const { supplyLedger: { formatAmount, convertToFloatingPoint } } = useFungibleLedgerContext();
   const { info } = useProtocolContext();
   const { containerSize, containerRef } = useContainerSize();
 
   const chartProperties : ChartProperties | undefined = useMemo(() => {
 
-    if (info === undefined || satoshisToCurrency === undefined) {
+    if (info === undefined || convertToFloatingPoint === undefined) {
       return undefined;
     }
 
@@ -87,7 +87,7 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
       const baseTimestamp = nsToMs(ballot.timestamp);
       const actualLockEnd = baseTimestamp + nsToMs(previewLockDuration.get(ballot.ballot_id) ?? get_current(unwrapLock(ballot).duration_ns).data);
       // Skip locks that expired before the start date
-      const to_add = (dateStart === undefined || actualLockEnd > dateStart) ? (satoshisToCurrency(ballot.amount) ?? 0) : 0;
+      const to_add = (dateStart === undefined || actualLockEnd > dateStart) ? (convertToFloatingPoint(ballot.amount) ?? 0) : 0;
       return acc + to_add;
     }, 0);
 
@@ -109,7 +109,7 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
         // Update the end date to show the full range of the chart
         if (actualLockEnd > dateEnd) dateEnd = actualLockEnd;
 
-        const height = satoshisToCurrency(amount) ?? 0;
+        const height = convertToFloatingPoint(amount) ?? 0;
 
         let y = 0;
         if (toEnum(choice) === EYesNoChoice.No) {
@@ -139,7 +139,7 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
           end: points[1],
           bottom: y - height / 2,
           top: y + height / 2,
-          label: formatSatoshis(amount) ?? "",
+          label: formatAmount(amount) ?? "",
           choice: toEnum(choice),
         });
       }
@@ -151,7 +151,7 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
 
     return { dateRange : { start: dateStart, end: dateEnd }, chartData, lockRects, gridX, gridY, totalLocked };
 
-  }, [ballots, formatSatoshis, info, ballotPreview, satoshisToCurrency, durationWindow]);
+  }, [ballots, formatAmount, info, ballotPreview, convertToFloatingPoint, durationWindow]);
 
   const chartRef = useRef<HTMLDivElement>(null);
 

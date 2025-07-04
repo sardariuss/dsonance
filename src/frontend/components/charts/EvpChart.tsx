@@ -6,12 +6,12 @@ import { AreaBumpSerie, ResponsiveAreaBump }                from "@nivo/bump";
 import { BallotInfo }                                       from "../types";
 import { DurationUnit, toNs }                                     from "../../utils/conversions/durationUnit";
 import { CHART_CONFIGURATIONS, chartTheme, computeInterval, DurationParameters } from ".";
-import { useCurrencyContext }                               from "../CurrencyContext";
 import { ThemeContext }                                     from "../App";
-import { useProtocolContext }                               from "../ProtocolContext";
+import { useProtocolContext }                               from "../context/ProtocolContext";
 import { useMediaQuery }                                    from "react-responsive";
 import { BRAND_FALSE_COLOR, BRAND_TRUE_COLOR, MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from "../../constants";
 import { useContainerSize } from "../hooks/useContainerSize";
+import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 
 // WATCHOUT: This component uses an IntractiveAreaBump chart which uses X as a category, not as a time value, hence it is 
 // up to the coder to make it so the interval between the time values are constant.
@@ -128,7 +128,7 @@ const EvpChart: React.FC<EvpChartrops> = ({ vote, ballot, durationWindow }) => {
 
   const AXIS_MARGIN = isMobile ? 20 : 30;
 
-  const { formatSatoshis } = useCurrencyContext();
+  const { supplyLedger: { formatAmountUsd } } = useFungibleLedgerContext();
 
   const { info, parameters, computeDecay } = useProtocolContext();
      
@@ -214,7 +214,7 @@ const EvpChart: React.FC<EvpChartrops> = ({ vote, ballot, durationWindow }) => {
                           <div 
                             className="text-xs" 
                             style={{ position: 'absolute', left: -55, bottom: -7, color: theme === "dark" ? TICK_TEXT_COLOR_DARK : TICK_TEXT_COLOR_LIGHT }}>
-                            { formatSatoshis(BigInt(price)) }
+                            { formatAmountUsd(BigInt(price)) }
                           </div> 
                         }
                         <div className="flex w-full h-[1px] bg-slate-500 dark:bg-white" style={{ position: 'absolute', bottom: 0, opacity: 0.3 }}/>

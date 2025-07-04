@@ -22,7 +22,6 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type SNewVoteResult = Types.SNewVoteResult;
     type NewVoteError = Types.NewVoteError;
-    type SProtocolInfo = Types.SProtocolInfo;
     type TimerParameters = Types.TimerParameters;
     type STimeline<T> = Types.STimeline<T>;
     type ProtocolParameters = Types.ProtocolParameters;
@@ -33,9 +32,11 @@ module {
     type BallotPreview = Types.BallotPreview;
     type SBallotPreview = Types.SBallotPreview;
     type SYieldState = Types.SYieldState;
+    type UserSupply = Types.UserSupply;
     type LoanPosition = LendingTypes.LoanPosition;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type OperationKindArgs = LendingTypes.OperationKindArgs;
+    type ProtocolInfo = Types.ProtocolInfo;
 
     public class SharedFacade({
         controller: Controller.Controller;
@@ -78,8 +79,8 @@ module {
             controller.get_clock().set_dilation_factor(dilation_factor);
         };
 
-        public func get_info() : SProtocolInfo {
-            SharedConversions.shareProtocolInfo(controller.get_info());
+        public func get_info() : ProtocolInfo {
+            controller.get_info();
         };
         
         public func get_parameters() : SProtocolParameters {
@@ -110,8 +111,8 @@ module {
             queries.get_ballots(args);
         };
         
-        public func get_locked_amount({ account: Account; }) : Nat {
-            queries.get_locked_amount({account});
+        public func get_user_supply({ account: Account; }) : UserSupply {
+            queries.get_user_supply({account});
         };
         
         public func find_ballot(ballot_id: UUID) : ?SBallotType {

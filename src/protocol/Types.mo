@@ -123,6 +123,11 @@ module {
         state: LockState;
     };
 
+    public type UserSupply = {
+        amount: Nat;
+        apr: Float;
+    };
+
     // SHARED TYPES
 
     public type SYieldState = {
@@ -184,12 +189,6 @@ module {
         tvl: Nat;
     };
 
-    public type SProtocolInfo = {
-        current_time: Nat;
-        last_run: Nat;
-        btc_locked: STimeline<Nat>;
-    };
-
     public type SClockParameters = {
         #REAL;
         #SIMULATED: {
@@ -213,8 +212,8 @@ module {
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
-        author_fee: Nat;
         // @int: commented out for now, will be implemented later
+        //author_fee: Nat;
         //minter_parameters: SMinterParameters;
         decay: {
             half_life: Duration;
@@ -233,7 +232,6 @@ module {
     public type ProtocolInfo = {
         current_time: Nat;
         last_run: Nat;
-        btc_locked: Timeline<Nat>;
     };
 
     public type LockEvent = {

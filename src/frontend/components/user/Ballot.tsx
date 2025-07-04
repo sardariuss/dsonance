@@ -2,7 +2,7 @@ import { useParams } from "react-router-dom";
 import BallotView, { BallotViewSkeleton } from "./BallotView";
 import { fromNullable } from "@dfinity/utils";
 import { protocolActor } from "../../actors/ProtocolActor";
-import { useProtocolContext } from "../ProtocolContext";
+import { useProtocolContext } from "../context/ProtocolContext";
 import { useEffect, useMemo } from "react";
 
 const Ballot = () => {
