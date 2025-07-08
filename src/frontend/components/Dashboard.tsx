@@ -33,8 +33,10 @@ const Dashboard = () => {
   return (
     <div className="flex flex-col justify-center my-4 p-6 space-y-6">
       <div className="flex flex-row text-center text-gray-800 dark:text-gray-200 px-6 space-x-8 items-center">
+        { /* TODO: fix hardcoded link to ckUSDT ledger */ }
         <FullTokenLabel
           metadata={supplyLedger.metadata}
+          canisterId={"cngnf-vqaaa-aaaar-qag4q-cai"}
         />
         <div className="border-r border-gray-300 dark:border-gray-700 h-full"></div>
         <DualLabel

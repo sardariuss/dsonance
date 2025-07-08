@@ -1,5 +1,6 @@
 import React from "react";
 import { FungibleLedger } from "../hooks/useFungibleLedger";
+import ProgressCircle from "../ui/ProgressCircle";
 
 interface SupplyInfoProps {
   ledger: FungibleLedger;
@@ -26,40 +27,8 @@ const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
   return (
     <div className="flex flex-col px-6 max-w-3xl w-full space-y-6">
       <div className="flex flex-row items-center justify-start gap-6">
-        {/* Left circle */}
-        <div className="flex items-center space-x-4">
-          <div className="relative w-20 h-20">
-            <svg viewBox="0 0 36 36" className="w-full h-full" shapeRendering="geometricPrecision">
-              <path
-                className="text-gray-300 dark:text-gray-700"
-                d="M18 2.0845
-                   a 15.9155 15.9155 0 0 1 0 31.831
-                   a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeDasharray="100, 100"
-                strokeDashoffset={-usagePercent}
-                style={{ transition: "stroke-dashoffset 0.5s" }}
-              />
-              <path
-                className="text-green-400"
-                d="M18 2.0845
-                  a 15.9155 15.9155 0 1 1 0 31.831
-                  a 15.9155 15.9155 0 1 1 0 -31.831"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeDasharray="100, 100"
-                strokeDashoffset={100 - usagePercent}
-                style={{ transition: "stroke-dashoffset 0.5s" }}
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold">
-              {usagePercent.toFixed(2)}%
-            </div>
-          </div>
-        </div>
+        
+        <ProgressCircle percentage={usagePercent} />
 
         <div className="grid grid-rows-3 gap-1 h-full">
           <span className="text-sm text-gray-500 dark:text-gray-400">Total supplied</span>

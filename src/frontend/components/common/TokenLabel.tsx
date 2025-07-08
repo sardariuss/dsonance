@@ -17,7 +17,12 @@ export const TokenLabel: React.FC<TokenLabelProps> = ({ metadata }) => {
   );
 }
 
-export const FullTokenLabel: React.FC<TokenLabelProps> = ({ metadata }) => {
+interface FullTokenLabelProps {
+  metadata: MetaDatum[] | undefined;
+  canisterId: string;
+};
+
+export const FullTokenLabel: React.FC<FullTokenLabelProps> = ({ metadata, canisterId }) => {
 
   return (
     <div className="flex flex-row items-center gap-2">
@@ -26,9 +31,8 @@ export const FullTokenLabel: React.FC<TokenLabelProps> = ({ metadata }) => {
         <span className="text-gray-500 dark:text-gray-400 text-sm">{getTokenSymbol(metadata) ?? ""}</span>
         <div className="flex flex-row items-center space-x-1">
           <span className="text-gray-700 dark:text-white text-lg font-semibold">{getTokenName(metadata) ?? ""}</span>
-          { /* TODO: fix hardcoded link to ckBTC ledger */ }
           <Link 
-            to="https://dashboard.internetcomputer.org/canister/mxzaz-hqaaa-aaaar-qaada-cai"
+            to={`https://dashboard.internetcomputer.org/canister/${canisterId}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-500 hover:text-gray-700 dark:hover:text-white font-semibold"
