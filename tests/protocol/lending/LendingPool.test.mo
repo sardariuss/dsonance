@@ -163,14 +163,14 @@ await suite("LendingPool", func(): async() {
         // === Collateral Flow ===
 
         // Borrower supplies 5000 worth of collateral
-        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #PROVIDE_COLLATERAL({ amount = 5000 }); });
+        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 5000; kind = #PROVIDE_COLLATERAL; });
         verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // === Borrow Flow ===
 
         // Borrower borrows 200 tokens
-        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #BORROW_SUPPLY({ amount = 200 }); });
+        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 200; kind = #BORROW_SUPPLY; });
         verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
 
         // 200 tokens have left the pool

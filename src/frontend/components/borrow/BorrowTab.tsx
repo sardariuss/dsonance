@@ -2,15 +2,15 @@ import { protocolActor } from "../../actors/ProtocolActor";
 import { fromNullableExt } from "../../utils/conversions/nullable";
 import { TokenLabel } from "../common/TokenLabel";
 import BorrowButton, { MaxChoiceType } from "./BorrowButton";
-import { OperationKindArgs, Result_1 } from "../../../declarations/protocol/protocol.did";
+import { OperationKind, Result_1 } from "../../../declarations/protocol/protocol.did";
 import { useMemo } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { Account } from "@/declarations/ck_btc/ck_btc.did";
 import DualLabel from "../common/DualLabel";
-import { aprToApy, getHealthColor } from "../../utils/lending";
+import { aprToApy } from "../../utils/lending";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { formatAmountCompact } from "../../utils/conversions/token";
-import { UNDEFINED_SCALAR } from "../../constants";
+import { REPAY_SLIPPAGE_RATIO, UNDEFINED_SCALAR } from "../../constants";
 import HealthFactor from "./HealthFactor";
 
 const BorrowTab = () => {
@@ -50,41 +50,41 @@ const BorrowTab = () => {
     args: [{ account }],
   });
 
-  const previewOperation = (args: OperationKindArgs) : Promise<Result_1 | undefined> => {
+  const previewOperation = (amount: bigint, kind: OperationKind) : Promise<Result_1 | undefined> => {
     try {
-      return previewBorrowOperation([{ subaccount: [], args }]);
+      return previewBorrowOperation([{ subaccount: [], amount, kind }]);
     } catch (error) {
       console.error("Error previewing borrow operation:", error);
       return Promise.resolve(undefined);
     }
   }
 
-  const runOperation = (args: OperationKindArgs) : Promise<Result_1 | undefined> => {
+  const runOperation = (amount: bigint, kind: OperationKind) : Promise<Result_1 | undefined> => {
 
     try {
 
-      console.log("Original args:", args);
+      console.log("Original args:", { amount, kind });
 
       const prerequisite = (() => {
-        if ("PROVIDE_COLLATERAL" in args && args.PROVIDE_COLLATERAL.amount > 0n) {
+        if ("PROVIDE_COLLATERAL" in kind && amount > 0n) {
           // If PROVIDE_COLLATERAL is specified, ensure collateralLedger has enough allowance
           // to cover the amount being provided.
-          return collateralLedger.approveIfNeeded(args.PROVIDE_COLLATERAL.amount)
-            .then((amount) => ({ ...args, PROVIDE_COLLATERAL: { amount } }));
-        } else if ("BORROW_SUPPLY" in args && args.BORROW_SUPPLY.amount > 0n) {
-          // If BORROW_SUPPLY is specified, ensure supplyLedger has enough allowance
+          return collateralLedger.approveIfNeeded(amount);
+        } else if ("REPAY_SUPPLY" in kind && amount > 0n) {
+          // If REPAY_SUPPLY is specified, ensure supplyLedger has enough allowance
           // to cover the amount being borrowed.
-          return supplyLedger.approveIfNeeded(args.BORROW_SUPPLY.amount)
-            .then((amount) => ({ ...args, BORROW_SUPPLY: { amount } }));
+          return supplyLedger.approveIfNeeded(amount + kind.REPAY_SUPPLY.max_slippage_amount);
         } else {
-          // If no specific operation requires approval, return the args as is.
-          return Promise.resolve(args);
+          // Transfer direction is from protocol to user, so nothing here.
+          return Promise.resolve({ tokenFee: 0n, approveCalled: false });
         }
       })();
 
-      return prerequisite.then((updated_args) => {
-        console.log("Final args:", updated_args);
-        return runBorrowOperation([{ subaccount: [], args: updated_args }]).then((result) => {
+      return prerequisite.then(({tokenFee, approveCalled}) => {
+        // Subtract the token fee from the amount if an approval was executed.
+        // Second token fee is for the tranfer_from operation that will be executed by the protocol.
+        const finalAmount = amount - tokenFee * (approveCalled ? 2n : 1n);
+        return runBorrowOperation([{ subaccount: [], kind, amount: finalAmount }]).then((result) => {
           if (result !== undefined && "ok" in result) {
             refreshLoanPosition(); // Refresh the loan position after supply
             refreshIndexerState(); // Refresh the indexer state after supply
@@ -100,14 +100,14 @@ const BorrowTab = () => {
     }
   };
 
-  const { collateral, rawBorrowed, health, netWorth, netApy } = useMemo(() => {
+  const { collateral, currentOwed, rawBorrowed, health, netWorth, netApy } = useMemo(() => {
 
     const collateral = loanPosition?.collateral ?? 0n;
 
     const loan = fromNullableExt(loanPosition?.loan);
     const rawBorrowed = loan?.raw_borrowed ?? 0n;
     const health = loan?.health;
-    const currentOwed = loan?.current_owed ?? 0;
+    const currentOwed = BigInt(Math.ceil(loan?.current_owed ?? 0));
     const ltv = loan?.ltv ?? 0;
     const requiredRepayment = loan?.required_repayment ?? 0;
 
@@ -127,16 +127,13 @@ const BorrowTab = () => {
 
     return {
       collateral,
+      currentOwed,
       rawBorrowed,
       health,
       netWorth,
       netApy
     };
   }, [loanPosition, indexerState]);
-
-  // @todo: need to add "remaining collateral" for withdraw
-  // @todo: need to add "remaning debt" for repay
-  // @todo: if loan data is undefined, use 0 as amountCollateral and amountBorrowed; do not display LTV nor health factor.
 
   return (
     <div className="flex flex-col justify-center mt-4 space-y-4">
@@ -170,18 +167,20 @@ const BorrowTab = () => {
             <BorrowButton 
               title="Supply"
               ledger={collateralLedger}
-              previewOperation={(amount) => previewOperation({ "PROVIDE_COLLATERAL": { amount } })}
-              runOperation={(amount) => runOperation({ "PROVIDE_COLLATERAL": { amount } })}
+              previewOperation={(amount) => previewOperation(amount, { "PROVIDE_COLLATERAL" : null })}
+              runOperation={(amount) => runOperation(amount, { "PROVIDE_COLLATERAL" : null })}
               health={health}
-              maxChoice={{type: MaxChoiceType.WalletBalance, value: collateralLedger.userBalance ?? 0n }}
+              maxLabel="Wallet balance"
+              maxValue={collateralLedger.userBalance ?? 0n }
             />
             <BorrowButton 
               title="Withdraw"
               ledger={collateralLedger}
-              previewOperation={(amount) => previewOperation({ "WITHDRAW_COLLATERAL": { amount } })}
-              runOperation={(amount) => runOperation({ "WITHDRAW_COLLATERAL": { amount } })}
+              previewOperation={(amount) => previewOperation(amount, { "WITHDRAW_COLLATERAL": null })}
+              runOperation={(amount) => runOperation(amount, { "WITHDRAW_COLLATERAL": null })}
               health={health}
-              maxChoice={{type: MaxChoiceType.Available, value: collateralLedger.userBalance ?? 0n }} /* @todo: change with available to withdraw */
+              maxLabel="Available"
+              maxValue={collateral} // @todo: change with available to withdraw, should take into account the LTV
             />
           </div>
         </div>
@@ -191,25 +190,27 @@ const BorrowTab = () => {
           <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
             <TokenLabel metadata={supplyLedger.metadata}/>
             <div className="relative flex flex-col">
-              <span className="text-lg font-bold"> { supplyLedger.formatAmount(rawBorrowed) } </span>
-              <span className="absolute top-6 text-xs text-gray-400"> { supplyLedger.formatAmountUsd(rawBorrowed) } </span>
+              <span className="text-lg font-bold"> { supplyLedger.formatAmount(currentOwed) } </span>
+              <span className="absolute top-6 text-xs text-gray-400"> { supplyLedger.formatAmountUsd(currentOwed) } </span>
             </div>
             <span>{/*spacer*/}</span>
             <BorrowButton 
               title="Borrow"
               ledger={supplyLedger}
-              previewOperation={(amount) => previewOperation({ "BORROW_SUPPLY": { amount } })}
-              runOperation={(amount) => runOperation({ "BORROW_SUPPLY": { amount } })}
+              previewOperation={(amount) => previewOperation(amount, { "BORROW_SUPPLY": null })}
+              runOperation={(amount) => runOperation(amount, { "BORROW_SUPPLY": null })}
               health={health}
-              maxChoice={{type: MaxChoiceType.Available, value: supplyLedger.userBalance ?? 0n }} /* @todo: change with available to borrow */
+              maxLabel="Available"
+              maxValue={supplyLedger.userBalance ?? 0n } // @todo: change with available to borrow, should take into account the LTV
             />
             <BorrowButton 
               title="Repay"
               ledger={supplyLedger}
-              previewOperation={(amount) => previewOperation({ "REPAY_SUPPLY": { repayment: { "PARTIAL" : amount } } })}
-              runOperation={(amount) => runOperation({ "REPAY_SUPPLY": { repayment: { "PARTIAL" : amount } } })}
+              previewOperation={(amount) => previewOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
+              runOperation={(amount) => runOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
               health={health}
-              maxChoice={{type: MaxChoiceType.WalletBalance, value: supplyLedger.userBalance ?? 0n }}
+              maxLabel="Total owed"
+              maxValue={currentOwed}
             />
           </div>
         </div>

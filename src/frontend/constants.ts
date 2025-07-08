@@ -10,6 +10,8 @@ export const X_URL = "https://x.com/dsonance_xyz"
 export const GITHUB_URL = "https://github.com/sardariuss/dsonance"
 export const OPENCHAT_URL = "https://oc.app/community/b6oax-faaaa-aaaac-anaya-cai/"
 export const TELEGRAM_URL = "https://t.me/dsonance"
+// Borrow tab constants
+export const REPAY_SLIPPAGE_RATIO = 0.001; // 0.1% 
 // New vote constants
 // TODO: this limit shall be embedded in the backend canister
 export const VOTE_MAX_CHARACTERS = 500;

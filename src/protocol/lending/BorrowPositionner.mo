@@ -20,7 +20,6 @@ module {
     type Index            = Types.Index;
     type Collateral       = Types.Collateral;
     type Borrow           = Types.Borrow;
-    type Repayment        = Types.Repayment;
     type RepaymentInfo    = Types.RepaymentInfo;
     type BorrowPositionTx = Types.BorrowPositionTx;
     type BorrowPosition   = Types.BorrowPosition;
@@ -126,35 +125,33 @@ module {
         public func repay_supply({
             position: BorrowPosition;
             index: Index;
-            repayment: Repayment;
+            amount: Nat;
+            max_slippage_amount: Nat;
         }) : Result<RepaymentInfo, Text> {
 
             let borrow = switch(position.borrow){
                 case(null) { return #err("BorrowPositionner: no borrow to remove"); };
                 case(?b) { b; };
             };
-
-            switch(repayment){
-                case(#PARTIAL(amount)) { 
-                    let remaining = switch(Borrow.slash(borrow, { accrued_amount = Float.fromInt(amount); index; })){
-                        case(#err(err)) { return #err(err); };
-                        case(#ok(b)) { b; };
-                    };
-                    let raw_repaid = switch(remaining){
-                        case(null) { borrow.raw_amount; };
-                        case(?r) { borrow.raw_amount - r.raw_amount; };
-                    };
-                    #ok({ amount; remaining; raw_repaid; });
-                };
-                case(#FULL) { 
-                    let due = Owed.accrue_interests(borrow.owed, index).accrued_amount;
-                    #ok({
-                        amount = Int.abs(Float.toInt(Float.ceil(due)));
-                        raw_repaid = borrow.raw_amount;
-                        remaining = null; // Borrow is fully repaid
-                    });
-                };
+ 
+            var remaining = switch(Borrow.slash(borrow, { accrued_amount = Float.fromInt(amount); index; })){
+                case(#err(err)) { return #err(err); };
+                case(#ok(b)) { b; };
             };
+            var repaid = amount;
+            let still_owed = switch(remaining){
+                case(null) { 0; };
+                case(?r) { Math.ceil_to_int(r.owed.accrued_amount); };
+            };
+            if (still_owed > 0 and still_owed <= max_slippage_amount){
+                repaid := amount + Int.abs(still_owed);
+                remaining := null; // All owed is repaid
+            };
+            let raw_repaid = switch(remaining){
+                case(null) { borrow.raw_amount; };
+                case(?r) { borrow.raw_amount - r.raw_amount; };
+            };
+            #ok({ repaid; raw_repaid; remaining; });
         };
 
         public func to_loan_position({

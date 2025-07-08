@@ -137,31 +137,21 @@ module {
         owed: Owed;
     };
 
-    public type Repayment  = {
-        #PARTIAL: Nat;
-        #FULL;
-    };
-
-    public type CommonBorrowArgs = {
-        amount: Nat;
-    };
-
-    public type OperationKindArgs = {
-        #PROVIDE_COLLATERAL: CommonBorrowArgs;
-        #WITHDRAW_COLLATERAL: CommonBorrowArgs;
-        #BORROW_SUPPLY: CommonBorrowArgs;
-        #REPAY_SUPPLY: {
-            repayment: Repayment;
-        };
+    public type OperationKind = {
+        #PROVIDE_COLLATERAL;
+        #WITHDRAW_COLLATERAL;
+        #BORROW_SUPPLY;
+        #REPAY_SUPPLY: { max_slippage_amount: Nat; };
     };
 
     public type BorrowOperationArgs = {
         account: Account;
-        kind: OperationKindArgs;
+        amount: Nat;
+        kind: OperationKind;
     };
 
     public type RepaymentInfo = {
-        amount: Nat;
+        repaid: Nat;
         raw_repaid: Float;
         remaining: ?Borrow;
     };

@@ -56,12 +56,15 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
     }
     setPutBallotLoading(true);
     
-    approveIfNeeded(ballot.amount).then((amount) => {
+    approveIfNeeded(ballot.amount).then(({tokenFee, approveCalled}) => {
+      // Subtract the token fee from the amount if an approval was executed.
+      // Second token fee is for the tranfer_from operation that will be executed by the protocol.
+      const finalAmount = ballot.amount - tokenFee * (approveCalled ? 2n : 1n);
       putBallot([{
         vote_id: id,
         id: uuidv4(),
         from_subaccount: [],
-        amount,
+        amount: finalAmount,
         choice_type: { YES_NO: toCandid(ballot.choice) },
       }]).then((result) => {
         if (result === undefined) {

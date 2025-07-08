@@ -24,7 +24,6 @@ module {
     type TxIndex               = Types.TxIndex;
     type Result<Ok, Err>       = Result.Result<Ok, Err>;
     
-    type Repayment             = LendingTypes.Repayment;
     type BorrowPosition        = LendingTypes.BorrowPosition;
     type Loan                  = LendingTypes.Loan;
     type LoanPosition          = LendingTypes.LoanPosition;
@@ -37,9 +36,7 @@ module {
     type BorrowParameters      = LendingTypes.BorrowParameters;
     type BorrowPositionTx      = LendingTypes.BorrowPositionTx;
     type BorrowOperation       = LendingTypes.BorrowOperation;
-    type CommonBorrowArgs      = LendingTypes.CommonBorrowArgs;
     type BorrowOperationArgs   = LendingTypes.BorrowOperationArgs;
-    type OperationKindArgs     = LendingTypes.OperationKindArgs;
     type Liquidation = {
         raw_borrowed: Float;
         total_collateral: Nat;
@@ -242,11 +239,12 @@ module {
 
         func prepare_operation(args: BorrowOperationArgs) : Result<PreparedOperation, Text> {
 
+            let { amount; account; } = args;
             switch(args.kind){
-                case(#PROVIDE_COLLATERAL (kind_args)) { prepare_supply_collateral   ({ kind_args with account = args.account; }) };
-                case(#WITHDRAW_COLLATERAL(kind_args)) { prepare_withdraw_collateral ({ kind_args with account = args.account; }) };
-                case(#BORROW_SUPPLY      (kind_args)) { prepare_borrow              ({ kind_args with account = args.account; }) };
-                case(#REPAY_SUPPLY       (kind_args)) { prepare_repay               ({ kind_args with account = args.account; }) };
+                case(#PROVIDE_COLLATERAL                 ) { prepare_supply_collateral   ({ amount; account;               }) };
+                case(#WITHDRAW_COLLATERAL                ) { prepare_withdraw_collateral ({ amount; account;               }) };
+                case(#BORROW_SUPPLY                      ) { prepare_borrow              ({ amount; account;               }) };
+                case(#REPAY_SUPPLY({max_slippage_amount})) { prepare_repay               ({ amount; account; max_slippage_amount; }) };
             };
         };
 
@@ -364,7 +362,8 @@ module {
 
         func prepare_repay({
             account: Account;
-            repayment: Repayment;
+            amount: Nat;
+            max_slippage_amount: Nat;
         }) : Result<PreparedOperation, Text> {
 
             let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
@@ -374,7 +373,7 @@ module {
 
             let index = indexer.get_index().borrow_index;
 
-            let { amount; raw_repaid; remaining; } = switch(borrow_positionner.repay_supply({ position; index; repayment; })){
+            let { repaid; raw_repaid; remaining; } = switch(borrow_positionner.repay_supply({ position; index; amount; max_slippage_amount })){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
@@ -390,7 +389,7 @@ module {
                 });
             };
 
-            #ok({ to_transfer = amount; finalize; });
+            #ok({ to_transfer = repaid; finalize; });
         };
 
     };

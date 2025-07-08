@@ -281,7 +281,8 @@ async function callCanisterMethod() {
             // Supply enough ckUSDT collateral to reach the target LTV
             await actors.protocol.run_borrow_operation({
                 subaccount: [],
-                args: { "PROVIDE_COLLATERAL": { amount: BigInt(Math.floor(collateralAmount * 100_000_000)) } },
+                amount: BigInt(Math.floor(collateralAmount * 100_000_000)),
+                kind: { "PROVIDE_COLLATERAL" : null },
             }).then((result) => {
                 if ('err' in result) {
                     console.error('Error supplying collateral:', result.err);
@@ -293,7 +294,8 @@ async function callCanisterMethod() {
             // Borrow ckBTC
             await actors.protocol.run_borrow_operation({
                 subaccount: [],
-                args: { "BORROW_SUPPLY": { amount: BigInt(Math.floor(toBorrow * 1_000_000)) } },
+                amount: BigInt(Math.floor(toBorrow * 1_000_000)),
+                kind: { "BORROW_SUPPLY": null },
             }).then((result) => {
                 if ('err' in result) {
                     console.error('Error borrowing:', result.err);

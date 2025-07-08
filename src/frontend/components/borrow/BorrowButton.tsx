@@ -16,17 +16,14 @@ export  enum MaxChoiceType {
   Available = 1,
 }
 
-type MaxChoice =
-  | { type: MaxChoiceType.WalletBalance; value: bigint; }
-  | { type: MaxChoiceType.Available;     value: bigint; };
-
 interface BorrowButtonProps {
   ledger: FungibleLedger;
   title: string;
   previewOperation: (amount: bigint) => Promise<Result_1 | undefined>;
   runOperation: (amount: bigint) => Promise<Result_1 | undefined>;
   health: number | undefined;
-  maxChoice: MaxChoice;
+  maxLabel: string;
+  maxValue: bigint;
 }
 
 const BorrowButton: React.FC<BorrowButtonProps> = ({
@@ -35,7 +32,8 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
   previewOperation,
   runOperation,
   health,
-  maxChoice,
+  maxLabel,
+  maxValue,
 }) => {
 
   const [isVisible, setIsVisible] = useState(false);
@@ -87,7 +85,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
 
   return (
     <>
-      <button className="button-blue text-base" onClick={() => setIsVisible(true)}>
+      <button className="button-blue text-base" onClick={() => { setInputValue(""); setAmount(0n); setIsVisible(true) }}>
         {title}
       </button>
       <Modal
@@ -143,8 +141,8 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
               <div className="grid grid-rows-[5fr_3fr] justify-items-end">
                 <TokenLabel metadata={ledger.metadata}/>
                 <div className="flex flex-row items-center justify-center space-x-1 text-xs text-gray-600 dark:text-gray-400">
-                  <span>{ maxChoice.type === MaxChoiceType.WalletBalance ? "Wallet balance" : "Available" }</span>
-                  <span>{ ledger.formatAmount(maxChoice.value) }</span>
+                  <span>{ maxLabel }</span>
+                  <span>{ ledger.formatAmount(maxValue) }</span>
                   <button 
                     className="font-semibold hover:bg-gray-300 dark:hover:bg-gray-700 hover:text-black hover:dark:text-white rounded p-1"
                     onClick={() => {
@@ -152,12 +150,12 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
                         console.error("Ledger token decimals not defined");
                         return;
                       }
-                      let inputEquivalent = fromFixedPoint(maxChoice.value, ledger.tokenDecimals);
+                      let inputEquivalent = fromFixedPoint(maxValue, ledger.tokenDecimals);
                       console.log("Setting max amount: ", inputEquivalent.toString());
                       setInputValue(inputEquivalent.toString());
-                      setAmount(maxChoice.value);
+                      setAmount(maxValue);
                     }}
-                    disabled={loading || maxChoice.value === 0n} // Disable if loading or no balance
+                    disabled={loading || maxValue === 0n} // Disable if loading or no balance
                   >
                     MAX
                   </button>

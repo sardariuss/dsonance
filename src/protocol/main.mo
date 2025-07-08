@@ -142,9 +142,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
 
     public shared({caller}) func run_borrow_operation({ 
         subaccount: ?Blob;
-        args: LendingTypes.OperationKindArgs;
+        amount: Nat;
+        kind: LendingTypes.OperationKind;
     }) : async Result.Result<LendingTypes.BorrowOperation, Text> {
-        await* getFacade().run_borrow_operation({ caller; subaccount; args; });
+        await* getFacade().run_borrow_operation({ caller; subaccount; amount; kind; });
     };
 
     // ⚠️ THIS IS INTENTIONALLY A QUERY FUNCTION
@@ -152,9 +153,10 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     // THE PREVIEW WILL ACTUALLY RUN THE BORROW OPERATION
     public query({caller}) func preview_borrow_operation({
         subaccount: ?Blob;
-        args: LendingTypes.OperationKindArgs;
+        amount: Nat;
+        kind: LendingTypes.OperationKind;
     }) : async Result.Result<LendingTypes.BorrowOperation, Text> {
-        getFacade().run_borrow_operation_for_free({ caller; subaccount; args; });
+        getFacade().run_borrow_operation_for_free({ caller; subaccount; amount; kind; });
     };
 
     func getFacade() : SharedFacade.SharedFacade {

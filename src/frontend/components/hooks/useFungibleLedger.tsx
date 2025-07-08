@@ -25,7 +25,7 @@ export interface FungibleLedger {
   convertToFixedPoint: (amount: number | undefined) => bigint | undefined;
   convertToFloatingPoint: (amountFixedPoint: bigint | number | undefined) => number | undefined;
   subtractFee?: (amount: bigint) => bigint;
-  approveIfNeeded: (amount: bigint) => Promise<bigint>;
+  approveIfNeeded: (amount: bigint) => Promise<{ tokenFee: bigint, approveCalled: boolean }>;
   userBalance: bigint | undefined;
   refreshUserBalance: () => void;
   mint: (amount: number) => Promise<boolean>;
@@ -156,9 +156,10 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
    * times the token fee (one for the approval and one required by the upcoming transfer).
    * 
    * @param {bigint} amount - The amount to approve.
-   * @returns {Promise<bigint>} - The approved amount minus the token fee.
+   * @returns {Promise<{ tokenFee: bigint, approveCalled: boolean }>} - The token fee, and whether the approval was called.
    */
-  const approveIfNeeded = async (amount: bigint) : Promise<bigint> =>  {
+  const approveIfNeeded = async (amount: bigint) : Promise<{ tokenFee: bigint, approveCalled: boolean }> =>  {
+
     if (!account) {
       throw new Error("User account is not provided.");
     }
@@ -187,15 +188,14 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     const currentAllowance: bigint = allowanceResult.allowance;
     console.log(`Current allowance for ${account.owner.toText()} is ${currentAllowance}, requested amount is ${amount}`);
     if (currentAllowance >= amount) {
-      // Need to subtract the token fee that will be required by the transfer_from
-      return amount - tokenFee;
+      return { tokenFee, approveCalled: false }; // No need to call approve
     }
     const approveResult = await icrc2Approve([
       {
         fee: [tokenFee],
         memo: [],
         from_subaccount: [],
-        created_at_time: [],
+        created_at_time: [ BigInt(Date.now()) * 1_000_000n ], // Convert to nanoseconds
         amount: amount - tokenFee,
         expected_allowance: [],
         expires_at: [],
@@ -205,15 +205,15 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
         },
       },
     ]);
+    console.log(`Approve result:`, approveResult);
     if (approveResult === undefined) {
       throw new Error(`Failed to approve ${amount}: icrc2_approve returned an undefined result`);
     } 
-    if ("err" in approveResult) {
-      throw new Error(`Failed to approve ${amount}: ${approveResult.err}`);
+    if ("Err" in approveResult) {
+      console.error(`Error approving ${amount}:`, approveResult.Err);
+      throw new Error(`Failed to approve ${amount}`);
     }
-    // Need to subtract the token fee that will be required by the transfer_from
-    // and the fee that was charged for the approval
-    return amount - 2n * tokenFee;
+    return { tokenFee, approveCalled: true };
   };
 
   const { call: icrc1BalanceOf } = actor.useQueryCall({

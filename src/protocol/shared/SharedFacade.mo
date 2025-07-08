@@ -35,7 +35,7 @@ module {
     type UserSupply = Types.UserSupply;
     type LoanPosition = LendingTypes.LoanPosition;
     type BorrowOperation = LendingTypes.BorrowOperation;
-    type OperationKindArgs = LendingTypes.OperationKindArgs;
+    type OperationKind = LendingTypes.OperationKind;
     type ProtocolInfo = Types.ProtocolInfo;
 
     public class SharedFacade({
@@ -126,17 +126,19 @@ module {
         public func run_borrow_operation({
             caller: Principal;
             subaccount: ?Blob;
-            args: OperationKindArgs;
+            amount: Nat;
+            kind: OperationKind;
         }) : async* Result<BorrowOperation, Text> {
-            await* controller.run_borrow_operation( { account = { owner = caller; subaccount; }; kind = args; } );
+            await* controller.run_borrow_operation( { account = { owner = caller; subaccount; }; amount; kind; } );
         };
 
         public func run_borrow_operation_for_free({
             caller: Principal;
             subaccount: ?Blob;
-            args: OperationKindArgs;
+            amount: Nat;
+            kind: OperationKind;
         }) : Result<BorrowOperation, Text> {
-            controller.run_borrow_operation_for_free( { account = { owner = caller; subaccount; }; kind = args; } );
+            controller.run_borrow_operation_for_free( { account = { owner = caller; subaccount; }; amount; kind; } );
         };
 
         public func get_loan_position(account: Account) : LoanPosition {
