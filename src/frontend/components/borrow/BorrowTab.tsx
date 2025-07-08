@@ -10,6 +10,8 @@ import DualLabel from "../common/DualLabel";
 import { aprToApy, getHealthColor } from "../../utils/lending";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { formatAmountCompact } from "../../utils/conversions/token";
+import { UNDEFINED_SCALAR } from "../../constants";
+import HealthFactor from "./HealthFactor";
 
 const BorrowTab = () => {
 
@@ -104,7 +106,7 @@ const BorrowTab = () => {
 
     const loan = fromNullableExt(loanPosition?.loan);
     const rawBorrowed = loan?.raw_borrowed ?? 0n;
-    const health = loan?.health ?? 0;
+    const health = loan?.health;
     const currentOwed = loan?.current_owed ?? 0;
     const ltv = loan?.ltv ?? 0;
     const requiredRepayment = loan?.required_repayment ?? 0;
@@ -112,12 +114,15 @@ const BorrowTab = () => {
     const borrowApy = indexerState?.borrow_rate ? aprToApy(indexerState?.borrow_rate) : 0;
     
     var netWorth = 0;
-    var netApy = 0;
+    var netApy = undefined;
     const collateralUsd = collateralLedger.convertToUsd(collateral);
     const borrowedUsd = supplyLedger.convertToUsd(rawBorrowed);
     if (collateralUsd !== undefined && borrowedUsd !== undefined) {
       netWorth = collateralUsd - borrowedUsd;
-      netApy = -(borrowedUsd * borrowApy) / netWorth;
+      if (netWorth !== 0) {
+        // @todo: need to add supply APY to netApy
+        netApy = -(borrowedUsd * borrowApy) / netWorth;
+      }
     }
 
     return {
@@ -137,11 +142,8 @@ const BorrowTab = () => {
     <div className="flex flex-col justify-center mt-4 space-y-4">
       <div className="flex flex-row items-center p-2 space-x-4">
         <DualLabel top="Net worth" bottom={formatAmountCompact(netWorth, 2)} />
-        <DualLabel top="Net APY" bottom={`${(netApy * 100).toFixed(2)}%`} />
-        <div className="grid grid-rows-[2fr_3fr] place-items-start">
-          <span className="text-gray-500 dark:text-gray-400 text-sm">Health factor</span>
-          <span className={`${getHealthColor(health)}`}>{health.toFixed(2)}</span>
-        </div>
+        <DualLabel top="Net APY" bottom={`${netApy === undefined ? UNDEFINED_SCALAR : (netApy * 100).toFixed(2) + "%"}`} />
+        <HealthFactor loan_position={loanPosition} />
       </div>
       <div className="flex flex-col justify-center bg-slate-200 dark:bg-gray-800 rounded p-6 space-y-6">
         <div className="flex flex-col justify-center w-full">

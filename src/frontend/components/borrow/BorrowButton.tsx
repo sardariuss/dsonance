@@ -9,6 +9,7 @@ import { getHealthColor } from "../../utils/lending";
 import { fromNullable } from "@dfinity/utils";
 import useBorrowOperationPreview from "../hooks/useBorrowOperationPreview";
 import { FungibleLedger } from "../hooks/useFungibleLedger";
+import { UNDEFINED_SCALAR } from "../../constants";
 
 export  enum MaxChoiceType {
   WalletBalance = 0,
@@ -24,7 +25,7 @@ interface BorrowButtonProps {
   title: string;
   previewOperation: (amount: bigint) => Promise<Result_1 | undefined>;
   runOperation: (amount: bigint) => Promise<Result_1 | undefined>;
-  health: number;
+  health: number | undefined;
   maxChoice: MaxChoice;
 }
 
@@ -75,7 +76,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
 
   const healthPreview = useMemo(() => {
     if (preview === undefined) {
-      return health;
+      return health; // Use the current health if no preview is available
     }
     if ("ok" in preview) {
       let loan = fromNullable(preview.ok.position.loan);
@@ -171,7 +172,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
               <span className="justify-self-end">
                 { 
                   loadingPreview ? <Spinner size={"25px"}/> : 
-                  healthPreview === undefined ? "N/A" :
+                  healthPreview === undefined ? UNDEFINED_SCALAR :
                     <span className={`text-base justify-self-end font-semibold ${getHealthColor(healthPreview)}`}>
                       { healthPreview.toFixed(2) }
                     </span>
