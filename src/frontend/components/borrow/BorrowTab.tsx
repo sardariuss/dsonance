@@ -112,16 +112,18 @@ const BorrowTab = () => {
     const requiredRepayment = loan?.required_repayment ?? 0;
 
     const borrowApy = indexerState?.borrow_rate ? aprToApy(indexerState?.borrow_rate) : 0;
+    // @todo: need to get the APY from the user
+    const supplyApy = indexerState?.supply_rate ? aprToApy(indexerState?.supply_rate) : 0;
     
     var netWorth = 0;
     var netApy = undefined;
     const collateralUsd = collateralLedger.convertToUsd(collateral);
     const borrowedUsd = supplyLedger.convertToUsd(rawBorrowed);
-    if (collateralUsd !== undefined && borrowedUsd !== undefined) {
-      netWorth = collateralUsd - borrowedUsd;
+    const suppliedUsd = supplyLedger.convertToUsd(userSupply?.amount ?? 0n);
+    if (collateralUsd !== undefined && borrowedUsd !== undefined && suppliedUsd !== undefined) {
+      netWorth = suppliedUsd + collateralUsd - borrowedUsd ;
       if (netWorth !== 0) {
-        // @todo: need to add supply APY to netApy
-        netApy = -(borrowedUsd * borrowApy) / netWorth;
+        netApy = (suppliedUsd * supplyApy - borrowedUsd * borrowApy) / netWorth;
       }
     }
 
