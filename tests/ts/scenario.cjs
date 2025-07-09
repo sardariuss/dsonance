@@ -8,6 +8,7 @@ const { Principal } = require('@dfinity/principal');
 // v4 from UUID
 const { v4: uuidv4 } = require('uuid');
 const seedrandom = require('seedrandom');
+const avatar = require('boring-avatars');
 
 const VOTES_TO_OPEN = [
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
@@ -34,8 +35,7 @@ const VOTES_TO_OPEN = [
 
 const NUM_USERS = 10;
 const BTC_USER_BALANCE = 100_000_000n; // 8 decimals, so 1 BTC
-const USDT_USER_BALANCE = 100_000_000_000n; // 6 decimals, so 100k USDT
-const MEAN_BALLOT_AMOUNT = 50_000_000; // 50 USDT
+const USDT_USER_BALANCE = 1_000_000_000_000n; // 6 decimals, so 1M USDT
 const NUM_VOTES = 5;
 const SCENARIO_DURATION = { 'DAYS': 18n };
 const SCENARIO_TICK_DURATION = { 'DAYS': 3n };
@@ -48,6 +48,14 @@ const USDT_FEE = 10_000n; // 6 decimals, so 1 cent USDT
 const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+const getThumbnail = (id) => {
+    const svg = avatar.default(id, {
+        variant: 'marble',
+        size: 120
+    });
+    return new Uint8Array(Buffer.from(svg, 'utf-8'));
+};
 
 const exponentialRandom = (mean) => {
     return -mean * Math.log(Math.random());
@@ -129,6 +137,16 @@ async function callCanisterMethod() {
         throw new Error("ICP Coins actor is null");
     }
 
+    let lending_parameters = await protocolActor.get_lending_parameters();
+    if (!lending_parameters) {
+        throw new Error("Lending parameters are null");
+    }
+    const { supply_cap, borrow_cap } = lending_parameters;
+    console.log(`USDT supply cap: ${supply_cap}, borrow cap: ${borrow_cap}`);
+
+    const numTicks = BigInt(toNs(SCENARIO_DURATION)) / BigInt(toNs(SCENARIO_TICK_DURATION));
+    const MEAN_BALLOT_AMOUNT = Number(supply_cap) / (NUM_USERS * NUM_VOTES * 0.2 * Number(numTicks));
+
     // Get user actors for each principal in a Map<Principal, Map<string, Actor>>
 
     let userActors = new Map();
@@ -200,7 +218,9 @@ async function callCanisterMethod() {
 
     // A random user opens up a new vote
     for (let i = 0; i < NUM_VOTES; i++) {
-        const args = { text: VOTES_TO_OPEN[i], id: uuidv4(), thumbnail: new Uint8Array(), from_subaccount: [] };
+        const id = uuidv4();
+        const thumbnail = getThumbnail(id);
+        const args = { text: VOTES_TO_OPEN[i], id, thumbnail, from_subaccount: [] };
         getRandomUser(userActors).actors.backend.new_vote(args).then((result) => {
             if ('ok' in result) {
                 console.log('New vote added: ', args.text);
@@ -266,12 +286,16 @@ async function callCanisterMethod() {
             return Number(latest.at(0)[2]); // @todo: remove this hardcoded index
         });
         console.log(`BTC price: ${price_btc} USD`);
-        const usdtAvailableToBorrow = Math.max((utilization.raw_supplied * (1.0 - RESERVE_LIQUIDITY) - utilization.raw_borrowed), 0.0) / 1_000_000; // e6s
+
+        const usdtAvailableFromLiquidity = Math.max((utilization.raw_supplied * (1.0 - RESERVE_LIQUIDITY) - utilization.raw_borrowed), 0.0);
+        const usdtAvailableFromCap = Math.max(Number(borrow_cap) - utilization.raw_borrowed, 0.0);
+        const usdtAvailableToBorrow = Math.min(usdtAvailableFromLiquidity, usdtAvailableFromCap) / 1_000_000; // e6s
+
         const btcCollateralRequired = (usdtAvailableToBorrow / price_btc) / TARGET_LTV;
         console.log(`Available to borrow: ${usdtAvailableToBorrow.toPrecision(6)} USDT, collateral required: ${btcCollateralRequired.toPrecision(8)} BTC`);
         const btcBalance = Number(await actors.btc.icrc1_balance_of({ owner: principal, subaccount: [] })) / 100_000_000; // e8s
         // Borrow up to the maximum available to borrow
-        const collateralAmount =  Math.random() * Math.min(btcCollateralRequired, btcBalance);
+        const collateralAmount =  (0.5 + Math.random() * 0.5) * Math.min(btcCollateralRequired, btcBalance);
         console.log(`Borrowing with collateral amount: ${collateralAmount} BTC`);
         const toBorrow = collateralAmount * TARGET_LTV * price_btc;
         console.log(`To borrow: ${toBorrow} USD`);
