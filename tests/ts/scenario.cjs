@@ -9,6 +9,7 @@ const { Principal } = require('@dfinity/principal');
 const { v4: uuidv4 } = require('uuid');
 const seedrandom = require('seedrandom');
 const avatar = require('boring-avatars');
+const { renderToString } = require('react-dom/server');
 
 const VOTES_TO_OPEN = [
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
@@ -50,10 +51,10 @@ const sleep = (ms) => {
 }
 
 const getThumbnail = (id) => {
-    const svg = avatar.default(id, {
+    const svg = renderToString(avatar.default(id, {
         variant: 'marble',
         size: 120
-    });
+    }));
     return new Uint8Array(Buffer.from(svg, 'utf-8'));
 };
 
