@@ -17,6 +17,7 @@ import { useBallotPreview } from "./hooks/useBallotPreview";
 import { DurationUnit } from "../utils/conversions/durationUnit";
 import IntervalPicker from "./charts/IntervalPicker";
 import ChartToggle, { ChartType } from "./charts/ChartToggle";
+import { createThumbnailUrl } from "../utils/thumbnail";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -84,12 +85,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
     resetVote();
   }, [vote]);
 
-  const thumbnail = useMemo(() => {
-    const byteArray = new Uint8Array(vote.info.thumbnail);
-    const blob = new Blob([byteArray]);
-    return URL.createObjectURL(blob);
-  }
-  , [vote]);
+  const thumbnail = useMemo(() => createThumbnailUrl(vote.info.thumbnail), [vote]);
 
   return (
     <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>

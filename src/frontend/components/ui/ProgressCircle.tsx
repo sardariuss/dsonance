@@ -31,7 +31,8 @@ const ProgressCircle: React.FC<ProgressCircleProps> = ({
         <path
           className="text-green-500 dark:text-green-400"
           d="M18 2.0845
-             a 15.9155 15.9155 0 0 1 0 31.831"
+             a 15.9155 15.9155 0 0 1 0 31.831
+             a 15.9155 15.9155 0 0 1 0 -31.831"
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}

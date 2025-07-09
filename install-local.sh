@@ -67,6 +67,7 @@ wait
 
 # Deploy protocol canister
 # https://www.desmos.com/calculator/8iww2wlp2t
+# https://www.desmos.com/calculator/xqndi7hnws
 # dissent_steepness be in [0; 1[ - the closer to 1 the steepest (the less the majority is rewarded)
 # consent_steepness be in [0; 0.25] - the closer to 0 the steepest
 # 216 seconds timer interval, with a 100x dilation factor, means 6 hours in simulated time
@@ -82,7 +83,7 @@ dfx deploy protocol --argument '( variant {
       age_coefficient = 0.25;
       max_age = variant { YEARS = 4 };
       ballot_half_life = variant { YEARS = 1 };
-      nominal_lock_duration = variant { DAYS = 3 };
+      nominal_lock_duration = variant { HOURS = 1 };
       minimum_ballot_amount = 1_000_000;
       dissent_steepness = 0.55;
       consent_steepness = 0.1;

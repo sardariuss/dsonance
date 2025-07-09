@@ -2,6 +2,7 @@ import { VoteDetails } from "../utils/conversions/votedetails";
 import ConsensusIndicator from "./ConsensusIndicator";
 import { useMemo } from "react";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
+import { createThumbnailUrl } from "../utils/thumbnail";
 
 interface VoteCardProps {
   tvl: bigint;
@@ -13,11 +14,7 @@ interface VoteCardProps {
 const VoteCard: React.FC<VoteCardProps> = ({ tvl, voteDetails, text, thumbnail }) => {
   const { supplyLedger } = useFungibleLedgerContext();
 
-  const thumbnailUrl = useMemo(() => {
-    const byteArray = new Uint8Array(thumbnail);
-    const blob = new Blob([byteArray]);
-    return URL.createObjectURL(blob);
-  }, [thumbnail]);
+  const thumbnailUrl = useMemo(() => createThumbnailUrl(thumbnail), [thumbnail]);
 
   return (
     <div className="relative flex flex-col h-full min-h-28">

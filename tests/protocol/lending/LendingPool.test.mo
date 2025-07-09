@@ -15,6 +15,9 @@ import Map "mo:map/Map";
 import Set "mo:map/Set";
 import Fuzz "mo:fuzz";
 import Result "mo:base/Result";
+import Debug "mo:base/Debug";
+import Int "mo:base/Int";
+import Float "mo:base/Float";
 
 import { verify; Testify; } = "../../utils/Testify";
 
@@ -47,6 +50,13 @@ await suite("LendingPool", func(): async() {
             { utilization = 0.8; rate = 0.20 },
             { utilization = 1.0; rate = 1.00 },
         ];
+    };
+
+    func unwrap<T>(value: ?T) : T {
+        switch(value) {
+            case (?v) { v; };
+            case (null) { Debug.trap("Value is null") };
+        };
     };
 
     await test("Nominal test", func() : async() {
@@ -201,8 +211,13 @@ await suite("LendingPool", func(): async() {
 
         // === Borrower Repayment ===
 
-        // Borrower repays FULL amount, got to 201 tokens to account for accrued interest
-        let repay_result = await* borrow_registry.run_operation({ account = borrower; kind = #REPAY_SUPPLY({ repayment = #FULL }); });
+        // Borrower repays full amount, got to 201 tokens to account for accrued interest
+        let { current_owed } = unwrap(borrow_registry.get_loan_position(borrower).loan);
+        let repay_result = await* borrow_registry.run_operation({ 
+            account = borrower;
+            amount = Int.abs(Float.toInt(current_owed));
+            kind = #REPAY_SUPPLY({ max_slippage_amount = 1; }); // Use slippage of 1 because the amount has been truncated
+        });
         verify(Result.isOk(repay_result), true, Testify.bool.equal);
 
         // Protocol should receive more tokens than it lent out due to interest
@@ -236,7 +251,8 @@ await suite("LendingPool", func(): async() {
         // Borrower withdraw 5000 worth of collateral
         let collateral_withdrawal_result = await* borrow_registry.run_operation({ 
             account = borrower; 
-            kind = #WITHDRAW_COLLATERAL({ amount = 5000 });
+            amount = 5000;
+            kind = #WITHDRAW_COLLATERAL;
         });
         verify(Result.isOk(collateral_withdrawal_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (protocol, 0), (lender, 0), (borrower, 5_000) ], equal_balances);
@@ -346,12 +362,12 @@ await suite("LendingPool", func(): async() {
         verify(supply_accounting.balances(), [ (dex, 2_000), (protocol, 1_000), (lender, 9_000), (borrower, 10_000) ], equal_balances);
         
         // Borrower supplies 2000 worth of collateral
-        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #PROVIDE_COLLATERAL({ amount = 2000 }); });
+        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 2000; kind = #PROVIDE_COLLATERAL; });
         verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (dex, 0), (protocol, 2_000), (lender, 0), (borrower, 8_000) ], equal_balances);
 
         // Borrower borrows 500 tokens
-        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #BORROW_SUPPLY({ amount = 500 }); });
+        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 500; kind = #BORROW_SUPPLY; });
         verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
         verify(supply_accounting.balances(), [ (dex, 2_000), (protocol, 500), (lender, 9_000), (borrower, 10_500) ], equal_balances);
 
@@ -360,15 +376,7 @@ await suite("LendingPool", func(): async() {
         ignore indexer.get_index();
 
         // Check health before price crash (should be healthy)
-        let before_liquidation = borrow_registry.get_loan_position(borrower);
-        switch (before_liquidation.loan) {
-            case (?loan) {
-                verify(loan.health, 1.0, Testify.float.greaterThan);
-            };
-            case null {
-                assert(false); // Should have a position
-            };
-        };
+        verify(unwrap(borrow_registry.get_loan_position(borrower).loan).health, 1.0, Testify.float.greaterThan);
 
         // Simulate a collateral price crash
         // To stay healthy, price > (borrowed / (collateral * liquidation_threshold))
@@ -381,15 +389,7 @@ await suite("LendingPool", func(): async() {
         ignore indexer.get_index();
 
         // Check health after price crash (should be unhealthy)
-        let after_crash = borrow_registry.get_loan_position(borrower);
-        switch (after_crash.loan) {
-            case (?loan) {
-                verify(loan.health, 1.0, Testify.float.lessThan);
-            };
-            case null {
-                assert(false); // Should have a position
-            };
-        };
+        verify(unwrap(borrow_registry.get_loan_position(borrower).loan).health, 1.0, Testify.float.lessThan);
 
         // Call liquidation
         let liquidation = await* borrow_registry.check_all_positions_and_liquidate();
@@ -398,12 +398,8 @@ await suite("LendingPool", func(): async() {
         // After liquidation, the collateral should have been partially liquidated
         let after_liquidation = borrow_registry.get_loan_position(borrower);
         verify(after_liquidation.collateral, 1_030, Testify.nat.equal); // 2000 - 970 (liquidated)
-        switch (after_liquidation.loan) {
-            case null { assert(false); }; // Not full liquidation, should still have a position
-            case (?loan) {
-                verify(loan.health, 1.0, Testify.float.greaterThan);
-            };
-        };
+        // Not full liquidation, should still have a position
+        verify(unwrap(after_liquidation.loan).health, 1.0, Testify.float.greaterThan);
 
         // 970 collateral was sent to the dex
         verify(collateral_accounting.balances(), [ (dex, 970), (protocol, 1_030), (lender, 0), (borrower, 8_000) ], equal_balances);
@@ -508,12 +504,12 @@ await suite("LendingPool", func(): async() {
         verify(supply_accounting.balances(), [ (protocol, 1_000), (lender, 0), (borrower, 1_000) ], equal_balances);
 
         // Borrower supplies 5000 worth of collateral
-        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #PROVIDE_COLLATERAL({ amount = 5000 }); });
+        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 5000; kind = #PROVIDE_COLLATERAL; });
         verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // Borrower borrows 900 tokens (almost all liquidity)
-        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; kind = #BORROW_SUPPLY({ amount = 900 }); });
+        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 900; kind = #BORROW_SUPPLY; });
         verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
         verify(supply_accounting.balances(), [ (protocol, 100), (lender, 0), (borrower, 1_900) ], equal_balances);
 
@@ -546,7 +542,12 @@ await suite("LendingPool", func(): async() {
 
         // Now, borrower repays 900 tokens
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(3)))), #repeatedly);
-        let repay_result = await* borrow_registry.run_operation({ account = borrower; kind = #REPAY_SUPPLY({ repayment = #FULL }); });
+        let { current_owed } = unwrap(borrow_registry.get_loan_position(borrower).loan);
+        let repay_result = await* borrow_registry.run_operation({ 
+            account = borrower;
+            amount = Int.abs(Float.toInt(current_owed));
+            kind = #REPAY_SUPPLY({ max_slippage_amount = 1; }); // Use slippage of 1 because the amount has been truncated
+        });
         verify(Result.isOk(repay_result), true, Testify.bool.equal);
 
         // After repayment, the withdrawal queue should have processed the rest

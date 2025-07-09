@@ -1,7 +1,7 @@
 import { protocolActor } from "../../actors/ProtocolActor";
 import { fromNullableExt } from "../../utils/conversions/nullable";
 import { TokenLabel } from "../common/TokenLabel";
-import BorrowButton, { MaxChoiceType } from "./BorrowButton";
+import BorrowButton from "./BorrowButton";
 import { OperationKind, Result_1 } from "../../../declarations/protocol/protocol.did";
 import { useMemo } from "react";
 import { useAuth } from "@ic-reactor/react";
@@ -140,7 +140,10 @@ const BorrowTab = () => {
       <div className="flex flex-row items-center p-2 space-x-4">
         <DualLabel top="Net worth" bottom={formatAmountCompact(netWorth, 2)} />
         <DualLabel top="Net APY" bottom={`${netApy === undefined ? UNDEFINED_SCALAR : (netApy * 100).toFixed(2) + "%"}`} />
-        <HealthFactor loan_position={loanPosition} />
+        <div className="grid grid-rows-[2fr_3fr] place-items-start">
+          <span className="text-gray-500 dark:text-gray-400 text-sm">Health factor</span>
+          <HealthFactor loanPosition={loanPosition} />
+        </div>
       </div>
       <div className="flex flex-col justify-center bg-slate-200 dark:bg-gray-800 rounded p-6 space-y-6">
         <div className="flex flex-col justify-center w-full">
@@ -169,7 +172,6 @@ const BorrowTab = () => {
               ledger={collateralLedger}
               previewOperation={(amount) => previewOperation(amount, { "PROVIDE_COLLATERAL" : null })}
               runOperation={(amount) => runOperation(amount, { "PROVIDE_COLLATERAL" : null })}
-              health={health}
               maxLabel="Wallet balance"
               maxValue={collateralLedger.userBalance ?? 0n }
             />
@@ -178,7 +180,6 @@ const BorrowTab = () => {
               ledger={collateralLedger}
               previewOperation={(amount) => previewOperation(amount, { "WITHDRAW_COLLATERAL": null })}
               runOperation={(amount) => runOperation(amount, { "WITHDRAW_COLLATERAL": null })}
-              health={health}
               maxLabel="Available"
               maxValue={collateral} // @todo: change with available to withdraw, should take into account the LTV
             />
@@ -199,7 +200,6 @@ const BorrowTab = () => {
               ledger={supplyLedger}
               previewOperation={(amount) => previewOperation(amount, { "BORROW_SUPPLY": null })}
               runOperation={(amount) => runOperation(amount, { "BORROW_SUPPLY": null })}
-              health={health}
               maxLabel="Available"
               maxValue={supplyLedger.userBalance ?? 0n } // @todo: change with available to borrow, should take into account the LTV
             />
@@ -208,7 +208,6 @@ const BorrowTab = () => {
               ledger={supplyLedger}
               previewOperation={(amount) => previewOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
               runOperation={(amount) => runOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
-              health={health}
               maxLabel="Total owed"
               maxValue={currentOwed}
             />

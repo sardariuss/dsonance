@@ -133,8 +133,11 @@ module {
                 case(null) { return #err("BorrowPositionner: no borrow to remove"); };
                 case(?b) { b; };
             };
+
+            // Do not take more than what is owed
+            let clamp_amount = Float.min(Float.fromInt(amount), Owed.accrue_interests(borrow.owed, index).accrued_amount);
  
-            var remaining = switch(Borrow.slash(borrow, { accrued_amount = Float.fromInt(amount); index; })){
+            var remaining = switch(Borrow.slash(borrow, { accrued_amount = clamp_amount; index; })){
                 case(#err(err)) { return #err(err); };
                 case(#ok(b)) { b; };
             };

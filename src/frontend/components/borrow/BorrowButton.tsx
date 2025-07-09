@@ -2,26 +2,18 @@ import React, { useMemo, useState } from "react";
 import Modal from "../common/Modal";
 import { TokenLabel } from "../common/TokenLabel";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
-import { getTokenName } from "../../utils/metadata";
+import { getTokenName } from "../../utils/metadata"; 
 import { Result_1 } from "@/declarations/protocol/protocol.did";
 import Spinner from "../Spinner";
-import { getHealthColor } from "../../utils/lending";
-import { fromNullable } from "@dfinity/utils";
 import useBorrowOperationPreview from "../hooks/useBorrowOperationPreview";
 import { FungibleLedger } from "../hooks/useFungibleLedger";
-import { UNDEFINED_SCALAR } from "../../constants";
-
-export  enum MaxChoiceType {
-  WalletBalance = 0,
-  Available = 1,
-}
+import HealthFactor from "./HealthFactor";
 
 interface BorrowButtonProps {
   ledger: FungibleLedger;
   title: string;
   previewOperation: (amount: bigint) => Promise<Result_1 | undefined>;
   runOperation: (amount: bigint) => Promise<Result_1 | undefined>;
-  health: number | undefined;
   maxLabel: string;
   maxValue: bigint;
 }
@@ -31,7 +23,6 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
   title,
   previewOperation,
   runOperation,
-  health,
   maxLabel,
   maxValue,
 }) => {
@@ -72,13 +63,9 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
     previewOperation,
   });
 
-  const healthPreview = useMemo(() => {
-    if (preview === undefined) {
-      return health; // Use the current health if no preview is available
-    }
-    if ("ok" in preview) {
-      let loan = fromNullable(preview.ok.position.loan);
-      return loan?.health;
+  const loanPositionPreview = useMemo(() => {
+    if (preview !== undefined && "ok" in preview) {
+      return preview.ok.position;
     }
     return undefined;
   }, [preview]);
@@ -167,15 +154,9 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
             <span className="text-gray-600 dark:text-gray-400 text-sm">Transaction overview</span>
             <div className="grid grid-cols-[auto_auto] border border-gray-300 dark:border-gray-700 rounded-md p-2">
               <span className="text-base">Health factor</span>
-              <span className="justify-self-end">
-                { 
-                  loadingPreview ? <Spinner size={"25px"}/> : 
-                  healthPreview === undefined ? UNDEFINED_SCALAR :
-                    <span className={`text-base justify-self-end font-semibold ${getHealthColor(healthPreview)}`}>
-                      { healthPreview.toFixed(2) }
-                    </span>
-                }
-              </span>
+              <div className="justify-self-end">
+                { loadingPreview ? <Spinner size={"25px"}/> : <HealthFactor loanPosition={loanPositionPreview}/> }
+              </div>
             </div>
           </div>
           <button 

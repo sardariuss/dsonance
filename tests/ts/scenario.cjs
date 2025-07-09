@@ -51,11 +51,12 @@ const sleep = (ms) => {
 }
 
 const getThumbnail = (id) => {
-    const svg = renderToString(avatar.default(id, {
+    const svg = renderToString(avatar.default({name: id.toString()}, {
         variant: 'marble',
         size: 120
     }));
-    return new Uint8Array(Buffer.from(svg, 'utf-8'));
+    const dataUri = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+    return new Uint8Array(Buffer.from(dataUri, 'utf-8'));
 };
 
 const exponentialRandom = (mean) => {
