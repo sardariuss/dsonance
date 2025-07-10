@@ -17,9 +17,8 @@ Dsonance is designed to help communities converge on empirical consensus — sha
 
 * Acelon font: https://www.fontspace.com/acelon-blur-font-f115699
 
-## TODO
+## Improvements
  - The retrieval of the supply and collateral ledgers should not be hardcoded in the frontend be retrieved from the protocol canister
- - The management of decimals should be harmonized in the frontend (see token.tsx and usage)
  - The preview of the foresight and mining shall be fixed
  - The foresight shall not be in the BallotType
  - DebtInfo is used for transfering ckBTC and DSN tokens. It shall only be used for DSN tokens, a new easier type shall be used instead for ckBTC.
