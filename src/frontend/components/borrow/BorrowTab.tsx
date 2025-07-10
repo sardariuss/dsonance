@@ -105,7 +105,8 @@ const BorrowTab = () => {
   };
 
   // Calculate the maximum withdrawable amount based on the collateral and max LTV
-  const computeMaxWithdrawUsd = (
+  // @todo: ideally this should be done in the backend to be consistent.
+  const computeMaxWithdrawableUsd = (
     collateralUsd: number | undefined,
     borrowedUsd: number | undefined,
     maxLtv: number | undefined
@@ -123,7 +124,29 @@ const BorrowTab = () => {
     return maxWithdrawUsd;
   }
 
-  const { collateral, currentOwed, maxWithdrawable, netWorth, netApy } = useMemo(() => {
+  // Calculate the maximum borrowable amount based on the collateral, borrowed amount, and max LTV
+  // @todo: ideally this should be done in the backend to be consistent.
+  const computeMaxBorrowableUsd = (
+    collateralUsd: number | undefined,
+    borrowedUsd: number | undefined,
+    maxLtv: number | undefined
+  ): number => {
+    if (
+      collateralUsd === undefined ||
+      borrowedUsd === undefined ||
+      maxLtv === undefined ||
+      maxLtv <= 0
+    ) {
+      return 0;
+    }
+
+    const maxTotalBorrowUsd = collateralUsd * maxLtv;
+    const remainingBorrowCapacity = maxTotalBorrowUsd - borrowedUsd;
+
+    return Math.max(0, remainingBorrowCapacity);
+  };
+
+  const { collateral, currentOwed, maxWithdrawable, maxBorrowable, netWorth, netApy } = useMemo(() => {
 
     const collateral = loanPosition?.collateral ?? 0n;
 
@@ -148,15 +171,19 @@ const BorrowTab = () => {
       }
     }
 
-    const maxWithdrawableUsd = computeMaxWithdrawUsd(collateralUsd, borrowedUsd, lendingParams?.max_ltv);
+    const maxWithdrawableUsd = computeMaxWithdrawableUsd(collateralUsd, borrowedUsd, lendingParams?.max_ltv);
     const maxWithdrawable = collateralLedger.convertFromUsd(maxWithdrawableUsd) || 0n;
+
+    const maxBorrowableUsd = computeMaxBorrowableUsd(collateralUsd, borrowedUsd, lendingParams?.max_ltv);
+    const maxBorrowable = supplyLedger.convertFromUsd(maxBorrowableUsd) || 0n;
 
     return {
       collateral,
       currentOwed,
-      maxWithdrawable,
       netWorth,
-      netApy
+      netApy,
+      maxWithdrawable,
+      maxBorrowable,
     };
   }, [loanPosition, indexerState]);
 
@@ -198,7 +225,7 @@ const BorrowTab = () => {
               previewOperation={(amount) => previewOperation(amount, { "PROVIDE_COLLATERAL" : null })}
               runOperation={(amount) => runOperation(amount, { "PROVIDE_COLLATERAL" : null })}
               maxLabel="Wallet balance"
-              maxValue={collateralLedger.userBalance ?? 0n }
+              maxAmount={collateralLedger.userBalance ?? 0n }
             />
             <BorrowButton 
               title="Withdraw"
@@ -206,7 +233,7 @@ const BorrowTab = () => {
               previewOperation={(amount) => previewOperation(amount, { "WITHDRAW_COLLATERAL": null })}
               runOperation={(amount) => runOperation(amount, { "WITHDRAW_COLLATERAL": null })}
               maxLabel="Available"
-              maxValue={maxWithdrawable}
+              maxAmount={maxWithdrawable}
             />
           </div>
         </div>
@@ -226,7 +253,7 @@ const BorrowTab = () => {
               previewOperation={(amount) => previewOperation(amount, { "BORROW_SUPPLY": null })}
               runOperation={(amount) => runOperation(amount, { "BORROW_SUPPLY": null })}
               maxLabel="Available"
-              maxValue={supplyLedger.userBalance ?? 0n } // @todo: change with available to borrow, should take into account the LTV
+              maxAmount={maxBorrowable}
             />
             <BorrowButton 
               title="Repay"
@@ -234,7 +261,7 @@ const BorrowTab = () => {
               previewOperation={(amount) => previewOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
               runOperation={(amount) => runOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
               maxLabel="Total owed"
-              maxValue={currentOwed}
+              maxAmount={currentOwed}
             />
           </div>
         </div>

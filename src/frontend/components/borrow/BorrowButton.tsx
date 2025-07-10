@@ -15,7 +15,7 @@ interface BorrowButtonProps {
   previewOperation: (amount: bigint) => Promise<Result_1 | undefined>;
   runOperation: (amount: bigint) => Promise<Result_1 | undefined>;
   maxLabel: string;
-  maxValue: bigint;
+  maxAmount: bigint;
 }
 
 const BorrowButton: React.FC<BorrowButtonProps> = ({
@@ -24,7 +24,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
   previewOperation,
   runOperation,
   maxLabel,
-  maxValue,
+  maxAmount,
 }) => {
 
   const [isVisible, setIsVisible] = useState(false);
@@ -100,7 +100,13 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
                     // Only allow numbers and at most one decimal point
                     if (/^\d*\.?\d*$/.test(value)) {
                       setInputValue(value);
-                      setAmount(toFixedPoint(Number(value), ledger.tokenDecimals) ?? 0n);
+                      let newAmount = toFixedPoint(Number(value), ledger.tokenDecimals) ?? 0n;
+
+                      if (newAmount > maxAmount) {
+                        newAmount = maxAmount;
+                        setInputValue(fromFixedPoint(maxAmount, ledger.tokenDecimals).toString());
+                      }
+                      setAmount(newAmount);
                     }
                   }}
                   onKeyDown={(e) => {
@@ -129,7 +135,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
                 <TokenLabel metadata={ledger.metadata}/>
                 <div className="flex flex-row items-center justify-center space-x-1 text-xs text-gray-600 dark:text-gray-400">
                   <span>{ maxLabel }</span>
-                  <span>{ ledger.formatAmount(maxValue) }</span>
+                  <span>{ ledger.formatAmount(maxAmount) }</span>
                   <button 
                     className="font-semibold hover:bg-gray-300 dark:hover:bg-gray-700 hover:text-black hover:dark:text-white rounded p-1"
                     onClick={() => {
@@ -137,12 +143,12 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
                         console.error("Ledger token decimals not defined");
                         return;
                       }
-                      let inputEquivalent = fromFixedPoint(maxValue, ledger.tokenDecimals);
+                      let inputEquivalent = fromFixedPoint(maxAmount, ledger.tokenDecimals);
                       console.log("Setting max amount: ", inputEquivalent.toString());
                       setInputValue(inputEquivalent.toString());
-                      setAmount(maxValue);
+                      setAmount(maxAmount);
                     }}
-                    disabled={loading || maxValue === 0n} // Disable if loading or no balance
+                    disabled={loading || maxAmount === 0n} // Disable if loading or no balance
                   >
                     MAX
                   </button>
@@ -163,7 +169,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
           <button 
             className={`button-blue text-base w-full`}
             onClick={() => onClick()}
-            disabled={loading || amount === 0n} // Disable if loading or no amount
+            disabled={loading || amount === 0n || amount > maxAmount} // Disable if loading or no amount
           >
             <div className="flex items-center justify-center space-x-2">
               { loading ? <Spinner size={"25px"}/> : <span>{fullTitle}</span> }
