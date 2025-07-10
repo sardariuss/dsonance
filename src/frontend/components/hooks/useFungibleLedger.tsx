@@ -22,6 +22,7 @@ export interface FungibleLedger {
   formatAmount: (amountFixedPoint: bigint | number | undefined, notation?: "standard" | "compact") => string | undefined;
   formatAmountUsd: (amountFixedPoint: bigint | number | undefined, notation?: "standard" | "compact") => string | undefined;
   convertToUsd: (amountFixedPoint: bigint | number | undefined) => number | undefined;
+  convertFromUsd: (amountFixedPoint: number | undefined) => bigint | undefined;
   convertToFixedPoint: (amount: number | undefined) => bigint | undefined;
   convertToFloatingPoint: (amountFixedPoint: bigint | number | undefined) => number | undefined;
   subtractFee?: (amount: bigint) => bigint;
@@ -119,6 +120,13 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     }
     return fromFixedPoint(amount, tokenDecimals) * price;
   }
+
+  const convertFromUsd = (amount: number | undefined) : bigint | undefined => {
+    if (amount === undefined || price === undefined || tokenDecimals === undefined) {
+      return undefined;
+    }
+    return toFixedPoint(amount / price, tokenDecimals);
+  };
 
   const convertToFixedPoint = (amount: number | undefined) : bigint | undefined => {
     if (amount === undefined || tokenDecimals === undefined) {
@@ -285,6 +293,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     formatAmount,
     formatAmountUsd,
     convertToUsd,
+    convertFromUsd,
     convertToFixedPoint,
     convertToFloatingPoint,
     subtractFee,

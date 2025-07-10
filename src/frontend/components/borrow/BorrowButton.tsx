@@ -154,8 +154,9 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
             <span className="text-gray-600 dark:text-gray-400 text-sm">Transaction overview</span>
             <div className="grid grid-cols-[auto_auto] border border-gray-300 dark:border-gray-700 rounded-md p-2">
               <span className="text-base">Health factor</span>
-              <div className="justify-self-end">
+              <div className="flex flex-col items-end justify-self-end">
                 { loadingPreview ? <Spinner size={"25px"}/> : <HealthFactor loanPosition={loanPositionPreview}/> }
+                <span className="text-xs text-gray-400 dark:text-gray-500">Liquidation at &lt;1.0</span>
               </div>
             </div>
           </div>

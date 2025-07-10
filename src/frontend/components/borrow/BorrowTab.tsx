@@ -37,6 +37,10 @@ const BorrowTab = () => {
     args: [account]
   });
 
+  const { data: lendingParams } = protocolActor.useQueryCall({
+    functionName: 'get_lending_parameters',
+  });
+
   const { call: previewBorrowOperation } = protocolActor.useUpdateCall({
     functionName: 'preview_borrow_operation',
   });
@@ -100,26 +104,43 @@ const BorrowTab = () => {
     }
   };
 
-  const { collateral, currentOwed, rawBorrowed, health, netWorth, netApy } = useMemo(() => {
+  // Calculate the maximum withdrawable amount based on the collateral and max LTV
+  const computeMaxWithdrawUsd = (
+    collateralUsd: number | undefined,
+    borrowedUsd: number | undefined,
+    maxLtv: number | undefined
+  ): number => {
+    if (
+      collateralUsd === undefined ||
+      borrowedUsd === undefined ||
+      maxLtv === undefined ||
+      maxLtv <= 0
+    ) {
+      return 0;
+    }
+    // max withdrawal in USD terms
+    const maxWithdrawUsd = Math.max(0, collateralUsd - borrowedUsd / maxLtv);
+    return maxWithdrawUsd;
+  }
+
+  const { collateral, currentOwed, maxWithdrawable, netWorth, netApy } = useMemo(() => {
 
     const collateral = loanPosition?.collateral ?? 0n;
 
     const loan = fromNullableExt(loanPosition?.loan);
-    const rawBorrowed = loan?.raw_borrowed ?? 0n;
-    const health = loan?.health;
     const currentOwed = BigInt(Math.ceil(loan?.current_owed ?? 0));
-    const ltv = loan?.ltv ?? 0;
-    const requiredRepayment = loan?.required_repayment ?? 0;
 
     const borrowApy = indexerState?.borrow_rate ? aprToApy(indexerState?.borrow_rate) : 0;
-    // @todo: need to get the APY from the user
+    // @todo: need to get the APY specific to the user instead of the global indexer state
+    // This is because the user may have a different supply rate based on the proof-of-foresight.
     const supplyApy = indexerState?.supply_rate ? aprToApy(indexerState?.supply_rate) : 0;
     
-    var netWorth = 0;
-    var netApy = undefined;
     const collateralUsd = collateralLedger.convertToUsd(collateral);
-    const borrowedUsd = supplyLedger.convertToUsd(rawBorrowed);
+    const borrowedUsd = supplyLedger.convertToUsd(currentOwed);
     const suppliedUsd = supplyLedger.convertToUsd(userSupply?.amount ?? 0n);
+
+    let netWorth = 0;
+    let netApy = undefined;
     if (collateralUsd !== undefined && borrowedUsd !== undefined && suppliedUsd !== undefined) {
       netWorth = suppliedUsd + collateralUsd - borrowedUsd ;
       if (netWorth !== 0) {
@@ -127,11 +148,13 @@ const BorrowTab = () => {
       }
     }
 
+    const maxWithdrawableUsd = computeMaxWithdrawUsd(collateralUsd, borrowedUsd, lendingParams?.max_ltv);
+    const maxWithdrawable = collateralLedger.convertFromUsd(maxWithdrawableUsd) || 0n;
+
     return {
       collateral,
       currentOwed,
-      rawBorrowed,
-      health,
+      maxWithdrawable,
       netWorth,
       netApy
     };
@@ -183,7 +206,7 @@ const BorrowTab = () => {
               previewOperation={(amount) => previewOperation(amount, { "WITHDRAW_COLLATERAL": null })}
               runOperation={(amount) => runOperation(amount, { "WITHDRAW_COLLATERAL": null })}
               maxLabel="Available"
-              maxValue={collateral} // @todo: change with available to withdraw, should take into account the LTV
+              maxValue={maxWithdrawable}
             />
           </div>
         </div>
