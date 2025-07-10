@@ -30,7 +30,7 @@ module {
         from: Account;
     };
 
-    type BallotPreview<B> = {
+    type PutBallotSuccess<B> = {
         new: Ballot<B>;
         previous: [Ballot<B>];
     };
@@ -63,7 +63,7 @@ module {
             };
         };
 
-        public func put_ballot(vote: Vote<A, B>, choice: B, args: PutBallotArgs) : Ballot<B> {
+        public func put_ballot(vote: Vote<A, B>, choice: B, args: PutBallotArgs) : { new: Ballot<B>; previous: [Ballot<B>] } {
 
             let { vote_id } = vote;
             let { ballot_id; amount; timestamp; } = args;
@@ -85,15 +85,16 @@ module {
                 Timeline.insert(ballot.consent, timestamp, ballot_aggregator.get_consent({ aggregate; choice = ballot.choice; time; }));
             };
 
-            // Update the hotness
-            let ballot = init_ballot({vote_id; choice; args; dissent; consent; });
-            lock_info_updater.add(ballot, vote_ballots(vote), time);
+            // Init the new ballot
+            let new = init_ballot({vote_id; choice; args; dissent; consent; });
+            // Update the hotness of the previous ballots
+            lock_info_updater.add(new, vote_ballots(vote), time);
 
-            // Add the ballot
-            add_ballot(ballot_id, ballot);
+            // Add the ballot to the vote
+            add_ballot(ballot_id, new);
             Set.add(vote.ballots, Set.thash, ballot_id);
 
-            ballot;
+            { new; previous = Iter.toArray(vote_ballots(vote)); };
         };
 
         public func vote_ballots(vote: Vote<A, B>) : Iter<Ballot<B>> {

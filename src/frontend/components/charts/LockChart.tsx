@@ -1,6 +1,6 @@
 import { useMemo, useRef, Fragment, useContext } from 'react';
 import { ResponsiveLine, Serie } from '@nivo/line';
-import { SBallot, SBallotPreview } from '@/declarations/protocol/protocol.did';
+import { SBallot, SPutBallotSuccess } from '@/declarations/protocol/protocol.did';
 import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
 import { computeAdaptiveTicks, computeNiceGridLines } from '.';
 import { nsToMs, timeToDate } from '../../utils/conversions/date';
@@ -42,7 +42,7 @@ type Selectable = {
 
 interface LockChartProps {
   ballots: SBallot[];
-  ballotPreview: SBallotPreview | undefined;
+  ballotPreview: SPutBallotSuccess | undefined;
   durationWindow: DurationUnit | undefined;
   selectable?: Selectable;
 };

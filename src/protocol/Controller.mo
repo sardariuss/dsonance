@@ -282,16 +282,16 @@ module {
             
             let from = { owner = args.caller; subaccount = args.from_subaccount };
 
-            let ballot_type = vote_type_controller.put_ballot({
+            let put_ballot = vote_type_controller.put_ballot({
                 vote_type;
                 choice_type = args.choice_type;
                 args = { args with ballot_id; tx_id; timestamp; from };
             });
 
-            //lock_scheduler.try_unlock(timestamp);
+            ignore lock_scheduler.try_unlock(timestamp);
 
             lock_scheduler.add(
-                BallotUtils.unwrap_lock(ballot_type),
+                BallotUtils.unwrap_lock(put_ballot.new),
                 IterUtils.map<BallotType, Lock>(
                     vote_type_controller.vote_ballots(vote_type),
                     BallotUtils.unwrap_lock
@@ -301,7 +301,7 @@ module {
 
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
 
-            #ok(SharedConversions.shareBallotType(ballot_type))
+            #ok(SharedConversions.sharePutBallotSuccess(put_ballot));
         };
 
         func map_ballots_to_foresight_items(ballot_ids: Set<UUID>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {

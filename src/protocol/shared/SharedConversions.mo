@@ -26,8 +26,8 @@ module {
     type ProtocolParameters = Types.ProtocolParameters;
     type SProtocolParameters = Types.SProtocolParameters;
     type ProtocolInfo = Types.ProtocolInfo;
-    type BallotPreview = Types.BallotPreview;
-    type SBallotPreview = Types.SBallotPreview;
+    type PutBallotSuccess = Types.PutBallotSuccess;
+    type SPutBallotSuccess = Types.SPutBallotSuccess;
     type VoteType = Types.VoteType;
     type SVoteType = Types.SVoteType;
     type YieldState = Types.YieldState;
@@ -105,7 +105,7 @@ module {
         };
     };
 
-    public func shareBallotPreview(preview: BallotPreview) : SBallotPreview {
+    public func sharePutBallotSuccess(preview: PutBallotSuccess) : SPutBallotSuccess {
         {
             new = shareBallotType(preview.new);
             previous = Array.map<BallotType, SBallotType>(preview.previous, shareBallotType);

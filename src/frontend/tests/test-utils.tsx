@@ -10,7 +10,7 @@ import { ProtocolProvider } from '../components/context/ProtocolContext';
 import { FungibleLedgerProvider } from '../components/context/FungibleLedgerContext';
 import { IcpCoinsActorProvider } from '../actors/IcpCoinsActor';
 
-const AllTheProviders = ({ children }) => {
+const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   return (
     <AgentProvider withProcessEnv>
       <BackendActorProvider>
@@ -32,7 +32,7 @@ const AllTheProviders = ({ children }) => {
   );
 };
 
-const customRender = (ui, options) =>
+const customRender = (ui: React.ReactElement, options?: any) =>
   render(ui, { wrapper: AllTheProviders, ...options });
 
 export * from '@testing-library/react';

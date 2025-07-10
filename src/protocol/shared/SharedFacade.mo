@@ -29,8 +29,8 @@ module {
     type SVoteType = Types.SVoteType;
     type SDebtInfo = Types.SDebtInfo;
     type DebtRecord = Types.DebtRecord;
-    type BallotPreview = Types.BallotPreview;
-    type SBallotPreview = Types.SBallotPreview;
+    type PutBallotSuccess = Types.PutBallotSuccess;
+    type SPutBallotSuccess = Types.SPutBallotSuccess;
     type SYieldState = Types.SYieldState;
     type UserSupply = Types.UserSupply;
     type LoanPosition = LendingTypes.LoanPosition;

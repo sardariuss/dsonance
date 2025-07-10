@@ -147,7 +147,8 @@ async function callCanisterMethod() {
     console.log(`USDT supply cap: ${supply_cap}, borrow cap: ${borrow_cap}`);
 
     const numTicks = BigInt(toNs(SCENARIO_DURATION)) / BigInt(toNs(SCENARIO_TICK_DURATION));
-    const MEAN_BALLOT_AMOUNT = Number(supply_cap) / (NUM_USERS * NUM_VOTES * 0.2 * Number(numTicks));
+    // Target half the supply cap
+    const meanBallotAmount = 0.5 * Number(supply_cap) / (NUM_USERS * NUM_VOTES * 0.2 * Number(numTicks));
 
     // Get user actors for each principal in a Map<Principal, Map<string, Actor>>
 
@@ -263,7 +264,7 @@ async function callCanisterMethod() {
                             vote_id,
                             id: uuidv4(),
                             from_subaccount: [],
-                            amount: BigInt(Math.floor(exponentialRandom(MEAN_BALLOT_AMOUNT))),
+                            amount: BigInt(Math.floor(exponentialRandom(meanBallotAmount))),
                             choice_type: { 'YES_NO': Math.random() < yesProbability ? { 'YES': null } : { 'NO': null } }
                         }).then((result) => {
                             if (!result) {

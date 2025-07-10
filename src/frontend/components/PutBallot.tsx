@@ -76,7 +76,7 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
         }
         refreshUserBalance();
         // Ballot successfully put, navigate to the ballot page
-        navigate(`/?tab=your_ballots\&ballotId=${result.ok.YES_NO.ballot_id}`);
+        navigate(`/?tab=your_ballots\&ballotId=${result.ok.new.YES_NO.ballot_id}`);
       });
     }).catch((error) => {
       console.error("Error during put ballot:", error);

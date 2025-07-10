@@ -17,7 +17,7 @@ module {
     type UUID           = Types.UUID;
     type BallotType     = Types.BallotType;
     type Account        = Types.Account;
-    type BallotPreview  = Types.BallotPreview;
+    type PutBallotSuccess  = Types.PutBallotSuccess;
     
     type Iter<T>        = Map.Iter<T>;
 
@@ -34,9 +34,12 @@ module {
             };
         };
 
-        public func put_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : BallotType {
+        public func put_ballot({ vote_type: VoteType; choice_type: ChoiceType; args: PutBallotArgs; }) : { new: BallotType; previous: [BallotType] } {
             switch(vote_type, choice_type){
-                case(#YES_NO(vote), #YES_NO(choice)) { #YES_NO(yes_no_controller.put_ballot(vote, choice, args)); };
+                case(#YES_NO(vote), #YES_NO(choice)) { 
+                    let { new; previous; } = (yes_no_controller.put_ballot(vote, choice, args));
+                    { new = #YES_NO(new); previous = Array.map(previous, func(b: YesNoBallot) : BallotType { #YES_NO(b); }) };
+                };
             };
         };
 

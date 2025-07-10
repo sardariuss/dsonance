@@ -149,18 +149,15 @@ const BorrowTab = () => {
   const { collateral, currentOwed, maxWithdrawable, maxBorrowable, netWorth, netApy } = useMemo(() => {
 
     const collateral = loanPosition?.collateral ?? 0n;
-
     const loan = fromNullableExt(loanPosition?.loan);
     const currentOwed = BigInt(Math.ceil(loan?.current_owed ?? 0));
 
-    const borrowApy = indexerState?.borrow_rate ? aprToApy(indexerState?.borrow_rate) : 0;
-    // @todo: need to get the APY specific to the user instead of the global indexer state
-    // This is because the user may have a different supply rate based on the proof-of-foresight.
-    const supplyApy = indexerState?.supply_rate ? aprToApy(indexerState?.supply_rate) : 0;
-    
     const collateralUsd = collateralLedger.convertToUsd(collateral);
     const borrowedUsd = supplyLedger.convertToUsd(currentOwed);
     const suppliedUsd = supplyLedger.convertToUsd(userSupply?.amount ?? 0n);
+    
+    const borrowApy = indexerState?.borrow_rate ? aprToApy(indexerState?.borrow_rate) : 0;
+    const supplyApy = userSupply?.apr ? aprToApy(userSupply?.apr) : 0;
 
     let netWorth = 0;
     let netApy = undefined;
