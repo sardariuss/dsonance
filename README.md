@@ -6,12 +6,29 @@ _My views are changing as much as the world itself is changing. Your views shoul
 
 Dsonance is designed to help communities converge on empirical consensus — shared agreement on claims that can be evaluated based on evidence, observation, and reasoning. This includes scientific findings, historical facts, and other truth-based knowledge.
 
-## Canister arguments
+## Installation
 
-* `deposit_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the ballots (aims to be ckBTC)
-* `reward_ledger`: the principal of the ICRC-1/ICRC-2 ledger used for the rewards
-* `parameters.nominal_lock_duration`: the duration of the lock for 1 satoshi
-* `parameters.ballot_half_life`: used to compute the effect of other ballots on a given ballot to update the lock date, so that the shorter (resp. the longer) the timespan between the date of that ballot and the others, the more (resp. the less) time is added to the ballot's lock. The same parameter is used to make the ballot decay
+You need to install Node.js and the internet computer SDK: https://internetcomputer.org/docs/building-apps/getting-started/install
+
+You also need mops: https://cli.mops.one/
+
+Then you can install the project dependencies with:
+
+```bash
+npm install
+mops install
+```
+
+Then you're ready to build the project locally:
+
+```bash
+dfx start --background --clean
+./install-local
+node test/ts/scenario.cjs
+npm run start
+```
+
+The frontend should be available on localhost:3000
 
 ## Credits
 
@@ -23,4 +40,3 @@ Dsonance is designed to help communities converge on empirical consensus — sha
  - The foresight shall not be in the BallotType
  - DebtInfo is used for transfering ckBTC and DSN tokens. It shall only be used for DSN tokens, a new easier type shall be used instead for ckBTC.
  - The DebtProcessor shall be reworked so the transfer are done asynchronously by the user or at the finalization of the disbursement.
- 
