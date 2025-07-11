@@ -23,9 +23,16 @@ Then you're ready to build the project locally:
 
 ```bash
 dfx start --background --clean
-./install-local
+./install-local.sh
 node test/ts/scenario.cjs
 npm run start
+```
+
+⚠️ In install-local.sh the internet identity canister is installed with dfx deps which requires an internet connection. If the script ever fails during this stage, try to run these 3 lines before running the script:
+```bash
+dfx deps pull
+dfx deps init
+dfx deps deploy internet_identity
 ```
 
 The frontend should be available on localhost:3000
