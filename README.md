@@ -24,7 +24,9 @@ Then you're ready to build the project locally:
 ```bash
 dfx start --background --clean
 ./install-local.sh
-node test/ts/scenario.cjs
+cd test/ts
+node scenario.cjs
+cd -
 npm run start
 ```
 
