@@ -1,4 +1,3 @@
-
 import { Link, useParams } from "react-router-dom";
 import { useMemo, useState } from "react";
 import Wallet from "../Wallet";
@@ -10,6 +9,7 @@ import { useAuth } from "@ic-reactor/react";
 import { Account } from "@/declarations/ck_btc/ck_btc.did";
 import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
 import LogoutIcon from "../icons/LogoutIcon";
+import Avatar from "boring-avatars";
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -21,6 +21,14 @@ const accountToString = (account: Account | undefined) : string =>  {
     }
   }
   return str;
+}
+
+const truncateAccount = (accountStr: string) => {
+  // Truncate to show first 5 and last 3 characters
+  if (accountStr.length > 10) {
+    return accountStr.substring(0, 5) + "..." + accountStr.substring(accountStr.length - 3);
+  }
+  return accountStr;
 }
 
 const User = () => {
@@ -53,15 +61,23 @@ const User = () => {
     <div className="flex flex-col gap-y-4 items-center bg-slate-50 dark:bg-slate-850 h-full sm:h-auto p-4 sm:my-4 sm:rounded-md w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
       <div className="relative group">
         <div className="flex flex-row items-center space-x-2">
-          <span
-            className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white font-medium self-center hover:cursor-pointer"
-            onClick={handleCopy}
-          >
-            {accountToString(account)}
-          </span>
+          <Avatar
+            size={isMobile ? 40 : 60}
+            name={identity.getPrincipal().toString()}
+            variant="marble"
+          />
+          <div className="flex flex-col space-y-1">
+            <span>New user</span>
+            <span
+              className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white bg-gray-300 dark:bg-gray-700 rounded-md px-2 py-1 font-medium self-center hover:cursor-pointer"
+              onClick={handleCopy}
+            >
+              {truncateAccount(accountToString(account))}
+            </span>
+          </div>
           { identity.getPrincipal().toString() === principal && 
             <Link 
-              className="self-end fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white p-2.5 rounded-lg hover:cursor-pointer"
+              className="fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white p-2.5 rounded-lg hover:cursor-pointer"
               onClick={()=>{logout()}}
               to="/">
               <LogoutIcon />

@@ -10,6 +10,7 @@ import { Identity } from "@dfinity/agent";
 import ThemeToggle from "./ThemeToggle";
 import Balance from "./Balance";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
+import Avatar from "boring-avatars";
 
 interface HeaderProps {
   authenticated: boolean;
@@ -57,8 +58,13 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
           <Balance ledger={collateralLedger} amount={collateralLedger.userBalance}/>
           <div>
           { authenticated && identity ? 
-            <Link className="flex stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${identity.getPrincipal()}`}>
-              <UserIcon />
+            <Link className="flex items-center space-x-2 stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${identity.getPrincipal()}`}>
+              <Avatar
+                size={32}
+                name={identity.getPrincipal().toString()}
+                variant="marble"
+              />
+              <span className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white">New user</span>
             </Link> :
             <div className="flex fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white rounded-lg hover:cursor-pointer" onClick={() => { login() }}>
               <LoginIcon /> 
@@ -178,8 +184,12 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 to={`/user/${identity.getPrincipal()}`}
                 onClick={() => setShowMenu(false)}
               >
-                <UserIcon />
-                <span className="cols-span-11">Profile</span>
+                <Avatar
+                  size={24}
+                  name={identity.getPrincipal().toString()}
+                  variant="marble"
+                />
+                <span className="cols-span-11 ml-2">New user</span>
               </Link>
             ) : (
               <div
