@@ -2,6 +2,7 @@ import { formatDuration } from "../utils/conversions/durationUnit";
 import { get_current } from "../utils/timeline";
 import { unwrapLock } from "../utils/conversions/ballot";
 import { SBallot } from "@/declarations/protocol/protocol.did";
+import { aprToApy } from "../utils/lending";
 
 interface PutBallotPreviewProps {
   ballotPreview: SBallot | undefined;
@@ -19,12 +20,12 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ ballotPreview }) =>
       {[
         { label: "Dissent", value: ballotPreview ? ballotPreview.dissent.toFixed(3) : defaultValue },
         {
-          label: "APR (current)",
-          value: ballotPreview ? (ballotPreview.foresight.current.data.apr.current * 100).toFixed(2) + "%" : defaultValue,
+          label: "APY (current)",
+          value: ballotPreview ? (aprToApy(ballotPreview.foresight.current.data.apr.current) * 100).toFixed(2) + "%" : defaultValue,
         },
         {
-          label: "APR (potential)",
-          value: ballotPreview ? (ballotPreview.foresight.current.data.apr.potential * 100).toFixed(2) + "%" : defaultValue,
+          label: "APY (potential)",
+          value: ballotPreview ? (aprToApy(ballotPreview.foresight.current.data.apr.potential) * 100).toFixed(2) + "%" : defaultValue,
         },
         // @int: DSN minted temporarily disabled
         //{

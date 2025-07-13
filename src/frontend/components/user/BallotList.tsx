@@ -14,7 +14,6 @@ import IntervalPicker from "../charts/IntervalPicker";
 import { DurationUnit } from "../../utils/conversions/durationUnit";
 import LockChart from "../charts/LockChart";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
-import Balance from "../Balance";
 
 type BallotEntries = {
   ballots: SBallotType[];
@@ -90,8 +89,6 @@ const BallotList = () => {
     fetchBallots(account, ballotEntries, filterActive).then(setBallotEntries);
   }
 
-  const { supplyLedger } = useFungibleLedgerContext();
-
   const { info, refreshInfo } = useProtocolContext();
 
   const { call: getBallots } = protocolActor.useQueryCall({
@@ -103,15 +100,9 @@ const BallotList = () => {
     subaccount: []
   }), [identity]);
 
-  const { data: lockedAmount, call: refreshLockedAmount } = protocolActor.useQueryCall({
-    functionName: "get_user_supply",
-    args: [{ account }],
-  });
-
   useEffect(() => {
     refreshInfo();
     fetchBallots(account, ballotEntries, filterActive).then(setBallotEntries);
-    refreshLockedAmount();
   }, []);
 
   const toggleFilterActive = (active: boolean) => {
@@ -136,14 +127,6 @@ const BallotList = () => {
   
   return (
     <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 p-2 rounded w-full">
-      <div className="flex flex-row w-full space-x-1 justify-center items-baseline pt-5">
-        <span>Total locked:</span>
-        {
-          lockedAmount !== undefined ?
-          <Balance ledger={supplyLedger} amount={lockedAmount.amount}/> :
-          <span className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse self-center"/>
-        }
-      </div>
       { ballotEntries.ballots.length > 0 && 
         <div className={`flex flex-col justify-between items-center w-full py-2 sm:py-6 w-full h-[300px] space-y-2`}>
           <LockChart

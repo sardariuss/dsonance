@@ -102,7 +102,7 @@ module {
             before_change = func({ time: Nat; state: LockState; }){};
             after_change = func({ time: Nat; event: LockEvent; state: LockState; }){
                 
-                // Update the bal lots foresights
+                // Update the ballots foresights
                 foresight_updater.update_foresights();
 
                 let { ballot; diff; } = switch(event){

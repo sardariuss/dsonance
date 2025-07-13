@@ -14,6 +14,8 @@ import { toEnum } from "../../utils/conversions/yesnochoice";
 import { useMediaQuery } from "react-responsive";
 import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
+import { createThumbnailUrl } from "../../utils/thumbnail";
+import { aprToApy } from "../../utils/lending";
 
 interface VoteTextProps {
   vote: SYesNoVote | undefined;
@@ -79,13 +81,11 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
     return opt_vote ? fromNullable(opt_vote) : undefined;
   }, [opt_vote]);
 
-  const thumbnail = useMemo(() => {
+  const thumbnailUrl = useMemo(() => {
     if (vote === undefined) {
       return undefined;
     }
-    const byteArray = new Uint8Array(vote.info.thumbnail);
-    const blob = new Blob([byteArray]);
-    return URL.createObjectURL(blob);
+    return createThumbnailUrl(vote.info.thumbnail)
   }, [vote]);
 
   return (
@@ -96,7 +96,7 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
         {/* Thumbnail Image */}
         <img 
           className="w-10 h-10 min-w-10 min-h-10 bg-contain bg-no-repeat bg-center rounded-md" 
-          src={thumbnail}
+          src={thumbnailUrl}
           alt="Vote Thumbnail"
         />
 
@@ -132,9 +132,9 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
         </div> */}
 
         <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">APR</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">APY</span>
           <span className="font-semibold [text-shadow:0px_0px_10px_rgb(59,130,246)]">
-            {`${(foresightAPR * 100).toFixed(2)}%`}
+            {`${(aprToApy(foresightAPR) * 100).toFixed(2)}%`}
           </span>
         </div>
 

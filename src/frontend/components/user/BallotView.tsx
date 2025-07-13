@@ -17,6 +17,7 @@ import { fromNullable } from "@dfinity/utils";
 import { toEnum } from "../../utils/conversions/yesnochoice";
 import ChoiceView from "../ChoiceView";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
+import { createThumbnailUrl } from "../../utils/thumbnail";
 
 enum CHART_TOGGLE {
     DURATION,
@@ -229,14 +230,12 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
 //  }
 //  , [debtInfo]);
 
-  const thumbnail = useMemo(() => {
+  const thumbnailUrl = useMemo(() => {
     if (actualVote === undefined) {
       return undefined;
     }
-    const byteArray = new Uint8Array(actualVote.info.thumbnail);
-    const blob = new Blob([byteArray]);
-    return URL.createObjectURL(blob);
-  }, [actualVote]);
+    return createThumbnailUrl(actualVote.info.thumbnail)
+  }, [vote]);
 
   return (
     <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>
@@ -245,7 +244,7 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
         {/* Thumbnail Image */}
         <img 
           className="w-20 h-20 bg-contain bg-no-repeat bg-center rounded-md" 
-          src={thumbnail}
+          src={thumbnailUrl}
           alt="Vote Thumbnail"
         />
         {/* Vote Text */}

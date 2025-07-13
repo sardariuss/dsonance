@@ -131,10 +131,16 @@ module {
                 case(#ok(input)) { input; };
             };
 
+            // TODO: this preview is somehow required to trigger the update of the foresight
+            // Why? Because currently the foresight updater is filtering out the items based on the timestamp,
+            // adding a position, even with a supplied amount of 0, will update the indexer's timestamp.
             let preview_result = supply_registry.add_position_without_transfer({
                 id = ballot_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
-                supplied = args.amount;
+                // TODO: the supplied amount is set to 0 to not impact the supply APY in the preview, because
+                // it can lead to a miscomprehension of the ballot APY preview. Ideally, one should have a way
+                // to preview with our without the impact on the supply APY.
+                supplied = 0;
             });
 
             let tx_id = switch(preview_result){
