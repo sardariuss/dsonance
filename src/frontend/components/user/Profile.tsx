@@ -32,12 +32,14 @@ const truncateAccount = (accountStr: string) => {
   return accountStr;
 }
 
-const User = () => {
+const Profile = () => {
   
   const { principal } = useParams();
   const { identity, logout } = useAuth();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
-  const { user, updateNickname } = useUser();
+  const { user, updateNickname, loading } = useUser();
+  const [isEditingNickname, setIsEditingNickname] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState("");
 
   if (!principal || !identity) {
     return <div>Invalid principal</div>;
@@ -55,6 +57,25 @@ const User = () => {
     setTimeout(() => setCopied(false), 2000); // Hide tooltip after 2 seconds
   };
 
+  const handleEditNickname = () => {
+    setNicknameInput(user?.nickname || "");
+    setIsEditingNickname(true);
+  };
+
+  const handleSaveNickname = async () => {
+    if (nicknameInput.trim()) {
+      const success = await updateNickname(nicknameInput.trim());
+      if (success) {
+        setIsEditingNickname(false);
+      }
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingNickname(false);
+    setNicknameInput("");
+  };
+
   if (principal !== identity.getPrincipal().toString()) {
     return <div>Unauthorized</div>;
   }
@@ -69,7 +90,38 @@ const User = () => {
             variant="marble"
           />
           <div className="flex flex-col space-y-1">
-            <span>New user</span>
+            {isEditingNickname ? (
+              <div className="flex flex-row items-center space-x-2">
+                <input
+                  type="text"
+                  value={nicknameInput}
+                  onChange={(e) => setNicknameInput(e.target.value)}
+                  className="px-2 py-1 border rounded-md text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder="Enter nickname"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname()}
+                />
+                <button
+                  onClick={handleSaveNickname}
+                  className="px-2 py-1 bg-blue-500 text-white rounded-md text-xs hover:bg-blue-600"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-2 py-1 bg-gray-500 text-white rounded-md text-xs hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <span
+                className="hover:cursor-pointer hover:text-blue-500 dark:hover:text-blue-400"
+                onClick={handleEditNickname}
+              >
+                {user?.nickname}
+              </span>
+            )}
             <span
               className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white bg-gray-300 dark:bg-gray-700 rounded-md px-2 py-1 font-medium self-center hover:cursor-pointer"
               onClick={handleCopy}
@@ -109,4 +161,4 @@ const User = () => {
   );
 }
 
-export default User;
+export default Profile;

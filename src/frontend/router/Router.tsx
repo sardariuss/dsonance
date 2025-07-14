@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 
 import Home from "../components/Home";
-import User from "../components/user/User";
+import Profile from "../components/user/Profile";
 import Dashboard from "../components/Dashboard";
 import Vote from "../components/Vote";
 import NewVote from "../components/NewVote";
@@ -15,7 +15,7 @@ const Router = () => {
         <Route path={"/"} element={<Home />} />
         <Route path={"/new"} element={<NewVote />} />
         <Route path={"/dashboard"} element={<Dashboard />} />
-        <Route path={"/user/:principal"} element={<User />} />
+        <Route path={"/user/:principal"} element={<Profile />} />
         <Route path={"/vote/:id"} element={<Vote />} />
         <Route path={"/ballot/:id"} element={<Ballot />} />
         <Route path={"/borrow"} element={<BorrowTab/>} />
