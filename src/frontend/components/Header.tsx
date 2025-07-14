@@ -2,23 +2,22 @@ import { Link, useLocation, useNavigate }      from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
-import UserIcon from "./icons/UserIcon";
 import LoginIcon from "./icons/LoginIcon";
 import Logo from "./icons/Logo";
 import { useMediaQuery } from "react-responsive";
-import { Identity } from "@dfinity/agent";
 import ThemeToggle from "./ThemeToggle";
 import Balance from "./Balance";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import Avatar from "boring-avatars";
+import { useUser } from "./hooks/useUser";
+import { User } from "@/declarations/backend/backend.did";
 
 interface HeaderProps {
-  authenticated: boolean;
-  identity: Identity | null;
+  user: User | null;
   login: () => void;
 }
 
-const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }) => {
+const DesktopHeader: React.FC<HeaderProps> = ({ user, login }) => {
 
   const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
 
@@ -47,7 +46,7 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/"}>
             Vote
           </Link>
-          { authenticated && identity && <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/borrow"}>
+          { user && <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/borrow"}>
             Borrow
           </Link>
           }
@@ -57,14 +56,14 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
           <Balance ledger={supplyLedger} amount={supplyLedger.userBalance}/>
           <Balance ledger={collateralLedger} amount={collateralLedger.userBalance}/>
           <div>
-          { authenticated && identity ? 
-            <Link className="flex items-center space-x-2 stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${identity.getPrincipal()}`}>
+          { user ? 
+            <Link className="flex items-center space-x-2 stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${user.principal}`}>
               <Avatar
                 size={32}
-                name={identity.getPrincipal().toString()}
+                name={user.principal.toString()}
                 variant="marble"
               />
-              <span className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white">New user</span>
+              <span className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white">{user.nickname}</span>
             </Link> :
             <div className="flex fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white rounded-lg hover:cursor-pointer" onClick={() => { login() }}>
               <LoginIcon /> 
@@ -81,7 +80,7 @@ const DesktopHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }
   );
 }
 
-const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login }) => {
+const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
 
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null); // Reference to the menu
@@ -154,7 +153,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
                 Vote
               </Link>
             </div>
-            {authenticated && identity && <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/borrow' ? 'bg-purple-700 text-white' : ''}`}>
+            {user && <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/borrow' ? 'bg-purple-700 text-white' : ''}`}>
               <span />
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
@@ -176,20 +175,20 @@ const MobileHeader: React.FC<HeaderProps> = ({ authenticated, identity, login })
               </Link>
             </div>
             <span />
-            {authenticated && identity ? (
+            {user ? (
               <Link
                 className={`grid grid-cols-12 py-2 px-4 rounded-lg flex flex-row items-center stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer ${
-                  location.pathname === `/user/${identity.getPrincipal()}` ? 'bg-purple-700 text-white' : ''
+                  location.pathname === `/user/${user.principal}` ? 'bg-purple-700 text-white' : ''
                 }`}
-                to={`/user/${identity.getPrincipal()}`}
+                to={`/user/${user.principal}`}
                 onClick={() => setShowMenu(false)}
               >
                 <Avatar
                   size={24}
-                  name={identity.getPrincipal().toString()}
+                  name={user.principal.toString()}
                   variant="marble"
                 />
-                <span className="cols-span-11 ml-2">New user</span>
+                <span className="cols-span-11 ml-2">{user.nickname}</span>
               </Link>
             ) : (
               <div
@@ -213,7 +212,9 @@ const Header = () => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  const { login, authenticated, identity } = useAuth({ 
+  const { user } = useUser();
+
+  const { login } = useAuth({ 
     onLoginSuccess: (principal) => {
       navigate(`/user/${principal.toText()}`)
     },
@@ -221,8 +222,8 @@ const Header = () => {
 
   return (
     isMobile ? 
-      <MobileHeader authenticated={authenticated} identity={identity} login={login} /> :
-      <DesktopHeader authenticated={authenticated} identity={identity} login={login} />
+      <MobileHeader user={user} login={login} /> :
+      <DesktopHeader user={user} login={login} />
   );
 }
 

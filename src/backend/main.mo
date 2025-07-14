@@ -6,6 +6,7 @@ import Principal     "mo:base/Principal";
 import Result        "mo:base/Result";
 import Option        "mo:base/Option";
 import Debug         "mo:base/Debug";
+import Time          "mo:base/Time";
 
 import Protocol      "canister:protocol";
 
@@ -19,6 +20,11 @@ shared({ caller = admin }) actor class Backend() = this {
         visible: Bool;
         thumbnail: Blob;
     };
+    type User = {
+        principal: Principal;
+        nickname: Text;
+        joinedDate: Int;
+    };
     type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate, YesNoChoice> and { info: VoteInfo };
     type Account = ProtocolTypes.Account;
     type UUID = ProtocolTypes.UUID;
@@ -28,6 +34,7 @@ shared({ caller = admin }) actor class Backend() = this {
     type SNewVoteError = ProtocolTypes.NewVoteError or { #AnonymousCaller; };
 
     stable let _infos = Map.new<UUID, VoteInfo>();
+    stable let _users = Map.new<Principal, User>();
 
     public shared({ caller }) func new_vote({
         text: Text;
@@ -88,6 +95,24 @@ shared({ caller = admin }) actor class Backend() = this {
 
         Map.set(_infos, Map.thash, vote_id, { info with visible; });
         #ok;
+    };
+
+    public shared({ caller }) func set_user({ nickname: Text }) : async Result.Result<(), Text> {
+        if (Principal.isAnonymous(caller)) {
+            return #err("Anonymous users cannot set a nickname");
+        };
+
+        let user = switch(Map.get<Principal, User>(_users, Map.phash, caller)){
+            case(null) { { principal = caller; nickname; joinedDate = Time.now(); }; };
+            case(?u) { { u with nickname; }; };
+        };
+
+        Map.set(_users, Map.phash, caller, user);
+        #ok;
+    };
+
+    public query func get_user({ principal: Principal }) : async ?User {
+        Map.get<Principal, User>(_users, Map.phash, principal);
     };
 
     func with_info(vote_type: SVoteType) : SYesNoVote {

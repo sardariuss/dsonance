@@ -10,6 +10,7 @@ import { Account } from "@/declarations/ck_btc/ck_btc.did";
 import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
 import LogoutIcon from "../icons/LogoutIcon";
 import Avatar from "boring-avatars";
+import { useUser } from "../hooks/useUser";
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -36,6 +37,7 @@ const User = () => {
   const { principal } = useParams();
   const { identity, logout } = useAuth();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
+  const { user, updateNickname } = useUser();
 
   if (!principal || !identity) {
     return <div>Invalid principal</div>;
