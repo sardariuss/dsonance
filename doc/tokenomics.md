@@ -12,22 +12,18 @@ Dsonance operates with three tokens:
 * **ckBTC**: The collateral token, used to secure the lending system.
 * **DSN**: The native utility and governance token of Dsonance.
 
-### **USDT Lending & Voting Mechanism**
+### **USDT/BTC Lending Mechanism**
 
-Dsonance uses a lending utilization rate model similar to AAVE. 
+Dsonance uses a lending model similar to AAVE, where the lending and borrowing APY depend on the utilization rate. Users can supply ckUSDT by locking ckUSDT in ballots, and borrow ckUSDT against ckBTC. ckBTC is used as collateral and liquidated in case the LTV increased above the liquidation threshold.
 
-Users supply ckUSDT to the platform, which is then locked in votes (ballots) to participate in consensus formation. The supply APY is redistributed to ballots, with the APY for each ballot dynamically maximized or minimized based on the proof-of-foresight mechanism. 
-
-Users can borrow ckUSDT against their ckBTC collateral and repay their loans at any time. 
-
-The platform remunerates itself using lending fees.
+While the users's borrow APY depends solely on the utilization rate, his supply APY depends on his performance in accuretly predicting the consensus on the topic he participates, as framed by the proof-of-foresight mechanism.
 
 ### **DSN Token**
 
 The DSN token serves as a utility and governance token for the Dsonance platform:
 
 * **Rewards** – Distributed to vote authors, voters, borrowers, and liquidity providers.
-* **Burn Mechanism** – Required only to open new votes.
+* **Burn Mechanism** – Required to open new votes.
 * **Governance** – Locked in neurons, enabling participation in decisions shaping the future of Dsonance.
 
 

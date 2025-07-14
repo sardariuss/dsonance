@@ -31,7 +31,7 @@ By filling the gap between governance and prediction, Dsonance unlocks a new lay
 
 * **Stake-weighted voting:** Lock USDT to vote on statements, with influence tied to your stake.
 * **Dynamic lock duration:** Lock durations adjust to each ballot and extend over time as topics gain popularity.
-* **Earn twice:** Earn DSN for your participation, plus a yield on your USDT based on the accuracy of your predictions.
+* **Varying APY:** The APY on your USDT is entirely based on the accuracy of your predictions. Maximize it by being right before everybody else!
 
 
 #### 🎲 **Game Theory**
