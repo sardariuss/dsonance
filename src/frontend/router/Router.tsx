@@ -7,6 +7,7 @@ import Vote from "../components/Vote";
 import NewVote from "../components/NewVote";
 import Ballot from "../components/user/Ballot";
 import BorrowTab from "../components/borrow/BorrowTab";
+import FaucetPage from "../components/FaucetPage";
 
 const Router = () => {
   
@@ -19,6 +20,7 @@ const Router = () => {
         <Route path={"/vote/:id"} element={<Vote />} />
         <Route path={"/ballot/:id"} element={<Ballot />} />
         <Route path={"/borrow"} element={<BorrowTab/>} />
+        <Route path={"/faucet"} element={<FaucetPage/>} />
       </Routes>
     );
   };

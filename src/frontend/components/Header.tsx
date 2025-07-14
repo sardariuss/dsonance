@@ -53,6 +53,10 @@ const DesktopHeader: React.FC<HeaderProps> = ({ user, login }) => {
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/dashboard"}>
             Dashboard
           </Link>
+          { user && <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/faucet"}>
+            Faucet
+          </Link>
+          }
           <Balance ledger={supplyLedger} amount={supplyLedger.userBalance}/>
           <Balance ledger={collateralLedger} amount={collateralLedger.userBalance}/>
           <div>
@@ -174,6 +178,17 @@ const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
                 Dashboard
               </Link>
             </div>
+            {user && <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/faucet' ? 'bg-purple-700 text-white' : ''}`}>
+              <span />
+              <Link
+                className="cols-span-11 overflow-visible whitespace-nowrap"
+                to="/faucet"
+                onClick={() => setShowMenu(false)}
+              >
+                Faucet
+              </Link>
+            </div>
+            }
             <span />
             {user ? (
               <Link
