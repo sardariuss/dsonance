@@ -82,6 +82,34 @@ The project uses multiple canisters (smart contracts):
 - Protocol uses simulated time with 100x dilation factor for testing
 - Supply cap: 1M ckUSDT, borrow cap: 800k ckUSDT (configurable in install-local.sh)
 
+## Frontend Development Guidelines
+
+### IC-Reactor Actor Hooks Performance
+
+**❌ AVOID: Using useEffect to capture actor call methods**
+```typescript
+// DON'T DO THIS - causes high CPU usage
+const { call: fetchData } = backendActor.useQueryCall({
+  functionName: 'get_data',
+  args: [id],
+});
+
+useEffect(() => {
+  fetchData(); // This pattern causes performance issues
+}, [id, fetchData]);
+```
+
+**✅ DO: Let ic-reactor handle the calls automatically**
+```typescript
+// DO THIS - let ic-reactor manage the calls
+const { data } = backendActor.useQueryCall({
+  functionName: 'get_data',
+  args: [id], // Args changes trigger automatic refetch
+});
+```
+
+**Reason**: Capturing `call` methods from ic-reactor hooks in useEffect dependencies can cause excessive re-renders and high CPU usage. The ic-reactor library is designed to handle automatic refetching when arguments change, making manual useEffect calls unnecessary and potentially harmful to performance.
+
 ## Test Files
 - Motoko tests: `tests/protocol/`
 - TypeScript tests: `src/frontend/tests/`

@@ -86,7 +86,7 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
   };
 
   useEffect(() => {
-  // Only update if input is not focused, meaning that it comes from an external stimulus
+    // Only update if input is not focused, meaning that it comes from an external stimulus
     if (customRef.current && !isCustomActive) {
       let amount = formatAmount(ballot.amount, "standard");
       if (amount !== undefined) {
@@ -162,49 +162,46 @@ const PutBallot = ({id, disabled, voteDetails, ballot, setBallot, ballotPreview,
           <button className={`w-1/2 h-9 text-base rounded-lg ${ballot.choice === EYesNoChoice.Yes ? "bg-brand-true text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.Yes })}>True</button>
           <button className={`w-1/2 h-9 text-base rounded-lg ${ballot.choice === EYesNoChoice.No ? "bg-brand-false text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.No })}>False</button>
         </div>
-        <div className={`flex flex-col sm:flex-row space-y-2 sm:space-y-0 items-center w-full justify-around pb-2`}>
-          <div className="flex flex-row items-center space-x-1 flex-grow">
+        <div className="grid grid-cols-[auto_1fr_auto_auto] items-center space-x-1 w-full">
+          <span className="sm:pl-2">Amount</span>
+          <input
+            ref={customRef}
+            type="text"
+            onFocus={() => setIsCustomActive(true)}
+            onBlur={() => setIsCustomActive(false)}
+            className="w-full flex-grow h-9 rounded appearance-none bg-transparent text-right text-2xl px-1 outline-none focus:outline-none"
+            onChange={(e) => {
+              if (isCustomActive) {
+                setBallot({
+                  choice: ballot.choice,
+                  amount: convertToFixedPoint(Number(e.target.value)) ?? 0n,
+                });
+              }
+            }}
+          />
+          <img src={getTokenLogo(metadata)} alt="Logo" className="size-[24px]" />
+          <div className="pl-2" onClick={() => setBallot({ amount: 0n, choice: ballot.choice })}>
+            <div className="w-5 h-5 hover:cursor-pointer fill-black dark:fill-white">
+              <ResetIcon />
+            </div>
+          </div>
+          <span/>
+          { tooSmall ? parameters && 
+            <div className="text-red-500 text-sm text-right">
+              Minimum {formatAmount(parameters.minimum_ballot_amount)}
+            </div> :
+            <div className="text-gray-500 text-sm text-right">
+              {formatAmountUsd(ballot.amount)}
+            </div>
+          }
+        </div>
+        <div className="flex flex-row items-center space-x-1 w-full">
           {
             PREDEFINED_PERCENTAGES.map((percentage) => (
               <button key={percentage} className={`rounded-lg h-9 text-base justify-center sm:flex-grow ${userBalance && ballot.amount === BigInt(Math.floor(percentage * Number(userBalance))) ? "bg-purple-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
                 onClick={() => { if(!authenticated) { login() } else { setBallot({ amount: BigInt(Math.floor(percentage * Number(userBalance))), choice: ballot.choice })}}}>{percentage * 100}%</button>
             ))
           }
-          </div>
-          <div className="flex flex-row items-center space-x-1 self-end">
-            <span className="px-2 sm:pl-2">Custom:</span>
-            <div className="relative">
-              <input
-                ref={customRef}
-                type="text"
-                onFocus={() => setIsCustomActive(true)}
-                onBlur={() => setIsCustomActive(false)}
-                className="w-full sm:w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900"
-                onChange={(e) => {
-                  if (isCustomActive) {
-                    setBallot({
-                      choice: ballot.choice,
-                      amount: convertToFixedPoint(Number(e.target.value)) ?? 0n,
-                    });
-                  }
-                }}
-              />
-              { tooSmall ? parameters && 
-                <div className="text-red-500 text-sm absolute top-full left-1/2 -translate-x-1/2 truncate right">
-                  Minimum {formatAmount(parameters.minimum_ballot_amount)}
-                </div> :
-                <div className="text-gray-500 text-sm absolute top-full left-1/2 -translate-x-1/2 truncate right">
-                  {formatAmountUsd(ballot.amount)}
-                </div>
-              }
-            </div>
-            <img src={getTokenLogo(metadata)} alt="Logo" className="size-[24px]" />
-            <div className="pl-2" onClick={() => setBallot({ amount: 0n, choice: ballot.choice })}>
-              <div className="w-5 h-5 hover:cursor-pointer fill-black dark:fill-white">
-                <ResetIcon />
-              </div>
-            </div>
-          </div>
         </div>
       </div>
       <button 

@@ -31,12 +31,12 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, 
   }, [voteDetails, ballot]);
 
   const date = useMemo(() => {
-    if (info === undefined || isMobile) {
+    if (info === undefined) {
       return formatDate(timeToDate(timestamp));
     }
     return niceFormatDate(timeToDate(timestamp), timeToDate(info.current_time))
   }
-  , [timestamp, info, isMobile]);
+  , [timestamp, info]);
 
   useEffect(() => {
     refreshInfo();
@@ -44,7 +44,7 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, 
   , [timestamp]);
 
   return (
-    <div className="grid grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
       <div className="grid grid-rows-2 justify-items-center sm:justify-items-end h-16 gap-y-1">
         <span className="self-center text-sm text-gray-600 dark:text-gray-400">Opened</span>
         <span className="self-center">{ date } </span>
