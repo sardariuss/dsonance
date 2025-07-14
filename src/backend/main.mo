@@ -15,6 +15,7 @@ shared({ caller = admin }) actor class Backend() = this {
     type YesNoAggregate = ProtocolTypes.YesNoAggregate;
     type YesNoChoice = ProtocolTypes.YesNoChoice;
     type SVoteType = ProtocolTypes.SVoteType;
+    type SBallotType = ProtocolTypes.SBallotType;
     type VoteInfo = {
         text: Text;
         visible: Bool;
@@ -26,6 +27,8 @@ shared({ caller = admin }) actor class Backend() = this {
         joinedDate: Int;
     };
     type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate, YesNoChoice> and { info: VoteInfo };
+    type SYesNoBallot = ProtocolTypes.SBallot<YesNoChoice>;
+    type SYesNoBallotWithUser = ProtocolTypes.SBallot<YesNoChoice> and { user: ?User };
     type Account = ProtocolTypes.Account;
     type UUID = ProtocolTypes.UUID;
     type GetVotesByAuthorArgs = ProtocolTypes.GetVotesByAuthorArgs;
@@ -113,6 +116,17 @@ shared({ caller = admin }) actor class Backend() = this {
 
     public query func get_user({ principal: Principal }) : async ?User {
         Map.get<Principal, User>(_users, Map.phash, principal);
+    };
+
+    public composite query func get_vote_ballots(vote_id: Text) : async [SYesNoBallotWithUser] {
+        let ballots = await Protocol.get_vote_ballots(vote_id);
+        Array.map(ballots, func(ballot: ProtocolTypes.SBallotType) : SYesNoBallotWithUser {
+            switch(ballot) {
+                case(#YES_NO(b)) {
+                    { b with user = Map.get<Principal, User>(_users, Map.phash, b.from.owner); };
+                };
+            };
+        });
     };
 
     func with_info(vote_type: SVoteType) : SYesNoVote {
