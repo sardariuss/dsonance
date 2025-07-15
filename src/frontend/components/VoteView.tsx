@@ -19,6 +19,7 @@ import { DurationUnit } from "../utils/conversions/durationUnit";
 import IntervalPicker from "./charts/IntervalPicker";
 import ChartToggle, { ChartType } from "./charts/ChartToggle";
 import { createThumbnailUrl } from "../utils/thumbnail";
+import VoteSlider from "./VoteSlider";
 
 interface VoteViewProps {
   vote: SYesNoVote;
@@ -159,6 +160,12 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
                   </div>
                 </div>
               }
+              <VoteSlider
+                id={vote.vote_id}
+                ballot={ballot}
+                setBallot={setBallot}
+                voteDetails={voteDetails}
+              />
               <VoteBallots voteId={vote.vote_id} />
             </div>
           )}
@@ -169,13 +176,9 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
           {voteDetails !== undefined && vote.vote_id !== undefined && (
             <PutBallot
               id={vote.vote_id}
-              disabled={false}
-              voteDetails={voteDetails}
               ballot={ballot}
               setBallot={setBallot}
               ballotPreview={ballotPreview?.new.YES_NO}
-              onMouseUp={() => {}}
-              onMouseDown={() => {}}
             />
           )}
         </div>
@@ -205,15 +208,17 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
                 </div>
               </div>
             }
+            <VoteSlider
+              id={vote.vote_id}
+              ballot={ballot}
+              setBallot={setBallot}
+              voteDetails={voteDetails}
+            />
             <PutBallot
               id={vote.vote_id}
-              disabled={false}
-              voteDetails={voteDetails}
               ballot={ballot}
               setBallot={setBallot}
               ballotPreview={ballotPreview?.new.YES_NO}
-              onMouseUp={() => {}}
-              onMouseDown={() => {}}
             />
             <VoteBallots voteId={vote.vote_id} />
           </div> : 

@@ -13,12 +13,15 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ ballotPreview }) =>
   const defaultValue = "N/A";
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-x-6 gap-y-2 justify-center w-full">
-      <div className="flex min-w-[100px] items-center justify-center text-base font-semibold">
-        Preview:
-      </div>
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-x-6 gap-y-2 justify-center w-full">
       {[
         { label: "Dissent", value: ballotPreview ? ballotPreview.dissent.toFixed(3) : defaultValue },
+        {
+          label: "Time left",
+          value: ballotPreview ?
+            " ≥ " + formatDuration(get_current(unwrapLock(ballotPreview).duration_ns).data)
+            : defaultValue,
+        },
         {
           label: "APY (current)",
           value: ballotPreview ? (aprToApy(ballotPreview.foresight.current.data.apr.current) * 100).toFixed(2) + "%" : defaultValue,
@@ -26,17 +29,6 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ ballotPreview }) =>
         {
           label: "APY (potential)",
           value: ballotPreview ? (aprToApy(ballotPreview.foresight.current.data.apr.potential) * 100).toFixed(2) + "%" : defaultValue,
-        },
-        // @int: DSN minted temporarily disabled
-        //{
-          //label: "Mining reward",
-          //value: ballotPreview ? formatBalanceE8s(BigInt(Math.trunc(0)), DSONANCE_COIN_SYMBOL, 0) : defaultValue,
-        //},
-        {
-          label: "Time left",
-          value: ballotPreview ?
-            " ≥ " + formatDuration(get_current(unwrapLock(ballotPreview).duration_ns).data)
-            : defaultValue,
         },
       ].map(({ label, value }) => (
         <div key={label} className="grid grid-rows-2 justify-items-center min-w-[100px]">
