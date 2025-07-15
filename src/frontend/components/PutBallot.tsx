@@ -118,7 +118,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
         {/* Divider */}
       </span>
       <div className={`flex flex-col items-center w-full space-y-2`}>
-        <div className="grid grid-cols-[auto_1fr_auto_auto] items-center space-x-1 w-full">
+        <div className="grid grid-cols-[auto_1fr_auto_auto] items-center space-x-1 w-full px-2">
           <span className="sm:pl-2">Amount</span>
           <input
             ref={customRef}
@@ -151,14 +151,20 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
         <div className="flex flex-row items-center space-x-1 w-full">
           {
             PREDEFINED_PERCENTAGES.map((percentage) => (
-              <button key={percentage} className={`rounded-lg h-9 text-base justify-center sm:flex-grow ${userBalance && ballot.amount === BigInt(Math.floor(percentage * Number(userBalance))) ? "bg-purple-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
-                onClick={() => { if(!authenticated) { login() } else { setBallot({ amount: BigInt(Math.floor(percentage * Number(userBalance))), choice: ballot.choice })}}}>{percentage * 100}%</button>
+              <button 
+                key={percentage} 
+                className={`rounded-lg h-9 text-base justify-center flex-grow ${userBalance && ballot.amount === BigInt(Math.floor(percentage * Number(userBalance))) ? "bg-purple-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
+                onClick={() => { if(!authenticated) { login() } else { setBallot({ amount: BigInt(Math.floor(percentage * Number(userBalance))), choice: ballot.choice })}}}
+                disabled={(userBalance !== undefined && userBalance === 0n) || putBallotLoading}
+              >
+                  {percentage * 100}%
+              </button>
             ))
           }
         </div>
       </div>
       <button 
-        className="button-simple w-full h-9 justify-center items-center text-base"
+        className="button-simple w-full h-9 justify-center items-center text-base mt-2"
         disabled={putBallotLoading || errorMsg !== undefined || ballot.amount === 0n}
         onClick={triggerVote}
       >
