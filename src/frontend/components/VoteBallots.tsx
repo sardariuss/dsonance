@@ -54,13 +54,7 @@ const VoteBallots = ({ voteId }: VoteBallotsProps) => {
   }, [ballots, currentTime]);
 
   if (!ballots) {
-    return (
-      <div className="flex flex-col space-y-4">
-        <div className="text-center text-gray-500 dark:text-gray-400">
-          Loading ballots...
-        </div>
-      </div>
-    );
+    return <VoteBallotsSkeleton />;
   }
 
   if (ballots.length === 0) {
@@ -163,6 +157,73 @@ const VoteBallots = ({ voteId }: VoteBallotsProps) => {
                 No NO votes yet
               </div>
             )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const VoteBallotsSkeleton = () => {
+  const renderSkeletonCard = (key: number) => (
+    <div
+      key={key}
+      className="rounded-lg p-4 shadow-sm bg-slate-200 dark:bg-gray-800 border dark:border-gray-700 border-gray-300"
+    >
+      <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 items-center">
+        
+        {/* User Avatar and Name Skeleton */}
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gray-300 dark:bg-gray-700 rounded-full animate-pulse" />
+          <div className="flex flex-col space-y-1">
+            <div className="w-20 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="w-16 h-3 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+        </div>
+
+        {/* Amount Skeleton */}
+        <div className="text-right">
+          <div className="w-12 h-3 bg-gray-300 dark:bg-gray-700 rounded animate-pulse mb-1" />
+          <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+        </div>
+
+        {/* Date Skeleton */}
+        <div className="text-right">
+          <div className="w-8 h-3 bg-gray-300 dark:bg-gray-700 rounded animate-pulse mb-1" />
+          <div className="w-12 h-3 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+        </div>
+
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col space-y-4">
+      <div className="flex items-center space-x-2">
+        <div className="w-32 h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="w-8 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* YES Ballots Column Skeleton */}
+        <div className="flex flex-col space-y-3">
+          <div className="flex items-center space-x-2">
+            <div className="w-20 h-5 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="w-6 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => renderSkeletonCard(i))}
+          </div>
+        </div>
+
+        {/* NO Ballots Column Skeleton */}
+        <div className="flex flex-col space-y-3">
+          <div className="flex items-center space-x-2">
+            <div className="w-20 h-5 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="w-6 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 2 }).map((_, i) => renderSkeletonCard(i + 3))}
           </div>
         </div>
       </div>

@@ -19,7 +19,7 @@ interface HeaderProps {
 
 const DesktopHeader: React.FC<HeaderProps> = ({ user, login }) => {
 
-  const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
+  const { supplyLedger } = useFungibleLedgerContext();
 
   // WATCHOUT: the size of the header is set to 22 (16 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (
@@ -58,7 +58,6 @@ const DesktopHeader: React.FC<HeaderProps> = ({ user, login }) => {
           </Link>
           }
           <Balance ledger={supplyLedger} amount={supplyLedger.userBalance}/>
-          <Balance ledger={collateralLedger} amount={collateralLedger.userBalance}/>
           <div>
           { user ? 
             <Link className="flex items-center space-x-2 stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${user.principal}`}>

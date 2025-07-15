@@ -240,24 +240,63 @@ export const VoteViewSkeleton: React.FC = () => {
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   return (
-    <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-2/3"}`}>
-      {/* Top Row: Placeholder Image and Vote Text */}
-      <div className="w-full flex items-center gap-4 mb-4">
-        <div className="w-20 h-20 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
-        <div className="flex-grow h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+    <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-full max-w-7xl"}`}>
+      
+      {/* Mobile Layout: Keep original structure */}
+      <div className="block md:hidden w-full">
+        {/* Top Row: Image and Vote Text */}
+        <div className="w-full flex flex-row items-center gap-4 mb-4">
+          <div className="w-20 h-20 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+          <div className="flex-grow h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+        </div>
+
+        {/* Vote Details Skeleton */}
+        <VoteFiguresSkeleton />
       </div>
 
-      {/* Vote Details Skeleton */}
-      <VoteFiguresSkeleton />
+      {/* Desktop Layout: Main content + Sidebar */}
+      <div className="hidden md:flex w-full gap-8">
+        {/* Main Content Panel */}
+        <div className="flex-1 flex flex-col space-y-4 items-center">
+          {/* Top Row: Image and Vote Text */}
+          <div className="w-full flex flex-row items-center gap-4 mb-4">
+            <div className="w-20 h-20 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="flex-grow h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
 
-      {/* Charts and Ballot Skeleton */}
-      <div className="flex flex-col space-y-2 items-center w-full">
-        <div className="w-full h-[200px] bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
-        <div className="flex flex-row justify-between items-center w-full">
-          <div className="w-1/3 h-8 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
-          <div className="w-1/3 h-8 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+          {/* Vote Details Skeleton */}
+          <VoteFiguresSkeleton />
+
+          {/* Charts and Ballots Skeleton for Desktop */}
+          <div className="flex flex-col space-y-4 w-full">
+            <div className="w-full flex flex-col items-center justify-between space-y-2">
+              <div className="w-full h-[400px] bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="flex flex-row justify-between items-center w-full">
+                <div className="w-1/3 h-8 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+                <div className="w-1/3 h-8 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="w-full h-32 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
         </div>
-        <div className="w-full h-12 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+
+        {/* PutBallot Sidebar Skeleton */}
+        <div className="w-96 flex-shrink-0 sticky top-24 self-start">
+          <div className="w-full h-64 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+        </div>
+      </div>
+
+      {/* Mobile Layout: Charts and Ballots */}
+      <div className="block md:hidden w-full">
+        <div className="flex flex-col space-y-2 items-center w-full">
+          <div className="w-full h-[200px] bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+          <div className="flex flex-row justify-between items-center w-full">
+            <div className="w-1/3 h-8 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="w-1/3 h-8 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+          <div className="w-full h-12 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+          <div className="w-full h-32 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+        </div>
       </div>
     </div>
   );
