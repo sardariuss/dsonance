@@ -2,7 +2,7 @@ import Types "../Types";
 import HotMap "HotMap";
 import Timeline "../utils/Timeline";
 
-import DurationCalculator "../duration/DurationCalculator";
+import DurationScaler "../duration/DurationScaler";
 
 import Map "mo:map/Map";
 import Debug "mo:base/Debug";
@@ -20,7 +20,7 @@ module {
     };
 
     public class LockInfoUpdater({
-        duration_calculator: DurationCalculator.IDurationCalculator;
+        duration_scaler: DurationScaler.IDurationScaler;
     }) {
 
         public func add(new: Elem, previous: Iter<Elem>, time: Nat) {
@@ -31,7 +31,7 @@ module {
             });
 
             // Add the lock info to the new elem
-            let duration_ns = duration_calculator.compute_duration_ns(new.hotness);
+            let duration_ns = duration_scaler.compute_duration_ns(new.hotness);
             let release_date = new.timestamp + duration_ns;
             new.lock := ?{
                 duration_ns = Timeline.initialize(time, duration_ns);
@@ -47,7 +47,7 @@ module {
                 };
                 
                 // Compute the new duration and release date
-                let duration_ns = duration_calculator.compute_duration_ns(prev.hotness);
+                let duration_ns = duration_scaler.compute_duration_ns(prev.hotness);
                 let release_date = prev.timestamp + duration_ns;
 
                 // Update the lock info only if it has changed

@@ -1,5 +1,4 @@
 import Types     "../Types";
-import Duration  "Duration";
 import Timeline  "../utils/Timeline";
 
 import Float     "mo:base/Float";
@@ -7,7 +6,7 @@ import Int       "mo:base/Int";
 
 module {
 
-    public type IDurationCalculator = {
+    public type IDurationScaler = {
         compute_duration_ns: Float -> Nat;
     };
 
@@ -19,14 +18,15 @@ module {
     };
 
     // https://www.desmos.com/calculator/n4yits420e
-    // The power scaler function is responsible for deducting the timeout date of the given elements
-    // from their hotness. It especially aims at preventing absurd durations (e.g. 10 seconds or 100 years).
-    // It is defined as a power function of the hotness so that the duration is doubled for each 
-    // order of magnitude of hotness:
-    //      duration = a * hotness ^ b where 
+    // The duration scaler function is responsible for computing the lock duration of ballots
+    // based on the "hotness" of the vote (how much USDT is locked around the ballot's timestamp).
+    // It uses a power scaling function to prevent absurd durations (e.g. 10 seconds or 100 years).
+    // The function is defined as:
+    //      duration = a * hotness ^ log(b)
     // where:
-    //      a is the duration for a hotness of 1
-    //      b = ln(2) / ln(10)
+    //      a is the multiplier parameter (controls baseline duration)
+    //      b is the logarithmic base parameter (controls scaling rate)
+    //      hotness is the amount of USDT locked around the ballot's timestamp
     //
     //                                                   ································
     //  duration                         ················
@@ -35,15 +35,13 @@ module {
     //                     ··
     //                    ·
     // 
-    public class PowerScaler({
-        nominal_duration: Types.Duration;
-    }) : IDurationCalculator {
-
-        let nominal_duration_ns = Duration.toTime(nominal_duration);
-        let scale_factor = Float.log(2.0) / Float.log(10.0);
+    public class DurationScaler({
+        a: Float;  // multiplier parameter
+        b: Float;  // logarithmic base parameter
+    }) : IDurationScaler {
 
         public func compute_duration_ns(hotness: Float) : Nat {
-            Int.abs(Float.toInt(Float.fromInt(nominal_duration_ns) * Float.pow(hotness, scale_factor)));
+            Int.abs(Float.toInt(a * Float.pow(hotness, Float.log(b) / Float.log(10.0))));
         };
 
         // Watchout, this functions updates the lock info in place.

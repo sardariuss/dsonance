@@ -52,7 +52,7 @@ const sleep = (ms) => {
 
 const getThumbnail = (id) => {
     const svg = renderToString(avatar.default({name: id.toString()}, {
-        variant: 'marble',
+        variant: 'ring',
         size: 120
     }));
     const dataUri = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;

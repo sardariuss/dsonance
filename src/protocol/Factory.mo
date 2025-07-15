@@ -2,7 +2,7 @@ import Types                  "Types";
 import Controller             "Controller";
 import Queries                "Queries";
 import Decay                  "duration/Decay";
-import DurationCalculator     "duration/DurationCalculator";
+import DurationScaler        "duration/DurationScaler";
 import VoteFactory            "votes/VoteFactory";
 import VoteTypeController     "votes/VoteTypeController";
 import LockInfoUpdater        "locks/LockInfoUpdater";
@@ -53,7 +53,7 @@ module {
     }) : BuildOutput {
 
         let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_price_in_supply; } = state;
-        let { nominal_lock_duration; decay; } = parameters;
+        let { decay; duration_scaler; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
 
@@ -134,15 +134,16 @@ module {
             };
         });
 
-        let duration_calculator = DurationCalculator.PowerScaler({
-            nominal_duration = nominal_lock_duration;
+        let duration_scaler_instance = DurationScaler.DurationScaler({
+            a = duration_scaler.a;
+            b = duration_scaler.b;
         });
 
         let yes_no_controller = VoteFactory.build_yes_no({
             parameters;
             ballot_register;
             decay_model = Decay.DecayModel(decay);
-            lock_info_updater = LockInfoUpdater.LockInfoUpdater({duration_calculator});
+            lock_info_updater = LockInfoUpdater.LockInfoUpdater({duration_scaler = duration_scaler_instance});
         });
 
         let vote_type_controller = VoteTypeController.VoteTypeController({

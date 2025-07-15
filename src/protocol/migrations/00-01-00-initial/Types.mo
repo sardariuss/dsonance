@@ -599,8 +599,13 @@ module {
         timestamp: Nat; // last time the rates were updated
     };
 
+    public type DurationScalerParameters = {
+        a: Float;  // multiplier parameter
+        b: Float;  // logarithmic base parameter
+    };
+
     public type ProtocolParameters = {
-        nominal_lock_duration: Duration;
+        duration_scaler: DurationScalerParameters;
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
@@ -634,7 +639,7 @@ module {
             age_coefficient: Float;
             max_age: Duration;
             ballot_half_life: Duration;
-            nominal_lock_duration: Duration;
+            duration_scaler: DurationScalerParameters;
             minimum_ballot_amount: Nat;
             dissent_steepness: Float;
             consent_steepness: Float;
