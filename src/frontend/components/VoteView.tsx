@@ -165,7 +165,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
         </div>
 
         {/* PutBallot Sidebar */}
-        <div className="w-96 flex-shrink-0 sticky top-4 self-start">
+        <div className="w-96 flex-shrink-0 sticky top-24 self-start">
           {voteDetails !== undefined && vote.vote_id !== undefined && (
             <PutBallot
               id={vote.vote_id}
