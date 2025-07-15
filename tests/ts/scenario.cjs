@@ -139,11 +139,11 @@ async function callCanisterMethod() {
         throw new Error("ICP Coins actor is null");
     }
 
-    let lending_parameters = await protocolActor.get_lending_parameters();
-    if (!lending_parameters) {
+    let parameters = await protocolActor.get_parameters();
+    if (!parameters) {
         throw new Error("Lending parameters are null");
     }
-    const { supply_cap, borrow_cap } = lending_parameters;
+    const { supply_cap, borrow_cap } = parameters.lending;
     console.log(`USDT supply cap: ${supply_cap}, borrow cap: ${borrow_cap}`);
 
     const numTicks = BigInt(toNs(SCENARIO_DURATION)) / BigInt(toNs(SCENARIO_TICK_DURATION));

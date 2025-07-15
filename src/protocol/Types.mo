@@ -221,6 +221,7 @@ module {
             time_init: Nat;
         };
         clock: SClockParameters;
+        lending: LendingParameters;
     };
 
     // CUSTOM TYPES

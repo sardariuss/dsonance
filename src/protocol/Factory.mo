@@ -71,6 +71,7 @@ module {
 
         let { supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
             lending with
+            parameters = parameters.lending;
             collateral_price_tracker;
             protocol_info = {
                 accounts with
@@ -174,6 +175,7 @@ module {
                 clock;
             });
             initialize = func() : async* Result.Result<(), Text> {
+                // @todo: start the timer too
                 switch(await* supply_ledger.initialize()) {
                     case(#err(e)) { return #err("Failed to initialize supply ledger: " # e); };
                     case(#ok(_)) {};

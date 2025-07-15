@@ -31,7 +31,7 @@ module {
     type SDebtInfo = Types.SDebtInfo;
     type DebtRecord = Types.DebtRecord;
     type State = Types.State;
-    type LendingParameters = Types.LendingParameters;
+    type ProtocolParameters = Types.ProtocolParameters;
     type UserSupply = Types.UserSupply;
 
     public class Queries({
@@ -190,8 +190,8 @@ module {
 //            });
 //        };
 
-        public func get_lending_parameters() : LendingParameters {
-            state.lending.parameters;
+        public func get_parameters() : ProtocolParameters {
+            state.parameters;
         };
 
         public func get_lending_index() : Types.LendingIndex {

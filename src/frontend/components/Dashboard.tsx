@@ -8,13 +8,12 @@ import DualLabel from "./common/DualLabel";
 import { FullTokenLabel } from "./common/TokenLabel";
 import { aprToApy } from "../utils/lending";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
+import { useProtocolContext } from "./context/ProtocolContext";
 
 // @todo: perfect layout for mobile
 const Dashboard = () => {
 
-  const { data: lendingParams, call: refreshLendingParams } = protocolActor.useQueryCall({
-    functionName: 'get_lending_parameters',
-  });
+  const { parameters } = useProtocolContext();
 
   const { data: indexerState, call: refreshIndexerState } = protocolActor.useQueryCall({
     functionName: 'get_lending_index',
@@ -23,11 +22,10 @@ const Dashboard = () => {
   const { supplyLedger } = useFungibleLedgerContext();
 
   useEffect(() => {
-    refreshLendingParams();
     refreshIndexerState();
   }, []);
 
-  if (!lendingParams || !indexerState) {
+  if (!parameters || !indexerState) {
     return <div className="text-center text-gray-500">Loading...</div>;
   }
 
@@ -62,21 +60,21 @@ const Dashboard = () => {
           Supply info
         </span>
         <SupplyInfoPanel
-          supplyCap={Number(lendingParams.supply_cap)}
+          supplyCap={Number(parameters.lending.supply_cap)}
           totalSupplied={indexerState.utilization.raw_supplied}
           apy={aprToApy(indexerState.supply_rate)}
-          maxLtv={lendingParams.max_ltv}
-          liquidationThreshold={lendingParams.liquidation_threshold}
-          liquidationPenalty={lendingParams.liquidation_penalty}
+          maxLtv={parameters.lending.max_ltv}
+          liquidationThreshold={parameters.lending.liquidation_threshold}
+          liquidationPenalty={parameters.lending.liquidation_penalty}
           ledger={supplyLedger}
         />
         <div className="border-b border-gray-300 dark:border-gray-700 w-full col-span-1 md:col-span-2"></div>
         <span className="text-base font-semibold self-start">Borrow info</span>
         <BorrowInfoPanel
-          borrowCap={Number(lendingParams.borrow_cap)}
+          borrowCap={Number(parameters.lending.borrow_cap)}
           totalBorrowed={indexerState.utilization.raw_borrowed}
           apy={aprToApy(indexerState.borrow_rate)}
-          reserveFactor={lendingParams.lending_fee_ratio}
+          reserveFactor={parameters.lending.lending_fee_ratio}
           ledger={supplyLedger}
         />
         <div className="border-b border-gray-300 dark:border-gray-700 w-full col-span-1 md:col-span-2"></div>

@@ -20,10 +20,6 @@ module {
 
     public class Clock(params: ClockParameters) : IClock {
 
-        public func get_parameters() : ClockParameters {
-            params;
-        };
-
         public func add_offset(duration: Duration) : Result<(), Text> {
             let p = switch(params){
                 case(#REAL) { return #err("Cannot add offset to real clock"); };

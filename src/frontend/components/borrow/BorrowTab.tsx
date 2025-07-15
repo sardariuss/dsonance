@@ -12,6 +12,7 @@ import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { formatAmountCompact } from "../../utils/conversions/token";
 import { REPAY_SLIPPAGE_RATIO, UNDEFINED_SCALAR } from "../../constants";
 import HealthFactor from "./HealthFactor";
+import { useProtocolContext } from "../context/ProtocolContext";
 
 const BorrowTab = () => {
 
@@ -37,9 +38,7 @@ const BorrowTab = () => {
     args: [account]
   });
 
-  const { data: lendingParams } = protocolActor.useQueryCall({
-    functionName: 'get_lending_parameters',
-  });
+  const { parameters } = useProtocolContext();
 
   const { call: previewBorrowOperation } = protocolActor.useUpdateCall({
     functionName: 'preview_borrow_operation',
@@ -168,10 +167,10 @@ const BorrowTab = () => {
       }
     }
 
-    const maxWithdrawableUsd = computeMaxWithdrawableUsd(collateralUsd, borrowedUsd, lendingParams?.max_ltv);
+    const maxWithdrawableUsd = computeMaxWithdrawableUsd(collateralUsd, borrowedUsd, parameters?.lending.max_ltv);
     const maxWithdrawable = collateralLedger.convertFromUsd(maxWithdrawableUsd) || 0n;
 
-    const maxBorrowableUsd = computeMaxBorrowableUsd(collateralUsd, borrowedUsd, lendingParams?.max_ltv);
+    const maxBorrowableUsd = computeMaxBorrowableUsd(collateralUsd, borrowedUsd, parameters?.lending.max_ltv);
     const maxBorrowable = supplyLedger.convertFromUsd(maxBorrowableUsd) || 0n;
 
     return {

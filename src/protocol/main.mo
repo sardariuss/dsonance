@@ -128,10 +128,6 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_parameters();
     };
 
-    public query func get_lending_parameters() : async Types.LendingParameters {
-        getFacade().get_lending_parameters();
-    };
-
     public query func get_lending_index() : async Types.LendingIndex {
         getFacade().get_lending_index();
     };

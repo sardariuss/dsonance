@@ -14,27 +14,28 @@ import Int            "mo:base/Int";
 
 module {
 
-    type Time          = Int;
-    type State         = MigrationTypes.State;
-    type Account       = Types.Account;
-    type ICRC1         = Types.ICRC1;
-    type ICRC2         = Types.ICRC2;
-    type InitArgs      = Types.InitArgs;
-    type UpgradeArgs   = Types.UpgradeArgs;
-    type DowngradeArgs = Types.DowngradeArgs;
-    type UUID          = Types.UUID;
-    type Lock          = Types.Lock;
-    type DebtInfo      = Types.DebtInfo;
-    type Ballot<B>     = Types.Ballot<B>;
-    type YesNoChoice   = Types.YesNoChoice;
-    type VoteType      = Types.VoteType;
-    type BallotType    = Types.BallotType;
+    type Time           = Int;
+    type State          = MigrationTypes.State;
+    type Account        = Types.Account;
+    type ICRC1          = Types.ICRC1;
+    type ICRC2          = Types.ICRC2;
+    type InitArgs       = Types.InitArgs;
+    type UpgradeArgs    = Types.UpgradeArgs;
+    type DowngradeArgs  = Types.DowngradeArgs;
+    type UUID           = Types.UUID;
+    type Lock           = Types.Lock;
+    type DebtInfo       = Types.DebtInfo;
+    type Ballot<B>      = Types.Ballot<B>;
+    type YesNoChoice    = Types.YesNoChoice;
+    type VoteType       = Types.VoteType;
+    type BallotType     = Types.BallotType;
     type BorrowPosition = Types.BorrowPosition;
     type SupplyPosition = Types.SupplyPosition;
     type Withdrawal     = Types.Withdrawal;
-    type DexActor      = Types.DexActor;
-    type TrackedPrice  = Types.TrackedPrice;
-    type Set<K>        = Set.Set<K>;
+    type DexActor       = Types.DexActor;
+    type TrackedPrice   = Types.TrackedPrice;
+    type Parameters     = Types.Parameters;
+    type Set<K>         = Set.Set<K>;
 
     let BTREE_ORDER = 8;
 
@@ -99,7 +100,6 @@ module {
                 };
             };
             lending = {
-                parameters = parameters.lending;
                 index = {
                     var value = {
                         utilization = {
@@ -142,6 +142,52 @@ module {
     // From 0.1.0 to nothing
     public func downgrade(_: State, _: DowngradeArgs): State {
         Debug.trap("Cannot downgrade from initial version");
+    };
+
+    // From 0.1.0 to 0.1.0, with new parameters
+    public func update(state: State, parameters: Parameters): State {
+        
+        let v1_state = switch(state) {
+            case(#v0_1_0(inner)) { inner; };
+        };
+
+        let protocol_parameters = { parameters with
+            max_age = Duration.toTime(parameters.max_age);
+            timer = {
+                var interval_s = parameters.timer_interval_s;
+            };
+            decay = {
+                half_life = parameters.ballot_half_life;
+                // ⚠️ Watchout: Need to keep the initial time from the original parameters, otherwise
+                // the decay model will not work correctly.
+                time_init = v1_state.parameters.decay.time_init;
+            };
+            clock : Types.ClockParameters = switch(parameters.clock) {
+                case(#REAL) { #REAL; };
+                case(#SIMULATED({ dilation_factor; })) {
+                    // ⚠️ Watchout: If the previous clock was simulated, we need to keep the time reference and offset
+                    // from the original parameters, otherwise there might be a gap in the time.
+                    switch(v1_state.parameters.clock) {
+                        case(#REAL) { 
+                            #SIMULATED({
+                                var time_ref = Int.abs(Time.now());
+                                var offset_ns = 0;
+                                var dilation_factor = dilation_factor;
+                            });
+                        };
+                        case(#SIMULATED(previous_clock)) {
+                            #SIMULATED({
+                                var time_ref = previous_clock.time_ref;
+                                var offset_ns = previous_clock.offset_ns;
+                                var dilation_factor = dilation_factor;
+                            });
+                        };
+                    };
+                };
+            };
+        };
+
+        #v0_1_0({ v1_state with parameters = protocol_parameters;});
     };
 
 };

@@ -84,11 +84,7 @@ module {
         };
         
         public func get_parameters() : SProtocolParameters {
-            SharedConversions.shareProtocolParameters(controller.get_parameters());
-        };
-
-        public func get_lending_parameters() : Types.LendingParameters {
-            queries.get_lending_parameters();
+            SharedConversions.shareProtocolParameters(queries.get_parameters());
         };
 
         public func get_vote_ballots(vote_id: UUID) : [SBallotType] {

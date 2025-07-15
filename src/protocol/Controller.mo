@@ -14,8 +14,6 @@ import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
 import PriceTracker            "ledger/PriceTracker";
-import ForesightUpdater        "ForesightUpdater";
-import Incentives              "votes/Incentives";
 
 import Map                     "mo:map/Map";
 import Set                     "mo:map/Set";
@@ -235,10 +233,6 @@ module {
             protocol_timer.stop_timer({ caller });
         };
 
-        public func get_parameters() : ProtocolParameters {
-            parameters;
-        };
-
         public func get_info() : ProtocolInfo {
             {
                 current_time = clock.get_time();
@@ -308,36 +302,6 @@ module {
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
 
             #ok(SharedConversions.sharePutBallotSuccess(put_ballot));
-        };
-
-        func map_ballots_to_foresight_items(ballot_ids: Set<UUID>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {
-
-            IterUtils.map(Set.keys(ballot_ids), func(ballot_id: UUID) : ForesightUpdater.ForesightItem {
-                let b = switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)){
-                    case(null) { Debug.trap("Ballot " #  debug_show(ballot_id) # " not found"); };
-                    case(?#YES_NO(ballot)) { ballot; };
-                };
-                let release_date = switch(b.lock){
-                    case(null) { Debug.trap("The ballot does not have a lock"); };
-                    case(?lock) { lock.release_date; };
-                };
-                let discernment = Incentives.compute_discernment({
-                    dissent = b.dissent;
-                    consent = Timeline.current(b.consent);
-                    lock_duration = release_date - b.timestamp;
-                    parameters;
-                });
-                {
-                    timestamp = b.timestamp;
-                    amount = b.amount;
-                    release_date;
-                    discernment;
-                    consent = Timeline.current(b.consent);
-                    update_foresight = func(foresight: Types.Foresight, time: Nat) { 
-                        Timeline.insert(b.foresight, time, foresight);
-                    };
-                };
-            });
         };
 
     };
