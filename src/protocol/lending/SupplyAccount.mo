@@ -66,11 +66,21 @@ module {
                 return #err(#GenericError({ error_code = 0; message = "Caller is not the admin of the protocol"; }));
             };
             
-            if (amount > get_available_fees()) {
-                return #err(#GenericError({ error_code = 0; message = "Not enough fees available to transfer"; }));
+            let revert_take_fees = switch(indexer.take_supply_fees(amount)){
+                case(#err(error)) { return #err(#GenericError({ error_code = 0; message = error; })); };
+                case(#ok({revert})) { revert; };
             };
 
-            (await* ledger_account.transfer({ amount; to; })).result;
+            switch((await* ledger_account.transfer({ amount; to; })).result){
+                case(#err(error)) { 
+                    // Revert the fees if the transfer fails
+                    revert_take_fees();
+                    #err(error); 
+                };
+                case(#ok(tx_id)) {
+                    #ok(tx_id);
+                };
+            };
         };
 
         public func pull(args : PullArgs) : async* PullResult {

@@ -124,6 +124,14 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_loan_position(account);
     };
 
+    public query func get_available_fees() : async Nat {
+        getFacade().get_available_fees();
+    };
+
+    public shared({caller}) func withdraw_fees({ to: Types.Account; amount: Nat; }) : async LendingTypes.TransferResult {
+        await* getFacade().withdraw_fees({ caller; to; amount; });
+    };
+
     public shared({caller}) func run_borrow_operation({ 
         subaccount: ?Blob;
         amount: Nat;

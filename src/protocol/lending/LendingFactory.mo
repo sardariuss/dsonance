@@ -41,6 +41,7 @@ module {
         clock: Clock.IClock;
     }) : {
         indexer: Indexer.Indexer;
+        supply: SupplyAccount.SupplyAccount;
         supply_registry: SupplyRegistry.SupplyRegistry;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
@@ -112,6 +113,7 @@ module {
 
         {
             indexer;
+            supply;
             supply_registry;
             borrow_registry;
             withdrawal_queue;

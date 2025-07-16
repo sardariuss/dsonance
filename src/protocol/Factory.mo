@@ -69,7 +69,7 @@ module {
             receive_ledger = supply_ledger;
         });
 
-        let { supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
+        let { supply; supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
             lending with
             parameters = parameters.lending;
             collateral_price_tracker;
@@ -157,6 +157,7 @@ module {
             ballot_register;
             lock_scheduler;
             vote_type_controller;
+            supply;
             supply_registry;
             borrow_registry;
             withdrawal_queue;

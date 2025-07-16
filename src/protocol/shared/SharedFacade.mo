@@ -35,6 +35,7 @@ module {
     type LoanPosition = LendingTypes.LoanPosition;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type OperationKind = LendingTypes.OperationKind;
+    type TransferResult = Types.TransferResult;
     type ProtocolInfo = Types.ProtocolInfo;
 
     public class SharedFacade({
@@ -127,6 +128,14 @@ module {
         public func get_loan_position(account: Account) : LoanPosition {
             controller.get_loan_position(account);
         };
+
+        public func get_available_fees() : Nat {
+            controller.get_available_fees();
+        };
+
+        public func withdraw_fees({ caller: Principal; to: Account; amount: Nat; }) : async* TransferResult {
+            await* controller.withdraw_fees({ caller; to; amount; });
+        };  
 
         // @int: commented out for now, will be implemented later
 //        public func get_debt_info(debt_id: UUID) : ?SDebtInfo {

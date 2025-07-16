@@ -13,6 +13,7 @@ import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
 import PriceTracker            "ledger/PriceTracker";
+import SupplyAccount           "lending/SupplyAccount";
 
 import Map                     "mo:map/Map";
 import Set                     "mo:map/Set";
@@ -48,6 +49,7 @@ module {
     type LoanPosition = LendingTypes.LoanPosition;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type BorrowOperationArgs = LendingTypes.BorrowOperationArgs;
+    type TransferResult = LendingTypes.TransferResult;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -81,6 +83,7 @@ module {
         ballot_register: BallotRegister;
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
+        supply: SupplyAccount.SupplyAccount;
         supply_registry: SupplyRegistry.SupplyRegistry;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
@@ -187,6 +190,14 @@ module {
 
         public func get_loan_position(account: Account) : LoanPosition {
             borrow_registry.get_loan_position(account);
+        };
+
+        public func get_available_fees() : Nat {
+            supply.get_available_fees();
+        };
+
+        public func withdraw_fees({ caller: Principal; to: Account; amount: Nat; }) : async* TransferResult {
+            await* supply.withdraw_fees({ caller; to; amount; });
         };
 
         public func run() : async* Result<(), Text> {
