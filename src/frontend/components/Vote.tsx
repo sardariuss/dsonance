@@ -26,7 +26,7 @@ const Vote = () => {
     const actualVote = useMemo(() => vote ? fromNullable(vote) : undefined, [vote]);
 
     return (
-        <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-6 sm:p-6 sm:my-6 sm:rounded-lg shadow-md w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
+        <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-6 sm:p-6 sm:my-6 sm:rounded-lg shadow-md w-full max-w-7xl mx-auto">
         {
             loading ? 
                 <VoteViewSkeleton/> :

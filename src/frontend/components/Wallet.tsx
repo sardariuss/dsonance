@@ -1,4 +1,4 @@
-import Faucet from "./Faucet";
+import { FullBalance } from "./Balance";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 
 const Wallet = () => {
@@ -7,8 +7,8 @@ const Wallet = () => {
 
   return (
     <div className="flex flex-col space-y-4 w-full items-center">
-      <Faucet ledger={supplyLedger} />
-      <Faucet ledger={collateralLedger} />
+      <FullBalance ledger={supplyLedger} amount={supplyLedger.userBalance}/>
+      <FullBalance ledger={collateralLedger} amount={collateralLedger.userBalance}/>
     </div>
   );
 }

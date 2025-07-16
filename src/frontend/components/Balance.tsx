@@ -1,6 +1,7 @@
 import { FungibleLedger } from "./hooks/useFungibleLedger";
 import { getTokenLogo } from "../utils/metadata";
 import DualLabel from "./common/DualLabel";
+import { TokenLabel } from "./common/TokenLabel";
 
 interface BalanceProps {
   ledger: FungibleLedger;
@@ -24,6 +25,26 @@ const Balance: React.FC<BalanceProps> = ({ ledger, amount }) => {
         mainLabel="top"
       />
     </div> 
+  );
+}
+
+export const FullBalance: React.FC<BalanceProps> = ({ ledger, amount }) => {
+
+  const { metadata, formatAmount, formatAmountUsd } = ledger;
+
+  if (!metadata || amount === undefined) {
+    return null;
+  }
+
+  return (
+    <div className="flex justify-between w-full items-start">
+      <TokenLabel metadata={ledger.metadata} />
+      <DualLabel 
+        top={formatAmount(ledger.userBalance)}
+        bottom={formatAmountUsd(ledger.userBalance)}
+        mainLabel="top"
+      />
+    </div>
   );
 }
 

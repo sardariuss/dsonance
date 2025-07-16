@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { useFungibleLedger, LedgerType, FungibleLedger } from "./hooks/useFungibleLedger";
-import { TokenLabel } from './common/TokenLabel';
+import { FungibleLedger } from "./hooks/useFungibleLedger";
 import { getTokenName } from "../utils/metadata";
-import DualLabel from "./common/DualLabel";
 
 interface FaucetProps {
   ledger: FungibleLedger;
@@ -25,15 +23,6 @@ const Faucet = ({ ledger }: FaucetProps) => {
   return (
     
     <div className="w-full flex flex-col rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
-      { /* Balance Display */}
-      <div className="flex justify-between w-full items-start">
-        <TokenLabel metadata={ledger.metadata} />
-        <DualLabel 
-          top={ledger.formatAmount(ledger.userBalance)}
-          bottom={ledger.formatAmountUsd(ledger.userBalance)}
-          mainLabel="top"
-        />
-      </div>
       { /* Mint Input & Button */}
       <div className="flex flex-row items-center space-x-2 mt-3 justify-end">
         <input

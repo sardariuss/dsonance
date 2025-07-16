@@ -58,7 +58,8 @@ body {
   background-color: #192824;
 }
 
-p {
+/* Hero text styles - use .hero-text class for large centered text */
+.hero-text {
   margin: calc(50vh - 40px) auto 0 auto;
   font-size: 65px;
   text-transform: uppercase;
@@ -67,6 +68,18 @@ p {
   display: block;
   height: auto;
   text-align: center;
+}
+
+/* Default styles for common elements */
+p {
+  font-size: 1.25rem; /* equivalent to text-xl (20px) */
+  line-height: 1.75rem; /* equivalent to leading-7 */
+}
+
+h1 {
+  font-size: 1.25rem; /* equivalent to text-xl (20px) */
+  line-height: 1.75rem; /* equivalent to leading-7 */
+  font-weight: 600; /* equivalent to font-semibold */
 }
 
 @layer components {

@@ -133,7 +133,7 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
 
         <div className="grid grid-rows-2 w-full justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">APY</span>
-          <span className="font-semibold [text-shadow:0px_0px_10px_rgb(59,130,246)]">
+          <span className="font-semibold">
             {`${(aprToApy(foresightAPR) * 100).toFixed(2)}%`}
           </span>
         </div>
