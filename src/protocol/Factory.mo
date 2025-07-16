@@ -2,7 +2,7 @@ import Types                  "Types";
 import Controller             "Controller";
 import Queries                "Queries";
 import Decay                  "duration/Decay";
-import DurationCalculator     "duration/DurationCalculator";
+import DurationScaler        "duration/DurationScaler";
 import VoteFactory            "votes/VoteFactory";
 import VoteTypeController     "votes/VoteTypeController";
 import LockInfoUpdater        "locks/LockInfoUpdater";
@@ -12,7 +12,6 @@ import Timeline               "utils/Timeline";
 import IterUtils              "utils/Iter";
 import ForesightUpdater       "ForesightUpdater";
 import Incentives             "votes/Incentives";
-import ProtocolTimer          "ProtocolTimer";
 import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
 import Dex                    "ledger/Dex";
@@ -22,6 +21,7 @@ import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
 import Map                    "mo:map/Map";
 import Result                 "mo:base/Result";
+import Timer                  "mo:base/Timer";
 
 module {
 
@@ -53,7 +53,7 @@ module {
     }) : BuildOutput {
 
         let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_price_in_supply; } = state;
-        let { nominal_lock_duration; decay; } = parameters;
+        let { decay; duration_scaler; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
 
@@ -69,8 +69,9 @@ module {
             receive_ledger = supply_ledger;
         });
 
-        let { supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
+        let { supply; supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
             lending with
+            parameters = parameters.lending;
             collateral_price_tracker;
             protocol_info = {
                 accounts with
@@ -134,44 +135,43 @@ module {
             };
         });
 
-        let duration_calculator = DurationCalculator.PowerScaler({
-            nominal_duration = nominal_lock_duration;
+        let duration_scaler_instance = DurationScaler.DurationScaler({
+            a = duration_scaler.a;
+            b = duration_scaler.b;
         });
 
         let yes_no_controller = VoteFactory.build_yes_no({
             parameters;
             ballot_register;
             decay_model = Decay.DecayModel(decay);
-            lock_info_updater = LockInfoUpdater.LockInfoUpdater({duration_calculator});
+            lock_info_updater = LockInfoUpdater.LockInfoUpdater({duration_scaler = duration_scaler_instance});
         });
 
         let vote_type_controller = VoteTypeController.VoteTypeController({
             yes_no_controller;
         });
 
-        let protocol_timer = ProtocolTimer.ProtocolTimer({
-            admin;
-            parameters = parameters.timer;
+        let controller = Controller.Controller({
+            clock;
+            vote_register;
+            ballot_register;
+            lock_scheduler;
+            vote_type_controller;
+            supply;
+            supply_registry;
+            borrow_registry;
+            withdrawal_queue;
+            collateral_price_tracker;
+            parameters;
+        });
+        let queries = Queries.Queries({
+            state;
+            clock;
         });
 
         {
-            controller = Controller.Controller({
-                clock;
-                vote_register;
-                ballot_register;
-                lock_scheduler;
-                vote_type_controller;
-                supply_registry;
-                borrow_registry;
-                withdrawal_queue;
-                collateral_price_tracker;
-                protocol_timer;
-                parameters;
-            });
-            queries = Queries.Queries({
-                state;
-                clock;
-            });
+            controller;
+            queries;
             initialize = func() : async* Result.Result<(), Text> {
                 switch(await* supply_ledger.initialize()) {
                     case(#err(e)) { return #err("Failed to initialize supply ledger: " # e); };
@@ -185,6 +185,9 @@ module {
                     case(#err(error)) { return #err("Failed to update collateral price: " # error); };
                     case(#ok(_)) {};
                 };
+                ignore Timer.recurringTimer<system>(#seconds(parameters.timer_interval_s), func() : async () {
+                    ignore await* controller.run();
+                });
                 #ok;
             };
         };

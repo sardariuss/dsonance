@@ -3,27 +3,9 @@ cover: ../.gitbook/assets/logo.png
 coverY: 0
 ---
 
-# Voting rewards
+# Ballot APY
 
-Rewards are divided into two parts:
-
-1. **DSN Rewards** – Rewarding participation in the protocol.
-2. **Token yield** – Rewarding ballot foresight with DAO's tokens.
-
-***
-
-#### **DSN Rewards**
-
-Contribution rewards are distributed continuously throughout the active period of a lock. The amount each voter receives is proportional to the amount of token in their lock relative to the total amount of token locked in the protocol.
-
-* **Ballot choice does not impact contribution rewards**—only the total locked amount matters.
-* Since the total of locked tokens changes over time, contribution is computed using a **time-weighted integral**, ensuring fairness.
-
-$$
-\text{contribution} = \int_{t_{\text{lock}}}^{t_{\text{unlock}}} \left( \frac{\text{ballot\_amount}}{\text{total\_locked}(t)} \right) \times \text{minting\_rate} \, dt
-$$
-
-***
+Each ballot's APY is independant and depends on several factors.
 
 #### **Dissent and Consent**
 
@@ -31,7 +13,7 @@ $$
 Totals expressed in the following paragraphs represent the sum of ballots amounts weighted by their decay as expressed in the [stake-weighted-voting.md](stake-weighted-voting.md "mention") chapter.
 {% endhint %}
 
-Before defining _token yield_, it is important to introduce two key metrics:
+Before defining the _ballot APY_, it is important to introduce two key metrics:
 
 **Dissent**
 
@@ -69,7 +51,7 @@ Where $$p$$ (dissent steepness) is a protocol parameter between 0 and 1:
 Since the **ballot itself influences the consensus**, we must account for its weight. The **ballot dissent** is calculated as:
 
 $$
-\text{ballot\_dissent} = \int_0^{\text{amount}} \text{adjusted\_dissent}(x) \, dx = \int_0^{\text{amount}} \left( \frac{\text{total\_opposit}}{\text{total} + x} \right)^p dx
+\text{ballot\_dissent} = \frac{\int_0^{\text{amount}} \text{adjusted\_dissent}(x) \, dx}{amount} = \frac{\int_0^{\text{amount}} \left( \frac{\text{total\_opposit}}{\text{total} + x} \right)^p dx}{amount}
 $$
 
 {% hint style="info" %}
@@ -77,7 +59,7 @@ The beta version slightly modifies the dissent formulation to ensure that a ball
 {% endhint %}
 
 $$
-\text{ballot\_dissent} = \int_0^{\text{amount}} \left( \min \left( \frac{\text{total\_opposit} + K}{\text{total} + x}, 1 \right) \right)^p dx
+\text{ballot\_dissent} = \frac{\int_0^{\text{amount}} \left( \min \left( \frac{\text{total\_opposit} + K}{\text{total} + x}, 1 \right) \right)^p dx}{amount}
 $$
 
 where $$K$$ is the _**initial\_dissent\_addend**_ protocol parameter.
@@ -117,22 +99,22 @@ Where:
 
 ***
 
-#### Token yield
+#### Final formula
 
-The token yield is distributed **at the end of a lock** and depend on the foresight of each lock:
+The ballot APY is distributed **at the end of the locking period** and depend on the foresight of each ballot:
 
 $$
-\text{foresight} = \text{lock_amount} \times \text{age_bonus} \times \text{ballot_dissent}_{t_0} \times \text{ballot_consent}_{t_{\text{end}}}
+\text{foresight} = \text{ballot_amount} \times \text{age_bonus} \times \text{ballot_dissent}_{t_0} \times \text{ballot_consent}_{t_{\text{end}}}
 $$
 
 Where:
 
-* $$\text{lock_amount}$$ is the amount of token in the ballot
-* $$\text{age_bonus}$$ is the age bonus of the lock, between 1 and 1.25
+* $$\text{ballot_amount}$$ is the amount of token in the ballot
+* $$\text{age_bonus}$$ is the age bonus of the ballot, between 1 and 1.25
 * $$\text{ballot\_dissent}_{t_0}$$represents how bold the choice was at the time of casting
 * $$\text{ballot\_consent}_{t_{\text{end}}}$$represents how well the ballot aligns with the final consensus:
 
-The reward for a lock is its weighted proportion of foresight, relative to the total foresight of all active locks, multiplied by the total token yield accumulated by all locks:
+The reward for a ballot is its weighted proportion of foresight, relative to the total foresight of all active ballots (for all votes), multiplied by the total token yield accumulated by all ballots:
 
 $$
 \text{token_yield}_i = \frac{\text{foresight}_i}{\sum_{j} \text{foresight}_j} \times {\text{total_accumulated_token}}

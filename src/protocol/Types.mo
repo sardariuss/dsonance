@@ -12,56 +12,56 @@ module {
 
     // MIGRATION TYPES
 
-    public type Account            = Types.Current.Account;
-    public type Subaccount         = Types.Current.Subaccount;
-    public type SupportedStandard  = Types.Current.SupportedStandard;
-    public type Value              = Types.Current.Value;
-    public type Balance            = Types.Current.Balance;
-    public type Timestamp          = Types.Current.Timestamp;
-    public type TimeError          = Types.Current.TimeError;
-    public type TxIndex            = Types.Current.TxIndex;
-    public type ICRC1              = Types.Current.ICRC1;
-    public type ApproveArgs        = Types.Current.ApproveArgs;
-    public type ApproveError       = Types.Current.ApproveError;
-    public type TransferFromError  = Types.Current.TransferFromError;
-    public type TransferFromArgs   = Types.Current.TransferFromArgs;
-    public type AllowanceArgs      = Types.Current.AllowanceArgs;
-    public type Allowance          = Types.Current.Allowance;
-    public type ICRC2              = Types.Current.ICRC2;
-    public type VoteRegister       = Types.Current.VoteRegister;
-    public type VoteType           = Types.Current.VoteType;
-    public type YesNoAggregate     = Types.Current.YesNoAggregate;
-    public type Decayed            = Types.Current.Decayed;
-    public type YesNoChoice        = Types.Current.YesNoChoice;
-    public type Timeline<T>        = Types.Current.Timeline<T>;
-    public type TimedData<T>       = Types.Current.TimedData<T>;
-    public type Vote<A, B>         = Types.Current.Vote<A, B>;
-    public type LockInfo           = Types.Current.LockInfo;
-    public type Ballot<B>          = Types.Current.Ballot<B>;
-    public type Duration           = Types.Current.Duration;
-    public type State              = Types.Current.State;
-    public type ClockParameters    = Types.Current.ClockParameters;
-    public type UUID               = Types.Current.UUID;
-    public type Lock               = Types.Current.Lock;
-    public type DebtInfo           = Types.Current.DebtInfo;
-    public type Transfer           = Types.Current.Transfer;
-    public type TransferResult     = Types.Current.TransferResult;
-    public type BallotType         = Types.Current.BallotType;
-    public type BallotRegister     = Types.Current.BallotRegister;
-    public type ProtocolParameters = Types.Current.ProtocolParameters;
-    public type TimerParameters    = Types.Current.TimerParameters;
-    public type LendingParameters  = Types.Current.LendingParameters;
-    public type Foresight          = Types.Current.Foresight;
-    public type Register<T>        = Types.Current.Register<T>;
-    public type DebtRegister       = Types.Current.DebtRegister;
-    public type DebtRecord         = Types.Current.DebtRecord;
-    public type MinterParameters   = Types.Current.MinterParameters;
-    public type LockSchedulerState = Types.Current.LockSchedulerState;
-    public type YieldState         = Types.Current.YieldState;
-    public type TransferError      = Types.Current.TransferError;
-    public type Index              = Types.Current.Index;
-    public type Utilization        = Types.Current.Utilization;
-    public type LendingIndex       = Types.Current.LendingIndex;
+    public type Account                  = Types.Current.Account;
+    public type Subaccount               = Types.Current.Subaccount;
+    public type SupportedStandard        = Types.Current.SupportedStandard;
+    public type Value                    = Types.Current.Value;
+    public type Balance                  = Types.Current.Balance;
+    public type Timestamp                = Types.Current.Timestamp;
+    public type TimeError                = Types.Current.TimeError;
+    public type TxIndex                  = Types.Current.TxIndex;
+    public type ICRC1                    = Types.Current.ICRC1;
+    public type ApproveArgs              = Types.Current.ApproveArgs;
+    public type ApproveError             = Types.Current.ApproveError;
+    public type TransferFromError        = Types.Current.TransferFromError;
+    public type TransferFromArgs         = Types.Current.TransferFromArgs;
+    public type AllowanceArgs            = Types.Current.AllowanceArgs;
+    public type Allowance                = Types.Current.Allowance;
+    public type ICRC2                    = Types.Current.ICRC2;
+    public type VoteRegister             = Types.Current.VoteRegister;
+    public type VoteType                 = Types.Current.VoteType;
+    public type YesNoAggregate           = Types.Current.YesNoAggregate;
+    public type Decayed                  = Types.Current.Decayed;
+    public type YesNoChoice              = Types.Current.YesNoChoice;
+    public type Timeline<T>              = Types.Current.Timeline<T>;
+    public type TimedData<T>             = Types.Current.TimedData<T>;
+    public type Vote<A, B>               = Types.Current.Vote<A, B>;
+    public type LockInfo                 = Types.Current.LockInfo;
+    public type Ballot<B>                = Types.Current.Ballot<B>;
+    public type Duration                 = Types.Current.Duration;
+    public type State                    = Types.Current.State;
+    public type ClockParameters          = Types.Current.ClockParameters;
+    public type UUID                     = Types.Current.UUID;
+    public type Lock                     = Types.Current.Lock;
+    public type DebtInfo                 = Types.Current.DebtInfo;
+    public type Transfer                 = Types.Current.Transfer;
+    public type TransferResult           = Types.Current.TransferResult;
+    public type BallotType               = Types.Current.BallotType;
+    public type BallotRegister           = Types.Current.BallotRegister;
+    public type ProtocolParameters       = Types.Current.ProtocolParameters;
+    public type LendingParameters        = Types.Current.LendingParameters;
+    public type DurationScalerParameters = Types.Current.DurationScalerParameters;
+    public type Foresight                = Types.Current.Foresight;
+    public type Register<T>              = Types.Current.Register<T>;
+    public type DebtRegister             = Types.Current.DebtRegister;
+    public type DebtRecord               = Types.Current.DebtRecord;
+    public type MinterParameters         = Types.Current.MinterParameters;
+    public type LockSchedulerState       = Types.Current.LockSchedulerState;
+    public type YieldState               = Types.Current.YieldState;
+    public type TransferError            = Types.Current.TransferError;
+    public type Index                    = Types.Current.Index;
+    public type Utilization              = Types.Current.Utilization;
+    public type LendingIndex             = Types.Current.LendingIndex;
 
     // CANISTER ARGS
 
@@ -208,7 +208,7 @@ module {
     public type SProtocolParameters = {
         age_coefficient: Float;
         max_age: Nat;
-        nominal_lock_duration: Duration;
+        duration_scaler: DurationScalerParameters;
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
@@ -220,6 +220,7 @@ module {
             time_init: Nat;
         };
         clock: SClockParameters;
+        lending: LendingParameters;
     };
 
     // CUSTOM TYPES

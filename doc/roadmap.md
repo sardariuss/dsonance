@@ -5,21 +5,15 @@ coverY: 0
 
 # Roadmap
 
-**Q2 2025**
-
-* **Communities Introduction** – Enable community-driven voting with custom tokens.
-* **Enable Borrowing of token against DSN** – Allow users to leverage DSN holdings to borrow their favorite token.
-* **Calculate & Distribute Real Yield** – Reward users with token yields derived from lending (i.e., voting) and borrowing.
-
 **Q3 2025**
 
+* **Calculate & Distribute Real Yield**: Reward users with token yields derived from lending (i.e., voting) and borrowing.
 * **Limit Order Voting**: Allow users to set conditions where a ballot automatically locks if consent drops below a defined threshold.
-* **NFID Wallet Integration.**
-* **Official Platform Launch**: Transition from simulated beta to full release.
+* **DSN rewards**: distribute freshly minted DSN to participants of the platform for creating new votes, voting, borrowing, or providing liquidities.
 
 **Q4 2025**
 
-* **Meta Voting**: enable the community to moderate votes through _meta votes_ which impact the visibility and rewards of _consensus votes_.
+* **Official Platform Launch**: Transition from simulated beta to full release.
 * **DSN Buyback & Burn.**
 * **Expand Wallet Support** with additional wallet providers.
 

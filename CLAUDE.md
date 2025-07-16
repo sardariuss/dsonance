@@ -82,6 +82,33 @@ The project uses multiple canisters (smart contracts):
 - Protocol uses simulated time with 100x dilation factor for testing
 - Supply cap: 1M ckUSDT, borrow cap: 800k ckUSDT (configurable in install-local.sh)
 
+## Lock Duration Computation
+
+The protocol uses a dynamic lock duration system that adapts based on the "hotness" of votes. The lock duration for ballots is computed using the **DurationScaler** (`src/protocol/duration/DurationScaler.mo`).
+
+### How it Works
+
+1. **Hotness Calculation**: When a ballot is submitted, the system calculates the "hotness" of the vote based on how much USDT is locked around the ballot's timestamp. Higher amounts of locked USDT indicate a "hotter" vote.
+
+2. **Duration Scaling**: The lock duration is computed using a power scaling function:
+   ```
+   duration = a * hotness^(log_10(b))
+   ```
+   Where:
+   - `a` is the multiplier parameter (controls baseline duration)
+   - `b` is the logarithmic base parameter (controls the power law exponent)
+   - `hotness` is the amount of USDT locked around the ballot's timestamp
+   - `log_10(b)` determines the scaling exponent (e.g., b=3.25 gives exponent ≈ 0.512)
+
+3. **Scaling Behavior**: As hotness increases, the duration increases but at a decreasing rate (sub-linear scaling when b < 10). This is the desired behavior for preventing extremely long lock durations while still scaling appropriately with activity. The sub-linear relationship means that highly active votes don't result in impractically long lock periods.
+
+4. **Purpose**: This system prevents absurd lock durations (e.g., 10 seconds or 100 years) by scaling the duration based on the economic activity around the vote. More active votes (higher hotness) get different lock durations than less active ones, but the scaling is controlled to remain reasonable.
+
+5. **Configuration**: The `a` and `b` parameters can be configured in the protocol factory to tune the scaling behavior according to the desired economics. For example:
+   - `b = 10` gives linear scaling (hotness^1)
+   - `b = 100` gives quadratic scaling (hotness^2)
+   - `b = 3.25` gives sub-linear scaling (hotness^0.512, like square root)
+
 ## Frontend Development Guidelines
 
 ### IC-Reactor Actor Hooks Performance

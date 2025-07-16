@@ -95,6 +95,29 @@ module {
             #ok(interests_amount);
         };
 
+        public func take_supply_fees(amount: Nat) : Result<{ revert: () -> () }, Text> {
+            update(null);
+            // Make sure the amount is not greater than the fees
+            if (Float.fromInt(amount) > index.value.accrued_interests.fees) {
+                return #err("Not enough fees available to take");
+            };
+            // Remove the fees from the accrued interests
+            index.value := { index.value with
+                accrued_interests = { index.value.accrued_interests with
+                    fees = index.value.accrued_interests.fees - Float.fromInt(amount);
+                };
+            };
+            // Revert function in case the transfer fails
+            let revert = func(){
+                index.value := { index.value with
+                    accrued_interests = { index.value.accrued_interests with
+                        fees = index.value.accrued_interests.fees + Float.fromInt(amount);
+                    };
+                };
+            };
+            #ok({ revert; });
+        };
+
         public func update(new_utilization: ?Utilization) {
             
             // Update the state with the new utilization and interest rates

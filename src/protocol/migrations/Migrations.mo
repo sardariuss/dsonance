@@ -11,7 +11,7 @@ module {
     type State = MigrationTypes.State;
 
     // do not forget to change current migration when you add a new one
-    let { init; upgrade; downgrade; } = V0_1_0;
+    let { init; upgrade; downgrade; update; } = V0_1_0;
 
     public func install(args: Args) : State {
         switch(args){
@@ -35,6 +35,10 @@ module {
             case(#downgrade(downgrade_args)){ 
                 Debug.print("Downgrading state to previous version");
                 state := downgrade(state, downgrade_args); 
+            };
+            case(#update(parameters)){ 
+                Debug.print("Updating protocol parameters");
+                state := update(state, parameters);
             };
             case(_){ 
                 Debug.print("Migration ignored: use #upgrade or #downgrade args to effectively migrate state");

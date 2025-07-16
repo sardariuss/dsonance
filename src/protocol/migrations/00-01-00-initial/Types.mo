@@ -407,10 +407,6 @@ module {
         #NS: Nat;
     };
 
-    public type TimerParameters = {
-        var interval_s: Nat;
-    };
-
     public type ClockInitArgs = {
         #REAL;
         #SIMULATED: {
@@ -599,8 +595,13 @@ module {
         timestamp: Nat; // last time the rates were updated
     };
 
+    public type DurationScalerParameters = {
+        a: Float;  // multiplier parameter
+        b: Float;  // logarithmic base parameter
+    };
+
     public type ProtocolParameters = {
-        nominal_lock_duration: Duration;
+        duration_scaler: DurationScalerParameters;
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
@@ -609,19 +610,34 @@ module {
         // @int: commented out for now, will be implemented later
         //author_fee: Nat;
         //minter_parameters: MinterParameters; 
-        timer: TimerParameters;
+        timer_interval_s: Nat;
         decay: {
             half_life: Duration;
             time_init: Nat;
         };
         clock: ClockParameters;
+        lending: LendingParameters;
     };
 
     public type Args = {
         #init: InitArgs;
         #upgrade: UpgradeArgs;
         #downgrade: DowngradeArgs;
+        #update: Parameters;
         #none;
+    };
+
+    public type Parameters = {
+        age_coefficient: Float;
+        max_age: Duration;
+        ballot_half_life: Duration;
+        duration_scaler: DurationScalerParameters;
+        minimum_ballot_amount: Nat;
+        dissent_steepness: Float;
+        consent_steepness: Float;
+        timer_interval_s: Nat;
+        clock: ClockInitArgs;
+        lending: LendingParameters;
     };
 
     public type InitArgs = {
@@ -630,18 +646,7 @@ module {
             collateral_ledger: Principal;
             dex: Principal;
         };
-        parameters: {
-            age_coefficient: Float;
-            max_age: Duration;
-            ballot_half_life: Duration;
-            nominal_lock_duration: Duration;
-            minimum_ballot_amount: Nat;
-            dissent_steepness: Float;
-            consent_steepness: Float;
-            timer_interval_s: Nat;
-            clock: ClockInitArgs;
-            lending: LendingParameters;
-        };
+        parameters: Parameters;
     };
     public type UpgradeArgs = {
     };
@@ -652,14 +657,13 @@ module {
         supply_ledger: ICRC1 and ICRC2;
         collateral_ledger: ICRC1 and ICRC2;
         dex: DexActor;
+        parameters: ProtocolParameters;
         collateral_price_in_supply: TrackedPrice;
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
         lock_scheduler_state: LockSchedulerState;
-        parameters: ProtocolParameters;
         accounts: ProtocolAccounts;
         lending: {
-            parameters: LendingParameters;
             index: { var value: LendingIndex; };
             register: LendingRegister;
         };

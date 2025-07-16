@@ -66,12 +66,20 @@ dfx deploy icp_coins --argument '( record {
 wait
 
 # Deploy protocol canister
-# https://www.desmos.com/calculator/8iww2wlp2t
-# https://www.desmos.com/calculator/xqndi7hnws
+#
+# Dissent and consent parameters (see https://www.desmos.com/calculator/8iww2wlp2t)
+# { dissent_steepness = 0.55; consent_steepness = 0.1; }
 # dissent_steepness be in [0; 1[ - the closer to 1 the steepest (the less the majority is rewarded)
 # consent_steepness be in [0; 0.25] - the closer to 0 the steepest
+#
+# Duration scaler parameters (see https://www.desmos.com/calculator/ywe3znxzje)
+# { a = 72800000000.0; b = 3.25; }
+# Gives a duration of 1 day for 1 USDT and 1 year for 100k USDT
+#
 # 216 seconds timer interval, with a 100x dilation factor, means 6 hours in simulated time
+#
 # Supply cap is set to 1M ckUSDT and borrow cap to 800k ckUSDT
+#
 dfx deploy protocol --argument '( variant { 
   init = record {
     canister_ids = record {
@@ -83,11 +91,11 @@ dfx deploy protocol --argument '( variant {
       age_coefficient = 0.25;
       max_age = variant { YEARS = 4 };
       ballot_half_life = variant { YEARS = 1 };
-      nominal_lock_duration = variant { HOURS = 1 };
+      duration_scaler = record { a = 72800000000.0; b = 3.25; };
       minimum_ballot_amount = 1_000_000;
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
-      timer_interval_s = 216;
+      timer_interval_s = 60;
       clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
       lending = record {
         supply_cap = 1_000_000_000_000;

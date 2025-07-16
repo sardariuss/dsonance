@@ -108,18 +108,6 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().set_clock_dilation_factor(dilation_factor);
     };
 
-    public shared({caller}) func set_timer_interval({ interval_s: Nat }) : async Result.Result<(), Text> {
-        await* getFacade().set_timer_interval({ caller; interval_s; });
-    };
-
-    public shared({caller}) func start_timer() : async Result.Result<(), Text> {
-        await* getFacade().start_timer({ caller; });
-    };
-
-    public shared({caller}) func stop_timer() : async Result.Result<(), Text> {
-        getFacade().stop_timer({ caller; });
-    };
-
     public query func get_info() : async Types.ProtocolInfo {
         getFacade().get_info();
     };
@@ -128,16 +116,20 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_parameters();
     };
 
-    public query func get_lending_parameters() : async Types.LendingParameters {
-        getFacade().get_lending_parameters();
-    };
-
     public query func get_lending_index() : async Types.LendingIndex {
         getFacade().get_lending_index();
     };
 
     public query func get_loan_position(account: Types.Account) : async LendingTypes.LoanPosition {
         getFacade().get_loan_position(account);
+    };
+
+    public query func get_available_fees() : async Nat {
+        getFacade().get_available_fees();
+    };
+
+    public shared({caller}) func withdraw_fees({ to: Types.Account; amount: Nat; }) : async LendingTypes.TransferResult {
+        await* getFacade().withdraw_fees({ caller; to; amount; });
     };
 
     public shared({caller}) func run_borrow_operation({ 

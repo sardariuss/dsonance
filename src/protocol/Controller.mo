@@ -8,14 +8,12 @@ import BallotUtils             "votes/BallotUtils";
 import VoteTypeController      "votes/VoteTypeController";
 import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
-import ProtocolTimer           "ProtocolTimer";
 import LendingTypes            "lending/Types";
 import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
 import PriceTracker            "ledger/PriceTracker";
-import ForesightUpdater        "ForesightUpdater";
-import Incentives              "votes/Incentives";
+import SupplyAccount           "lending/SupplyAccount";
 
 import Map                     "mo:map/Map";
 import Set                     "mo:map/Set";
@@ -38,7 +36,6 @@ module {
     type UUID = Types.UUID;
     type SNewVoteResult = Types.SNewVoteResult;
     type BallotRegister = Types.BallotRegister;
-    type TimerParameters = Types.TimerParameters;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type ProtocolParameters = Types.ProtocolParameters;
     type Timeline<T> = Types.Timeline<T>;
@@ -52,6 +49,7 @@ module {
     type LoanPosition = LendingTypes.LoanPosition;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type BorrowOperationArgs = LendingTypes.BorrowOperationArgs;
+    type TransferResult = LendingTypes.TransferResult;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -85,11 +83,11 @@ module {
         ballot_register: BallotRegister;
         lock_scheduler: LockScheduler.LockScheduler;
         vote_type_controller: VoteTypeController.VoteTypeController;
+        supply: SupplyAccount.SupplyAccount;
         supply_registry: SupplyRegistry.SupplyRegistry;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         collateral_price_tracker: PriceTracker.PriceTracker;
-        protocol_timer: ProtocolTimer.ProtocolTimer;
         parameters: ProtocolParameters;
     }){
 
@@ -194,6 +192,14 @@ module {
             borrow_registry.get_loan_position(account);
         };
 
+        public func get_available_fees() : Nat {
+            supply.get_available_fees();
+        };
+
+        public func withdraw_fees({ caller: Principal; to: Account; amount: Nat; }) : async* TransferResult {
+            await* supply.withdraw_fees({ caller; to; amount; });
+        };
+
         public func run() : async* Result<(), Text> {
             
             let time = clock.get_time();
@@ -221,22 +227,6 @@ module {
 
         public func get_clock() : Clock.Clock {
             clock;
-        };
-
-        public func set_timer_interval({ caller: Principal; interval_s: Nat; }) : async* Result<(), Text> {
-            await* protocol_timer.set_interval({ caller; interval_s; });
-        };
-
-        public func start_timer({ caller: Principal; }) : async* Result<(), Text> {
-            await* protocol_timer.start_timer({ caller; fn = func() : async*() { ignore (await* run()); }});
-        };
-
-        public func stop_timer({ caller: Principal }) : Result<(), Text> {
-            protocol_timer.stop_timer({ caller });
-        };
-
-        public func get_parameters() : ProtocolParameters {
-            parameters;
         };
 
         public func get_info() : ProtocolInfo {
@@ -308,36 +298,6 @@ module {
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
 
             #ok(SharedConversions.sharePutBallotSuccess(put_ballot));
-        };
-
-        func map_ballots_to_foresight_items(ballot_ids: Set<UUID>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {
-
-            IterUtils.map(Set.keys(ballot_ids), func(ballot_id: UUID) : ForesightUpdater.ForesightItem {
-                let b = switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)){
-                    case(null) { Debug.trap("Ballot " #  debug_show(ballot_id) # " not found"); };
-                    case(?#YES_NO(ballot)) { ballot; };
-                };
-                let release_date = switch(b.lock){
-                    case(null) { Debug.trap("The ballot does not have a lock"); };
-                    case(?lock) { lock.release_date; };
-                };
-                let discernment = Incentives.compute_discernment({
-                    dissent = b.dissent;
-                    consent = Timeline.current(b.consent);
-                    lock_duration = release_date - b.timestamp;
-                    parameters;
-                });
-                {
-                    timestamp = b.timestamp;
-                    amount = b.amount;
-                    release_date;
-                    discernment;
-                    consent = Timeline.current(b.consent);
-                    update_foresight = func(foresight: Types.Foresight, time: Nat) { 
-                        Timeline.insert(b.foresight, time, foresight);
-                    };
-                };
-            });
         };
 
     };

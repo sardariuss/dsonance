@@ -22,7 +22,6 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type SNewVoteResult = Types.SNewVoteResult;
     type NewVoteError = Types.NewVoteError;
-    type TimerParameters = Types.TimerParameters;
     type STimeline<T> = Types.STimeline<T>;
     type ProtocolParameters = Types.ProtocolParameters;
     type SProtocolParameters = Types.SProtocolParameters;
@@ -36,6 +35,7 @@ module {
     type LoanPosition = LendingTypes.LoanPosition;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type OperationKind = LendingTypes.OperationKind;
+    type TransferResult = Types.TransferResult;
     type ProtocolInfo = Types.ProtocolInfo;
 
     public class SharedFacade({
@@ -59,18 +59,6 @@ module {
             await* controller.run();
         };
 
-        public func set_timer_interval({ caller: Principal; interval_s: Nat; }) : async* Result<(), Text> {
-            await* controller.set_timer_interval({ caller; interval_s; });
-        };
-
-        public func start_timer({ caller: Principal; }) : async* Result<(), Text> {
-            await* controller.start_timer({ caller; });
-        };
-
-        public func stop_timer({ caller: Principal }) : Result<(), Text> {
-            controller.stop_timer({ caller; });
-        };
-
         public func add_clock_offset(duration: Duration) : Result<(), Text> {
             controller.get_clock().add_offset(duration);
         };
@@ -84,11 +72,7 @@ module {
         };
         
         public func get_parameters() : SProtocolParameters {
-            SharedConversions.shareProtocolParameters(controller.get_parameters());
-        };
-
-        public func get_lending_parameters() : Types.LendingParameters {
-            queries.get_lending_parameters();
+            SharedConversions.shareProtocolParameters(queries.get_parameters());
         };
 
         public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
@@ -144,6 +128,14 @@ module {
         public func get_loan_position(account: Account) : LoanPosition {
             controller.get_loan_position(account);
         };
+
+        public func get_available_fees() : Nat {
+            controller.get_available_fees();
+        };
+
+        public func withdraw_fees({ caller: Principal; to: Account; amount: Nat; }) : async* TransferResult {
+            await* controller.withdraw_fees({ caller; to; amount; });
+        };  
 
         // @int: commented out for now, will be implemented later
 //        public func get_debt_info(debt_id: UUID) : ?SDebtInfo {
