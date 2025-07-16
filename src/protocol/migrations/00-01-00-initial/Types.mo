@@ -407,10 +407,6 @@ module {
         #NS: Nat;
     };
 
-    public type TimerParameters = {
-        var interval_s: Nat;
-    };
-
     public type ClockInitArgs = {
         #REAL;
         #SIMULATED: {
@@ -614,7 +610,7 @@ module {
         // @int: commented out for now, will be implemented later
         //author_fee: Nat;
         //minter_parameters: MinterParameters; 
-        timer: TimerParameters;
+        timer_interval_s: Nat;
         decay: {
             half_life: Duration;
             time_init: Nat;

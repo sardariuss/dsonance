@@ -22,7 +22,6 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type SNewVoteResult = Types.SNewVoteResult;
     type NewVoteError = Types.NewVoteError;
-    type TimerParameters = Types.TimerParameters;
     type STimeline<T> = Types.STimeline<T>;
     type ProtocolParameters = Types.ProtocolParameters;
     type SProtocolParameters = Types.SProtocolParameters;
@@ -57,18 +56,6 @@ module {
 
         public func run() : async* Result<(), Text> {
             await* controller.run();
-        };
-
-        public func set_timer_interval({ caller: Principal; interval_s: Nat; }) : async* Result<(), Text> {
-            await* controller.set_timer_interval({ caller; interval_s; });
-        };
-
-        public func start_timer({ caller: Principal; }) : async* Result<(), Text> {
-            await* controller.start_timer({ caller; });
-        };
-
-        public func stop_timer({ caller: Principal }) : Result<(), Text> {
-            controller.stop_timer({ caller; });
         };
 
         public func add_clock_offset(duration: Duration) : Result<(), Text> {

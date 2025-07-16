@@ -12,7 +12,6 @@ import Timeline               "utils/Timeline";
 import IterUtils              "utils/Iter";
 import ForesightUpdater       "ForesightUpdater";
 import Incentives             "votes/Incentives";
-import ProtocolTimer          "ProtocolTimer";
 import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
 import Dex                    "ledger/Dex";
@@ -22,6 +21,7 @@ import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
 import Map                    "mo:map/Map";
 import Result                 "mo:base/Result";
+import Timer                  "mo:base/Timer";
 
 module {
 
@@ -151,31 +151,27 @@ module {
             yes_no_controller;
         });
 
-        let protocol_timer = ProtocolTimer.ProtocolTimer({
-            admin;
-            parameters = parameters.timer;
+        let controller = Controller.Controller({
+            clock;
+            vote_register;
+            ballot_register;
+            lock_scheduler;
+            vote_type_controller;
+            supply_registry;
+            borrow_registry;
+            withdrawal_queue;
+            collateral_price_tracker;
+            parameters;
+        });
+        let queries = Queries.Queries({
+            state;
+            clock;
         });
 
         {
-            controller = Controller.Controller({
-                clock;
-                vote_register;
-                ballot_register;
-                lock_scheduler;
-                vote_type_controller;
-                supply_registry;
-                borrow_registry;
-                withdrawal_queue;
-                collateral_price_tracker;
-                protocol_timer;
-                parameters;
-            });
-            queries = Queries.Queries({
-                state;
-                clock;
-            });
+            controller;
+            queries;
             initialize = func() : async* Result.Result<(), Text> {
-                // @todo: start the timer too
                 switch(await* supply_ledger.initialize()) {
                     case(#err(e)) { return #err("Failed to initialize supply ledger: " # e); };
                     case(#ok(_)) {};
@@ -188,6 +184,9 @@ module {
                     case(#err(error)) { return #err("Failed to update collateral price: " # error); };
                     case(#ok(_)) {};
                 };
+                ignore Timer.recurringTimer<system>(#seconds(parameters.timer_interval_s), func() : async () {
+                    ignore await* controller.run();
+                });
                 #ok;
             };
         };

@@ -5,6 +5,7 @@ import Int "mo:base/Int";
 import Time "mo:base/Time";
 import Float "mo:base/Float";
 import Result "mo:base/Result";
+import Debug "mo:base/Debug";
 
 module {
 
@@ -34,8 +35,8 @@ module {
                 case(#REAL) { return #err("Cannot set dilation factor to real clock"); };
                 case(#SIMULATED(p)) { p; };
             };
-            if (dilation_factor < 0.0) {
-                return #err("Dilation factor must be positive");
+            if (dilation_factor < 1.0) {
+                return #err("Dilation factor must be greater than or equal to 1.0");
             };
             let now = Int.abs(Time.now());
             // First add the current dilation to the offset
@@ -55,11 +56,15 @@ module {
             };
         };
 
-        func compute_dilatation(now: Nat, time_ref: Nat, dilation_factor: Float) : Nat {
-            let time_diff = now - time_ref;
-            Int.abs(Float.toInt(Float.fromInt(time_diff) * dilation_factor));
-        };
+    };
 
+    public func compute_dilatation(now: Nat, time_ref: Nat, dilation_factor: Float) : Nat {
+        let time_diff : Int = now - time_ref;
+        let dilatation = Float.toInt(Float.fromInt(time_diff) * dilation_factor);
+        if (dilatation < 0) {
+            Debug.trap("Negative dilatation is not supported");
+        };
+        Int.abs(dilatation);
     };
 
 };

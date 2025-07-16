@@ -8,7 +8,6 @@ import BallotUtils             "votes/BallotUtils";
 import VoteTypeController      "votes/VoteTypeController";
 import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
-import ProtocolTimer           "ProtocolTimer";
 import LendingTypes            "lending/Types";
 import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
@@ -36,7 +35,6 @@ module {
     type UUID = Types.UUID;
     type SNewVoteResult = Types.SNewVoteResult;
     type BallotRegister = Types.BallotRegister;
-    type TimerParameters = Types.TimerParameters;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type ProtocolParameters = Types.ProtocolParameters;
     type Timeline<T> = Types.Timeline<T>;
@@ -87,7 +85,6 @@ module {
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         collateral_price_tracker: PriceTracker.PriceTracker;
-        protocol_timer: ProtocolTimer.ProtocolTimer;
         parameters: ProtocolParameters;
     }){
 
@@ -219,18 +216,6 @@ module {
 
         public func get_clock() : Clock.Clock {
             clock;
-        };
-
-        public func set_timer_interval({ caller: Principal; interval_s: Nat; }) : async* Result<(), Text> {
-            await* protocol_timer.set_interval({ caller; interval_s; });
-        };
-
-        public func start_timer({ caller: Principal; }) : async* Result<(), Text> {
-            await* protocol_timer.start_timer({ caller; fn = func() : async*() { ignore (await* run()); }});
-        };
-
-        public func stop_timer({ caller: Principal }) : Result<(), Text> {
-            protocol_timer.stop_timer({ caller });
         };
 
         public func get_info() : ProtocolInfo {

@@ -49,7 +49,6 @@ module {
     public type BallotType               = Types.Current.BallotType;
     public type BallotRegister           = Types.Current.BallotRegister;
     public type ProtocolParameters       = Types.Current.ProtocolParameters;
-    public type TimerParameters          = Types.Current.TimerParameters;
     public type LendingParameters        = Types.Current.LendingParameters;
     public type DurationScalerParameters = Types.Current.DurationScalerParameters;
     public type Foresight                = Types.Current.Foresight;

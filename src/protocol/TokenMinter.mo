@@ -18,7 +18,6 @@ module {
     type VoteType = Types.VoteType;
     type YesNoVote = Types.YesNoVote;
     type DebtRecord = Types.DebtRecord;
-    type TimerParameters = Types.TimerParameters;
     type MinterParameters = Types.MinterParameters;
     type Duration = Types.Duration;
     

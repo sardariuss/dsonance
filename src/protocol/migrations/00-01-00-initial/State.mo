@@ -2,6 +2,7 @@ import Types          "Types";
 import MigrationTypes "../Types";
 import Duration       "../../duration/Duration";
 import Timeline       "../../utils/Timeline";
+import Clock          "../../utils/Clock";
 
 import Map            "mo:map/Map";
 import Set            "mo:map/Set";
@@ -67,9 +68,6 @@ module {
             };
             parameters = { parameters with
                 max_age = Duration.toTime(parameters.max_age);
-                timer = {
-                    var interval_s = parameters.timer_interval_s;
-                };
                 decay = {
                     half_life = parameters.ballot_half_life;
                     time_init = now;
@@ -153,9 +151,6 @@ module {
 
         let protocol_parameters = { parameters with
             max_age = Duration.toTime(parameters.max_age);
-            timer = {
-                var interval_s = parameters.timer_interval_s;
-            };
             decay = {
                 half_life = parameters.ballot_half_life;
                 // ⚠️ Watchout: Need to keep the initial time from the original parameters, otherwise
@@ -165,20 +160,25 @@ module {
             clock : Types.ClockParameters = switch(parameters.clock) {
                 case(#REAL) { #REAL; };
                 case(#SIMULATED({ dilation_factor; })) {
+                    let now = Int.abs(Time.now());
                     // ⚠️ Watchout: If the previous clock was simulated, we need to keep the time reference and offset
-                    // from the original parameters, otherwise there might be a gap in the time.
+                    // from the original parameters, otherwise there might be a gap or interesction in the time.
                     switch(v1_state.parameters.clock) {
                         case(#REAL) { 
                             #SIMULATED({
-                                var time_ref = Int.abs(Time.now());
+                                var time_ref = now;
                                 var offset_ns = 0;
                                 var dilation_factor = dilation_factor;
                             });
                         };
                         case(#SIMULATED(previous_clock)) {
+                            // If the previous clock was simulated, we need to compute the new offset
+                            // based on the current time and the previous time reference and dilation factor.
+                            let offset_ns = previous_clock.offset_ns 
+                                + Clock.compute_dilatation(now, previous_clock.time_ref, previous_clock.dilation_factor);
                             #SIMULATED({
                                 var time_ref = previous_clock.time_ref;
-                                var offset_ns = previous_clock.offset_ns;
+                                var offset_ns = offset_ns;
                                 var dilation_factor = dilation_factor;
                             });
                         };
