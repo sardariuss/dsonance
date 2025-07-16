@@ -1,5 +1,5 @@
 import { useAuth } from "@ic-reactor/react";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { backendActor } from "../../actors/BackendActor";
 import { User } from "../../../declarations/backend/backend.did";
 import { fromNullableExt } from "../../utils/conversions/nullable";
@@ -13,12 +13,19 @@ interface UseUserResult {
 
 export const useUser = (): UseUserResult => {
   const { identity, authenticated } = useAuth({});
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  // Get user data from backend
-  const { call: getUserCall, loading: getUserLoading } = backendActor.useQueryCall({
-    functionName: 'get_user'
+  // Use ic-reactor's automatic state sharing by providing args that trigger refetch
+  const userArgs = useMemo(() => {
+    if (!authenticated || !identity || identity.getPrincipal().isAnonymous()) {
+      return undefined;
+    }
+    return [{ principal: identity.getPrincipal() }] as [{ principal: ReturnType<typeof identity.getPrincipal> }];
+  }, [authenticated, identity]);
+
+  // Get user data from backend - ic-reactor handles state sharing automatically
+  const { data: userData, call: getUserCall, loading: getUserLoading } = backendActor.useQueryCall({
+    functionName: 'get_user',
+    args: userArgs
   });
 
   // Set user nickname
@@ -26,34 +33,11 @@ export const useUser = (): UseUserResult => {
     functionName: 'set_user'
   });
 
-  // Function to fetch user data
-  const fetchUser = useCallback(async () => {
-    if (!authenticated || !identity || identity.getPrincipal().isAnonymous()) {
-      setUser(null);
-      return;
-    }
-
-    try {
-      const result = await getUserCall([{ principal: identity.getPrincipal() }]);
-      const userData = fromNullableExt(result);
-      
-      if (userData) {
-        setUser(userData);
-      } else {
-        // User doesn't exist, create with default nickname
-        const createResult = await setUserCall([{ nickname: "New user" }]);
-        if (createResult && 'ok' in createResult) {
-          // Refetch user after creation
-          const newResult = await getUserCall([{ principal: identity.getPrincipal() }]);
-          const newUserData = fromNullableExt(newResult);
-          setUser(newUserData || null);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      setUser(null);
-    }
-  }, [authenticated, identity, getUserCall, setUserCall]);
+  // Process user data
+  const user = useMemo(() => {
+    if (!userData) return null;
+    return fromNullableExt(userData) || null;
+  }, [userData]);
 
   // Update nickname function
   const updateNickname = useCallback(async (nickname: string): Promise<boolean> => {
@@ -64,9 +48,9 @@ export const useUser = (): UseUserResult => {
     try {
       const result = await setUserCall([{ nickname }]);
       if (result && 'ok' in result) {
-        // Update local user state
-        if (user) {
-          setUser({ ...user, nickname });
+        // Trigger refetch by calling getUserCall with current args
+        if (userArgs) {
+          await getUserCall(userArgs);
         }
         return true;
       }
@@ -75,20 +59,17 @@ export const useUser = (): UseUserResult => {
       console.error("Error updating nickname:", error);
       return false;
     }
-  }, [authenticated, identity, setUserCall, user]);
+  }, [authenticated, identity, setUserCall, getUserCall, userArgs]);
 
   // Refresh user data
   const refreshUser = useCallback(() => {
-    fetchUser();
-  }, [identity]);
-
-  // Effect to fetch user when authentication state changes
-  useEffect(() => {
-    fetchUser();
-  }, [identity]);
+    if (userArgs) {
+      getUserCall(userArgs);
+    }
+  }, [getUserCall, userArgs]);
 
   // Determine loading state
-  const isLoading = loading || getUserLoading || setUserLoading;
+  const isLoading = getUserLoading || setUserLoading;
 
   return {
     user,
