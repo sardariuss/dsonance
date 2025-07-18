@@ -35,6 +35,14 @@ module {
         get_price: () -> Float;
     };
 
+    public type ITWAPPriceTracker = {
+        fetch_price: () -> async* Result<(), Text>;
+        get_price: () -> Float;
+        get_spot_price: () -> Float;
+        get_twap_price: () -> Float;
+        get_observations_count: () -> Nat;
+    };
+
     public type TrackedPrice = {
         var value: ?Float;
     };

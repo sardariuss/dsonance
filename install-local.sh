@@ -113,6 +113,10 @@ dfx deploy protocol --argument '( variant {
           record { utilization = 0.8; rate = 0.15; };
           record { utilization = 1.0; rate = 1.00; };
         };
+        twap_config = record {
+          window_duration = 3600;
+          max_observations = 100;
+        };
       };
     };
   }

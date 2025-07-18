@@ -52,6 +52,13 @@ module {
             collateral_price_in_supply : TrackedPrice = {
                 var value = null;
             };
+            collateral_twap_price = {
+                var spot_price = null;
+                var observations = [];
+                var twap_cache = null;
+                var last_twap_calculation = 0;
+                config = args.parameters.lending.twap_config;
+            };
             vote_register = { 
                 votes = Map.new<UUID, VoteType>();
                 by_origin = Map.new<Principal, Set<UUID>>();
