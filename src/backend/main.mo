@@ -100,13 +100,27 @@ shared({ caller = admin }) actor class Backend() = this {
         #ok;
     };
 
-    public shared({ caller }) func set_user({ nickname: Text }) : async Result.Result<(), Text> {
+    public shared({caller}) func get_or_create_user() : async User {
+        if (Principal.isAnonymous(caller)) {
+            Debug.trap("Anonymous users cannot create or retrieve a user");
+        };
+
+        let user = switch(Map.get<Principal, User>(_users, Map.phash, caller)){
+            case(null) { { principal = caller; nickname = "New user"; joinedDate = Time.now(); }; };
+            case(?u) { u; };
+        };
+
+        Map.set(_users, Map.phash, caller, user);
+        user;
+    };
+
+    public shared({ caller }) func set_user_nickname({ nickname: Text }) : async Result.Result<(), Text> {
         if (Principal.isAnonymous(caller)) {
             return #err("Anonymous users cannot set a nickname");
         };
 
         let user = switch(Map.get<Principal, User>(_users, Map.phash, caller)){
-            case(null) { { principal = caller; nickname; joinedDate = Time.now(); }; };
+            case(null) { return #err("User not found"); };
             case(?u) { { u with nickname; }; };
         };
 
