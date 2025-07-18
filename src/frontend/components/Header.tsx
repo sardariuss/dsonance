@@ -13,7 +13,7 @@ import { useUser } from "./hooks/useUser";
 import { User } from "@/declarations/backend/backend.did";
 
 interface HeaderProps {
-  user: User | null;
+  user: User | undefined;
   login: () => void;
 }
 
