@@ -3,7 +3,7 @@ import { fromNullableExt } from "../../utils/conversions/nullable";
 import { TokenLabel } from "../common/TokenLabel";
 import BorrowButton from "./BorrowButton";
 import { OperationKind, Result_1 } from "../../../declarations/protocol/protocol.did";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
 import { Account } from "@/declarations/ck_btc/ck_btc.did";
 import DualLabel from "../common/DualLabel";
@@ -48,10 +48,17 @@ const BorrowTab = () => {
     functionName: 'run_borrow_operation',
   });
 
-  const { data: userSupply } = protocolActor.useQueryCall({
+  const { data: userSupply, call: refreshUserSupply } = protocolActor.useQueryCall({
     functionName: "get_user_supply",
     args: [{ account }],
   });
+
+  // Refresh APY data when component mounts
+  useEffect(() => {
+    refreshIndexerState();
+    refreshLoanPosition();
+    refreshUserSupply();
+  }, []);
 
   const previewOperation = (amount: bigint, kind: OperationKind) : Promise<Result_1 | undefined> => {
     try {

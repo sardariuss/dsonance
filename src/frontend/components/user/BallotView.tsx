@@ -18,6 +18,7 @@ import { toEnum } from "../../utils/conversions/yesnochoice";
 import ChoiceView from "../ChoiceView";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { createThumbnailUrl } from "../../utils/thumbnail";
+import { aprToApy } from "@/frontend/utils/lending";
 
 enum CHART_TOGGLE {
     DURATION,
@@ -69,7 +70,6 @@ const ChartCard : React.FC<ChartCardProps> = ({ title, value, diff, toggleKey, c
 interface BallotDetailsProps {
   ballot: SBallotType;
   now: bigint;
-  // contribution: STimeline_1 | undefined; // @int
   isMobile: boolean;
 }
 
@@ -96,7 +96,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, /*contribut
 
       return [
         {
-          title: "APR:",
+          title: "APY:",
           value: (ballot.YES_NO.foresight.current.data.apr.current * 100).toFixed(2) + "%",
           diff: apr_diff !== undefined ? `(${apr_diff > 0 ? "+" : ""}${(apr_diff * 100).toFixed(2)}%)` : undefined,
           toggleKey: CHART_TOGGLE.DISCERNMENT,
@@ -105,7 +105,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, /*contribut
               "current",
               {
                 timeline: interpolate_now(
-                  map_timeline_hack(ballot.YES_NO.foresight, (foresight) => Number(foresight.apr.current * 100)),
+                  map_timeline_hack(ballot.YES_NO.foresight, (foresight) => Number(aprToApy(foresight.apr.current) * 100)),
                   now
                 ),
                 color: CHART_COLORS.GREEN,
@@ -113,29 +113,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, /*contribut
             ],
           ]),
           formatValue: (value: number) => value.toFixed(2),
-          valueClassName: "[text-shadow:0px_0px_10px_rgb(59,130,246)]"
         },
-        // @int
-        /*{
-          title: "Mining earned:",
-          value: formatBalanceE8s(
-            BigInt(Math.floor(contribution === undefined ? 0 : contribution.current.data)),
-            DSONANCE_COIN_SYMBOL,
-            2
-          ),
-          toggleKey: CHART_TOGGLE.CONTRIBUTION,
-          chartTimelines: contribution === undefined ? new Map() : new Map([
-            [
-              "earned",
-              { timeline: map_timeline_hack(contribution, (contribution) => contribution.earned), color: CHART_COLORS.BLUE },
-            ],
-            [
-              "pending",
-              { timeline: map_timeline_hack(contribution, (contribution) => contribution.pending), color: CHART_COLORS.PURPLE },
-            ],
-          ]),
-          formatValue: (value: number) => formatBalanceE8s(BigInt(value), DSONANCE_COIN_SYMBOL, 2),
-        },*/
         {
           title: "Consent:",
           value: ballot.YES_NO.consent.current.data.toFixed(3),
@@ -207,15 +185,8 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
       args: [{ vote_id: ballot.YES_NO.vote_id }],
   });
 
-  // @int
-//  const { data: debtInfo, call: refreshDebtInfo } = protocolActor.useQueryCall({
-//    functionName: "get_debt_info",
-//    args: [ballot.YES_NO.ballot_id],
-//  });
-
   useEffect(() => {
     refreshVote();
-    // refreshDebtInfo(); // @int
   }
   , [ballot]);
 
@@ -223,12 +194,6 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
     return vote ? fromNullable(vote) : undefined;
   }
   , [vote]);
-
-  // @int
-//  const actualDebtInfo = useMemo(() => {
-//    return debtInfo ? fromNullable(debtInfo) : undefined;
-//  }
-//  , [debtInfo]);
 
   const thumbnailUrl = useMemo(() => {
     if (actualVote === undefined) {
@@ -259,21 +224,21 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
         }
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
-        <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+        <div className="grid grid-rows-2 justify-items-center w-full">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Choice</span>
+          <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
+        </div>
+        <div className="grid grid-rows-2 justify-items-center w-full">
           <span className="text-sm text-gray-600 dark:text-gray-400">Placed</span>
           <span>{ niceFormatDate(timeToDate(ballot.YES_NO.timestamp), timeToDate(now)) }</span>
         </div>
-        <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+        <div className="grid grid-rows-2 justify-items-center w-full">
           <span className="text-sm text-gray-600 dark:text-gray-400">Dissent</span>
           <span>{ ballot.YES_NO.dissent.toFixed(3) }</span>
         </div>
-        <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+        <div className="grid grid-rows-2 justify-items-center w-full">
           <span className="text-sm text-gray-600 dark:text-gray-400">Amount</span>
           <span>{formatAmountUsd(ballot.YES_NO.amount)}</span>
-        </div>
-        <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Choice</span>
-          <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
         </div>
       </div>
       <BallotDetails ballot={ballot} now={now} /*contribution={actualDebtInfo?.amount}*/ isMobile={isMobile}/>
@@ -298,6 +263,10 @@ export const BallotViewSkeleton: React.FC = () => {
       {/* Grid Section */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
         <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Choice</span>
+          <div className="w-10 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
+        </div>
+        <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">Placed</span>
           <div className="w-20 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
         </div>
@@ -308,10 +277,6 @@ export const BallotViewSkeleton: React.FC = () => {
         <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">Amount</span>
           <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
-        </div>
-        <div className="grid grid-rows-2 justify-items-center sm:justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Choice</span>
-          <div className="w-10 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
         </div>
       </div>
 
