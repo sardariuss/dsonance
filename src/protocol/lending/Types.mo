@@ -247,6 +247,7 @@ module {
         accrued_interests: {
             fees: Float;
             supply: Float;
+            borrow: Float;
         };
         borrow_index: Index;
         supply_index: Index;

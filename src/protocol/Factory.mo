@@ -15,7 +15,6 @@ import Incentives             "votes/Incentives";
 import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
 import Dex                    "ledger/Dex";
-import PriceTracker           "ledger/PriceTracker";
 import TWAPPriceTracker       "ledger/TWAPPriceTracker";
 
 import Debug                  "mo:base/Debug";
@@ -53,7 +52,7 @@ module {
         admin: Principal;
     }) : BuildOutput {
 
-        let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_price_in_supply = _; collateral_twap_price; } = state;
+        let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; } = state;
         let { decay; duration_scaler; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);

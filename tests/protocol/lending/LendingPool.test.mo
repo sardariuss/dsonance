@@ -34,7 +34,7 @@ await suite("LendingPool", func(): async() {
     let fuzz = Fuzz.fromSeed(0);
     let equal_balances = LedgerAccounting.testify_balances.equal;
 
-    let parameters = {
+    let parameters : LendingTypes.LendingParameters = {
         supply_cap = 1_000_000_000_000; // arbitrary supply cap
         borrow_cap = 1_000_000_000_000; // arbitrary borrow cap
         reserve_liquidity = 0.1;
@@ -50,6 +50,10 @@ await suite("LendingPool", func(): async() {
             { utilization = 0.8; rate = 0.20 },
             { utilization = 1.0; rate = 1.00 },
         ];
+        twap_config = {
+            window_duration = 3600; // 1 hour in seconds
+            max_observations = 100;
+        };
     };
 
     func unwrap<T>(value: ?T) : T {
@@ -74,6 +78,7 @@ await suite("LendingPool", func(): async() {
                 accrued_interests = {
                     fees = 0.0;
                     supply = 0.0;
+                    borrow = 0.0;
                 };
                 borrow_index = {
                     value = 1.0; 
@@ -272,6 +277,7 @@ await suite("LendingPool", func(): async() {
                 accrued_interests = {
                     fees = 0.0;
                     supply = 0.0;
+                    borrow = 0.0;
                 };
                 borrow_index = {
                     value = 1.0; 
@@ -429,6 +435,7 @@ await suite("LendingPool", func(): async() {
                 accrued_interests = {
                     fees = 0.0;
                     supply = 0.0;
+                    borrow = 0.0;
                 };
                 borrow_index = {
                     value = 1.0; 

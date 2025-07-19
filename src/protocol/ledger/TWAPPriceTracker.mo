@@ -99,6 +99,8 @@ module {
             tracked_twap_price.observations.size();
         };
 
+        // TODO: this function could be optimized by only using one buffer, adding previous observations and
+        // stopping when either the window duration is reached or the max observations is reached.
         func add_observation(obs: PriceObservation) {
             let buffer = Buffer.fromArray<PriceObservation>(tracked_twap_price.observations);
             buffer.add(obs);

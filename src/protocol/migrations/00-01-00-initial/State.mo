@@ -49,9 +49,6 @@ module {
             supply_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.supply_ledger));
             collateral_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.collateral_ledger));
             dex : DexActor = actor(Principal.toText(canister_ids.dex));
-            collateral_price_in_supply : TrackedPrice = {
-                var value = null;
-            };
             collateral_twap_price = {
                 var spot_price = null;
                 var observations = [];
@@ -117,6 +114,7 @@ module {
                         accrued_interests = {
                             fees = 0.0;
                             supply = 0.0;
+                            borrow = 0.0;
                         };
                         borrow_index = {
                             value = 1.0;

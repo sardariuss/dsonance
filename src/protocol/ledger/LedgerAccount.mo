@@ -106,9 +106,29 @@ module {
             if (payload.from != protocol_account) {
                 return #err("Protocol accounts do not match");
             };
+
+            if (payload.amount == 0) {
+                return #err("Amount to swap must be greater than zero");
+            };
+            
+            // First, approve the DEX to spend the pay tokens
+            switch(await* payload.pay_ledger.approve({
+                from_subaccount = null;
+                spender = payload.dex.get_main_account();
+                amount = payload.amount + payload.pay_ledger.fee(); // Amount + fee for the transaction
+                expected_allowance = null;
+                expires_at = null;
+                fee = ?payload.pay_ledger.fee();
+                memo = null;
+                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            })) {
+                case(#err(error)) { return #err("Failed to approve DEX: " # debug_show(error)); };
+                case(#ok(_)) { }; // Approval successful, continue with swap
+            };
+            
             switch(await* payload.dex.swap({
                 from = payload.from;
-                pay_token = payload.pay_token;
+                pay_token = payload.pay_ledger.token_symbol();
                 pay_amount = payload.amount;
                 pay_tx_id = null;
                 receive_token = ledger.token_symbol();
@@ -135,7 +155,7 @@ module {
             
             let payload = {
                 from = protocol_account;
-                pay_token = ledger.token_symbol();
+                pay_ledger = ledger;
                 amount;
                 max_slippage;
                 dex;
@@ -145,6 +165,22 @@ module {
                 against = func(swap_receivable: ISwapReceivable) : async* Result<SwapReply, Text> {
                     await* swap_receivable.perform_swap(payload);
                 };
+            };
+        };
+
+        public func approve(spender: Account, amount: Nat) : async* Result<TxIndex, Text> {
+            switch(await* ledger.approve({
+                from_subaccount = null;
+                spender;
+                amount;
+                expected_allowance = null;
+                expires_at = null;
+                fee = ?ledger.fee();
+                memo = null;
+                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            })) {
+                case(#err(error)) { #err(debug_show(error)); };
+                case(#ok(tx_index)) { #ok(tx_index); };
             };
         };
 

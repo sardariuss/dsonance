@@ -21,6 +21,11 @@ npm run build
 npm run test
 ```
 
+**Run Motoko Tests**
+```bash
+mops test <filename>  # e.g., mops test lendingpool (for lendingpool.test.mo)
+```
+
 **Format Code**
 ```bash
 npm run format

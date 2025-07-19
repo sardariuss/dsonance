@@ -29,15 +29,15 @@ module {
         ledger_account: ILedgerAccount and ISwapReceivable;
         indexer: Indexer.Indexer;
     }) : ISwapReceivable {
+
+        public func get_local_balance() : Nat {
+            ledger_account.get_local_balance();
+        };
         
-        public func get_balance() : Nat {
+        public func get_balance_without_fees() : Int {
             let supply_balance = ledger_account.get_local_balance();
             let interest_fees = Math.ceil_to_int(indexer.get_index().accrued_interests.fees);
-            if (supply_balance <= interest_fees) {
-                Debug.print("Not enough balance to transfer withdrawals, available balance: " # Int.toText(supply_balance) # ", fees: " # Int.toText(interest_fees));
-                return 0;
-            };
-            Int.abs(supply_balance - interest_fees);
+            supply_balance - interest_fees;
         };
 
         public func transfer({
@@ -45,7 +45,7 @@ module {
             amount: Nat;
         }) : async* TransferResult {
 
-            if (amount > get_balance()) {
+            if (amount > get_balance_without_fees()) {
                 return #err(#GenericError({ error_code = 0; message = "Not enough supply available to transfer"; }));
             };
 

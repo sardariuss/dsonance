@@ -124,6 +124,14 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
         getFacade().get_loan_position(account);
     };
 
+    public query func get_loans_info() : async { positions: [LendingTypes.Loan]; max_ltv: Float } {
+        getFacade().get_loans_info();
+    };
+
+    public query func get_supply_balance() : async Nat {
+        getFacade().get_supply_balance();
+    };
+
     public query func get_available_fees() : async Nat {
         getFacade().get_available_fees();
     };

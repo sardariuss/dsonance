@@ -13,6 +13,7 @@ module {
         #swap_amounts : (Text, Nat, Text);
         #swap : LedgerType.SwapArgs;
         #last_price : LedgerType.PriceArgs;
+        #get_main_account;
     };
 
     public type Return = {
@@ -25,6 +26,9 @@ module {
         #last_price :{
             #returns:  Float;
         };
+        #get_main_account : {
+            #returns: LedgerType.Account;
+        };
     };
 
     public class DexMock() : LedgerType.IDex and MockTypes.IMock<Return> {
@@ -34,6 +38,7 @@ module {
                     case(#swap_amounts(_,_,_)) { "swap_amounts" };
                     case(#swap(_)) { "swap" };
                     case(#last_price(_)) { "last_price" };
+                    case(#get_main_account) { "get_main_account" };
                 }
             };
             from_return = func(args: Return) : Method {
@@ -43,6 +48,7 @@ module {
                         pay_token=""; pay_amount=0; pay_tx_id=null; receive_token=""; receive_amount=null; receive_address=null; max_slippage=null; referred_by=null;
                     }) };
                     case(#last_price(_)) { #last_price({ pay_token=""; receive_token=""; }) };
+                    case(#get_main_account(_)) { #get_main_account };
                 }
             };
             method_hash = (
@@ -51,6 +57,7 @@ module {
                         case(#swap_amounts(_,_,_)) { 1 };
                         case(#swap(_)) { 2 };
                         case(#last_price(_)) { 3 };
+                        case(#get_main_account) { 4 };
                     }
                 },
                 func (m1: Method, m2: Method) : Bool {
@@ -58,6 +65,7 @@ module {
                         case(#swap_amounts(_,_,_), #swap_amounts(_,_,_)) { true };
                         case(#swap(_),             #swap(_))             { true };
                         case(#last_price(_),       #last_price(_))       { true };
+                        case(#get_main_account,    #get_main_account)    { true };
                         case _                                           { false };
                     }
                 }
@@ -77,6 +85,14 @@ module {
             switch(arg){
                 case(#swap(#returns(result))) result;
                 case _ Debug.trap("DexMock: Unexpected return for swap");
+            }
+        };
+
+        public func get_main_account() : LedgerType.Account {
+            let arg = base.next_call(#get_main_account);
+            switch(arg){
+                case(#get_main_account(#returns(account))) account;
+                case _ Debug.trap("DexMock: Unexpected return for get_main_account");
             }
         };
 

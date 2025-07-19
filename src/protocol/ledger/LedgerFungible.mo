@@ -62,6 +62,10 @@ module {
         public func transfer_from(args: Types.TransferFromArgs) : async* Result<Nat, Types.TransferFromError> {
             Result.fromUpper(await ledger_actor.icrc2_transfer_from(args));
         };
+
+        public func approve(args: Types.ApproveArgs) : async* Result<Nat, Types.ApproveError> {
+            Result.fromUpper(await ledger_actor.icrc2_approve(args));
+        };
         
     };
 

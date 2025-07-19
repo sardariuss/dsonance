@@ -33,6 +33,7 @@ module {
     type SYieldState = Types.SYieldState;
     type UserSupply = Types.UserSupply;
     type LoanPosition = LendingTypes.LoanPosition;
+    type Loan = LendingTypes.Loan;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type OperationKind = LendingTypes.OperationKind;
     type TransferResult = Types.TransferResult;
@@ -127,6 +128,14 @@ module {
 
         public func get_loan_position(account: Account) : LoanPosition {
             controller.get_loan_position(account);
+        };
+
+        public func get_loans_info() : { positions: [Loan]; max_ltv: Float } {
+            controller.get_loans_info();
+        };
+
+        public func get_supply_balance() : Nat {
+            controller.get_supply_balance();
         };
 
         public func get_available_fees() : Nat {

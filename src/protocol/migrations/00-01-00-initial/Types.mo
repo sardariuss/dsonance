@@ -595,6 +595,7 @@ module {
         accrued_interests: {
             fees: Float;
             supply: Float;
+            borrow: Float;
         };
         borrow_index: Index; // growing value, starts at 1.0
         supply_index: Index; // growing value, starts at 1.0
@@ -664,7 +665,6 @@ module {
         collateral_ledger: ICRC1 and ICRC2;
         dex: DexActor;
         parameters: ProtocolParameters;
-        collateral_price_in_supply: TrackedPrice;
         collateral_twap_price: {
             var spot_price: ?Float;
             var observations: [{ timestamp: Int; price: Float; }];
