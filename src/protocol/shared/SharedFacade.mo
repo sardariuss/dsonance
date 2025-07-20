@@ -23,8 +23,8 @@ module {
     type SNewVoteResult = Types.SNewVoteResult;
     type NewVoteError = Types.NewVoteError;
     type STimeline<T> = Types.STimeline<T>;
-    type ProtocolParameters = Types.ProtocolParameters;
-    type SProtocolParameters = Types.SProtocolParameters;
+    type Parameters = Types.Parameters;
+    type SParameters = Types.SParameters;
     type SVoteType = Types.SVoteType;
     type SDebtInfo = Types.SDebtInfo;
     type DebtRecord = Types.DebtRecord;
@@ -72,8 +72,8 @@ module {
             controller.get_info();
         };
         
-        public func get_parameters() : SProtocolParameters {
-            SharedConversions.shareProtocolParameters(queries.get_parameters());
+        public func get_parameters() : SParameters {
+            SharedConversions.shareParameters(queries.get_parameters());
         };
 
         public func get_vote_ballots(vote_id: UUID) : [SBallotType] {

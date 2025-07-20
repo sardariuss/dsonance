@@ -11,29 +11,28 @@ module {
     type IDex            = Types.IDex;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type ILedgerFungible = Types.ILedgerFungible;
-    type TrackedPrice    = Types.TrackedPrice;
     
-    public type PriceObservation = {
+    type PriceObservation = {
         timestamp: Int;
         price: Float;
     };
 
-    public type TWAPConfig = {
-        window_duration: Int; // Duration in time units (e.g., seconds)
-        max_observations: Nat; // Maximum number of observations to keep
+    type TWAPConfig = {
+        window_duration_ns: Nat;
+        max_observations: Nat;
     };
 
-    public type TrackedTWAPPrice = {
+    type TrackedTWAPPrice = {
         var spot_price: ?Float;
         var observations: [PriceObservation];
         var twap_cache: ?Float;
         var last_twap_calculation: Int;
-        config: TWAPConfig;
     };
     
     public class TWAPPriceTracker({
         dex: IDex;
         tracked_twap_price: TrackedTWAPPrice;
+        twap_config: TWAPConfig;
         pay_ledger: ILedgerFungible;
         receive_ledger: ILedgerFungible;
         get_current_time: () -> Int;
@@ -107,7 +106,7 @@ module {
             
             // Remove old observations outside the window
             let current_time = obs.timestamp;
-            let window_start = current_time - tracked_twap_price.config.window_duration;
+            let window_start = current_time - twap_config.window_duration_ns;
             
             let filtered_buffer = Buffer.Buffer<PriceObservation>(buffer.size());
             for (observation in buffer.vals()) {
@@ -117,11 +116,11 @@ module {
             };
             
             // Limit to max observations
-            let final_observations = if (filtered_buffer.size() > tracked_twap_price.config.max_observations) {
-                let start_index = Int.abs(filtered_buffer.size() - tracked_twap_price.config.max_observations);
+            let final_observations = if (filtered_buffer.size() > twap_config.max_observations) {
+                let start_index = Int.abs(filtered_buffer.size() - twap_config.max_observations);
                 let all_observations = Buffer.toArray(filtered_buffer);
                 let sliced_observations = Array.tabulate<PriceObservation>(
-                    tracked_twap_price.config.max_observations,
+                    twap_config.max_observations,
                     func(i: Nat) : PriceObservation {
                         all_observations[start_index + i];
                     }
@@ -182,16 +181,6 @@ module {
             total_weighted_price / total_time_weight;
         };
 
-    };
-
-    public func create_tracked_twap_price(config: TWAPConfig) : TrackedTWAPPrice {
-        {
-            var spot_price = null;
-            var observations = [];
-            var twap_cache = null;
-            var last_twap_calculation = 0;
-            config = config;
-        };
     };
 
 };

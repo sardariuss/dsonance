@@ -97,6 +97,10 @@ dfx deploy protocol --argument '( variant {
       consent_steepness = 0.1;
       timer_interval_s = 60;
       clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
+      twap_config = record {
+        window_duration = variant { HOURS = 6 };
+        max_observations = 1000;
+      };
       lending = record {
         supply_cap = 1_000_000_000_000;
         borrow_cap = 800_000_000_000;
@@ -112,10 +116,6 @@ dfx deploy protocol --argument '( variant {
           record { utilization = 0.0; rate = 0.02; };
           record { utilization = 0.8; rate = 0.15; };
           record { utilization = 1.0; rate = 1.00; };
-        };
-        twap_config = record {
-          window_duration = 3600;
-          max_observations = 100;
         };
       };
     };

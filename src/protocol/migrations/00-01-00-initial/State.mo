@@ -36,6 +36,7 @@ module {
     type DexActor       = Types.DexActor;
     type TrackedPrice   = Types.TrackedPrice;
     type Parameters     = Types.Parameters;
+    type InitParameters = Types.InitParameters;
     type Set<K>         = Set.Set<K>;
 
     let BTREE_ORDER = 8;
@@ -54,7 +55,6 @@ module {
                 var observations = [];
                 var twap_cache = null;
                 var last_twap_calculation = 0;
-                config = args.parameters.lending.twap_config;
             };
             vote_register = { 
                 votes = Map.new<UUID, VoteType>();
@@ -70,7 +70,11 @@ module {
                 map = Map.new<Text, Lock>();
                 tvl = Timeline.initialize<Nat>(now, 0);
             };
-            parameters = { parameters with
+            parameters = { parameters with 
+                twap_config = {
+                    window_duration_ns = Duration.toTime(parameters.twap_config.window_duration);
+                    max_observations = parameters.twap_config.max_observations;
+                };
                 max_age = Duration.toTime(parameters.max_age);
                 decay = {
                     half_life = parameters.ballot_half_life;
@@ -148,13 +152,17 @@ module {
     };
 
     // From 0.1.0 to 0.1.0, with new parameters
-    public func update(state: State, parameters: Parameters): State {
+    public func update(state: State, parameters: InitParameters): State {
         
         let v1_state = switch(state) {
             case(#v0_1_0(inner)) { inner; };
         };
 
         let protocol_parameters = { parameters with
+            twap_config = {
+                window_duration_ns = Duration.toTime(parameters.twap_config.window_duration);
+                max_observations = parameters.twap_config.max_observations;
+            };
             max_age = Duration.toTime(parameters.max_age);
             decay = {
                 half_life = parameters.ballot_half_life;

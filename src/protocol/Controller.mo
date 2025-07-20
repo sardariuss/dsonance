@@ -37,7 +37,7 @@ module {
     type SNewVoteResult = Types.SNewVoteResult;
     type BallotRegister = Types.BallotRegister;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type ProtocolParameters = Types.ProtocolParameters;
+    type Parameters = Types.Parameters;
     type Timeline<T> = Types.Timeline<T>;
     type ProtocolInfo = Types.ProtocolInfo;
     type YesNoBallot = Types.YesNoBallot;
@@ -90,7 +90,7 @@ module {
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         collateral_price_tracker: IPriceTracker;
-        parameters: ProtocolParameters;
+        parameters: Parameters;
     }){
 
         public func new_vote(args: NewVoteArgs) : async* SNewVoteResult {

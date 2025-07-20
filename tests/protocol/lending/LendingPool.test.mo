@@ -51,7 +51,7 @@ await suite("LendingPool", func(): async() {
             { utilization = 1.0; rate = 1.00 },
         ];
         twap_config = {
-            window_duration = 3600; // 1 hour in seconds
+            window_duration_ns = 3_600_000_000_000; // 1 hour in nanoseconds  
             max_observations = 100;
         };
     };

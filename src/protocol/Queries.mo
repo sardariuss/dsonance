@@ -31,7 +31,7 @@ module {
     type SDebtInfo = Types.SDebtInfo;
     type DebtRecord = Types.DebtRecord;
     type State = Types.State;
-    type ProtocolParameters = Types.ProtocolParameters;
+    type Parameters = Types.Parameters;
     type UserSupply = Types.UserSupply;
 
     public class Queries({
@@ -179,18 +179,7 @@ module {
             Buffer.toArray(buffer);
         };
 
-    // @int: commented out for now, will be implemented later
-//        public func get_debt_info(debt_id: UUID) : ?Types.SDebtInfo {
-//            Option.map<DebtInfo, SDebtInfo>(Map.get(dsn_debt_register.debts, Map.thash, debt_id), SharedConversions.shareDebtInfo);
-//        };
-//
-//        public func get_debt_infos(ids: [UUID]) : [SDebtInfo] {
-//            Array.mapFilter<UUID, SDebtInfo>(ids, func(id: UUID) : ?SDebtInfo {
-//                Option.map<DebtInfo, SDebtInfo>(Map.get(dsn_debt_register.debts, Map.thash, id), SharedConversions.shareDebtInfo);
-//            });
-//        };
-
-        public func get_parameters() : ProtocolParameters {
+        public func get_parameters() : Parameters {
             state.parameters;
         };
 

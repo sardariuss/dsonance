@@ -104,13 +104,12 @@ module {
     };
 
     public type TWAPConfig = {
-        window_duration: Int; // Duration in time units for TWAP calculation
+        window_duration_ns: Nat; // Duration of the TWAP window in nanoseconds
         max_observations: Nat; // Maximum number of price observations to store
     };
 
     public type LendingParameters = IndexerParameters and SupplyParameters and BorrowParameters and UtilizationParameters and {
         interest_rate_curve: [CurvePoint];
-        twap_config: TWAPConfig;
     };
 
     public type SellCollateralQuery = ({

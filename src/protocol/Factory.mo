@@ -2,7 +2,8 @@ import Types                  "Types";
 import Controller             "Controller";
 import Queries                "Queries";
 import Decay                  "duration/Decay";
-import DurationScaler        "duration/DurationScaler";
+import Duration               "duration/Duration";
+import DurationScaler         "duration/DurationScaler";
 import VoteFactory            "votes/VoteFactory";
 import VoteTypeController     "votes/VoteTypeController";
 import LockInfoUpdater        "locks/LockInfoUpdater";
@@ -53,7 +54,7 @@ module {
     }) : BuildOutput {
 
         let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; } = state;
-        let { decay; duration_scaler; } = parameters;
+        let { decay; duration_scaler; twap_config; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
 
@@ -65,6 +66,7 @@ module {
         let collateral_price_tracker = TWAPPriceTracker.TWAPPriceTracker({
             dex;
             tracked_twap_price = collateral_twap_price;
+            twap_config;
             pay_ledger = collateral_ledger;
             receive_ledger = supply_ledger;
             get_current_time = clock.get_time;
