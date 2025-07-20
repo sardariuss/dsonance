@@ -503,6 +503,11 @@ module {
         max_slippage: Float;
     };
 
+    public type TWAPConfig = {
+        window_duration_ns: Nat;
+        max_observations: Nat;
+    };
+
     public type LendingParameters = IndexerParameters and SupplyParameters and BorrowParameters and UtilizationParameters and {
         interest_rate_curve: [CurvePoint];
     };
@@ -589,6 +594,7 @@ module {
         accrued_interests: {
             fees: Float;
             supply: Float;
+            borrow: Float;
         };
         borrow_index: Index; // growing value, starts at 1.0
         supply_index: Index; // growing value, starts at 1.0
@@ -600,7 +606,7 @@ module {
         b: Float;  // logarithmic base parameter
     };
 
-    public type ProtocolParameters = {
+    public type Parameters = {
         duration_scaler: DurationScalerParameters;
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
@@ -617,17 +623,18 @@ module {
         };
         clock: ClockParameters;
         lending: LendingParameters;
+        twap_config: TWAPConfig;
     };
 
     public type Args = {
         #init: InitArgs;
         #upgrade: UpgradeArgs;
         #downgrade: DowngradeArgs;
-        #update: Parameters;
+        #update: InitParameters;
         #none;
     };
 
-    public type Parameters = {
+    public type InitParameters = {
         age_coefficient: Float;
         max_age: Duration;
         ballot_half_life: Duration;
@@ -635,9 +642,13 @@ module {
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
-        timer_interval_s: Nat;
+        timer_interval_s: Nat; // Use duration instead
         clock: ClockInitArgs;
         lending: LendingParameters;
+        twap_config: {
+            window_duration: Duration;
+            max_observations: Nat;
+        };
     };
 
     public type InitArgs = {
@@ -646,7 +657,7 @@ module {
             collateral_ledger: Principal;
             dex: Principal;
         };
-        parameters: Parameters;
+        parameters: InitParameters;
     };
     public type UpgradeArgs = {
     };
@@ -657,8 +668,13 @@ module {
         supply_ledger: ICRC1 and ICRC2;
         collateral_ledger: ICRC1 and ICRC2;
         dex: DexActor;
-        parameters: ProtocolParameters;
-        collateral_price_in_supply: TrackedPrice;
+        parameters: Parameters;
+        collateral_twap_price: {
+            var spot_price: ?Float;
+            var observations: [{ timestamp: Int; price: Float; }];
+            var twap_cache: ?Float;
+            var last_twap_calculation: Int;
+        };
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
         lock_scheduler_state: LockSchedulerState;

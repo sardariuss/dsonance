@@ -48,7 +48,7 @@ module {
     public type TransferResult           = Types.Current.TransferResult;
     public type BallotType               = Types.Current.BallotType;
     public type BallotRegister           = Types.Current.BallotRegister;
-    public type ProtocolParameters       = Types.Current.ProtocolParameters;
+    public type Parameters               = Types.Current.Parameters;
     public type LendingParameters        = Types.Current.LendingParameters;
     public type DurationScalerParameters = Types.Current.DurationScalerParameters;
     public type Foresight                = Types.Current.Foresight;
@@ -205,22 +205,23 @@ module {
         amount_minted: STimeline<Float>;
     };
 
-    public type SProtocolParameters = {
+    public type SParameters = {
         age_coefficient: Float;
-        max_age: Nat;
+        max_age: Duration;
         duration_scaler: DurationScalerParameters;
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
-        // @int: commented out for now, will be implemented later
-        //author_fee: Nat;
-        //minter_parameters: SMinterParameters;
         decay: {
             half_life: Duration;
             time_init: Nat;
         };
         clock: SClockParameters;
         lending: LendingParameters;
+        twap_config: {
+            window_duration: Duration;
+            max_observations: Nat;
+        };
     };
 
     // CUSTOM TYPES

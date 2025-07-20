@@ -8,11 +8,11 @@ import BallotUtils             "votes/BallotUtils";
 import VoteTypeController      "votes/VoteTypeController";
 import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
+import LedgerTypes             "ledger/Types";
 import LendingTypes            "lending/Types";
 import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
-import PriceTracker            "ledger/PriceTracker";
 import SupplyAccount           "lending/SupplyAccount";
 
 import Map                     "mo:map/Map";
@@ -37,7 +37,7 @@ module {
     type SNewVoteResult = Types.SNewVoteResult;
     type BallotRegister = Types.BallotRegister;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type ProtocolParameters = Types.ProtocolParameters;
+    type Parameters = Types.Parameters;
     type Timeline<T> = Types.Timeline<T>;
     type ProtocolInfo = Types.ProtocolInfo;
     type YesNoBallot = Types.YesNoBallot;
@@ -47,9 +47,11 @@ module {
     type YieldState = Types.YieldState;
     type PutBallotError = Types.PutBallotError;
     type LoanPosition = LendingTypes.LoanPosition;
+    type Loan = LendingTypes.Loan;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type BorrowOperationArgs = LendingTypes.BorrowOperationArgs;
     type TransferResult = LendingTypes.TransferResult;
+    type IPriceTracker = LedgerTypes.IPriceTracker;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -87,8 +89,8 @@ module {
         supply_registry: SupplyRegistry.SupplyRegistry;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
-        collateral_price_tracker: PriceTracker.PriceTracker;
-        parameters: ProtocolParameters;
+        collateral_price_tracker: IPriceTracker;
+        parameters: Parameters;
     }){
 
         public func new_vote(args: NewVoteArgs) : async* SNewVoteResult {
@@ -190,6 +192,14 @@ module {
 
         public func get_loan_position(account: Account) : LoanPosition {
             borrow_registry.get_loan_position(account);
+        };
+
+        public func get_loans_info() : { positions: [Loan]; max_ltv: Float } {
+            borrow_registry.get_loans_info();
+        };
+
+        public func get_supply_balance() : Nat {
+            supply.get_local_balance();
         };
 
         public func get_available_fees() : Nat {

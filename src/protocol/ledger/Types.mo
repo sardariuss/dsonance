@@ -41,7 +41,7 @@ module {
 
     public type SwapPayload = {
         from: Account;
-        pay_token: Text;
+        pay_ledger: ILedgerFungible;
         amount: Nat;
         max_slippage: Float;
         dex: IDex;
@@ -193,14 +193,41 @@ module {
     public type IDex = {
         swap_amounts: (Text, Nat, Text) -> async* Result<SwapAmountsReply, Text>;
         swap: AugmentedSwapArgs -> async* Result<SwapReply, Text>;
+        get_main_account: () -> Account;
     };
 
     public type Value = { #Nat : Nat; #Int : Int; #Blob : Blob; #Text : Text; #Array : [Value]; #Map: [(Text, Value)] };
+
+    public type ApproveArgs = {
+        from_subaccount : ?Blob;
+        spender : Account;
+        amount : Nat;
+        expected_allowance : ?Nat;
+        expires_at : ?Nat64;
+        fee : ?Nat;
+        memo : ?Blob;
+        created_at_time : ?Nat64;
+    };
+
+    public type ApproveError = {
+        #BadFee : { expected_fee : Nat };
+        #InsufficientFunds : { balance : Nat };
+        #AllowanceChanged : { current_allowance : Nat };
+        #Expired : { ledger_time : Nat64 };
+        #TooOld;
+        #CreatedInFuture : { ledger_time : Nat64 };
+        #Duplicate : { duplicate_of : Nat };
+        #TemporarilyUnavailable;
+        #GenericError : { error_code : Nat; message : Text };
+    };
+
+    public type ApproveResult = { #Ok : Nat; #Err : ApproveError };
 
     public type LedgerFungibleActor = actor {
         icrc1_balance_of : shared query Account -> async Nat;
         icrc1_transfer: shared (Icrc1TransferArgs) -> async Icrc1TransferResult;
         icrc2_transfer_from: shared (TransferFromArgs) -> async {#Err : TransferFromError; #Ok : Nat};
+        icrc2_approve: shared (ApproveArgs) -> async ApproveResult;
         icrc1_fee : shared query () -> async Nat;
         icrc1_metadata : shared query () -> async [(Text, Value)];
     };
@@ -209,6 +236,7 @@ module {
         balance_of: (Account) -> async* Nat;
         transfer: (Icrc1TransferArgs) -> async* Result<Nat, TransferError>;
         transfer_from: (TransferFromArgs) -> async* Result<Nat, TransferFromError>;
+        approve: (ApproveArgs) -> async* Result<Nat, ApproveError>;
         fee: () -> Nat;
         token_symbol: () -> Text;
     };
@@ -217,6 +245,7 @@ module {
         get_local_balance: () -> Nat;
         pull: (PullArgs) -> async* PullResult;
         transfer: (TransferArgs) -> async* Transfer;
+        approve: (Account, Nat) -> async* Result<TxIndex, Text>;
     };
 
     public type ISwapPayable = {

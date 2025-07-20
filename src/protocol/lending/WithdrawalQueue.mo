@@ -67,10 +67,11 @@ module {
             };
 
             // Compute the amount available for transfer
-            var available_for_transfer = supply.get_balance();
-            if (available_for_transfer == 0){
+            if (supply.get_balance_without_fees() <= 0){
                 return #err("No supply available to transfer withdrawals");
             };
+            
+            var available_for_transfer = Int.abs(supply.get_balance_without_fees());
 
             // Initialize a buffer to hold the transfers
             let buffer_transferring = Buffer.Buffer<async* TransferResult>(0);

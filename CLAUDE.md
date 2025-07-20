@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Important**: If, while doing a task, you come across something new, non-obvious, or that you had to figure out (something you "learned"), write it down here. This file is used to store cumulative knowledge and emerging conventions across the project.
+
 ## Development Commands
 
 **Start Development Server**
@@ -19,6 +21,11 @@ npm run build
 **Run Tests**
 ```bash
 npm run test
+```
+
+**Run Motoko Tests**
+```bash
+mops test <filename>  # e.g., mops test lendingpool (for lendingpool.test.mo)
 ```
 
 **Format Code**
@@ -136,6 +143,45 @@ const { data } = backendActor.useQueryCall({
 ```
 
 **Reason**: Capturing `call` methods from ic-reactor hooks in useEffect dependencies can cause excessive re-renders and high CPU usage. The ic-reactor library is designed to handle automatic refetching when arguments change, making manual useEffect calls unnecessary and potentially harmful to performance.
+
+## Parameter and Type System Guidelines
+
+### Parameter Architecture
+
+The protocol follows a strict parameter architecture to maintain clean separation between human-readable configuration and efficient backend execution:
+
+1. **InitParameters**: Human-readable parameters used for canister initialization and updates
+   - Contain `Duration` types for time-based values
+   - Used in canister arguments and configuration files
+   - Example: `window_duration: Duration`
+
+2. **Parameters**: Backend-friendly parameters stored in stable State
+   - Contain nanosecond-based time values (`_ns` suffix)
+   - Optimized for performance and storage
+   - Example: `window_duration_ns: Nat`
+
+3. **Conversion Flow**:
+   - `InitParameters` → converted during initialization → `Parameters` → stored in `State`
+   - Parameters can be updated via canister redeploy with `#update` argument
+   - Conversion happens once during initialization/update to avoid runtime overhead
+
+### Type Naming Conventions
+
+- **S-prefix**: Types prefixed with `S` (e.g., `SParameters`) are **Shared** and human-readable
+  - Used for public API queries and external interfaces
+  - Handled by `SharedConversions` module for type conversion
+
+- **Time/Duration Naming**:
+  - Use specific unit suffixes: `_ns` (nanoseconds), `_s` (seconds), `_ms` (milliseconds)
+  - Use `Duration` type for human-readable time parameters
+  - Example: `window_duration_ns: Nat` vs `window_duration: Duration`
+
+### Parameter Update Strategy
+
+- Parameter updates require canister redeploy with `#update` argument
+- This design choice avoids saturating code with parameter update logic across all objects
+- Since parameter updates are infrequent operations, this approach maintains clean architecture
+- All objects requiring parameters receive them via injection from Factory.mo
 
 ## Test Files
 - Motoko tests: `tests/protocol/`

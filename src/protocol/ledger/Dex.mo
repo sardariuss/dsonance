@@ -1,4 +1,5 @@
-import Result "mo:base/Result";
+import Result    "mo:base/Result";
+import Principal "mo:base/Principal";
 
 import Types "Types";
 
@@ -11,6 +12,7 @@ module {
     type AugmentedSwapArgs = Types.AugmentedSwapArgs;
     type SwapReply         = Types.SwapReply;
     type PriceArgs         = Types.PriceArgs;
+    type Account           = Types.Account;
 
     public class Dex(dex_actor: DexActor) : IDex {
         
@@ -20,6 +22,13 @@ module {
 
         public func swap(args: AugmentedSwapArgs) : async* Result<SwapReply, Text> {
             Result.fromUpper(await dex_actor.swap(args));
+        };
+
+        public func get_main_account() : Account {
+            { 
+                owner = Principal.fromActor(dex_actor);
+                subaccount = null;
+            };
         };
         
     };

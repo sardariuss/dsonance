@@ -12,6 +12,8 @@ module {
     type TransferError      = LedgerTypes.TransferError;
     type TransferFromArgs   = LedgerTypes.TransferFromArgs;
     type TransferFromError  = LedgerTypes.TransferFromError;
+    type ApproveArgs        = LedgerTypes.ApproveArgs;
+    type ApproveError       = LedgerTypes.ApproveError;
     type ILedgerFungible    = LedgerTypes.ILedgerFungible;
 
     type Info = {
@@ -49,6 +51,11 @@ module {
                 to = info.account;
                 amount = args.amount;
             });
+        };
+
+        public func approve(args : ApproveArgs) : async* Result<Nat, ApproveError> {
+            // For the fake implementation, just return success with a dummy transaction index
+            #ok(42);
         };
 
     };

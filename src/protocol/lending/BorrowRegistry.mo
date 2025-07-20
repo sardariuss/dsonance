@@ -5,6 +5,7 @@ import Debug              "mo:base/Debug";
 import Float              "mo:base/Float";
 import Option             "mo:base/Option";
 import Int                "mo:base/Int";
+import Principal          "mo:base/Principal";
 
 import Types              "../Types";
 import MapUtils           "../utils/Map";
@@ -126,6 +127,10 @@ module {
                 sum + Option.get(loan.collateral_to_liquidate, 0);
             });
 
+            if (total_to_liquidate == 0) {
+                return #ok; // Nothing to liquidate
+            };
+
             let prepare_swap_args = {
                 dex;
                 amount = total_to_liquidate;
@@ -228,6 +233,21 @@ module {
             };
         };
 
+        public func get_loans_info() : { positions: [Loan]; max_ltv: Float } {
+
+            let index = indexer.get_index().borrow_index;
+
+            var max_ltv : Float = 0.0;
+            let positions : [Loan] = Map.toArrayMap<Account, BorrowPosition, Loan>(register.borrow_positions, func (account: Account, position: BorrowPosition) : ?Loan {
+                borrow_positionner.to_loan_position({ position; index; }).loan;
+            });
+
+            {
+                positions;
+                max_ltv;
+            };
+        };
+
         func get_loans() : Map.Map<Account, Loan> {
 
             let index = indexer.get_index().borrow_index;
@@ -316,7 +336,7 @@ module {
             amount: Nat;
         }) : Result<PreparedOperation, Text> {
 
-            let supply_balance = supply.get_balance();
+            let supply_balance = supply.get_balance_without_fees();
             if (supply_balance < amount){
                 return #err("Available liquidity " # debug_show(supply_balance) # " is less than the requested amount " # debug_show(amount));
             };

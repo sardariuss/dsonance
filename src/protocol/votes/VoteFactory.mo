@@ -20,12 +20,12 @@ module {
     type Duration             = Types.Duration;
     type UUID                 = Types.UUID;
     type BallotRegister       = Types.BallotRegister;
-    type ProtocolParameters   = Types.ProtocolParameters;
+    type Parameters   = Types.Parameters;
     
     type Iter<T>              = Iter.Iter<T>;
 
     public func build_yes_no({
-        parameters: ProtocolParameters;
+        parameters: Parameters;
         ballot_register: BallotRegister;
         decay_model: Decay.DecayModel;
         lock_info_updater: LockInfoUpdater.LockInfoUpdater;

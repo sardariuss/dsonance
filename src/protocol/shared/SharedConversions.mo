@@ -23,8 +23,8 @@ module {
     type SClockParameters = Types.SClockParameters;
     type MinterParameters = Types.MinterParameters;
     type SMinterParameters = Types.SMinterParameters;
-    type ProtocolParameters = Types.ProtocolParameters;
-    type SProtocolParameters = Types.SProtocolParameters;
+    type Parameters = Types.Parameters;
+    type SParameters = Types.SParameters;
     type ProtocolInfo = Types.ProtocolInfo;
     type PutBallotSuccess = Types.PutBallotSuccess;
     type SPutBallotSuccess = Types.SPutBallotSuccess;
@@ -86,12 +86,19 @@ module {
         };
     };
 
-    public func shareProtocolParameters(protocol_parameters: ProtocolParameters) : SProtocolParameters {
+    public func shareParameters(parameters: Parameters) : SParameters {
         {
-            protocol_parameters with
-            // @int: commented out for now, will be implemented later
-            //minter_parameters = shareMinterParameters(protocol_parameters.minter_parameters);
-            clock = shareClockParameters(protocol_parameters.clock);
+            parameters with
+            clock = shareClockParameters(parameters.clock);
+            twap_config = {
+                window_duration = Duration.fromTime(parameters.twap_config.window_duration_ns);
+                max_observations = parameters.twap_config.max_observations;
+            };
+            max_age = Duration.fromTime(parameters.max_age);
+            decay = {
+                half_life = parameters.decay.half_life;
+                time_init = parameters.decay.time_init;
+            };
         };
     };
 

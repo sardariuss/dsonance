@@ -103,6 +103,11 @@ module {
         max_slippage: Float;
     };
 
+    public type TWAPConfig = {
+        window_duration_ns: Nat; // Duration of the TWAP window in nanoseconds
+        max_observations: Nat; // Maximum number of price observations to store
+    };
+
     public type LendingParameters = IndexerParameters and SupplyParameters and BorrowParameters and UtilizationParameters and {
         interest_rate_curve: [CurvePoint];
     };
@@ -241,6 +246,7 @@ module {
         accrued_interests: {
             fees: Float;
             supply: Float;
+            borrow: Float;
         };
         borrow_index: Index;
         supply_index: Index;

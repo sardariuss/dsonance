@@ -2,7 +2,8 @@ import Types                  "Types";
 import Controller             "Controller";
 import Queries                "Queries";
 import Decay                  "duration/Decay";
-import DurationScaler        "duration/DurationScaler";
+import Duration               "duration/Duration";
+import DurationScaler         "duration/DurationScaler";
 import VoteFactory            "votes/VoteFactory";
 import VoteTypeController     "votes/VoteTypeController";
 import LockInfoUpdater        "locks/LockInfoUpdater";
@@ -15,7 +16,7 @@ import Incentives             "votes/Incentives";
 import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
 import Dex                    "ledger/Dex";
-import PriceTracker           "ledger/PriceTracker";
+import TWAPPriceTracker       "ledger/TWAPPriceTracker";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
@@ -52,8 +53,8 @@ module {
         admin: Principal;
     }) : BuildOutput {
 
-        let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_price_in_supply; } = state;
-        let { decay; duration_scaler; } = parameters;
+        let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; } = state;
+        let { decay; duration_scaler; twap_config; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
 
@@ -62,11 +63,13 @@ module {
 
         let dex = Dex.Dex(state.dex);
 
-        let collateral_price_tracker = PriceTracker.PriceTracker({
+        let collateral_price_tracker = TWAPPriceTracker.TWAPPriceTracker({
             dex;
-            tracked_price = collateral_price_in_supply;
+            tracked_twap_price = collateral_twap_price;
+            twap_config;
             pay_ledger = collateral_ledger;
             receive_ledger = supply_ledger;
+            get_current_time = clock.get_time;
         });
 
         let { supply; supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({

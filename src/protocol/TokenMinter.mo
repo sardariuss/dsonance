@@ -14,7 +14,7 @@ module {
 
     type UUID = Types.UUID;
     type YesNoBallot = Types.Ballot<Types.YesNoChoice>;
-    type ProtocolParameters = Types.ProtocolParameters;
+    type Parameters = Types.Parameters;
     type VoteType = Types.VoteType;
     type YesNoVote = Types.YesNoVote;
     type DebtRecord = Types.DebtRecord;

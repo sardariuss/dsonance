@@ -107,7 +107,7 @@ module {
                     fees = index.value.accrued_interests.fees - Float.fromInt(amount);
                 };
             };
-            // Revert function in case the transfer fails
+            // Revert function in case the transfer ever fails
             let revert = func(){
                 index.value := { index.value with
                     accrued_interests = { index.value.accrued_interests with
@@ -183,10 +183,13 @@ module {
         let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.timestamp; to = timestamp; }));
 
         // Accrue the supply interests up to this date using the previous state up to this date!
-        let interests = state.utilization.raw_supplied * state.supply_rate * elapsed_annual;
+        let supply_interests = state.utilization.raw_supplied * state.supply_rate * elapsed_annual;
+        let borrow_interests = state.utilization.raw_borrowed * state.borrow_rate * elapsed_annual;
+
         let accrued_interests = {
-            fees = state.accrued_interests.fees + interests * parameters.lending_fee_ratio;
-            supply = state.accrued_interests.supply + interests * (1.0 - parameters.lending_fee_ratio);
+            fees = state.accrued_interests.fees + supply_interests * parameters.lending_fee_ratio;
+            supply = state.accrued_interests.supply + supply_interests * (1.0 - parameters.lending_fee_ratio);
+            borrow = state.accrued_interests.borrow + borrow_interests;
         };
 
         // Update the indexes based on the new rates

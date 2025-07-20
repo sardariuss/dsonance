@@ -106,6 +106,10 @@ module {
             #ok(reply)
         };
 
+        public func get_main_account() : Account {
+            account;
+        };
+
         func get_price() : Float {
             switch(price.value) {
                 case(?value) { value; };
