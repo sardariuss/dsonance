@@ -45,7 +45,13 @@ module {
             let preview = await* dex.swap_amounts(pay_ledger.token_symbol(), 1, receive_ledger.token_symbol());
             let price = switch(preview) {
                 case(#err(error)) { return #err(error); };
-                case(#ok(reply)) { reply.price; }
+                case(#ok(reply)) { 
+                    // Guard against invalid prices
+                    if (reply.price <= 0.0) {
+                        return #err("Invalid price received from DEX: " # Float.toText(reply.price));
+                    };
+                    reply.price; 
+                }
             };
             
             // Update spot price
@@ -174,6 +180,10 @@ module {
                 var sum : Float = 0.0;
                 for (obs in sorted_observations.vals()) {
                     sum += obs.price;
+                };
+                // Guard against division by zero
+                if (sorted_observations.size() == 0) {
+                    Debug.trap("No observations available for average calculation");
                 };
                 return sum / Float.fromInt(sorted_observations.size());
             };

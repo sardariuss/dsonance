@@ -1,10 +1,21 @@
 # Dsonance
 
+## Warning
+
+⚠️ This project is open-sourced solely to comply with the Dorahack's World Computer Hacker League (WCHL) rules. It is not intended for reuse, modification, or deployment outside of this context. Please contact the author before using it elsewhere.
+
+## Mission
+
 _My views are changing as much as the world itself is changing. Your views should change when the evidence changes and assumptions that you had in the past are proven wrong \[...] If you pay enough attention you can rate your own performance, just as if you're betting on sports \[...] To tell the truth is my main view and I plan to do that to the best of my ability._
 
 > [Tucker Carlson, 2024 World Government Summit in Dubai.](https://youtu.be/mMXikZM\_O80?si=bSkrQ0C2GeTJe7TV\&t=118)
 
 Dsonance is designed to help communities converge on empirical consensus — shared agreement on claims that can be evaluated based on evidence, observation, and reasoning. This includes scientific findings, historical facts, and other truth-based knowledge.
+
+## License
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+
+As of July 2025, this project is now licensed under the [GNU AGPL v3.0](LICENSE).  
 
 ## Installation
 
@@ -42,10 +53,3 @@ The frontend should be available on localhost:3000
 ## Credits
 
 * Acelon font: https://www.fontspace.com/acelon-blur-font-f115699
-
-## Improvements
- - The retrieval of the supply and collateral ledgers should not be hardcoded in the frontend be retrieved from the protocol canister
- - The preview of the foresight and mining shall be fixed
- - The foresight shall not be in the BallotType
- - DebtInfo is used for transfering ckBTC and DSN tokens. It shall only be used for DSN tokens, a new easier type shall be used instead for ckBTC.
- - The DebtProcessor shall be reworked so the transfer are done asynchronously by the user or at the finalization of the disbursement.

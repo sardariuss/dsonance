@@ -14,7 +14,10 @@
   "protocol": {
     "ic": "hkucx-jaaaa-aaaap-anxfq-cai"
   },
-  "dsn_ledger": {
+  "ck_usdt": {
     "ic": "hnved-eyaaa-aaaap-anxfa-cai"
+  },
+  "dex": {
+    "ic": "ena4g-5yaaa-aaaap-an3ca-cai"
   }
 }

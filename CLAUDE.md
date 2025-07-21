@@ -187,3 +187,4 @@ The protocol follows a strict parameter architecture to maintain clean separatio
 - Motoko tests: `tests/protocol/`
 - TypeScript tests: `src/frontend/tests/`
 - Mock implementations: `tests/mocks/`
+- Integration scenarios: `tests/ts/` (`.cjs`)
