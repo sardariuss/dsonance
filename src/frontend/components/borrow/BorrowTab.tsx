@@ -13,6 +13,7 @@ import { formatAmountCompact } from "../../utils/conversions/token";
 import { REPAY_SLIPPAGE_RATIO, UNDEFINED_SCALAR } from "../../constants";
 import HealthFactor from "./HealthFactor";
 import { useProtocolContext } from "../context/ProtocolContext";
+import { showErrorToast, extractErrorMessage } from "../../utils/toasts";
 
 const BorrowTab = () => {
 
@@ -65,6 +66,7 @@ const BorrowTab = () => {
       return previewBorrowOperation([{ subaccount: [], amount, kind }]);
     } catch (error) {
       console.error("Error previewing borrow operation:", error);
+      showErrorToast(extractErrorMessage(error), "Preview operation");
       return Promise.resolve(undefined);
     }
   }
@@ -106,6 +108,7 @@ const BorrowTab = () => {
       });
     } catch (error) {
       console.error("Error running borrow operation:", error);
+      showErrorToast(extractErrorMessage(error), "Run operation");
       return Promise.resolve(undefined);
     }
   };

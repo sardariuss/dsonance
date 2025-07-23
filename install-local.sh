@@ -95,7 +95,7 @@ dfx deploy protocol --argument '( variant {
       minimum_ballot_amount = 1_000_000;
       dissent_steepness = 0.55;
       consent_steepness = 0.1;
-      timer_interval_s = 60;
+      timer_interval_s = 300;
       clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
       twap_config = record {
         window_duration = variant { HOURS = 6 };

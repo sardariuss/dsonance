@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FungibleLedger } from "./hooks/useFungibleLedger";
 import { getTokenName } from "../utils/metadata";
+import { showErrorToast, showSuccessToast } from "../utils/toasts";
 
 interface FaucetProps {
   ledger: FungibleLedger;
@@ -12,11 +13,14 @@ const Faucet = ({ ledger }: FaucetProps) => {
   const triggerMint = () => {
     const amount = Number(mintAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert("Please enter a valid amount to mint.");
+      showErrorToast("Please enter a valid amount to mint.", "Mint");
       return;
     }
     ledger.mint(amount).then(() => {
       setMintAmount("");
+      showSuccessToast(`Successfully minted ${amount} ${getTokenName(ledger.metadata)}`, "Mint");
+    }).catch((error) => {
+      showErrorToast(`Failed to mint tokens: ${error.message || error}`, "Mint");
     });
   };
 

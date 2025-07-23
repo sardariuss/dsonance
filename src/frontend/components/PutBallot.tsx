@@ -11,6 +11,7 @@ import ResetIcon from './icons/ResetIcon';
 import { SBallot } from '@/declarations/protocol/protocol.did';
 import { useFungibleLedgerContext } from './context/FungibleLedgerContext';
 import { getTokenLogo, getTokenSymbol } from '../utils/metadata';
+import { showErrorToast, showSuccessToast, extractErrorMessage } from '../utils/toasts';
 
 const PREDEFINED_PERCENTAGES = [0.1, 0.25, 0.5, 1.0];
 
@@ -60,14 +61,17 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
         }
         if ('err' in result) {
           console.error("Put ballot failed:", result.err);
+          showErrorToast(extractErrorMessage(result.err), "Put ballot");
           throw new Error(`Put ballot failed: ${result.err.toString()}`);
         }
         refreshUserBalance();
+        showSuccessToast("Your ballot has been locked successfully", "Put ballot");
         // Ballot successfully put, navigate to the ballot page
         navigate(`/?tab=your_ballots\&ballotId=${result.ok.new.YES_NO.ballot_id}`);
       });
     }).catch((error) => {
       console.error("Error during put ballot:", error);
+      showErrorToast(extractErrorMessage(error), "Put ballot");
     }).finally(() => {
       setPutBallotLoading(false);
     });

@@ -8,6 +8,7 @@ import Spinner from "../Spinner";
 import useBorrowOperationPreview from "../hooks/useBorrowOperationPreview";
 import { FungibleLedger } from "../hooks/useFungibleLedger";
 import HealthFactor from "./HealthFactor";
+import { showErrorToast, showSuccessToast, extractErrorMessage } from "../../utils/toasts";
 
 interface BorrowButtonProps {
   ledger: FungibleLedger;
@@ -48,11 +49,15 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
     runOperation(amount).then((result) => {
       if (result !== undefined && "ok" in result) {
         setIsVisible(false);
+        showSuccessToast("Operation completed successfully", title);
       } else {
-        console.error("Borrow failed:", result?.err || "Unknown error");
+        const errorMsg = result?.err || "Unknown error";
+        console.error("Borrow failed:", errorMsg);
+        showErrorToast(extractErrorMessage(errorMsg), title);
       }
     }).catch((error) => {
       console.error("Error during borrow:", error);
+      showErrorToast(extractErrorMessage(error), title);
     }).finally(() => {
       setLoading(false);
     });

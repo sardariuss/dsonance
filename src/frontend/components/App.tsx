@@ -2,6 +2,7 @@ import Header from "./Header";
 import Footer from "./Footer";
 import { createContext, useState, useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
+import { Toaster } from "sonner";
 
 import Router from "../router/Router";
 
@@ -75,6 +76,7 @@ function AppContent() {
         </div>
         <Footer/>
       </div>
+      <Toaster position="top-right" richColors />
     </>
   );
 }

@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Link, useNavigate } from "react-router-dom";
 import { DOCS_URL, NEW_VOTE_PLACEHOLDER, VOTE_MAX_CHARACTERS } from "../constants";
 import BackArrowIcon from "./icons/BackArrowIcon";
+import { showErrorToast, showSuccessToast, extractErrorMessage } from '../utils/toasts';
 
 function NewVote() {
 
@@ -29,12 +30,15 @@ function NewVote() {
       }
       if ('err' in result) {
         console.error(result.err);
+        showErrorToast(extractErrorMessage(result.err), "New vote");
         return;
       }
+      showSuccessToast("Your vote has been created successfully", "New vote");
       navigate(`/vote/${result.ok.vote_id}`);
     },
     onError: (error) => {
       console.error(error);
+      showErrorToast(extractErrorMessage(error), "New vote");
     }
   });
 
@@ -74,13 +78,13 @@ function NewVote() {
           }
         } catch (error) {
           console.error("Image resizing failed:", error);
-          alert("Failed to process the image.");
+          showErrorToast("Failed to process the image. Please try again.", "Image upload");
         }
       };
 
       reader.readAsDataURL(file);
     } else {
-      alert("Please select a valid PNG file.");
+      showErrorToast("Please select a valid PNG file.", "Image upload");
     }
   };
 

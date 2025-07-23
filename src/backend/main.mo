@@ -32,9 +32,7 @@ shared({ caller = admin }) actor class Backend() = this {
     type Account = ProtocolTypes.Account;
     type UUID = ProtocolTypes.UUID;
     type GetVotesByAuthorArgs = ProtocolTypes.GetVotesByAuthorArgs;
-
-    type SNewVoteResult = Result.Result<SYesNoVote, SNewVoteError>;
-    type SNewVoteError = ProtocolTypes.NewVoteError or { #AnonymousCaller; };
+    type SNewVoteResult = Result.Result<SYesNoVote, Text>;
 
     stable let _infos = Map.new<UUID, VoteInfo>();
     stable let _users = Map.new<Principal, User>();
@@ -46,7 +44,7 @@ shared({ caller = admin }) actor class Backend() = this {
         from_subaccount: ?Blob;
     }) : async SNewVoteResult {
         if (Principal.isAnonymous(caller)){
-            return #err(#AnonymousCaller);
+            return #err("Anonymous users cannot create a vote");
         };
         let new_result = await Protocol.new_vote({ type_enum = #YES_NO; id; account = { owner = caller; subaccount = from_subaccount; } });
         Result.mapOk(new_result, func(vote_type: SVoteType) : SYesNoVote {
