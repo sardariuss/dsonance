@@ -79,10 +79,7 @@ module {
             };
 
             if (args.amount == 0) {
-                return { args; result = #err(#GenericError({ 
-                    error_code = 0; 
-                    message = "Amount " # debug_show(amount) # " is too low to cover the transfer fee"; })); 
-                };
+                return { args; result = #err("Amount " # debug_show(amount) # " is too low to cover the transfer fee"); };
             };
 
             // Perform the transfer
@@ -95,7 +92,7 @@ module {
                     };
                 };
             } catch(err) {
-                #err(#Trapped{ error_code = Error.code(err); });
+                #err("Transfer trapped with error code: " # debug_show(Error.code(err)));
             };
 
             { args; result; };

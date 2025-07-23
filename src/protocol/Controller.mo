@@ -100,7 +100,7 @@ module {
             let vote_id = IdFormatter.format(#VoteId(id));
 
             if (Map.has(vote_register.votes, Map.thash, vote_id)){
-                return #err(#VoteAlreadyExists({vote_id}));
+                return #err("Vote already exists: " # vote_id);
             };
 
             // Add the vote
@@ -144,7 +144,7 @@ module {
             });
 
             let tx_id = switch(preview_result){
-                case(#err(err)) { return #err(#GenericError({ error_code = 0; message = err; })); };
+                case(#err(err)) { return #err(err); };
                 case(#ok(tx_id)) { tx_id; };
             };
 
@@ -170,7 +170,7 @@ module {
             });
 
             let tx_id = switch(transfer){
-                case(#err(err)) { return #err(#GenericError({ error_code = 0; message = err; })); };
+                case(#err(err)) { return #err(err); };
                 case(#ok(tx_id)) { tx_id; };
             };
 
@@ -251,24 +251,24 @@ module {
             vote_type: VoteType;
         };
 
-        func process_ballot_input(args: PutBallotArgs) : Result<ProcessedBallotInput, PutBallotError> {
+        func process_ballot_input(args: PutBallotArgs) : Result<ProcessedBallotInput, Text> {
             
             let { id; vote_id; amount; } = args;
 
             let ballot_id = IdFormatter.format(#BallotId(id));
 
             let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
-                case(null) return #err(#VoteNotFound({ vote_id }));
+                case(null) return #err("Vote not found: " # vote_id);
                 case(?v) v;
             };
 
             switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)){
-                case(?_) return #err(#BallotAlreadyExists({ ballot_id }));
+                case(?_) return #err("Ballot already exists: " # ballot_id);
                 case(null) {};
             };
 
             if (amount < parameters.minimum_ballot_amount){
-                return #err(#InsufficientAmount({ amount; minimum = parameters.minimum_ballot_amount }));
+                return #err("Insufficient amount: " # debug_show(amount) # " (minimum: " # debug_show(parameters.minimum_ballot_amount) # ")");
             };
 
             #ok({

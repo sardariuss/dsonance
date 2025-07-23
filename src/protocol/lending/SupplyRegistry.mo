@@ -70,7 +70,7 @@ module {
             };
 
             let tx = switch(await* supply.pull({ from = account; amount = supplied; })) {
-                case(#err(_)) { return #err("Transfer failed"); };
+                case(#err(err)) { return #err(err); };
                 case(#ok(tx_index)) { tx_index; };
             };
 

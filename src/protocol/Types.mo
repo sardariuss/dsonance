@@ -287,8 +287,8 @@ module {
     public type NewVoteError             = { #VoteAlreadyExists: { vote_id: UUID; }; } or TransferFromError;
     public type BallotAlreadyExistsError = { #BallotAlreadyExists: { ballot_id: UUID; }; };
     public type PutBallotError           = VoteNotFoundError or InsuficientAmountError or BallotAlreadyExistsError or TransferFromError;
-    public type PutBallotResult          = Result<SPutBallotSuccess, PutBallotError>;
-    public type NewVoteResult            = Result<VoteType, NewVoteError>;
-    public type SNewVoteResult           = Result<SVoteType, NewVoteError>;
+    public type PutBallotResult          = Result<SPutBallotSuccess, Text>;
+    public type NewVoteResult            = Result<VoteType, Text>;
+    public type SNewVoteResult           = Result<SVoteType, Text>;
 
 };

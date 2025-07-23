@@ -44,18 +44,18 @@ let mockDex : Types.IDex = {
 let mockPayLedger : Types.ILedgerFungible = {
     token_symbol = func() : Text { "ckBTC" };
     balance_of = func(_account: Types.Account) : async* Nat { 0 };
-    transfer = func(_args: Types.Icrc1TransferArgs) : async* Result.Result<Nat, Types.TransferError> { #err(#TemporarilyUnavailable) };
-    transfer_from = func(_args: Types.TransferFromArgs) : async* Result.Result<Nat, Types.TransferFromError> { #err(#TemporarilyUnavailable) };
-    approve = func(_args: Types.ApproveArgs) : async* Result.Result<Nat, Types.ApproveError> { #err(#TemporarilyUnavailable) };
+    transfer = func(_args: Types.Icrc1TransferArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
+    transfer_from = func(_args: Types.TransferFromArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
+    approve = func(_args: Types.ApproveArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     fee = func() : Nat { 10000 };
 };
 
 let mockReceiveLedger : Types.ILedgerFungible = {
     token_symbol = func() : Text { "ckUSDT" };
     balance_of = func(_account: Types.Account) : async* Nat { 0 };
-    transfer = func(_args: Types.Icrc1TransferArgs) : async* Result.Result<Nat, Types.TransferError> { #err(#TemporarilyUnavailable) };
-    transfer_from = func(_args: Types.TransferFromArgs) : async* Result.Result<Nat, Types.TransferFromError> { #err(#TemporarilyUnavailable) };
-    approve = func(_args: Types.ApproveArgs) : async* Result.Result<Nat, Types.ApproveError> { #err(#TemporarilyUnavailable) };
+    transfer = func(_args: Types.Icrc1TransferArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
+    transfer_from = func(_args: Types.TransferFromArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
+    approve = func(_args: Types.ApproveArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     fee = func() : Nat { 1000 };
 };
 

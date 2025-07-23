@@ -2,6 +2,7 @@ import Result "mo:base/Result";
 import Debug "mo:base/Debug";
 
 import Types "Types";
+import ErrorConverter "../utils/ErrorConverter";
 
 module {
 
@@ -55,16 +56,25 @@ module {
             await ledger_actor.icrc1_balance_of(account);
         };
 
-        public func transfer(args: Types.Icrc1TransferArgs) : async* Result<Nat, Types.TransferError> {
-            Result.fromUpper(await ledger_actor.icrc1_transfer(args));
+        public func transfer(args: Types.Icrc1TransferArgs) : async* Result<Nat, Text> {
+            switch(Result.fromUpper(await ledger_actor.icrc1_transfer(args))) {
+                case (#ok(value)) { #ok(value) };
+                case (#err(error)) { #err(ErrorConverter.transferErrorToText(error)) };
+            };
         };
 
-        public func transfer_from(args: Types.TransferFromArgs) : async* Result<Nat, Types.TransferFromError> {
-            Result.fromUpper(await ledger_actor.icrc2_transfer_from(args));
+        public func transfer_from(args: Types.TransferFromArgs) : async* Result<Nat, Text> {
+            switch(Result.fromUpper(await ledger_actor.icrc2_transfer_from(args))) {
+                case (#ok(value)) { #ok(value) };
+                case (#err(error)) { #err(ErrorConverter.transferFromErrorToText(error)) };
+            };
         };
 
-        public func approve(args: Types.ApproveArgs) : async* Result<Nat, Types.ApproveError> {
-            Result.fromUpper(await ledger_actor.icrc2_approve(args));
+        public func approve(args: Types.ApproveArgs) : async* Result<Nat, Text> {
+            switch(Result.fromUpper(await ledger_actor.icrc2_approve(args))) {
+                case (#ok(value)) { #ok(value) };
+                case (#err(error)) { #err(ErrorConverter.approveErrorToText(error)) };
+            };
         };
         
     };

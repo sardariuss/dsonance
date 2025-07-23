@@ -1,4 +1,3 @@
-import Debug       "mo:base/Debug";
 import Int         "mo:base/Int";
 import Float       "mo:base/Float";
 import Result      "mo:base/Result";
@@ -46,7 +45,7 @@ module {
         }) : async* TransferResult {
 
             if (amount > get_balance_without_fees()) {
-                return #err(#GenericError({ error_code = 0; message = "Not enough supply available to transfer"; }));
+                return #err("Not enough supply available to transfer");
             };
 
             (await* ledger_account.transfer({ amount; to; })).result;
@@ -63,11 +62,11 @@ module {
         }) : async* TransferResult {
 
             if (caller != admin) {
-                return #err(#GenericError({ error_code = 0; message = "Caller is not the admin of the protocol"; }));
+                return #err("Caller is not the admin of the protocol");
             };
             
             let revert_take_fees = switch(indexer.take_supply_fees(amount)){
-                case(#err(error)) { return #err(#GenericError({ error_code = 0; message = error; })); };
+                case(#err(error)) { return #err(error); };
                 case(#ok({revert})) { revert; };
             };
 

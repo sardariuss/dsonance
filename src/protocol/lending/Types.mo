@@ -67,7 +67,7 @@ module {
 
     public type TransferResult = {
         #ok: TxIndex;
-        #err: TransferError;
+        #err: Text;
     };
 
     public type TransferError = Icrc1TransferError or { 

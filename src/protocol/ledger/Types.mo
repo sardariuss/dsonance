@@ -18,7 +18,7 @@ module {
     public type TransferResult = Types.TransferResult;
     public type Transfer = Types.Transfer;
     public type TransferFromArgs = ICRC2.TransferFromArgs;
-    public type PullResult = Result<TxIndex, TransferFromError>;
+    public type PullResult = Result<TxIndex, Text>;
 
     public type PullArgs = {
         from: Account;
@@ -234,9 +234,9 @@ module {
 
     public type ILedgerFungible = {
         balance_of: (Account) -> async* Nat;
-        transfer: (Icrc1TransferArgs) -> async* Result<Nat, TransferError>;
-        transfer_from: (TransferFromArgs) -> async* Result<Nat, TransferFromError>;
-        approve: (ApproveArgs) -> async* Result<Nat, ApproveError>;
+        transfer: (Icrc1TransferArgs) -> async* Result<Nat, Text>;
+        transfer_from: (TransferFromArgs) -> async* Result<Nat, Text>;
+        approve: (ApproveArgs) -> async* Result<Nat, Text>;
         fee: () -> Nat;
         token_symbol: () -> Text;
     };
