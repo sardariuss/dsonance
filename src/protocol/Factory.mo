@@ -2,7 +2,6 @@ import Types                  "Types";
 import Controller             "Controller";
 import Queries                "Queries";
 import Decay                  "duration/Decay";
-import Duration               "duration/Duration";
 import DurationScaler         "duration/DurationScaler";
 import VoteFactory            "votes/VoteFactory";
 import VoteTypeController     "votes/VoteTypeController";
@@ -120,7 +119,7 @@ module {
                         // TODO: what if it returns an error?
                         ignore supply_registry.remove_position({
                             id;
-                            share = Timeline.current(ballot.foresight).share;
+                            share = ballot.foresight.share;
                         });
                         { ballot; diff = -amount; };
                     };
@@ -235,8 +234,8 @@ module {
                         release_date;
                         discernment;
                         consent = Timeline.current(b.consent);
-                        update_foresight = func(foresight: Types.Foresight, time: Nat) { 
-                            Timeline.insert(b.foresight, time, foresight);
+                        update_foresight = func(foresight: Types.Foresight) { 
+                            b.foresight := foresight;
                         };
                     };
                 };

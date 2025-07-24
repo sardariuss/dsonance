@@ -52,7 +52,7 @@ module {
             amount = ballot.amount;
             dissent = ballot.dissent;
             consent = shareTimeline(ballot.consent);
-            foresight = shareTimeline(ballot.foresight);
+            foresight = ballot.foresight;
             tx_id = ballot.tx_id;
             from = ballot.from;
             hotness = ballot.hotness;

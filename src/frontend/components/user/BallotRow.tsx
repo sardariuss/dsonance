@@ -48,24 +48,15 @@ interface BallotProps {
   selected: boolean;
 }
 
-// @int: debt_info is commented out
 const BallotRow = ({ ballot, now, selected }: BallotProps) => {
 
   const { supplyLedger: { formatAmountUsd } } = useFungibleLedgerContext();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-//  const { data: debt_info } = protocolActor.useQueryCall({
-//    functionName: "get_debt_info",
-//    args: [ballot.YES_NO.ballot_id],
-//  });
-
-  const { releaseTimestamp, contribution, foresightAPR } = useMemo(() => {
-      
-      //const debt = debt_info ? fromNullable(debt_info) : undefined;
+  const { releaseTimestamp, foresightAPR } = useMemo(() => {
 
       return {
-        contribution: 0n, //contribution: BigInt(Math.floor(debt?.amount.current.data.earned || 0)),
-        foresightAPR: ballot.YES_NO.foresight.current.data.apr.current,
+        foresightAPR: ballot.YES_NO.foresight.apr.current,
         releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot.YES_NO).duration_ns.current.data 
       }
     },

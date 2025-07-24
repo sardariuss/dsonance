@@ -24,11 +24,11 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({ ballotPreview }) =>
         },
         {
           label: "APY (current)",
-          value: ballotPreview ? (aprToApy(ballotPreview.foresight.current.data.apr.current) * 100).toFixed(2) + "%" : defaultValue,
+          value: ballotPreview ? (aprToApy(ballotPreview.foresight.apr.current) * 100).toFixed(2) + "%" : defaultValue,
         },
         {
           label: "APY (potential)",
-          value: ballotPreview ? (aprToApy(ballotPreview.foresight.current.data.apr.potential) * 100).toFixed(2) + "%" : defaultValue,
+          value: ballotPreview ? (aprToApy(ballotPreview.foresight.apr.potential) * 100).toFixed(2) + "%" : defaultValue,
         },
       ].map(({ label, value }) => (
         <div key={label} className="grid grid-rows-2 justify-items-center min-w-[100px]">

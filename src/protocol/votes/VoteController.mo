@@ -112,10 +112,10 @@ module {
                     amount = ballot.amount;
                     dissent = ballot.dissent;
                     consent = ballot.consent;
-                    foresight = ballot.foresight;
                     tx_id = ballot.tx_id;
                     from = ballot.from;
                     decay = ballot.decay;
+                    var foresight = ballot.foresight;
                     var hotness = ballot.hotness;
                     var lock = ballot.lock;
                 };
@@ -138,8 +138,8 @@ module {
                 choice;
                 dissent;
                 consent = Timeline.initialize<Float>(timestamp, consent);
-                foresight = Timeline.initialize<Foresight>(timestamp, { share = 0.0; reward = 0; apr = { current = 0.0; potential = 0.0; }; });
                 decay = decay_model.compute_decay(timestamp);
+                var foresight : Foresight = { share = 0.0; reward = 0; apr = { current = 0.0; potential = 0.0; }; };
                 var hotness = 0.0;
                 var lock : ?LockInfo = null;
             };

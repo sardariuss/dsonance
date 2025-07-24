@@ -40,7 +40,7 @@ module {
         amount: Nat;
         discernment: Float;
         consent: Float;
-        update_foresight: (Foresight, Nat) -> ();
+        update_foresight: (Foresight) -> ();
     };
 
     func init_accumulator() : Accumulator {
@@ -141,7 +141,7 @@ module {
                         potential = item_apr / item.consent;
                     };
                 };
-                item.update_foresight(foresight, timestamp);
+                item.update_foresight(foresight);
             };
         };
 

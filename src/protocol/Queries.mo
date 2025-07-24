@@ -93,7 +93,7 @@ module {
                                         let lock = BallotUtils.unwrap_lock_info(b);
                                         if (lock.release_date > timestamp){
                                             amount += b.amount;
-                                            sum_apr += (b.foresight.current.data.apr.current * Float.fromInt(b.amount));
+                                            sum_apr += (b.foresight.apr.current * Float.fromInt(b.amount));
                                         };
                                     };
                                 };
@@ -143,24 +143,6 @@ module {
             }); 
             Buffer.toArray(Buffer.map<VoteType, SVoteType>(buffer, SharedConversions.shareVoteType));
         };
-
-        // @int: commented out for now, will be implemented later
-//        public func get_mined_by_author({ author: Account }) : DebtRecord {
-//            var total_mined = { earned = 0.0; pending = 0.0; };
-//            let opened_ids = Option.get(Map.get(state.vote_register.by_author, MapUtils.acchash, author), Set.new<UUID>());
-//            for (vote_id in Set.keys(opened_ids)){
-//                switch(Map.get(dsn_debt_register.debts, Map.thash, vote_id)){
-//                    case(null) { Debug.trap("Debt not found"); };
-//                    case(?debt) {
-//                        total_mined := {
-//                            earned = total_mined.earned + debt.amount.current.data.earned;
-//                            pending = total_mined.pending + debt.amount.current.data.pending;
-//                        };
-//                    };
-//                };
-//            };
-//            total_mined;
-//        };
 
         public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
             let vote = switch(Map.get(state.vote_register.votes, Map.thash, vote_id)){

@@ -371,10 +371,10 @@ module {
         amount: Nat;
         dissent: Float;
         consent: Timeline<Float>;
-        foresight: Timeline<Foresight>;
         tx_id: Nat;
         from: Account;
         decay: Float;
+        var foresight: Foresight;
         var hotness: Float;
         var lock: ?LockInfo;
     };

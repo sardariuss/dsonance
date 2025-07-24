@@ -18,7 +18,6 @@ import { toEnum } from "../../utils/conversions/yesnochoice";
 import ChoiceView from "../ChoiceView";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { createThumbnailUrl } from "../../utils/thumbnail";
-import { aprToApy } from "@/frontend/utils/lending";
 
 enum CHART_TOGGLE {
     DURATION,
@@ -84,36 +83,7 @@ const BallotDetails : React.FC<BallotDetailsProps> = ({ ballot, now, /*contribut
       let duration_diff = get_timeline_diff(unwrapLock(ballot.YES_NO).duration_ns);
       let consent_diff = get_timeline_diff(ballot.YES_NO.consent);
 
-      // TODO: hack to avoid first value
-      let apr_diff = undefined;
-      const foresight = ballot.YES_NO.foresight;
-      if (foresight.history.length > 1) {
-        const diff = foresight.current.data.apr.current - foresight.history[1].data.apr.current;
-        if (diff !== 0) {
-          apr_diff = diff;
-        }
-      }
-
       return [
-        {
-          title: "APY:",
-          value: (ballot.YES_NO.foresight.current.data.apr.current * 100).toFixed(2) + "%",
-          diff: apr_diff !== undefined ? `(${apr_diff > 0 ? "+" : ""}${(apr_diff * 100).toFixed(2)}%)` : undefined,
-          toggleKey: CHART_TOGGLE.DISCERNMENT,
-          chartTimelines: new Map([
-            [
-              "current",
-              {
-                timeline: interpolate_now(
-                  map_timeline_hack(ballot.YES_NO.foresight, (foresight) => Number(aprToApy(foresight.apr.current) * 100)),
-                  now
-                ),
-                color: CHART_COLORS.GREEN,
-              },
-            ],
-          ]),
-          formatValue: (value: number) => value.toFixed(2),
-        },
         {
           title: "Consent:",
           value: ballot.YES_NO.consent.current.data.toFixed(3),

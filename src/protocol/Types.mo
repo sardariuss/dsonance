@@ -168,10 +168,10 @@ module {
         amount: Nat;
         dissent: Float;
         consent: STimeline<Float>;
-        foresight: STimeline<Foresight>;
         tx_id: Nat;
         from: Account;
         decay: Float;
+        foresight: Foresight;
         hotness: Float;
         lock: ?SLockInfo;
     };
