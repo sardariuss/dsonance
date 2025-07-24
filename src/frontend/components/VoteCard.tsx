@@ -34,7 +34,7 @@ const VoteCard: React.FC<VoteCardProps> = ({ tvl, voteDetails, text, thumbnail }
 
         {/* Consensus Indicator */}
         {voteDetails.cursor !== undefined && (
-          <div>
+          <div className="flex self-start">
             <ConsensusIndicator cursor={voteDetails.cursor} />
           </div>
         )}

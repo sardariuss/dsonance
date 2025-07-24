@@ -17,8 +17,8 @@ interface ConsensusIndicatorProps {
 const ConsensusIndicator: React.FC<ConsensusIndicatorProps> = ({ cursor, pulse }) => {
 
   return (
-    <div className="relative h-12 justify-self-end leading-none" role="progressbar" aria-valuenow={cursor * 100} aria-valuemin={0} aria-valuemax={100}>
-      <svg className="w-16" viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}>
+    <div className="relative h-11 justify-self-end leading-none" role="progressbar" aria-valuenow={cursor * 100} aria-valuemin={0} aria-valuemax={100}>
+      <svg className="w-14" viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}>
         <path
           d={pathDefinition}
           strokeWidth={strokeWidth}

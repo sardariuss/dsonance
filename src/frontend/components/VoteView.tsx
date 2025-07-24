@@ -90,7 +90,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
   const thumbnail = useMemo(() => createThumbnailUrl(vote.info.thumbnail), [vote]);
 
   return (
-    <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-full max-w-7xl"}`}>
+    <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-full"}`}>
       
       {/* Mobile Layout: Keep original structure */}
       <div className="block md:hidden w-full">
@@ -126,7 +126,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
               src={thumbnail}
             />
             {/* Vote Text */}
-            <div className="flex-grow text-gray-800 dark:text-gray-200 font-medium text-lg">
+            <div className="flex-grow text-gray-800 dark:text-gray-200 font-medium text-lg max-w-none">
               {vote.info.text}
             </div>
           </div>
@@ -240,7 +240,7 @@ export const VoteViewSkeleton: React.FC = () => {
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   return (
-    <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-full max-w-7xl"}`}>
+    <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-full"}`}>
       
       {/* Mobile Layout: Keep original structure */}
       <div className="block md:hidden w-full">
