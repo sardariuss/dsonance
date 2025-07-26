@@ -96,7 +96,7 @@ const Profile = () => {
                   type="text"
                   value={nicknameInput}
                   onChange={(e) => setNicknameInput(e.target.value)}
-                  className="px-2 py-1 border rounded-md text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="px-2 py-1 border rounded-md text-sm bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                   placeholder="Enter nickname"
                   autoFocus
                   onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname()}
