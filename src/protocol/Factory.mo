@@ -60,7 +60,7 @@ module {
         let supply_ledger = LedgerFungible.LedgerFungible(state.supply_ledger);
         let collateral_ledger = LedgerFungible.LedgerFungible(state.collateral_ledger);
 
-        let dex = Dex.Dex(state.dex);
+        let dex = Dex.Dex(state);
 
         let collateral_price_tracker = TWAPPriceTracker.TWAPPriceTracker({
             dex;

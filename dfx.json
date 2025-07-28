@@ -1,16 +1,48 @@
 {
   "canisters": {
-    "ck_btc": {
-      "main": "src/ledger/main.mo",
-      "type": "motoko"
-    },
     "ck_usdt": {
-      "main": "src/ledger/main.mo",
-      "type": "motoko"
+      "type": "custom",
+      "candid": "https://github.com/dfinity/ic/releases/download/ledger-suite-icrc-2025-04-14/ledger.did",
+      "wasm": "https://github.com/dfinity/ic/releases/download/ledger-suite-icrc-2025-04-14/ic-icrc1-ledger.wasm.gz",
+      "specified_id": "cngnf-vqaaa-aaaar-qag4q-cai",
+      "metadata": [
+        {
+          "name": "candid:service"
+        }
+      ]
     },
-    "dex": {
-      "main": "src/dex/main.mo",
-      "type": "motoko"
+    "ck_btc": {
+      "type": "custom",
+      "candid": "https://github.com/dfinity/ic/releases/download/ledger-suite-icrc-2025-04-14/ledger.did",
+      "wasm": "https://github.com/dfinity/ic/releases/download/ledger-suite-icrc-2025-04-14/ic-icrc1-ledger.wasm.gz",
+      "specified_id": "mxzaz-hqaaa-aaaar-qaada-cai",
+      "metadata": [
+        {
+          "name": "candid:service"
+        }
+      ]
+    },
+    "kong_backend": {
+      "type": "custom",
+      "candid": "https://raw.githubusercontent.com/KongSwap/kong/refs/heads/main/wasm/kong_backend.did",
+      "wasm" : "https://raw.githubusercontent.com/KongSwap/kong/refs/heads/main/wasm/kong_backend.wasm.gz",
+      "specified_id": "2ipq2-uqaaa-aaaar-qailq-cai",
+      "metadata": [
+        {
+          "name": "candid:service"
+        }
+      ]
+    },
+    "kong_data": {
+      "type": "custom",
+      "candid": "https://raw.githubusercontent.com/KongSwap/kong/refs/heads/main/wasm/kong_data.did",
+      "wasm" : "https://raw.githubusercontent.com/KongSwap/kong/refs/heads/main/wasm/kong_data.wasm.gz",
+      "specified_id": "cbefx-hqaaa-aaaar-qakrq-cai",
+      "metadata": [
+        {
+          "name": "candid:service"
+        }
+      ]
     },
     "protocol": {
       "main": "src/protocol/main.mo",

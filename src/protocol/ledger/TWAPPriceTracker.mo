@@ -47,10 +47,10 @@ module {
                 case(#err(error)) { return #err(error); };
                 case(#ok(reply)) { 
                     // Guard against invalid prices
-                    if (reply.price <= 0.0) {
-                        return #err("Invalid price received from DEX: " # Float.toText(reply.price));
+                    if (reply.mid_price <= 0.0) {
+                        return #err("Invalid price received from DEX: " # Float.toText(reply.mid_price));
                     };
-                    reply.price; 
+                    reply.mid_price; 
                 }
             };
             

@@ -262,9 +262,137 @@ module {
         receive_token: Text;
     };
 
-    public type DexActor = actor {
+    public type SendArgs = {
+        token : Text;
+        amount : Nat;
+        to_address : Text;
+    };
+
+    public type SendReply = {
+        tx_id : Nat64;
+        request_id : Nat64;
+        status : Text;
+        chain : Text;
+        symbol : Text;
+        amount : Nat;
+        to_address : Text;
+        ts : Nat64;
+    };
+
+    public type SendResult = {
+        #Ok : SendReply;
+        #Err : Text;
+    };
+
+    public type KongBackendActor = actor {
         swap_amounts: shared (Text, Nat, Text) -> async SwapAmountsResult;
         swap: shared SwapArgs -> async SwapResult;
+        send: shared SendArgs -> async SendResult;
+    };
+
+    public type AddPoolArgs = {
+        token_0 : Text;
+        amount_0 : Nat;
+        tx_id_0 : ?TxId;
+        token_1 : Text;
+        amount_1 : Nat;
+        tx_id_1 : ?TxId;
+        lp_fee_bps : ?Nat8;
+    };
+
+    public type AddPoolReply = {
+        tx_id : Nat64;
+        pool_id : Nat32;
+        request_id : Nat64;
+        status : Text;
+        name : Text;
+        symbol : Text;
+        chain_0 : Text;
+        address_0 : Text;
+        symbol_0 : Text;
+        amount_0 : Nat;
+        chain_1 : Text;
+        address_1 : Text;
+        symbol_1 : Text;
+        amount_1 : Nat;
+        lp_fee_bps : Nat8;
+        lp_token_symbol : Text;
+        add_lp_token_amount : Nat;
+        transfer_ids : [TransferIdReply];
+        claim_ids : [Nat64];
+        is_removed : Bool;
+        ts : Nat64;
+    };
+
+    public type AddLiquidityArgs = {
+        token_0 : Text;
+        amount_0 : Nat;
+        tx_id_0 : ?TxId;
+        token_1 : Text;
+        amount_1 : Nat;
+        tx_id_1 : ?TxId;
+    };
+
+    public type AddLiquidityReply = {
+        tx_id : Nat64;
+        request_id : Nat64;
+        status : Text;
+        symbol : Text;
+        chain_0 : Text;
+        address_0 : Text;
+        symbol_0 : Text;
+        amount_0 : Nat;
+        chain_1 : Text;
+        address_1 : Text;
+        symbol_1 : Text;
+        amount_1 : Nat;
+        add_lp_token_amount : Nat;
+        transfer_ids : [TransferIdReply];
+        claim_ids : [Nat64];
+        ts : Nat64;
+    };
+
+    public type RemoveLiquidityArgs = {
+        token_0 : Text;
+        token_1 : Text;
+        remove_lp_token_amount : Nat;
+    };
+
+    public type RemoveLiquidityReply = {
+        tx_id : Nat64;
+        request_id : Nat64;
+        status : Text;
+        symbol : Text;
+        chain_0 : Text;
+        address_0 : Text;
+        symbol_0 : Text;
+        amount_0 : Nat;
+        lp_fee_0 : Nat;
+        chain_1 : Text;
+        address_1 : Text;
+        symbol_1 : Text;
+        amount_1 : Nat;
+        lp_fee_1 : Nat;
+        remove_lp_token_amount : Nat;
+        transfer_ids : [TransferIdReply];
+        claim_ids : [Nat64];
+        ts : Nat64;
+    };
+
+    public type TxsReply = {
+        #AddPool : AddPoolReply;
+        #AddLiquidity : AddLiquidityReply;
+        #RemoveLiquidity : RemoveLiquidityReply;
+        #Swap : SwapReply;
+    };
+
+    public type TxsResult = {
+        #Ok : [TxsReply];
+        #Err : Text;
+    };
+
+    public type KongDataActor = actor {
+        txs : shared (?Text, ?Nat64, ?Nat32, ?Nat16) -> async (TxsResult);
     };
 
     public type TrackedPrice = {
@@ -655,7 +783,8 @@ module {
         canister_ids: {
             supply_ledger: Principal;
             collateral_ledger: Principal;
-            dex: Principal;
+            kong_backend: Principal;
+            kong_data: Principal;
         };
         parameters: InitParameters;
     };
@@ -667,7 +796,8 @@ module {
     public type State = {
         supply_ledger: ICRC1 and ICRC2;
         collateral_ledger: ICRC1 and ICRC2;
-        dex: DexActor;
+        kong_backend: KongBackendActor;
+        kong_data: KongDataActor;
         parameters: Parameters;
         collateral_twap_price: {
             var spot_price: ?Float;

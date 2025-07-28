@@ -33,7 +33,8 @@ module {
     type BorrowPosition = Types.BorrowPosition;
     type SupplyPosition = Types.SupplyPosition;
     type Withdrawal     = Types.Withdrawal;
-    type DexActor       = Types.DexActor;
+    type KongBackendActor = Types.KongBackendActor;
+    type KongDataActor = Types.KongDataActor;
     type TrackedPrice   = Types.TrackedPrice;
     type Parameters     = Types.Parameters;
     type InitParameters = Types.InitParameters;
@@ -49,7 +50,8 @@ module {
         #v0_1_0({
             supply_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.supply_ledger));
             collateral_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.collateral_ledger));
-            dex : DexActor = actor(Principal.toText(canister_ids.dex));
+            kong_backend : KongBackendActor = actor(Principal.toText(canister_ids.kong_backend));
+            kong_data : KongDataActor = actor(Principal.toText(canister_ids.kong_data));
             collateral_twap_price = {
                 var spot_price = null;
                 var observations = [];
