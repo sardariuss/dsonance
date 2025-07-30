@@ -784,7 +784,6 @@ module {
             supply_ledger: Principal;
             collateral_ledger: Principal;
             kong_backend: Principal;
-            kong_data: Principal;
         };
         parameters: InitParameters;
     };
@@ -797,7 +796,6 @@ module {
         supply_ledger: ICRC1 and ICRC2;
         collateral_ledger: ICRC1 and ICRC2;
         kong_backend: KongBackendActor;
-        kong_data: KongDataActor;
         parameters: Parameters;
         collateral_twap_price: {
             var spot_price: ?Float;

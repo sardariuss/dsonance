@@ -62,15 +62,10 @@ module {
     public type AugmentedSwapArgs = KongTypes.SwapArgs and { from: Account; }; // For unit testing purposes
     public type SwapAmountsReply = KongTypes.SwapAmountsReply;
     public type SwapReply = KongTypes.SwapReply;
-    public type TxsReply = KongTypes.TxsReply;
-    public type SendArgs = KongTypes.SendArgs;
-    public type SendReply = KongTypes.SendReply;
 
     public type IDex = {
         swap_amounts: (Text, Nat, Text) -> async* Result<SwapAmountsReply, Text>;
         swap: AugmentedSwapArgs -> async* Result<SwapReply, Text>;
-        send: SendArgs -> async* Result<SendReply, Text>;
-        txs : (?Text, ?Nat64, ?Nat32, ?Nat16) -> async* Result<[TxsReply], Text>;
         get_main_account: () -> Account;
     };
 

@@ -3,17 +3,18 @@ set -ex
 
 dfx identity use default
 export DEFAULT_USER=$(dfx identity get-principal)
+export DSN_LOGO=$(base64 -w 0 logo_coin_xs.png)
 
 # Create the canisters
 dfx canister create --all
 
 # Fetch canister IDs dynamically
-for canister in ck_btc ck_usdt kong_backend kong_data protocol minter; do
+for canister in ckbtc_ledger ckusdt_ledger dsn_ledger kong_backend protocol faucet; do
   export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
 done
 
 # Parallel deployment for independent canisters
-dfx deploy ck_btc --argument '(
+dfx deploy ckbtc_ledger --argument '(
   variant {
     Init = record {
       decimals = opt (8 : nat8);
@@ -35,7 +36,7 @@ dfx deploy ck_btc --argument '(
         }
       );
       minting_account = record {
-        owner = principal "'${MINTER_PRINCIPAL}'";
+        owner = principal "'${FAUCET_PRINCIPAL}'";
         subaccount = null;
       };
       initial_balances = vec {};
@@ -53,7 +54,7 @@ dfx deploy ck_btc --argument '(
     }
   }
 )' &
-dfx deploy ck_usdt --argument '(
+dfx deploy ckusdt_ledger --argument '(
   variant {
     Init = record {
       decimals = opt (6 : nat8);
@@ -75,7 +76,47 @@ dfx deploy ck_usdt --argument '(
         }
       );
       minting_account = record {
-        owner = principal "'${MINTER_PRINCIPAL}'";
+        owner = principal "'${FAUCET_PRINCIPAL}'";
+        subaccount = null;
+      };
+      initial_balances = vec {};
+      fee_collector_account = null;
+      archive_options = record {
+        num_blocks_to_archive = 5_000 : nat64;
+        max_transactions_per_response = null;
+        trigger_threshold = 10_000 : nat64;
+        more_controller_ids = null;
+        max_message_size_bytes = null;
+        cycles_for_archive_creation = null;
+        node_max_memory_size_bytes = null;
+        controller_id = principal "'${DEFAULT_USER}'";
+      };
+    }
+  }
+)' &
+dfx deploy dsn_ledger --argument '(
+  variant {
+    Init = record {
+      decimals = opt (6 : nat8);
+      token_symbol = "DSN";
+      token_name = "DSN";
+      transfer_fee = 1000 : nat;
+      max_memo_length = null;
+      feature_flags = null;
+      metadata = (
+        vec {
+          record {
+            "icrc1:logo";
+            variant {
+              Text = "data:image/png;base64,'${DSN_LOGO}'"
+            };
+          };
+          record { "icrc103:public_allowances"; variant { Text = "true" } };
+          record { "icrc103:max_take_value"; variant { Nat = 500 : nat } };
+        }
+      );
+      minting_account = record {
+        owner = principal "'${FAUCET_PRINCIPAL}'";
         subaccount = null;
       };
       initial_balances = vec {};
@@ -94,11 +135,11 @@ dfx deploy ck_usdt --argument '(
   }
 )' &
 dfx deploy kong_backend &
-dfx deploy kong_data &
-dfx deploy minter --argument '( record {
+dfx deploy faucet --argument '( record {
   canister_ids = record {
-    ck_btc = principal "'${CK_BTC_PRINCIPAL}'";
-    ck_usdt = principal "'${CK_USDT_PRINCIPAL}'";
+    ckbtc_ledger = principal "'${CKBTC_LEDGER_PRINCIPAL}'";
+    ckusdt_ledger = principal "'${CKUSDT_LEDGER_PRINCIPAL}'";
+    dsn_ledger = principal "'${DSN_LEDGER_PRINCIPAL}'";
   }; 
 })' &
 # Prices taken from the neutrinite canister on 2025-07-01
@@ -129,10 +170,9 @@ wait
 dfx deploy protocol --argument '( variant { 
   init = record {
     canister_ids = record {
-      supply_ledger = principal "'${CK_USDT_PRINCIPAL}'";
-      collateral_ledger = principal "'${CK_BTC_PRINCIPAL}'";
+      supply_ledger = principal "'${CKUSDT_LEDGER_PRINCIPAL}'";
+      collateral_ledger = principal "'${CKBTC_LEDGER_PRINCIPAL}'";
       kong_backend = principal "'${KONG_BACKEND_PRINCIPAL}'";
-      kong_data = principal "'${KONG_DATA_PRINCIPAL}'";
     };
     parameters = record {
       age_coefficient = 0.25;
@@ -183,15 +223,15 @@ dfx deps deploy internet_identity
 # THIS IS A LIMITATION FROM THE KONG BACKEND
 dfx canister call kong_backend add_token '(
   record {
-    token = "IC.'${CK_USDT_PRINCIPAL}'";
+    token = "IC.'${CKUSDT_LEDGER_PRINCIPAL}'";
   },
 )'
 dfx canister call kong_backend add_token '(
   record {
-    token = "IC.'${CK_BTC_PRINCIPAL}'";
+    token = "IC.'${CKBTC_LEDGER_PRINCIPAL}'";
   },
 )'
-dfx canister call minter mint_btc '(
+dfx canister call faucet mint_btc '(
   record {
     to = record {
       owner = principal "'${DEFAULT_USER}'";
@@ -200,7 +240,7 @@ dfx canister call minter mint_btc '(
     amount = 100_000_020 : nat;
   },
 )'
-dfx canister call minter mint_usdt '(
+dfx canister call faucet mint_usdt '(
   record {
     to = record {
       owner = principal "'${DEFAULT_USER}'";
@@ -209,7 +249,7 @@ dfx canister call minter mint_usdt '(
     amount = 100_000_020_000 : nat;
   },
 )'
-dfx canister call ck_btc icrc2_approve '(
+dfx canister call ckbtc_ledger icrc2_approve '(
   record {
     fee = null;
     memo = null;
@@ -224,7 +264,7 @@ dfx canister call ck_btc icrc2_approve '(
     };
   },
 )'
-dfx canister call ck_usdt icrc2_approve '(
+dfx canister call ckusdt_ledger icrc2_approve '(
   record {
     fee = null;
     memo = null;
@@ -241,8 +281,8 @@ dfx canister call ck_usdt icrc2_approve '(
 )'
 dfx canister call kong_backend add_pool '(
   record {
-    token_0 = "IC.'${CK_BTC_PRINCIPAL}'";
-    token_1 = "IC.'${CK_USDT_PRINCIPAL}'";
+    token_0 = "IC.'${CKBTC_LEDGER_PRINCIPAL}'";
+    token_1 = "IC.'${CKUSDT_LEDGER_PRINCIPAL}'";
     amount_0 = 100_000_000 : nat;
     amount_1 =  100_000_000_000 : nat;
     tx_id_0 = null;
@@ -254,13 +294,13 @@ dfx canister call kong_backend add_pool '(
 # Protocol initialization and frontend generation
 dfx canister call protocol init_facade
 
-dfx generate ck_btc &
-dfx generate ck_usdt &
+dfx generate ckbtc_ledger &
+dfx generate ckusdt_ledger &
+dfx generate dsn_ledger &
 dfx generate kong_backend &
-dfx generate kong_data &
 dfx generate backend & # Will generate protocol as well
 dfx generate internet_identity &
-dfx generate minter &
+dfx generate faucet &
 dfx generate icp_coins &
 wait
 
