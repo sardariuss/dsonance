@@ -144,6 +144,49 @@ const { data } = backendActor.useQueryCall({
 
 **Reason**: Capturing `call` methods from ic-reactor hooks in useEffect dependencies can cause excessive re-renders and high CPU usage. The ic-reactor library is designed to handle automatic refetching when arguments change, making manual useEffect calls unnecessary and potentially harmful to performance.
 
+## State Persistence and Stable Memory Guidelines
+
+### Mutable State References in Classes
+
+**❌ AVOID: Creating copies of mutable state structs when passing to classes**
+```motoko
+// DON'T DO THIS - creates a copy, loses stable memory persistence
+let mutable_state = { var value = state.some_field.value; };
+let instance = MyClass({ mutable_field = mutable_state; });
+```
+
+**✅ DO: Pass the entire mutable struct reference**
+```motoko
+// DO THIS - maintains reference to stable memory
+let instance = MyClass({ mutable_field = state.some_field; });
+```
+
+**Critical Pattern**: When working with mutable state that needs to persist across upgrades:
+
+1. **State Structure**: Define mutable fields as `{ var value: T }` in the State type
+   ```motoko
+   public type State = {
+       last_mint_timestamp: { var value: Nat; };
+       // ... other fields
+   };
+   ```
+
+2. **Class Parameters**: Accept the full struct reference
+   ```motoko
+   public class MyClass({
+       mutable_field: { var value: Nat; };
+   }) {
+       // Modifications to mutable_field.value will persist in stable memory
+   }
+   ```
+
+3. **Factory Injection**: Pass the struct directly, not a copy
+   ```motoko
+   let instance = MyClass({ mutable_field = state.mutable_field; });
+   ```
+
+**Reason**: Creating `{ var value = some_value }` makes a copy of the value, breaking the reference to stable memory. The original state won't be updated, and changes won't persist across canister upgrades. Always pass the entire mutable struct to maintain the reference to stable memory.
+
 ## Parameter and Type System Guidelines
 
 ### Parameter Architecture

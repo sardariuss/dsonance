@@ -56,6 +56,7 @@ module {
     public type DebtRegister             = Types.Current.DebtRegister;
     public type DebtRecord               = Types.Current.DebtRecord;
     public type MinterParameters         = Types.Current.MinterParameters;
+    public type DsnMinterParameters      = Types.Current.DsnMinterParameters;
     public type LockSchedulerState       = Types.Current.LockSchedulerState;
     public type YieldState               = Types.Current.YieldState;
     public type TransferError            = Types.Current.TransferError;

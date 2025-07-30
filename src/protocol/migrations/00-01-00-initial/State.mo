@@ -49,6 +49,7 @@ module {
         #v0_1_0({
             supply_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.supply_ledger));
             collateral_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.collateral_ledger));
+            dsn_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.dsn_ledger));
             kong_backend : KongBackendActor = actor(Principal.toText(canister_ids.kong_backend));
             collateral_twap_price = {
                 var spot_price = null;
@@ -76,6 +77,7 @@ module {
                     max_observations = parameters.twap_config.max_observations;
                 };
                 max_age = Duration.toTime(parameters.max_age);
+                dsn_minter = parameters.dsn_minter;
                 decay = {
                     half_life = parameters.ballot_half_life;
                     time_init = now;
@@ -138,6 +140,7 @@ module {
                     withdraw_queue = Set.new<Text>();
                 };
             };
+            last_mint_timestamp = { var value = now; };
         });
     };
 
@@ -164,6 +167,7 @@ module {
                 max_observations = parameters.twap_config.max_observations;
             };
             max_age = Duration.toTime(parameters.max_age);
+            dsn_minter = parameters.dsn_minter;
             decay = {
                 half_life = parameters.ballot_half_life;
                 // ⚠️ Watchout: Need to keep the initial time from the original parameters, otherwise
@@ -200,7 +204,7 @@ module {
             };
         };
 
-        #v0_1_0({ v1_state with parameters = protocol_parameters;});
+        #v0_1_0({ v1_state with parameters = protocol_parameters; });
     };
 
 };

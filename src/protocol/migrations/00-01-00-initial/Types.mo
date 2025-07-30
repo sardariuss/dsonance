@@ -584,6 +584,11 @@ module {
         amount_minted: Timeline<Float>;
     };
 
+    public type DsnMinterParameters = {
+        half_life: Duration;
+        initial_emission_rate: Nat;
+    };
+
      type Var<V> = {
         var value: V;
     };
@@ -744,6 +749,7 @@ module {
         // @int: commented out for now, will be implemented later
         //author_fee: Nat;
         //minter_parameters: MinterParameters; 
+        dsn_minter: DsnMinterParameters;
         timer_interval_s: Nat;
         decay: {
             half_life: Duration;
@@ -770,6 +776,7 @@ module {
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
+        dsn_minter: DsnMinterParameters;
         timer_interval_s: Nat; // Use duration instead
         clock: ClockInitArgs;
         lending: LendingParameters;
@@ -783,6 +790,7 @@ module {
         canister_ids: {
             supply_ledger: Principal;
             collateral_ledger: Principal;
+            dsn_ledger: Principal;
             kong_backend: Principal;
         };
         parameters: InitParameters;
@@ -795,6 +803,7 @@ module {
     public type State = {
         supply_ledger: ICRC1 and ICRC2;
         collateral_ledger: ICRC1 and ICRC2;
+        dsn_ledger: ICRC1 and ICRC2;
         kong_backend: KongBackendActor;
         parameters: Parameters;
         collateral_twap_price: {
@@ -811,6 +820,7 @@ module {
             index: { var value: LendingIndex; };
             register: LendingRegister;
         };
+        last_mint_timestamp: { var value: Nat; };
     };
   
 };

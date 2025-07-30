@@ -16,6 +16,7 @@ import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
 import Dex                    "ledger/Dex";
 import TWAPPriceTracker       "ledger/TWAPPriceTracker";
+import DsnMinter              "DsnMinter";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
@@ -52,13 +53,14 @@ module {
         admin: Principal;
     }) : BuildOutput {
 
-        let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; } = state;
-        let { decay; duration_scaler; twap_config; } = parameters;
+        let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; last_mint_timestamp; } = state;
+        let { decay; duration_scaler; twap_config; dsn_minter; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
 
         let supply_ledger = LedgerFungible.LedgerFungible(state.supply_ledger);
         let collateral_ledger = LedgerFungible.LedgerFungible(state.collateral_ledger);
+        let dsn_ledger = LedgerFungible.LedgerFungible(state.dsn_ledger);
 
         let dex = Dex.Dex(state);
 
@@ -140,6 +142,12 @@ module {
         let duration_scaler_instance = DurationScaler.DurationScaler({
             a = duration_scaler.a;
             b = duration_scaler.b;
+        });
+
+        let _dsn_minter_instance = DsnMinter.DsnMinter({
+            parameters = dsn_minter;
+            _dsn_ledger = state.dsn_ledger;
+            last_mint_timestamp;
         });
 
         let yes_no_controller = VoteFactory.build_yes_no({
