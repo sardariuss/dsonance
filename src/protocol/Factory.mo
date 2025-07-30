@@ -14,6 +14,8 @@ import ForesightUpdater       "ForesightUpdater";
 import Incentives             "votes/Incentives";
 import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
+import LedgerAccount          "ledger/LedgerAccount";
+import Cell                   "utils/Cell";
 import Dex                    "ledger/Dex";
 import TWAPPriceTracker       "ledger/TWAPPriceTracker";
 import DsnMinter              "DsnMinter";
@@ -61,6 +63,12 @@ module {
         let supply_ledger = LedgerFungible.LedgerFungible(state.supply_ledger);
         let collateral_ledger = LedgerFungible.LedgerFungible(state.collateral_ledger);
         let dsn_ledger = LedgerFungible.LedgerFungible(state.dsn_ledger);
+        
+        let dsn_account = LedgerAccount.LedgerAccount({
+            protocol_account = { owner = protocol; subaccount = null; };
+            ledger = dsn_ledger;
+            local_balance = Cell.Cell({ var value = 0; });
+        });
 
         let dex = Dex.Dex(state);
 
@@ -146,8 +154,11 @@ module {
 
         let _dsn_minter_instance = DsnMinter.DsnMinter({
             parameters = dsn_minter;
-            _dsn_ledger = state.dsn_ledger;
+            dsn_account;
             last_mint_timestamp;
+            supply_positions = lending.register.supply_positions;
+            borrow_positions = lending.register.borrow_positions;
+            lending_index = lending.index;
         });
 
         let yes_no_controller = VoteFactory.build_yes_no({

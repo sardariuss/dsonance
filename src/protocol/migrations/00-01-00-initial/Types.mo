@@ -587,6 +587,7 @@ module {
     public type DsnMinterParameters = {
         half_life: Duration;
         initial_emission_rate: Nat;
+        borrowers_minting_ratio: Float; // between 0 and 1
     };
 
      type Var<V> = {
@@ -746,9 +747,6 @@ module {
         consent_steepness: Float;
         age_coefficient: Float;
         max_age: Nat;
-        // @int: commented out for now, will be implemented later
-        //author_fee: Nat;
-        //minter_parameters: MinterParameters; 
         dsn_minter: DsnMinterParameters;
         timer_interval_s: Nat;
         decay: {

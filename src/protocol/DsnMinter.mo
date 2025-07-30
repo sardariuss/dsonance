@@ -1,24 +1,34 @@
 import Types "Types";
+import LendingTypes "lending/Types";
+import LedgerTypes "ledger/Types";
 import Duration "duration/Duration";
 
 import Debug "mo:base/Debug";
 import Float "mo:base/Float";
 import Int "mo:base/Int";
+import Map "mo:map/Map";
 
 module {
 
     type DsnMinterParameters = Types.DsnMinterParameters;
-    type ICRC1 = Types.ICRC1;
-    type ICRC2 = Types.ICRC2;
     type Duration = Types.Duration;
+    type Account = Types.Account;
+    type SupplyPosition = LendingTypes.SupplyPosition;
+    type BorrowPosition = LendingTypes.BorrowPosition;
+    type LendingIndex = LendingTypes.LendingIndex;
+    type Borrow = LendingTypes.Borrow;
+    type ILedgerAccount = LedgerTypes.ILedgerAccount;
 
     public class DsnMinter({
         parameters: DsnMinterParameters;
-        _dsn_ledger: ICRC1 and ICRC2;
+        dsn_account: ILedgerAccount;
         last_mint_timestamp: { var value: Nat; };
+        supply_positions: Map.Map<Text, SupplyPosition>;
+        borrow_positions: Map.Map<Account, BorrowPosition>;
+        lending_index: { var value: LendingIndex; };
     }) {
 
-        public func mint(current_time: Nat) {
+        public func mint(current_time: Nat) : async* () {
             let time_diff = do {
                 let diff : Int = current_time - last_mint_timestamp.value;
                 if (diff < 0) {
@@ -51,8 +61,71 @@ module {
             Debug.print("DsnMinter: k = " # debug_show(k));
             Debug.print("DsnMinter: Half-life = " # debug_show(half_life_seconds) # " seconds");
             
+            // Calculate amounts for suppliers and borrowers
+            let borrowers_amount = amount_to_mint * parameters.borrowers_minting_ratio;
+            let suppliers_amount = amount_to_mint * (1.0 - parameters.borrowers_minting_ratio);
+            
+            Debug.print("DsnMinter: Suppliers amount = " # debug_show(suppliers_amount));
+            Debug.print("DsnMinter: Borrowers amount = " # debug_show(borrowers_amount));
+            
+            // Get current lending index
+            let { raw_supplied; raw_borrowed; } = lending_index.value.utilization;
+            
+            // Distribute to suppliers
+            if (suppliers_amount > 0.0 and raw_supplied > 0.0) {
+                await* distribute_to_suppliers(suppliers_amount, raw_supplied);
+            };
+            
+            // Distribute to borrowers
+            if (borrowers_amount > 0.0 and raw_borrowed > 0.0) {
+                await* distribute_to_borrowers(borrowers_amount, raw_borrowed);
+            };
+            
             // Update the last mint timestamp
             last_mint_timestamp.value := current_time;
+        };
+
+        func distribute_to_suppliers(total_amount: Float, raw_supplied: Float) : async* () {
+            for ((position_id, supply_position) in Map.entries(supply_positions)) {
+                let supplied = Float.fromInt(supply_position.supplied);
+                let share = supplied / raw_supplied;
+                let reward_amount = total_amount * share;
+                let reward_nat = Float.toInt(reward_amount);
+                
+                if (reward_nat > 0) {
+                    Debug.print("DsnMinter: Transferring " # debug_show(reward_nat) # " DSN to supplier " # debug_show(supply_position.account) # " (share: " # debug_show(share) # ")");
+                    
+                    ignore await* dsn_account.transfer({
+                        amount = Int.abs(reward_nat);
+                        to = supply_position.account;
+                    });
+                };
+            };
+        };
+
+        func distribute_to_borrowers(total_amount: Float, raw_borrowed: Float) : async* () {
+            for ((account, borrow_position) in Map.entries(borrow_positions)) {
+                switch (borrow_position.borrow) {
+                    case (null) {
+                        // Skip positions without active borrows
+                    };
+                    case (?borrow) {
+                        let borrowed = borrow.raw_amount;
+                        let share = borrowed / raw_borrowed;
+                        let reward_amount = total_amount * share;
+                        let reward_nat = Float.toInt(reward_amount);
+                        
+                        if (reward_nat > 0) {
+                            Debug.print("DsnMinter: Transferring " # debug_show(reward_nat) # " DSN to borrower " # debug_show(account) # " (share: " # debug_show(share) # ")");
+                            
+                            ignore await* dsn_account.transfer({
+                                amount = Int.abs(reward_nat);
+                                to = account;
+                            });
+                        };
+                    };
+                };
+            };
         };
 
     };
