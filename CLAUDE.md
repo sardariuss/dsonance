@@ -248,6 +248,74 @@ public func claim_rewards(account: Account) : async* ?Nat {
 
 This pattern is also known as "guard clauses" or "early return pattern" in software engineering.
 
+## Motoko Async/Await Variations
+
+### Core Concepts
+
+- **`async`** - Standard asynchronous function. Calling it produces a future that, when awaited with `await`, introduces a commit point/message split: prior tentative state is committed before suspension.
+
+- **`async*`** - A delayed/"deferred" async computation. Allows composing asynchronous logic without automatically introducing commit points. If the contained logic uses only `await*` and no plain `await`, the whole tree can execute atomically in one message.
+
+- **`await`** - Waits for a future and **commits state at that point**. Introduces a checkpoint/potential message boundary.
+
+- **`await?`** - Waits for a future **without creating a commit point** at that await. Does NOT suppress all state commits in the enclosing call—only avoids the automatic commit that a plain `await` would insert at that location.
+
+- **`await*`** - Consumes a future from an `async*` and waits for it, respecting the "deferred" nature. Does NOT introduce a commit point unless the inner logic itself used a plain `await`. **Must** use `await*` to consume `async*` results.
+
+### Key Behavioral Details
+
+**State Commit Timing:**
+- `await` commits state at that suspension point
+- `await?` does NOT commit at that await; state is still committed when the message completes
+- `await*` behaves like `await?` unless the inner `async*` uses plain `await`
+
+**Performance Implications:**
+- `await` can incur extra message round-trips and checkpoint overhead
+- `async*` + `await*` lets you batch logic atomically and efficiently
+- `await?` is lightweight when you want a result without paying for commit overhead
+
+**Error Handling:**
+- Errors (traps) rollback all tentative state up to the **last commit point**
+- If no plain `await` occurred before a trap in `async*`/`await*` chain: atomic rollback
+- If trap occurs after plain `await`: earlier state remains committed
+
+**Interoperability Rules:**
+- **Must use `await*`** to consume `async*` results; `await?` or `await` on `async*` is **invalid/type error**
+- Can `await*` an `async*` that uses only `await*` to keep it atomic
+- If inner `async*` uses plain `await`, atomicity breaks even when consumed via `await*`
+- `await?` works **only** on results of plain `async` (not `async*`) to avoid checkpoints
+
+### Usage Guidelines
+
+**Use `async*`/`await*` for:**
+- Internal, batched, atomic flows
+- Accumulating state with single commit
+- Performance-critical paths
+
+**Use `async`/`await` for:**
+- Inter-canister calls
+- Explicit checkpoints
+- When you need intermediate durability
+
+**Use `await?` for:**
+- Non-critical side effects
+- When you don't want that specific await to create a commit point
+- Fire-and-forget style operations
+
+### Examples in This Codebase
+
+```motoko
+// Standard pattern - commits at await
+public func transfer(args) : async* Transfer {
+    switch(await* ledger.transfer(args)) { ... };
+}
+
+// No-commit pattern - avoids commit at that point
+public func transfer_no_commit(args) : async Transfer {
+    switch(await? ledger.transfer_no_commit(args)) { ... };
+}
+```
+
 ## Parameter and Type System Guidelines
 
 ### Parameter Architecture
