@@ -2,6 +2,7 @@ import Types "Types";
 import LendingTypes "lending/Types";
 import LedgerTypes "ledger/Types";
 import Duration "duration/Duration";
+import MapUtils "utils/Map";
 
 import Debug "mo:base/Debug";
 import Float "mo:base/Float";
@@ -26,6 +27,7 @@ module {
         supply_positions: Map.Map<Text, SupplyPosition>;
         borrow_positions: Map.Map<Account, BorrowPosition>;
         lending_index: { var value: LendingIndex; };
+        accumulated_rewards: Map.Map<Account, Nat>;
     }) {
 
         public func mint(current_time: Nat) : async* () {
@@ -93,11 +95,21 @@ module {
                 let reward_nat = Float.toInt(reward_amount);
                 
                 if (reward_nat > 0) {
-                    Debug.print("DsnMinter: Transferring " # debug_show(reward_nat) # " DSN to supplier " # debug_show(supply_position.account) # " (share: " # debug_show(share) # ")");
+                    let account = supply_position.account;
+                    let reward_amount = Int.abs(reward_nat);
+                    
+                    // Update accumulated rewards
+                    let current_accumulated = switch (Map.get(accumulated_rewards, MapUtils.acchash, account)) {
+                        case (null) { 0; };
+                        case (?amount) { amount; };
+                    };
+                    Map.set(accumulated_rewards, MapUtils.acchash, account, current_accumulated + reward_amount);
+                    
+                    Debug.print("DsnMinter: Transferring " # debug_show(reward_amount) # " DSN to supplier " # debug_show(account) # " (share: " # debug_show(share) # ", total accumulated: " # debug_show(current_accumulated + reward_amount) # ")");
                     
                     ignore await* dsn_account.transfer({
-                        amount = Int.abs(reward_nat);
-                        to = supply_position.account;
+                        amount = reward_amount;
+                        to = account;
                     });
                 };
             };
@@ -116,10 +128,19 @@ module {
                         let reward_nat = Float.toInt(reward_amount);
                         
                         if (reward_nat > 0) {
-                            Debug.print("DsnMinter: Transferring " # debug_show(reward_nat) # " DSN to borrower " # debug_show(account) # " (share: " # debug_show(share) # ")");
+                            let reward_amount = Int.abs(reward_nat);
+                            
+                            // Update accumulated rewards
+                            let current_accumulated = switch (Map.get(accumulated_rewards, MapUtils.acchash, account)) {
+                                case (null) { 0; };
+                                case (?amount) { amount; };
+                            };
+                            Map.set(accumulated_rewards, MapUtils.acchash, account, current_accumulated + reward_amount);
+                            
+                            Debug.print("DsnMinter: Transferring " # debug_show(reward_amount) # " DSN to borrower " # debug_show(account) # " (share: " # debug_show(share) # ", total accumulated: " # debug_show(current_accumulated + reward_amount) # ")");
                             
                             ignore await* dsn_account.transfer({
-                                amount = Int.abs(reward_nat);
+                                amount = reward_amount;
                                 to = account;
                             });
                         };

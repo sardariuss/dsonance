@@ -819,6 +819,7 @@ module {
             register: LendingRegister;
         };
         last_mint_timestamp: { var value: Nat; };
+        accumulated_rewards: Map<Account, Nat>;
     };
   
 };

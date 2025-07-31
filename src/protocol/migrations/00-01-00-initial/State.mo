@@ -141,6 +141,7 @@ module {
                 };
             };
             last_mint_timestamp = { var value = now; };
+            accumulated_rewards = Map.new<Account, Nat>();
         });
     };
 
