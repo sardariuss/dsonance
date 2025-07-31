@@ -95,10 +95,7 @@ module {
                 max_observations = parameters.twap_config.max_observations;
             };
             max_age = Duration.fromTime(parameters.max_age);
-            decay = {
-                half_life = parameters.decay.half_life;
-                time_init = parameters.decay.time_init;
-            };
+            ballot_half_life = Duration.fromTime(parameters.ballot_half_life_ns);
         };
     };
 

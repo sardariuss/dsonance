@@ -12,12 +12,10 @@ import Result         "mo:base/Result";
 
 shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.Args) = this {
 
-    // STABLE MEMBER
-    var _state: MigrationTypes.State = Migrations.install(args);
-    _state := Migrations.migrate(_state, args);
+    var state: MigrationTypes.State = Migrations.install(args);
+    state := Migrations.migrate(state, args);
 
-    // NON-STABLE MEMBER
-    transient var _facade : ?SharedFacade.SharedFacade = null;
+    transient var facade : ?SharedFacade.SharedFacade = null;
 
     // Unfortunately the principal of the canister cannot be used at the construction of the actor
     // because of the compiler error "cannot use self before self has been defined".
@@ -28,13 +26,13 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
             return #err("Only the admin can initialize the facade");
         };
 
-        if (Option.isSome(_facade)) {
+        if (Option.isSome(facade)) {
             return #err("The facade is already initialized");
         };
 
-        let #v0_1_0(state) = _state;
+        let #v0_1_0(s) = state;
         let { controller; queries; initialize; } = Factory.build({
-            state;
+            state = s;
             protocol = Principal.fromActor(this);
             admin;
         });
@@ -43,7 +41,7 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
             case (#ok) {};
         };
         
-        _facade := ?SharedFacade.SharedFacade({ controller; queries; });
+        facade := ?SharedFacade.SharedFacade({ controller; queries; });
         #ok;
     };
 
@@ -160,7 +158,7 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
     };
 
     func getFacade() : SharedFacade.SharedFacade {
-        switch(_facade){
+        switch(facade){
             case (null) { Debug.trap("The facade is not initialized"); };
             case (?c) { c; };
         };

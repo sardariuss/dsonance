@@ -56,8 +56,8 @@ module {
     public type DebtRegister             = Types.Current.DebtRegister;
     public type DebtRecord               = Types.Current.DebtRecord;
     public type MinterParameters         = Types.Current.MinterParameters;
-    public type DsnMinterParameters      = Types.Current.DsnMinterParameters;
-    public type RewardTracker            = Types.Current.RewardTracker;
+    public type ParticipationParameters  = Types.Current.ParticipationParameters;
+    public type ParticipationTracker     = Types.Current.ParticipationTracker;
     public type LockSchedulerState       = Types.Current.LockSchedulerState;
     public type YieldState               = Types.Current.YieldState;
     public type TransferError            = Types.Current.TransferError;
@@ -214,12 +214,14 @@ module {
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
-        decay: {
-            half_life: Duration;
-            time_init: Nat;
-        };
+        ballot_half_life: Duration;
         clock: SClockParameters;
         lending: LendingParameters;
+        participation: {
+            emission_half_life_s: Float;
+            emission_total_amount: Nat;
+            borrowers_share: Float;
+        };
         twap_config: {
             window_duration: Duration;
             max_observations: Nat;

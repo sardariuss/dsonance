@@ -584,15 +584,15 @@ module {
         amount_minted: Timeline<Float>;
     };
 
-    public type DsnMinterParameters = {
-        half_life: Duration;
-        initial_emission_rate: Nat;
-        borrowers_minting_ratio: Float; // between 0 and 1
+    public type ParticipationParameters = {
+        emission_half_life: Duration;
+        emission_total_amount: Nat;
+        borrowers_share: Float;
     };
 
-    public type RewardTracker = {
-        rewards_received: Nat;  // Successfully transferred rewards
-        rewards_owed: Nat;      // Failed transfers that are still owed
+    public type ParticipationTracker = {
+        received: Nat;
+        owed: Nat;
     };
 
      type Var<V> = {
@@ -752,12 +752,13 @@ module {
         consent_steepness: Float;
         age_coefficient: Float;
         max_age: Nat;
-        dsn_minter: DsnMinterParameters;
-        timer_interval_s: Nat;
-        decay: {
-            half_life: Duration;
-            time_init: Nat;
+        participation: {
+            emission_half_life_s: Float;
+            emission_total_amount: Nat;
+            borrowers_share: Float;
         };
+        timer_interval_s: Nat;
+        ballot_half_life_ns: Nat;
         clock: ClockParameters;
         lending: LendingParameters;
         twap_config: TWAPConfig;
@@ -779,7 +780,7 @@ module {
         minimum_ballot_amount: Nat;
         dissent_steepness: Float;
         consent_steepness: Float;
-        dsn_minter: DsnMinterParameters;
+        participation: ParticipationParameters;
         timer_interval_s: Nat; // Use duration instead
         clock: ClockInitArgs;
         lending: LendingParameters;
@@ -793,7 +794,7 @@ module {
         canister_ids: {
             supply_ledger: Principal;
             collateral_ledger: Principal;
-            dsn_ledger: Principal;
+            participation_ledger: Principal;
             kong_backend: Principal;
         };
         parameters: InitParameters;
@@ -804,9 +805,10 @@ module {
     };
 
     public type State = {
+        genesis_time: Nat;
         supply_ledger: ICRC1 and ICRC2;
         collateral_ledger: ICRC1 and ICRC2;
-        dsn_ledger: ICRC1 and ICRC2;
+        participation_ledger: ICRC1 and ICRC2;
         kong_backend: KongBackendActor;
         parameters: Parameters;
         collateral_twap_price: {
@@ -823,8 +825,10 @@ module {
             index: { var value: LendingIndex; };
             register: LendingRegister;
         };
-        last_mint_timestamp: { var value: Nat; };
-        reward_tracking: Map<Account, RewardTracker>;
+        participation: {
+            var last_mint_timestamp: Nat;
+            tracking: Map<Account, ParticipationTracker>;
+        };
     };
   
 };

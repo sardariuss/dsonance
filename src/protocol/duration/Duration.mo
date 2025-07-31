@@ -45,6 +45,10 @@ module {
         return #NS(time);
     };
 
+    public func toSeconds(duration: Duration) : Float {
+        Float.fromInt(toTime(duration)) / Float.fromInt(NS_IN_SECOND);
+    };
+
     public func toAnnual(duration: Duration) : Float {
         switch(duration) {
             case (#YEARS(years))     {  Float.fromInt(years);                                             };

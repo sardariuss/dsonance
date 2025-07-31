@@ -15,6 +15,7 @@ module {
 
     let ICRC1_METADATA_SYMBOL_KEY = "icrc1:symbol";
 
+    // TODO: use try/catch to handle errors in the async functions
     public class LedgerFungible(ledger_actor : Types.LedgerFungibleActor) : Types.ILedgerFungible {
 
         var ledger_info : ?LedgerInfo = null;

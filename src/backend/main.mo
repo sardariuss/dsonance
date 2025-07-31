@@ -10,7 +10,7 @@ import Time          "mo:base/Time";
 
 import Protocol      "canister:protocol";
 
-shared({ caller = admin }) actor class Backend() = this {
+shared({ caller = admin }) persistent actor class Backend() = this {
 
     type YesNoAggregate = ProtocolTypes.YesNoAggregate;
     type YesNoChoice = ProtocolTypes.YesNoChoice;
