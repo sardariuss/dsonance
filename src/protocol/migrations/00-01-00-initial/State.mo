@@ -20,6 +20,7 @@ module {
     type Account        = Types.Account;
     type ICRC1          = Types.ICRC1;
     type ICRC2          = Types.ICRC2;
+    type RewardTracker  = Types.RewardTracker;
     type InitArgs       = Types.InitArgs;
     type UpgradeArgs    = Types.UpgradeArgs;
     type DowngradeArgs  = Types.DowngradeArgs;
@@ -141,7 +142,7 @@ module {
                 };
             };
             last_mint_timestamp = { var value = now; };
-            accumulated_rewards = Map.new<Account, Nat>();
+            reward_tracking = Map.new<Account, RewardTracker>();
         });
     };
 

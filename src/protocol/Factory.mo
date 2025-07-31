@@ -55,7 +55,7 @@ module {
         admin: Principal;
     }) : BuildOutput {
 
-        let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; last_mint_timestamp; accumulated_rewards; } = state;
+        let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; last_mint_timestamp; reward_tracking; } = state;
         let { decay; duration_scaler; twap_config; dsn_minter; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
@@ -159,7 +159,7 @@ module {
             supply_positions = lending.register.supply_positions;
             borrow_positions = lending.register.borrow_positions;
             lending_index = lending.index;
-            accumulated_rewards;
+            reward_tracking;
         });
 
         let yes_no_controller = VoteFactory.build_yes_no({

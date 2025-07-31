@@ -19,6 +19,7 @@ module {
     type LendingIndex = LendingTypes.LendingIndex;
     type Borrow = LendingTypes.Borrow;
     type ILedgerAccount = LedgerTypes.ILedgerAccount;
+    type RewardTracker = Types.RewardTracker;
 
     public class DsnMinter({
         parameters: DsnMinterParameters;
@@ -27,7 +28,7 @@ module {
         supply_positions: Map.Map<Text, SupplyPosition>;
         borrow_positions: Map.Map<Account, BorrowPosition>;
         lending_index: { var value: LendingIndex; };
-        accumulated_rewards: Map.Map<Account, Nat>;
+        reward_tracking: Map.Map<Account, RewardTracker>;
     }) {
 
         public func mint(current_time: Nat) : async* () {
@@ -98,19 +99,14 @@ module {
                     let account = supply_position.account;
                     let reward_amount = Int.abs(reward_nat);
                     
-                    // Update accumulated rewards
-                    let current_accumulated = switch (Map.get(accumulated_rewards, MapUtils.acchash, account)) {
-                        case (null) { 0; };
-                        case (?amount) { amount; };
-                    };
-                    Map.set(accumulated_rewards, MapUtils.acchash, account, current_accumulated + reward_amount);
+                    Debug.print("DsnMinter: Attempting to transfer " # debug_show(reward_amount) # " DSN to supplier " # debug_show(account) # " (share: " # debug_show(share) # ")");
                     
-                    Debug.print("DsnMinter: Transferring " # debug_show(reward_amount) # " DSN to supplier " # debug_show(account) # " (share: " # debug_show(share) # ", total accumulated: " # debug_show(current_accumulated + reward_amount) # ")");
-                    
-                    ignore await* dsn_account.transfer({
+                    let transfer_result = await* dsn_account.transfer({
                         amount = reward_amount;
                         to = account;
                     });
+                    
+                    update_reward_tracking(account, reward_amount, transfer_result);
                 };
             };
         };
@@ -130,23 +126,82 @@ module {
                         if (reward_nat > 0) {
                             let reward_amount = Int.abs(reward_nat);
                             
-                            // Update accumulated rewards
-                            let current_accumulated = switch (Map.get(accumulated_rewards, MapUtils.acchash, account)) {
-                                case (null) { 0; };
-                                case (?amount) { amount; };
-                            };
-                            Map.set(accumulated_rewards, MapUtils.acchash, account, current_accumulated + reward_amount);
+                            Debug.print("DsnMinter: Attempting to transfer " # debug_show(reward_amount) # " DSN to borrower " # debug_show(account) # " (share: " # debug_show(share) # ")");
                             
-                            Debug.print("DsnMinter: Transferring " # debug_show(reward_amount) # " DSN to borrower " # debug_show(account) # " (share: " # debug_show(share) # ", total accumulated: " # debug_show(current_accumulated + reward_amount) # ")");
-                            
-                            ignore await* dsn_account.transfer({
+                            let transfer_result = await* dsn_account.transfer({
                                 amount = reward_amount;
                                 to = account;
                             });
+                            
+                            update_reward_tracking(account, reward_amount, transfer_result);
                         };
                     };
                 };
             };
+        };
+
+        func update_reward_tracking(account: Account, amount: Nat, transfer_result: LedgerTypes.Transfer) {
+            let current_tracker = switch (Map.get(reward_tracking, MapUtils.acchash, account)) {
+                case (null) { { rewards_received = 0; rewards_owed = 0; }; };
+                case (?tracker) { tracker; };
+            };
+            
+            let updated_tracker = switch (transfer_result.result) {
+                case (#ok(_)) {
+                    Debug.print("DsnMinter: Transfer successful - " # debug_show(amount) # " DSN to " # debug_show(account));
+                    { current_tracker with rewards_received = current_tracker.rewards_received + amount; };
+                };
+                case (#err(error)) {
+                    Debug.print("DsnMinter: Transfer failed - " # debug_show(amount) # " DSN owed to " # debug_show(account) # " - Error: " # debug_show(error));
+                    { current_tracker with rewards_owed = current_tracker.rewards_owed + amount; };
+                };
+            };
+            
+            Map.set(reward_tracking, MapUtils.acchash, account, updated_tracker);
+            Debug.print("DsnMinter: Updated tracker for " # debug_show(account) # " - Received: " # debug_show(updated_tracker.rewards_received) # ", Owed: " # debug_show(updated_tracker.rewards_owed));
+        };
+
+        public func claim_rewards_owed(account: Account) : async* ?Nat {
+            let tracker = switch (Map.get(reward_tracking, MapUtils.acchash, account)) {
+                case (null) { 
+                    Debug.print("DsnMinter: No rewards found for account " # debug_show(account));
+                    return null; 
+                };
+                case (?t) { t; };
+            };
+            
+            if (tracker.rewards_owed == 0) {
+                Debug.print("DsnMinter: No rewards owed for account " # debug_show(account));
+                return null;
+            };
+            
+            Debug.print("DsnMinter: Attempting to claim " # debug_show(tracker.rewards_owed) # " DSN owed to " # debug_show(account));
+            
+            let transfer_result = await* dsn_account.transfer({
+                amount = tracker.rewards_owed;
+                to = account;
+            });
+            
+            let tx_id = switch (transfer_result.result) {
+                case (#err(error)) {
+                    Debug.print("DsnMinter: Failed to claim rewards for " # debug_show(account) # " - Error: " # debug_show(error));
+                    return null;
+                };
+                case (#ok(id)) { id; };
+            };
+            
+            // Transfer successful - move from owed to received
+            let updated_tracker = {
+                rewards_received = tracker.rewards_received + tracker.rewards_owed;
+                rewards_owed = 0;
+            };
+            Map.set(reward_tracking, MapUtils.acchash, account, updated_tracker);
+            Debug.print("DsnMinter: Successfully claimed " # debug_show(tracker.rewards_owed) # " DSN for " # debug_show(account) # " - TX: " # debug_show(tx_id));
+            ?tracker.rewards_owed;
+        };
+
+        public func get_reward_tracker(account: Account) : ?RewardTracker {
+            Map.get(reward_tracking, MapUtils.acchash, account);
         };
 
     };

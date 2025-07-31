@@ -590,6 +590,11 @@ module {
         borrowers_minting_ratio: Float; // between 0 and 1
     };
 
+    public type RewardTracker = {
+        rewards_received: Nat;  // Successfully transferred rewards
+        rewards_owed: Nat;      // Failed transfers that are still owed
+    };
+
      type Var<V> = {
         var value: V;
     };
@@ -819,7 +824,7 @@ module {
             register: LendingRegister;
         };
         last_mint_timestamp: { var value: Nat; };
-        accumulated_rewards: Map<Account, Nat>;
+        reward_tracking: Map<Account, RewardTracker>;
     };
   
 };
