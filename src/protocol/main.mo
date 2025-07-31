@@ -10,14 +10,14 @@ import Debug          "mo:base/Debug";
 import Option         "mo:base/Option";
 import Result         "mo:base/Result";
 
-shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = this {
+shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.Args) = this {
 
     // STABLE MEMBER
-    stable var _state: MigrationTypes.State = Migrations.install(args);
+    var _state: MigrationTypes.State = Migrations.install(args);
     _state := Migrations.migrate(_state, args);
 
     // NON-STABLE MEMBER
-    var _facade : ?SharedFacade.SharedFacade = null;
+    transient var _facade : ?SharedFacade.SharedFacade = null;
 
     // Unfortunately the principal of the canister cannot be used at the construction of the actor
     // because of the compiler error "cannot use self before self has been defined".
