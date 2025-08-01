@@ -223,6 +223,17 @@ dfx deps pull
 dfx deps init
 dfx deps deploy internet_identity
 
+# Transfer DSN tokens for the protocol to mint
+dfx canister call faucet mint_dsn '(
+  record {
+    to = record {
+      owner = principal "'${PROTOCOL_PRINCIPAL}'";
+      subaccount = null;
+    };
+    amount = 550_000_000_000_000 : nat;
+  },
+)'
+
 # Create ckBTC/ckUSDT pool
 # ⚠️ ckUSDT SHALL BE ADDED FIRST, then ckBTC. 
 # OTHERWISE THE POOL WILL NOT BE CREATED

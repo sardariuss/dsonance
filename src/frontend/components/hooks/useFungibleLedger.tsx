@@ -7,7 +7,7 @@ import { getTokenDecimals, getTokenFee } from "../../utils/metadata";
 import { useEffect, useState } from "react";
 import { canisterId as protocolCanisterId } from "../../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
-import { Account, MetaDatum } from "@/declarations/ck_btc/ck_btc.did";
+import { Account, MetadataValue } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import { useAuth } from "@ic-reactor/react";
 
 export enum LedgerType {
@@ -16,7 +16,7 @@ export enum LedgerType {
 }
 
 export interface FungibleLedger {
-  metadata: MetaDatum[] | undefined;
+  metadata: Array<[string, MetadataValue]> | undefined;
   price: number | undefined;
   tokenDecimals: number | undefined;
   formatAmount: (amountFixedPoint: bigint | number | undefined, notation?: "standard" | "compact") => string | undefined;

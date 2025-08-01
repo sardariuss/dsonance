@@ -237,7 +237,7 @@ module {
 
     public type ProtocolInfo = {
         current_time: Nat;
-        last_run: Nat;
+        genesis_time: Nat;
     };
 
     public type LockEvent = {

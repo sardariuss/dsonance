@@ -158,19 +158,6 @@ module {
         public func withdraw_fees({ caller: Principal; to: Account; amount: Nat; }) : async* TransferResult {
             await* controller.withdraw_fees({ caller; to; amount; });
         };  
-
-        // @int: commented out for now, will be implemented later
-//        public func get_debt_info(debt_id: UUID) : ?SDebtInfo {
-//            queries.get_debt_info(debt_id);
-//        };
-//        
-//        public func get_debt_infos(ids: [UUID]) : [SDebtInfo] {
-//            queries.get_debt_infos(ids);
-//        };
-//
-//        public func get_mined_by_author({ author: Account }) : DebtRecord {
-//            queries.get_mined_by_author({author});
-//        };
         
     };
 };

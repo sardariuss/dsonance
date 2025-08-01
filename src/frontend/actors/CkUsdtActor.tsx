@@ -1,7 +1,7 @@
 import { createActorContext }                       from "@ic-reactor/react"
-import { ck_usdt, canisterId, idlFactory }  from "../../declarations/ck_usdt"
+import { ckusdt_ledger, canisterId, idlFactory }  from "../../declarations/ckusdt_ledger"
 
-export type CkUsdt = typeof ck_usdt
+export type CkUsdt = typeof ckusdt_ledger
 
 export const { ActorProvider: CkUsdtActorProvider, ...ckUsdtActor } = createActorContext<CkUsdt>({
   canisterId,

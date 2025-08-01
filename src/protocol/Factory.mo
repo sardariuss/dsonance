@@ -109,7 +109,7 @@ module {
             foresight_updater.set_supply_info(to_supply_info(lending_index));
         });
         
-        // @int: the foresight_updater should directly listen to the Indexer updates instead of the LockScheduler
+        // TODO: the foresight_updater should directly listen to the Indexer updates instead of the LockScheduler
         let lock_scheduler = LockScheduler.LockScheduler({
             state = lock_scheduler_state;
             before_change = func({ time: Nat; state: LockState; }){};
@@ -174,6 +174,7 @@ module {
         });
 
         let controller = Controller.Controller({
+            genesis_time;
             clock;
             vote_register;
             ballot_register;
@@ -202,6 +203,10 @@ module {
                 };
                 switch(await* collateral_ledger.initialize()) {
                     case(#err(e)) { return #err("Failed to initialize collateral ledger: " # e); };
+                    case(#ok(_)) {};
+                };
+                switch(await* participation_ledger.initialize()) {
+                    case(#err(e)) { return #err("Failed to initialize participation ledger: " # e); };
                     case(#ok(_)) {};
                 };
                 switch(await* collateral_price_tracker.fetch_price()) {

@@ -34,15 +34,6 @@ const UserVotes = () => {
     functionName: "get_votes_by_author",
   });
 
-  // @int
-//  const { data: minedByAuthor, call: refreshMinedByAuthor } = protocolActor.useQueryCall({
-//    functionName: "get_mined_by_author",
-//    args: [{ author: {
-//      owner: identity?.getPrincipal(),
-//      subaccount: [],
-//    }}]
-//  });
-
   const selectVote = (voteId: string) => {
     setSearchParams((prevParams) => {
       const newParams = new URLSearchParams(prevParams);
@@ -85,7 +76,6 @@ const UserVotes = () => {
   // Initial Fetch on Mount
   useEffect(() => {
     fetchAndSetVotes();
-    //refreshMinedByAuthor(); // @int
   }, []);
 
   useEffect(() => {
@@ -101,23 +91,6 @@ const UserVotes = () => {
 
   return (
     <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 p-2 rounded w-full">
-      <div className="flex flex-row w-full space-x-1 justify-center items-baseline">
-
-        {
-          // @int: DSN mining commented out for now
-          /*<span>Total mined:</span>*}
-          {/*
-            minedByAuthor !== undefined ?
-            <div className="flex flex-row items-baseline space-x-1">
-              <span className="text-lg">{ formatBalanceE8s(BigInt(Math.trunc(minedByAuthor.earned)), DSONANCE_COIN_SYMBOL, 2) }</span>
-              <div className="flex self-center">
-                <DsnCoinIcon/>
-              </div>
-            </div>
-              :
-            <span className="w-12 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse self-center"/>*/
-          }
-      </div>
       <AdaptiveInfiniteScroll
         dataLength={votes.length}
         next={fetchAndSetVotes}

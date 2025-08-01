@@ -52,83 +52,86 @@ module {
 
         var minting : Bool = false;
 
-        public func mint(current_time: Nat) : async* Result<(), Text> {
+        public func mint(now: Nat) : async* Result<(), Text> {
 
-            // Guard against concurrent calls - this commits state for coordination
+            // Guard against concurrent calls
             if (minting) {
                 return #err("Mint operation already in progress");
             };
             minting := true;
-            await checkpoint(); // Ensure the minting flag is committed before proceeding
-            
-            // Ensure the current time is after the last mint timestamp
-            if (current_time <= register.last_mint_timestamp) {
-                return #err("Cannot mint with current time before or equal to last mint timestamp");
-            };
-
-            // Conversion in seconds is crucial for floating point precision in exponential calculations.
-            // Using nanoseconds directly would create extremely small k values (e.g., 8e-15 for 1-day half-life)
-            // which can lose precision in e^(-kt). Converting to seconds keeps values numerically stable.
-            
-            // Calculate k = ln(2) / T_h where T_h is half_life in seconds
-            let k = Float.log(2.0) / parameters.emission_half_life_s;
-
-            let e0 = Float.fromInt(parameters.emission_total_amount);
-            
-            // Calculate emission using formula: E_0 * (1 - e^(-kt))
-            let unminted_at_last = e0 * Float.exp(-k * Float.fromInt(register.last_mint_timestamp - genesis_time) / Float.fromInt(Duration.NS_IN_SECOND));
-            let unminted_at_now = e0 * Float.exp(-k * Float.fromInt(current_time - genesis_time) / Float.fromInt(Duration.NS_IN_SECOND));
-            let amount_to_mint = unminted_at_last - unminted_at_now;
-
-            Debug.print("ParticipationMinter: k = " # debug_show(k));
-            Debug.print("ParticipationMinter: Half-life = " # debug_show(parameters.emission_half_life_s) # " seconds");
-            Debug.print("ParticipationMinter: Amount to mint = " # debug_show(amount_to_mint) # " DSN tokens");
-
-            // From this point on, the last_mint_timestamp should be updated to the current time.
-            // So even if an error occurs, that interval of time is considered minted and cannot be
-            // claimed again. This is to avoid accumulating unminted amounts over time.
-            register.last_mint_timestamp := current_time;
-
-            if (amount_to_mint < 0) {
-                return #err("Logic error: amount to mint cannot be negative");
-            };
-
-            if (amount_to_mint == 0) {
-                Debug.print("No participation minting needed at this time");
-                return #ok;
-            };
-            
-            // Calculate amounts for suppliers and borrowers
-            let borrowers_amount = amount_to_mint * parameters.borrowers_share;
-            let suppliers_amount = amount_to_mint * (1.0 - parameters.borrowers_share);
-            
-            Debug.print("ParticipationMinter: Suppliers amount = " # debug_show(suppliers_amount));
-            Debug.print("ParticipationMinter: Borrowers amount = " # debug_show(borrowers_amount));
-
-            // Get current lending index
-            let { raw_supplied; raw_borrowed; } = lending_index.value.utilization;
-
-            // Collect all transfer info
-            var infos : [TransferInfo] = [];
-            
-            // Collect supplier transfers
-            if (suppliers_amount > 0.0 and raw_supplied > 0.0) {
-                let supplier_transfers = collect_supplier_transfers(suppliers_amount, raw_supplied);
-                infos := Array.append(infos, supplier_transfers);
-            };
-            
-            // Collect borrower transfers
-            if (borrowers_amount > 0.0 and raw_borrowed > 0.0) {
-                let borrower_transfers = collect_borrower_transfers(borrowers_amount, raw_borrowed);
-                infos := Array.append(infos, borrower_transfers);
-            };
-
-            if (infos.size() == 0) {
-                Debug.print("No participations to mint, skipping transfer");
-                return #ok;
-            };
+            // Ensure the minting flag is committed before proceeding because await?
+            // is used later in the function.
+            // This is crucial to prevent re-entrancy issues.
+            await checkpoint();
 
             try {
+                // Ensure the current time is after the last mint timestamp
+                if (now <= register.last_mint_timestamp) {
+                    return #err("Cannot mint with current time before or equal to last mint timestamp");
+                };
+                // From this point on, the last_mint_timestamp should be updated to the current time.
+                // So even if an error occurs, that interval of time is considered minted and cannot be
+                // claimed again. This is to avoid accumulating unminted amounts over time.
+                let last_time = register.last_mint_timestamp;
+                register.last_mint_timestamp := now;
+
+                // Conversion in seconds is crucial for floating point precision in exponential calculations.
+                // Using nanoseconds directly would create extremely small k values (e.g., 8e-15 for 1-day half-life)
+                // which can lose precision in e^(-kt). Converting to seconds keeps values numerically stable.
+                
+                // Calculate k = ln(2) / T_h where T_h is half_life in seconds
+                let k = Float.log(2.0) / parameters.emission_half_life_s;
+
+                let e0 = Float.fromInt(parameters.emission_total_amount);
+                
+                // Calculate emission using formula: E_0 * (1 - e^(-kt))
+                let unminted_at_last = e0 * Float.exp(-k * Float.fromInt(last_time - genesis_time) / Float.fromInt(Duration.NS_IN_SECOND));
+                let unminted_at_now = e0 * Float.exp(-k * Float.fromInt(now - genesis_time) / Float.fromInt(Duration.NS_IN_SECOND));
+                let amount_to_mint = unminted_at_last - unminted_at_now;
+
+                Debug.print("ParticipationMinter: k = " # debug_show(k));
+                Debug.print("ParticipationMinter: Half-life = " # debug_show(parameters.emission_half_life_s) # " seconds");
+                Debug.print("ParticipationMinter: Amount to mint = " # debug_show(amount_to_mint) # " DSN tokens");
+
+                if (amount_to_mint < 0) {
+                    return #err("Logic error: amount to mint cannot be negative");
+                };
+
+                if (amount_to_mint == 0) {
+                    Debug.print("No participation minting needed at this time");
+                    return #ok;
+                };
+                
+                // Calculate amounts for suppliers and borrowers
+                let borrowers_amount = amount_to_mint * parameters.borrowers_share;
+                let suppliers_amount = amount_to_mint * (1.0 - parameters.borrowers_share);
+                
+                Debug.print("ParticipationMinter: Suppliers amount = " # debug_show(suppliers_amount));
+                Debug.print("ParticipationMinter: Borrowers amount = " # debug_show(borrowers_amount));
+
+                // Get current lending index
+                let { raw_supplied; raw_borrowed; } = lending_index.value.utilization;
+
+                // Collect all transfer info
+                var infos : [TransferInfo] = [];
+                
+                // Collect supplier transfers
+                if (suppliers_amount > 0.0 and raw_supplied > 0.0) {
+                    let supplier_transfers = collect_supplier_transfers(suppliers_amount, raw_supplied);
+                    infos := Array.append(infos, supplier_transfers);
+                };
+                
+                // Collect borrower transfers
+                if (borrowers_amount > 0.0 and raw_borrowed > 0.0) {
+                    let borrower_transfers = collect_borrower_transfers(borrowers_amount, raw_borrowed);
+                    infos := Array.append(infos, borrower_transfers);
+                };
+
+                if (infos.size() == 0) {
+                    Debug.print("No participations to mint, skipping transfer");
+                    return #ok;
+                };
+
                 // Fire off all transfers concurrently
                 let transfers = Buffer.Buffer<{ info: TransferInfo; transfer: async Transfer }>(infos.size());
                 for (info in infos.vals()) {

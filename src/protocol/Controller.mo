@@ -82,6 +82,7 @@ module {
     };
 
     public class Controller({
+        genesis_time: Nat;
         clock: Clock.Clock;
         vote_register: VoteRegister;
         ballot_register: BallotRegister;
@@ -262,7 +263,7 @@ module {
         public func get_info() : ProtocolInfo {
             {
                 current_time = clock.get_time();
-                last_run = 0; // @todo: use minter instead
+                genesis_time;
             };
         };
 

@@ -39,8 +39,8 @@ export const ProtocolProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       info, 
       refreshParameters, 
       refreshInfo,
-      computeDecay: parameters ? (time: bigint) => {
-        return compute_decay(parameters.decay.time_init, durationToNs(parameters.decay.half_life), time);
+      computeDecay: parameters && info ? (time: bigint) => {
+        return compute_decay(info.genesis_time, durationToNs(parameters.ballot_half_life), time);
       } : undefined
     }}>
       {children}

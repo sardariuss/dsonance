@@ -1,7 +1,7 @@
 import Principal "mo:base/Principal";
 import ICRC1 "mo:icrc1-mo/ICRC1/service";
 
-shared persistent actor class Faucet({ canister_ids: { ckbtc_ledger: Principal; ckusdt_ledger: Principal; participation_ledger: Principal; } }) {
+shared persistent actor class Faucet({ canister_ids: { ckbtc_ledger: Principal; ckusdt_ledger: Principal; dsn_ledger: Principal; } }) {
 
     type Account = {
         owner : Principal;
@@ -38,7 +38,7 @@ shared persistent actor class Faucet({ canister_ids: { ckbtc_ledger: Principal; 
 
     public shared func mint_dsn({amount: Nat; to: Account}) : async ICRC1.TransferResult {
 
-        let dsnLedger : ICRC1.service = actor(Principal.toText(canister_ids.participation_ledger));
+        let dsnLedger : ICRC1.service = actor(Principal.toText(canister_ids.dsn_ledger));
 
         await dsnLedger.icrc1_transfer({
             fee = null;
