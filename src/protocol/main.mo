@@ -75,8 +75,21 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
     };
 
     // Run the protocol
-    public func run() : async Result.Result<(), Text> {
+    // TODO: should be restricted to the admin
+    public func run() : async () {
         await* getFacade().run();
+    };
+
+    public shared({caller}) func claim_participation_owed(subaccount: ?Blob) : async ?Nat {
+        await* getFacade().claim_participation_owed({ owner = caller; subaccount; });
+    };
+
+    public query func get_participation_trackers() : async [(Types.Account, Types.ParticipationTracker)] {
+        getFacade().get_participation_trackers();
+    };
+
+    public query({caller}) func get_participation_tracker(subaccount: ?Blob) : async ?Types.ParticipationTracker {
+        getFacade().get_participation_tracker({ owner = caller; subaccount; });
     };
 
     // Get the ballots of the given account

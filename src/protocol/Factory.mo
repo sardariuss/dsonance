@@ -152,7 +152,7 @@ module {
             b = duration_scaler.b;
         });
 
-        let _dsn_minter_instance = ParticipationMinter.ParticipationMinter({
+        let participation_minter = ParticipationMinter.ParticipationMinter({
             genesis_time;
             parameters = parameters.participation;
             minting_account = participation_account;
@@ -184,6 +184,7 @@ module {
             borrow_registry;
             withdrawal_queue;
             collateral_price_tracker;
+            participation_minter;
             parameters;
         });
         let queries = Queries.Queries({
@@ -208,7 +209,7 @@ module {
                     case(#ok(_)) {};
                 };
                 ignore Timer.recurringTimer<system>(#seconds(parameters.timer_interval_s), func() : async () {
-                    ignore await* controller.run();
+                    await* controller.run();
                 });
                 #ok;
             };

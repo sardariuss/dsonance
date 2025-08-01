@@ -10,6 +10,7 @@ import Int "mo:base/Int";
 import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import Map "mo:map/Map";
+import Result "mo:base/Result";
 
 module {
 
@@ -23,6 +24,7 @@ module {
     type Transfer = LedgerTypes.Transfer;
     type ParticipationTracker = Types.ParticipationTracker;
     type Buffer<T> = Buffer.Buffer<T>;
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
     
     type ParticipationParameters = {
         emission_half_life_s: Float;
@@ -50,12 +52,18 @@ module {
 
         var minting : Bool = false;
 
-        public func mint(current_time: Nat) : async () {
+        public func mint(current_time: Nat) : async* Result<(), Text> {
+
+            // Guard against concurrent calls - this commits state for coordination
+            if (minting) {
+                return #err("Mint operation already in progress");
+            };
+            minting := true;
+            await checkpoint(); // Ensure the minting flag is committed before proceeding
             
             // Ensure the current time is after the last mint timestamp
             if (current_time <= register.last_mint_timestamp) {
-                Debug.print("Cannot mint with current time before or equal to last mint timestamp");
-                return;
+                return #err("Cannot mint with current time before or equal to last mint timestamp");
             };
 
             // Conversion in seconds is crucial for floating point precision in exponential calculations.
@@ -76,12 +84,18 @@ module {
             Debug.print("ParticipationMinter: Half-life = " # debug_show(parameters.emission_half_life_s) # " seconds");
             Debug.print("ParticipationMinter: Amount to mint = " # debug_show(amount_to_mint) # " DSN tokens");
 
+            // From this point on, the last_mint_timestamp should be updated to the current time.
+            // So even if an error occurs, that interval of time is considered minted and cannot be
+            // claimed again. This is to avoid accumulating unminted amounts over time.
+            register.last_mint_timestamp := current_time;
+
             if (amount_to_mint < 0) {
-                Debug.trap("Logic error: amount to mint cannot be negative");
+                return #err("Logic error: amount to mint cannot be negative");
             };
+
             if (amount_to_mint == 0) {
                 Debug.print("No participation minting needed at this time");
-                return;
+                return #ok;
             };
             
             // Calculate amounts for suppliers and borrowers
@@ -111,16 +125,8 @@ module {
 
             if (infos.size() == 0) {
                 Debug.print("No participations to mint, skipping transfer");
-                return;
+                return #ok;
             };
-
-            // Guard against concurrent calls - this commits state for coordination
-            if (minting) {
-                Debug.print("Mint operation already in progress");
-                return;
-            };
-            minting := true;
-            await checkpoint(); // Ensure the minting flag is committed before proceeding
 
             try {
                 // Fire off all transfers concurrently
@@ -139,10 +145,57 @@ module {
                 };
 
                 Debug.print("ParticipationMinter: Mint completed - processed " # debug_show(infos.size()) # " transfers");
+                #ok;
             } finally {
-                register.last_mint_timestamp := current_time;
                 minting := false;
             };
+        };
+
+        public func claim_owed(account: Account) : async* ?Nat {
+            let tracker = switch (Map.get(register.tracking, MapUtils.acchash, account)) {
+                case (null) { 
+                    Debug.print("ParticipationMinter: No participations found for account " # debug_show(account));
+                    return null; 
+                };
+                case (?t) { t; };
+            };
+            
+            if (tracker.owed == 0) {
+                Debug.print("ParticipationMinter: No participations owed for account " # debug_show(account));
+                return null;
+            };
+            
+            Debug.print("ParticipationMinter: Attempting to claim " # debug_show(tracker.owed) # " DSN owed to " # debug_show(account));
+            
+            let transfer_result = await* minting_account.transfer({
+                amount = tracker.owed;
+                to = account;
+            });
+            
+            let tx_id = switch (transfer_result.result) {
+                case (#err(error)) {
+                    Debug.print("ParticipationMinter: Failed to claim participations for " # debug_show(account) # " - Error: " # debug_show(error));
+                    return null;
+                };
+                case (#ok(id)) { id; };
+            };
+            
+            // Transfer successful - move from owed to received
+            let updated_tracker = {
+                received = tracker.received + tracker.owed;
+                owed = 0;
+            };
+            Map.set(register.tracking, MapUtils.acchash, account, updated_tracker);
+            Debug.print("ParticipationMinter: Successfully claimed " # debug_show(tracker.owed) # " DSN for " # debug_show(account) # " - TX: " # debug_show(tx_id));
+            ?tracker.owed;
+        };
+
+        public func get_trackers() : [(Account, ParticipationTracker)] {
+            Map.toArray(register.tracking);
+        };
+
+        public func get_tracker(account: Account) : ?ParticipationTracker {
+            Map.get(register.tracking, MapUtils.acchash, account);
         };
 
         func collect_supplier_transfers(total_amount: Float, raw_supplied: Float) : [TransferInfo] {
@@ -222,49 +275,6 @@ module {
             
             Map.set(register.tracking, MapUtils.acchash, account, updated_tracker);
             Debug.print("ParticipationMinter: Updated tracker for " # debug_show(account) # " - Received: " # debug_show(updated_tracker.received) # ", Owed: " # debug_show(updated_tracker.owed));
-        };
-
-        public func claim_owed(account: Account) : async* ?Nat {
-            let tracker = switch (Map.get(register.tracking, MapUtils.acchash, account)) {
-                case (null) { 
-                    Debug.print("ParticipationMinter: No participations found for account " # debug_show(account));
-                    return null; 
-                };
-                case (?t) { t; };
-            };
-            
-            if (tracker.owed == 0) {
-                Debug.print("ParticipationMinter: No participations owed for account " # debug_show(account));
-                return null;
-            };
-            
-            Debug.print("ParticipationMinter: Attempting to claim " # debug_show(tracker.owed) # " DSN owed to " # debug_show(account));
-            
-            let transfer_result = await* minting_account.transfer({
-                amount = tracker.owed;
-                to = account;
-            });
-            
-            let tx_id = switch (transfer_result.result) {
-                case (#err(error)) {
-                    Debug.print("ParticipationMinter: Failed to claim participations for " # debug_show(account) # " - Error: " # debug_show(error));
-                    return null;
-                };
-                case (#ok(id)) { id; };
-            };
-            
-            // Transfer successful - move from owed to received
-            let updated_tracker = {
-                received = tracker.received + tracker.owed;
-                owed = 0;
-            };
-            Map.set(register.tracking, MapUtils.acchash, account, updated_tracker);
-            Debug.print("ParticipationMinter: Successfully claimed " # debug_show(tracker.owed) # " DSN for " # debug_show(account) # " - TX: " # debug_show(tx_id));
-            ?tracker.owed;
-        };
-
-        public func get_tracker(account: Account) : ?ParticipationTracker {
-            Map.get(register.tracking, MapUtils.acchash, account);
         };
 
         func checkpoint() : async () {

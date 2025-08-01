@@ -38,6 +38,7 @@ module {
     type OperationKind = LendingTypes.OperationKind;
     type TransferResult = Types.TransferResult;
     type ProtocolInfo = Types.ProtocolInfo;
+    type ParticipationTracker = Types.ParticipationTracker;
 
     public class SharedFacade({
         controller: Controller.Controller;
@@ -56,8 +57,20 @@ module {
             await* controller.put_ballot(args);
         };
 
-        public func run() : async* Result<(), Text> {
+        public func run() : async* () {
             await* controller.run();
+        };
+
+        public func claim_participation_owed(account: Account) : async* ?Nat {
+            await* controller.claim_participation_owed(account);
+        };
+
+        public func get_participation_trackers() : [(Account, ParticipationTracker)] {
+            controller.get_participation_trackers();
+        };
+
+        public func get_participation_tracker(account: Account) : ?ParticipationTracker {
+            controller.get_participation_tracker(account);
         };
 
         public func add_clock_offset(duration: Duration) : Result<(), Text> {

@@ -1,5 +1,6 @@
 import Types                   "Types";
 import LockScheduler           "LockScheduler";
+import ParticipationMinter     "ParticipationMinter";
 import MapUtils                "utils/Map";
 import Timeline                "utils/Timeline";
 import Clock                   "utils/Clock";
@@ -52,6 +53,7 @@ module {
     type BorrowOperationArgs = LendingTypes.BorrowOperationArgs;
     type TransferResult = LendingTypes.TransferResult;
     type IPriceTracker = LedgerTypes.IPriceTracker;
+    type ParticipationTracker = Types.ParticipationTracker;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -90,6 +92,7 @@ module {
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         collateral_price_tracker: IPriceTracker;
+        participation_minter: ParticipationMinter.ParticipationMinter;
         parameters: Parameters;
     }){
 
@@ -210,29 +213,46 @@ module {
             await* supply.withdraw_fees({ caller; to; amount; });
         };
 
-        public func run() : async* Result<(), Text> {
+        public func run() : async* () {
             
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
 
+            // 1. Liquidate unhealthy loans
             switch(await* collateral_price_tracker.fetch_price()){
-                case(#err(error)) { return #err("Failed to update collateral price: " # error); };
-                case(#ok(_)) {};
-            };
-
-            switch(await* borrow_registry.check_all_positions_and_liquidate()){
-                case(#err(error)) { return #err("Failed to check positions and liquidate: " # error); };
-                case(#ok(_)) {};
+                case(#err(error)) { Debug.print("Failed to update collateral price: " # error); };
+                case(#ok(_)) {
+                    switch(await* borrow_registry.check_all_positions_and_liquidate()){
+                        case(#err(error)) { Debug.print("Failed to check positions and liquidate: " # error); };
+                        case(#ok(_)) {};
+                    };
+                };
             };
             
+            // 2. Unlock expired locks
             ignore lock_scheduler.try_unlock(time);
-
             switch(await* withdrawal_queue.process_pending_withdrawals()){
-                case(#err(error)) { return #err("Failed to process pending withdrawals: " # error); };
+                case(#err(error)) { Debug.print("Failed to process pending withdrawals: " # error); };
                 case(#ok(_)) {};
             };
 
-            #ok;
+            // 3. Mint participation tokens
+            switch(await* participation_minter.mint(time)){
+                case(#err(error)) { Debug.print("Failed to mint participation tokens: " # error); };
+                case(#ok(_)) {};
+            };
+        };
+
+        public func claim_participation_owed(account: Account) : async* ?Nat {
+            await* participation_minter.claim_owed(account);
+        };
+
+        public func get_participation_trackers() : [(Account, ParticipationTracker)] {
+            participation_minter.get_trackers();
+        };
+
+        public func get_participation_tracker(account: Account) : ?ParticipationTracker {
+            participation_minter.get_tracker(account);
         };
 
         public func get_clock() : Clock.Clock {
