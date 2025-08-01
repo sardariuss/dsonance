@@ -16,6 +16,7 @@
         "@nivo/bar": "^0.89.0",
         "@nivo/bump": "^0.89.0",
         "@nivo/line": "^0.89.0",
+        "@nivo/pie": "^0.89.0",
         "@types/pica": "^9.0.5",
         "@types/react-katex": "^3.0.4",
         "boring-avatars": "^1.11.2",

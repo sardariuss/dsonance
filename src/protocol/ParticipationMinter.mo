@@ -62,7 +62,7 @@ module {
             // Ensure the minting flag is committed before proceeding because await?
             // is used later in the function.
             // This is crucial to prevent re-entrancy issues.
-            await checkpoint();
+            await* checkpoint();
 
             try {
                 // Ensure the current time is after the last mint timestamp
@@ -280,7 +280,7 @@ module {
             Debug.print("ParticipationMinter: Updated tracker for " # debug_show(account) # " - Received: " # debug_show(updated_tracker.received) # ", Owed: " # debug_show(updated_tracker.owed));
         };
 
-        func checkpoint() : async () {
+        func checkpoint() : async* () {
             // intentionally empty; awaiting this commits state
         };
 

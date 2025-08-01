@@ -5,7 +5,7 @@ import { BackendActorProvider } from '../actors/BackendActor';
 import { CkBtcActorProvider } from '../actors/CkBtcActor';
 import { ProtocolActorProvider } from '../actors/ProtocolActor';
 import { CkUsdtActorProvider } from '../actors/CkUsdtActor';
-import { MinterActorProvider } from '../actors/MinterActor';
+import { FaucetActorProvider } from '../actors/FaucetActor';
 import { ProtocolProvider } from '../components/context/ProtocolContext';
 import { FungibleLedgerProvider } from '../components/context/FungibleLedgerContext';
 import { IcpCoinsActorProvider } from '../actors/IcpCoinsActor';
@@ -17,13 +17,13 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
         <CkBtcActorProvider>
           <CkUsdtActorProvider>
             <ProtocolActorProvider>
-              <MinterActorProvider>
+              <FaucetActorProvider>
                 <IcpCoinsActorProvider>
                   <ProtocolProvider>
                     <FungibleLedgerProvider>{children}</FungibleLedgerProvider>
                   </ProtocolProvider>
                 </IcpCoinsActorProvider>
-              </MinterActorProvider>
+              </FaucetActorProvider>
             </ProtocolActorProvider>
           </CkUsdtActorProvider>
         </CkBtcActorProvider>

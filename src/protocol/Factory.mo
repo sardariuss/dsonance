@@ -67,7 +67,7 @@ module {
         let participation_account = LedgerAccount.LedgerAccount({
             protocol_account = { owner = protocol; subaccount = null; };
             ledger = participation_ledger;
-            local_balance = Cell.Cell({ var value = 0; });
+            local_balance = Cell.Cell({ var value = 550_000_000_000_000; }); // TODO urgent: do not use hardcoded local balance.
         });
 
         let dex = Dex.Dex(state);

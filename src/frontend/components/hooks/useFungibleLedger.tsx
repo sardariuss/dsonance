@@ -1,7 +1,7 @@
 import { ckBtcActor } from "../../actors/CkBtcActor";
 import { ckUsdtActor } from "../../actors/CkUsdtActor";
 import { icpCoinsActor } from "../../actors/IcpCoinsActor";
-import { minterActor } from "../../actors/MinterActor";
+import { faucetActor } from "../../actors/FaucetActor";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
 import { getTokenDecimals, getTokenFee } from "../../utils/metadata";
 import { useEffect, useState } from "react";
@@ -249,7 +249,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     refreshUserBalance();
   }, [account]);
 
-  const { call: mintToken, loading: mintLoading } = minterActor.useUpdateCall({
+  const { call: mintToken, loading: mintLoading } = faucetActor.useUpdateCall({
     functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : 'mint_btc',
   });
 
