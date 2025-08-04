@@ -6,7 +6,7 @@ import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
 import ThemeToggle from "../ThemeToggle";
 import { useAuth } from "@ic-reactor/react";
-import { Account } from "@/declarations/ck_btc/ck_btc.did";
+import { Account } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
 import LogoutIcon from "../icons/LogoutIcon";
 import Avatar from "boring-avatars";

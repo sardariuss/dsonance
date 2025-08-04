@@ -113,15 +113,6 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
           <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
         </div> }
 
-        { 
-        // @int: DSN minted temporarily disabled
-        /*!isMobile && <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Mining earned</span>
-          <span>
-            {formatBalanceE8s(contribution, DSONANCE_COIN_SYMBOL, 2)}
-          </span>
-        </div> */}
-
         <div className="grid grid-rows-2 w-full justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">APY</span>
           <span className="font-semibold">

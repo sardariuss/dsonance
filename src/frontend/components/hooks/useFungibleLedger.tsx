@@ -1,13 +1,13 @@
 import { ckBtcActor } from "../../actors/CkBtcActor";
 import { ckUsdtActor } from "../../actors/CkUsdtActor";
 import { icpCoinsActor } from "../../actors/IcpCoinsActor";
-import { minterActor } from "../../actors/MinterActor";
+import { faucetActor } from "../../actors/FaucetActor";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
 import { getTokenDecimals, getTokenFee } from "../../utils/metadata";
 import { useEffect, useState } from "react";
 import { canisterId as protocolCanisterId } from "../../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
-import { Account, MetaDatum } from "@/declarations/ck_btc/ck_btc.did";
+import { Account, MetadataValue } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import { useAuth } from "@ic-reactor/react";
 
 export enum LedgerType {
@@ -16,7 +16,7 @@ export enum LedgerType {
 }
 
 export interface FungibleLedger {
-  metadata: MetaDatum[] | undefined;
+  metadata: Array<[string, MetadataValue]> | undefined;
   price: number | undefined;
   tokenDecimals: number | undefined;
   formatAmount: (amountFixedPoint: bigint | number | undefined, notation?: "standard" | "compact") => string | undefined;
@@ -249,7 +249,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     refreshUserBalance();
   }, [account]);
 
-  const { call: mintToken, loading: mintLoading } = minterActor.useUpdateCall({
+  const { call: mintToken, loading: mintLoading } = faucetActor.useUpdateCall({
     functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : 'mint_btc',
   });
 

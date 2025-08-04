@@ -14,8 +14,11 @@ import ForesightUpdater       "ForesightUpdater";
 import Incentives             "votes/Incentives";
 import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
+import LedgerAccount          "ledger/LedgerAccount";
+import Cell                   "utils/Cell";
 import Dex                    "ledger/Dex";
 import TWAPPriceTracker       "ledger/TWAPPriceTracker";
+import ParticipationMinter    "ParticipationMinter";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
@@ -52,15 +55,22 @@ module {
         admin: Principal;
     }) : BuildOutput {
 
-        let { vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; } = state;
-        let { decay; duration_scaler; twap_config; } = parameters;
+        let { genesis_time; vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; participation; } = state;
+        let { duration_scaler; twap_config; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
 
         let supply_ledger = LedgerFungible.LedgerFungible(state.supply_ledger);
         let collateral_ledger = LedgerFungible.LedgerFungible(state.collateral_ledger);
+        let participation_ledger = LedgerFungible.LedgerFungible(state.participation_ledger);
+        
+        let participation_account = LedgerAccount.LedgerAccount({
+            protocol_account = { owner = protocol; subaccount = null; };
+            ledger = participation_ledger;
+            local_balance = Cell.Cell({ var value = 550_000_000_000_000; }); // TODO urgent: do not use hardcoded local balance.
+        });
 
-        let dex = Dex.Dex(state.dex);
+        let dex = Dex.Dex(state);
 
         let collateral_price_tracker = TWAPPriceTracker.TWAPPriceTracker({
             dex;
@@ -99,7 +109,7 @@ module {
             foresight_updater.set_supply_info(to_supply_info(lending_index));
         });
         
-        // @int: the foresight_updater should directly listen to the Indexer updates instead of the LockScheduler
+        // TODO: the foresight_updater should directly listen to the Indexer updates instead of the LockScheduler
         let lock_scheduler = LockScheduler.LockScheduler({
             state = lock_scheduler_state;
             before_change = func({ time: Nat; state: LockState; }){};
@@ -142,10 +152,20 @@ module {
             b = duration_scaler.b;
         });
 
+        let participation_minter = ParticipationMinter.ParticipationMinter({
+            genesis_time;
+            parameters = parameters.participation;
+            minting_account = participation_account;
+            register = participation;
+            supply_positions = lending.register.supply_positions;
+            borrow_positions = lending.register.borrow_positions;
+            lending_index = lending.index;
+        });
+
         let yes_no_controller = VoteFactory.build_yes_no({
             parameters;
             ballot_register;
-            decay_model = Decay.DecayModel(decay);
+            decay_model = Decay.DecayModel({ half_life_ns = parameters.ballot_half_life_ns; genesis_time; });
             lock_info_updater = LockInfoUpdater.LockInfoUpdater({duration_scaler = duration_scaler_instance});
         });
 
@@ -154,6 +174,7 @@ module {
         });
 
         let controller = Controller.Controller({
+            genesis_time;
             clock;
             vote_register;
             ballot_register;
@@ -164,6 +185,7 @@ module {
             borrow_registry;
             withdrawal_queue;
             collateral_price_tracker;
+            participation_minter;
             parameters;
         });
         let queries = Queries.Queries({
@@ -183,12 +205,16 @@ module {
                     case(#err(e)) { return #err("Failed to initialize collateral ledger: " # e); };
                     case(#ok(_)) {};
                 };
+                switch(await* participation_ledger.initialize()) {
+                    case(#err(e)) { return #err("Failed to initialize participation ledger: " # e); };
+                    case(#ok(_)) {};
+                };
                 switch(await* collateral_price_tracker.fetch_price()) {
                     case(#err(error)) { return #err("Failed to update collateral price: " # error); };
                     case(#ok(_)) {};
                 };
                 ignore Timer.recurringTimer<system>(#seconds(parameters.timer_interval_s), func() : async () {
-                    ignore await* controller.run();
+                    await* controller.run();
                 });
                 #ok;
             };

@@ -1,10 +1,10 @@
 import { MdOpenInNew } from "react-icons/md";
-import { MetaDatum } from "../../../declarations/ck_btc/ck_btc.did";
+import { MetadataValue } from "../../../declarations/ckbtc_ledger/ckbtc_ledger.did";
 import { getTokenLogo, getTokenName, getTokenSymbol } from "../../utils/metadata";
 import { Link } from "react-router-dom";
 
 interface TokenLabelProps {
-  metadata: MetaDatum[] | undefined;
+  metadata: Array<[string, MetadataValue]> | undefined;
 };
 
 export const TokenLabel: React.FC<TokenLabelProps> = ({ metadata }) => {
@@ -18,7 +18,7 @@ export const TokenLabel: React.FC<TokenLabelProps> = ({ metadata }) => {
 }
 
 interface FullTokenLabelProps {
-  metadata: MetaDatum[] | undefined;
+  metadata: Array<[string, MetadataValue]> | undefined;
   canisterId: string;
 };
 

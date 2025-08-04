@@ -5,7 +5,6 @@ import Debug              "mo:base/Debug";
 import Float              "mo:base/Float";
 import Option             "mo:base/Option";
 import Int                "mo:base/Int";
-import Principal          "mo:base/Principal";
 
 import Types              "../Types";
 import MapUtils           "../utils/Map";

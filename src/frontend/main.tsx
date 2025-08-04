@@ -9,7 +9,7 @@ import { BackendActorProvider }         from "./actors/BackendActor"
 import { CkBtcActorProvider }           from './actors/CkBtcActor';
 import { ProtocolActorProvider }        from './actors/ProtocolActor';
 import { CkUsdtActorProvider }          from './actors/CkUsdtActor';
-import { MinterActorProvider }          from './actors/MinterActor';
+import { FaucetActorProvider }          from './actors/FaucetActor';
 import { ProtocolProvider }             from './components/context/ProtocolContext';
 import { FungibleLedgerProvider }       from './components/context/FungibleLedgerContext';
 import { IcpCoinsActorProvider }        from './actors/IcpCoinsActor';
@@ -21,7 +21,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
         <CkBtcActorProvider>
           <CkUsdtActorProvider>
             <ProtocolActorProvider>
-              <MinterActorProvider>
+              <FaucetActorProvider>
                 <IcpCoinsActorProvider>
                   <ProtocolProvider>
                     <FungibleLedgerProvider>
@@ -29,7 +29,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                     </FungibleLedgerProvider>
                   </ProtocolProvider>
                 </IcpCoinsActorProvider>
-              </MinterActorProvider>
+              </FaucetActorProvider>
             </ProtocolActorProvider>
           </CkUsdtActorProvider>
         </CkBtcActorProvider>

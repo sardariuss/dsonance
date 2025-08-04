@@ -53,3 +53,7 @@ The frontend should be available on localhost:3000
 ## Credits
 
 * Acelon font: https://www.fontspace.com/acelon-blur-font-f115699
+
+## TODO
+
+* Investigate cases which allow re-entry, especially when two async calls are called in the same function (e.g. approve + swap in LedgerAccount). Can 'await?' help with that?

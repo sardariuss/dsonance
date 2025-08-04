@@ -144,6 +144,178 @@ const { data } = backendActor.useQueryCall({
 
 **Reason**: Capturing `call` methods from ic-reactor hooks in useEffect dependencies can cause excessive re-renders and high CPU usage. The ic-reactor library is designed to handle automatic refetching when arguments change, making manual useEffect calls unnecessary and potentially harmful to performance.
 
+## State Persistence and Stable Memory Guidelines
+
+### Mutable State References in Classes
+
+**❌ AVOID: Creating copies of mutable state structs when passing to classes**
+```motoko
+// DON'T DO THIS - creates a copy, loses stable memory persistence
+let mutable_state = { var value = state.some_field.value; };
+let instance = MyClass({ mutable_field = mutable_state; });
+```
+
+**✅ DO: Pass the entire mutable struct reference**
+```motoko
+// DO THIS - maintains reference to stable memory
+let instance = MyClass({ mutable_field = state.some_field; });
+```
+
+**Critical Pattern**: When working with mutable state that needs to persist across upgrades:
+
+1. **State Structure**: Define mutable fields as `{ var value: T }` in the State type
+   ```motoko
+   public type State = {
+       last_mint_timestamp: { var value: Nat; };
+       // ... other fields
+   };
+   ```
+
+2. **Class Parameters**: Accept the full struct reference
+   ```motoko
+   public class MyClass({
+       mutable_field: { var value: Nat; };
+   }) {
+       // Modifications to mutable_field.value will persist in stable memory
+   }
+   ```
+
+3. **Factory Injection**: Pass the struct directly, not a copy
+   ```motoko
+   let instance = MyClass({ mutable_field = state.mutable_field; });
+   ```
+
+**Reason**: Creating `{ var value = some_value }` makes a copy of the value, breaking the reference to stable memory. The original state won't be updated, and changes won't persist across canister upgrades. Always pass the entire mutable struct to maintain the reference to stable memory.
+
+## Code Readability Guidelines
+
+### Avoid Deep Nesting with Early Returns (Guard Clauses)
+
+**❌ AVOID: Deep nesting with nested switch/if statements**
+```motoko
+public func claim_rewards(account: Account) : async* ?Nat {
+    switch (Map.get(rewards, hash, account)) {
+        case (null) { null; };
+        case (?tracker) {
+            if (tracker.owed > 0) {
+                let result = await* transfer(tracker.owed, account);
+                switch (result) {
+                    case (#ok(tx_id)) { ?tracker.owed; };
+                    case (#err(_)) { null; };
+                };
+            } else {
+                null;
+            };
+        };
+    };
+}
+```
+
+**✅ DO: Use early returns (guard clauses) to reduce nesting**
+```motoko
+public func claim_rewards(account: Account) : async* ?Nat {
+    let tracker = switch (Map.get(rewards, hash, account)) {
+        case (null) { return null; };
+        case (?t) { t; };
+    };
+    
+    if (tracker.owed == 0) {
+        return null;
+    };
+    
+    let result = await* transfer(tracker.owed, account);
+    let tx_id = switch (result) {
+        case (#err(_)) { return null; };
+        case (#ok(id)) { id; };
+    };
+    
+    // Main logic here at consistent indentation
+    ?tracker.owed;
+}
+```
+
+**Pattern Benefits**:
+- **Readability**: Main logic flows at consistent indentation level
+- **Maintainability**: Error conditions are handled upfront and clearly
+- **Cognitive Load**: Reduces mental tracking of nested conditions
+- **Early Exit**: Handles edge cases immediately, keeping main logic clean
+
+**When to Apply**:
+- Functions with optional values that are required for the rest of the logic
+- Multiple validation checks that should fail fast
+- Error handling that doesn't need complex recovery logic
+- Any time nesting exceeds 2-3 levels
+
+This pattern is also known as "guard clauses" or "early return pattern" in software engineering.
+
+## Motoko Async/Await Variations
+
+### Core Concepts
+
+- **`async`** - Standard asynchronous function. Calling it produces a future that, when awaited with `await`, introduces a commit point/message split: prior tentative state is committed before suspension.
+
+- **`async*`** - A delayed/"deferred" async computation. Allows composing asynchronous logic without automatically introducing commit points. If the contained logic uses only `await*` and no plain `await`, the whole tree can execute atomically in one message.
+
+- **`await`** - Waits for a future and **commits state at that point**. Introduces a checkpoint/potential message boundary.
+
+- **`await?`** - Waits for a future **without creating a commit point** at that await. Does NOT suppress all state commits in the enclosing call—only avoids the automatic commit that a plain `await` would insert at that location.
+
+- **`await*`** - Consumes a future from an `async*` and waits for it, respecting the "deferred" nature. Does NOT introduce a commit point unless the inner logic itself used a plain `await`. **Must** use `await*` to consume `async*` results.
+
+### Key Behavioral Details
+
+**State Commit Timing:**
+- `await` commits state at that suspension point
+- `await?` does NOT commit at that await; state is still committed when the message completes
+- `await*` behaves like `await?` unless the inner `async*` uses plain `await`
+
+**Performance Implications:**
+- `await` can incur extra message round-trips and checkpoint overhead
+- `async*` + `await*` lets you batch logic atomically and efficiently
+- `await?` is lightweight when you want a result without paying for commit overhead
+
+**Error Handling:**
+- Errors (traps) rollback all tentative state up to the **last commit point**
+- If no plain `await` occurred before a trap in `async*`/`await*` chain: atomic rollback
+- If trap occurs after plain `await`: earlier state remains committed
+
+**Interoperability Rules:**
+- **Must use `await*`** to consume `async*` results; `await?` or `await` on `async*` is **invalid/type error**
+- Can `await*` an `async*` that uses only `await*` to keep it atomic
+- If inner `async*` uses plain `await`, atomicity breaks even when consumed via `await*`
+- `await?` works **only** on results of plain `async` (not `async*`) to avoid checkpoints
+
+### Usage Guidelines
+
+**Use `async*`/`await*` for:**
+- Internal, batched, atomic flows
+- Accumulating state with single commit
+- Performance-critical paths
+
+**Use `async`/`await` for:**
+- Inter-canister calls
+- Explicit checkpoints
+- When you need intermediate durability
+
+**Use `await?` for:**
+- Non-critical side effects
+- When you don't want that specific await to create a commit point
+- Fire-and-forget style operations
+
+### Examples in This Codebase
+
+```motoko
+// Standard pattern - commits at await
+public func transfer(args) : async* Transfer {
+    switch(await* ledger.transfer(args)) { ... };
+}
+
+// No-commit pattern - avoids commit at that point
+public func transfer_no_commit(args) : async Transfer {
+    switch(await? ledger.transfer_no_commit(args)) { ... };
+}
+```
+
 ## Parameter and Type System Guidelines
 
 ### Parameter Architecture

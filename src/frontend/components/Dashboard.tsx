@@ -6,6 +6,7 @@ import InterestRateModel from "./borrow/InterestRateModel";
 import SupplyInfoPanel from "./borrow/SupplyInfoPanel";
 import DualLabel from "./common/DualLabel";
 import { FullTokenLabel } from "./common/TokenLabel";
+import DsnMintingStats from "./DsnMintingStats";
 import { aprToApy } from "../utils/lending";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import { useProtocolContext } from "./context/ProtocolContext";
@@ -92,6 +93,11 @@ const Dashboard = () => {
         <InterestRateModel
           utilizationRate={indexerState.utilization.ratio} // Example utilization rate
         />
+        <div className="border-b border-gray-300 dark:border-gray-700 w-full col-span-1 md:col-span-2"></div>
+        <span className="text-base font-semibold self-start">DSN Minting</span>
+        <div className="col-span-1">
+          <DsnMintingStats />
+        </div>
       </div>
     </div>
   );

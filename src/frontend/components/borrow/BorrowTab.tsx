@@ -5,7 +5,7 @@ import BorrowButton from "./BorrowButton";
 import { OperationKind, Result_1 } from "../../../declarations/protocol/protocol.did";
 import { useMemo, useEffect } from "react";
 import { useAuth } from "@ic-reactor/react";
-import { Account } from "@/declarations/ck_btc/ck_btc.did";
+import { Account } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import DualLabel from "../common/DualLabel";
 import { aprToApy } from "../../utils/lending";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";

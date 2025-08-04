@@ -15,6 +15,7 @@ module {
 
     let ICRC1_METADATA_SYMBOL_KEY = "icrc1:symbol";
 
+    // TODO: use try/catch to handle errors in the async functions
     public class LedgerFungible(ledger_actor : Types.LedgerFungibleActor) : Types.ILedgerFungible {
 
         var ledger_info : ?LedgerInfo = null;
@@ -58,6 +59,13 @@ module {
 
         public func transfer(args: Types.Icrc1TransferArgs) : async* Result<Nat, Text> {
             switch(Result.fromUpper(await ledger_actor.icrc1_transfer(args))) {
+                case (#ok(value)) { #ok(value) };
+                case (#err(error)) { #err(ErrorConverter.transferErrorToText(error)) };
+            };
+        };
+
+        public func transfer_no_commit(args: Types.Icrc1TransferArgs) : async Result<Nat, Text> {
+            switch(Result.fromUpper(await? ledger_actor.icrc1_transfer(args))) {
                 case (#ok(value)) { #ok(value) };
                 case (#err(error)) { #err(ErrorConverter.transferErrorToText(error)) };
             };

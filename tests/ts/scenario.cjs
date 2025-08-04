@@ -79,25 +79,25 @@ async function callCanisterMethod() {
     
     // Import the IDL factory dynamically
     const { idlFactory: protocolFactory } = await import("../../.dfx/local/canisters/protocol/service.did.js");
-    const { idlFactory: minterFactory } = await import("../../.dfx/local/canisters/minter/service.did.js");
+    const { idlFactory: faucetFactory } = await import("../../.dfx/local/canisters/faucet/service.did.js");
     const { idlFactory: backendFactory } = await import("../../.dfx/local/canisters/backend/service.did.js");
-    const { idlFactory: btcFactory } = await import("../../.dfx/local/canisters/ck_btc/service.did.js");
-    const { idlFactory: usdtFactory } = await import("../../.dfx/local/canisters/ck_usdt/service.did.js");
+    const { idlFactory: btcFactory } = await import("../../.dfx/local/canisters/ckbtc_ledger/service.did.js");
+    const { idlFactory: usdtFactory } = await import("../../.dfx/local/canisters/ckusdt_ledger/service.did.js");
     const { idlFactory: icpCoinsFactory } = await import("../../.dfx/local/canisters/icp_coins/service.did.js");
 
     // Retrieve canister ID from environment variables
     const protocolCanisterId = process.env.CANISTER_ID_PROTOCOL;
-    const minterCanisterId = process.env.CANISTER_ID_MINTER;
+    const faucetCanisterId = process.env.CANISTER_ID_FAUCET;
     const backendCanisterId = process.env.CANISTER_ID_BACKEND;
-    const btcCanisterId = process.env.CANISTER_ID_CK_BTC;
-    const usdtCanisterId = process.env.CANISTER_ID_CK_USDT;
+    const btcCanisterId = process.env.CANISTER_ID_CKBTC_LEDGER;
+    const usdtCanisterId = process.env.CANISTER_ID_CKUSDT_LEDGER;
     const icpCoinsCanisterId = process.env.CANISTER_ID_ICP_COINS;
 
     if (!protocolCanisterId){
         throw new Error("Protocol canister ID is missing");
     }
-    if (!minterCanisterId){
-        throw new Error("Minter canister ID is missing");
+    if (!faucetCanisterId){
+        throw new Error("Faucet canister ID is missing");
     }
     if (!backendCanisterId){
         throw new Error("Backend canister ID is missing");
@@ -126,8 +126,8 @@ async function callCanisterMethod() {
         throw new Error("BackendSim actor is null");
     }
 
-    let minterActor = await getActor(minterCanisterId, minterFactory, simIdentity);
-    if (minterActor === null) {
+    let faucetActor = await getActor(faucetCanisterId, faucetFactory, simIdentity);
+    if (faucetActor === null) {
         throw new Error("ckBTC actor is null");
     }
 
@@ -175,8 +175,8 @@ async function callCanisterMethod() {
     // Mint ckBTC and USDT to each user
     let mintPromises = [];
     for (let [principal, _] of userActors) {
-        mintPromises.push(minterActor.mint_btc({to: { owner: principal, subaccount: [] }, amount: BTC_USER_BALANCE}));
-        mintPromises.push(minterActor.mint_usdt({to: { owner: principal, subaccount: [] }, amount: USDT_USER_BALANCE}));
+        mintPromises.push(faucetActor.mint_btc({to: { owner: principal, subaccount: [] }, amount: BTC_USER_BALANCE}));
+        mintPromises.push(faucetActor.mint_usdt({to: { owner: principal, subaccount: [] }, amount: USDT_USER_BALANCE}));
     }
     await Promise.all(mintPromises);
 

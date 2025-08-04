@@ -10,14 +10,12 @@ import Debug          "mo:base/Debug";
 import Option         "mo:base/Option";
 import Result         "mo:base/Result";
 
-shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = this {
+shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.Args) = this {
 
-    // STABLE MEMBER
-    stable var _state: MigrationTypes.State = Migrations.install(args);
-    _state := Migrations.migrate(_state, args);
+    var state: MigrationTypes.State = Migrations.install(args);
+    state := Migrations.migrate(state, args);
 
-    // NON-STABLE MEMBER
-    var _facade : ?SharedFacade.SharedFacade = null;
+    transient var facade : ?SharedFacade.SharedFacade = null;
 
     // Unfortunately the principal of the canister cannot be used at the construction of the actor
     // because of the compiler error "cannot use self before self has been defined".
@@ -28,13 +26,13 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
             return #err("Only the admin can initialize the facade");
         };
 
-        if (Option.isSome(_facade)) {
+        if (Option.isSome(facade)) {
             return #err("The facade is already initialized");
         };
 
-        let #v0_1_0(state) = _state;
+        let #v0_1_0(s) = state;
         let { controller; queries; initialize; } = Factory.build({
-            state;
+            state = s;
             protocol = Principal.fromActor(this);
             admin;
         });
@@ -43,7 +41,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
             case (#ok) {};
         };
         
-        _facade := ?SharedFacade.SharedFacade({ controller; queries; });
+        facade := ?SharedFacade.SharedFacade({ controller; queries; });
         #ok;
     };
 
@@ -77,8 +75,21 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     // Run the protocol
-    public func run() : async Result.Result<(), Text> {
+    // TODO: should be restricted to the admin
+    public func run() : async () {
         await* getFacade().run();
+    };
+
+    public shared({caller}) func claim_participation_owed(subaccount: ?Blob) : async ?Nat {
+        await* getFacade().claim_participation_owed({ owner = caller; subaccount; });
+    };
+
+    public query func get_participation_trackers() : async [(Types.Account, Types.ParticipationTracker)] {
+        getFacade().get_participation_trackers();
+    };
+
+    public query({caller}) func get_participation_tracker(subaccount: ?Blob) : async ?Types.ParticipationTracker {
+        getFacade().get_participation_tracker({ owner = caller; subaccount; });
     };
 
     // Get the ballots of the given account
@@ -160,7 +171,7 @@ shared({ caller = admin }) actor class Protocol(args: MigrationTypes.Args) = thi
     };
 
     func getFacade() : SharedFacade.SharedFacade {
-        switch(_facade){
+        switch(facade){
             case (null) { Debug.trap("The facade is not initialized"); };
             case (?c) { c; };
         };

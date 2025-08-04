@@ -35,6 +35,10 @@ module {
             local_balance.get();
         };
 
+        public func token_symbol() : Text {
+            ledger.token_symbol();
+        };
+
         public func pull({
             from: Account;
             amount: Nat;
@@ -85,6 +89,41 @@ module {
             // Perform the transfer
             let result = try {
                 switch(await* ledger.transfer(args)){
+                    case(#err(error)){ #err(error); };
+                    case(#ok(tx_id)){
+                        local_balance.set(local_balance.get() - amount); 
+                        #ok(tx_id); 
+                    };
+                };
+            } catch(err) {
+                #err("Transfer trapped with error code: " # debug_show(Error.code(err)));
+            };
+
+            { args; result; };
+        };
+
+        public func transfer_no_commit({
+            amount: Nat;
+            to: Account;
+        }) : async Transfer {
+
+            let args = {
+                to;
+                from_subaccount = null;
+                // Deduct the transfer fee from the amount to transfer
+                amount = Int.abs(Int.max(amount - ledger.fee(), 0));
+                fee = ?ledger.fee();
+                memo = null;
+                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            };
+
+            if (args.amount == 0) {
+                return { args; result = #err("Amount " # debug_show(amount) # " is too low to cover the transfer fee"); };
+            };
+
+            // Perform the transfer without state commit
+            let result = try {
+                switch(await? ledger.transfer_no_commit(args)){
                     case(#err(error)){ #err(error); };
                     case(#ok(tx_id)){
                         local_balance.set(local_balance.get() - amount); 
@@ -165,11 +204,11 @@ module {
             };
         };
 
-        public func approve(spender: Account, amount: Nat) : async* Result<TxIndex, Text> {
+        public func approve({spender: Account; amount: Nat; }) : async* Result<TxIndex, Text> {
             switch(await* ledger.approve({
                 from_subaccount = null;
                 spender;
-                amount;
+                amount = amount + ledger.fee(); // Amount + fee for the transaction
                 expected_allowance = null;
                 expires_at = null;
                 fee = ?ledger.fee();

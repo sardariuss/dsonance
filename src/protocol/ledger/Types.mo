@@ -1,4 +1,5 @@
 import Types         "../Types";
+import KongTypes     "../kong/Types";
 
 import Result        "mo:base/Result";
 
@@ -58,137 +59,9 @@ module {
         max_slippage: Float;
     };
 
-    // Copy/pasted from KongSwap: https://dashboard.internetcomputer.org/canister/2ipq2-uqaaa-aaaar-qailq-cai
-
-    public type SwapAmountsTxReply = {
-        pool_symbol: Text;
-        pay_chain: Text;
-        pay_symbol: Text;
-        pay_address: Text;
-        pay_amount: Nat;
-        receive_chain: Text;
-        receive_symbol: Text;
-        receive_address: Text;
-        receive_amount: Nat;
-        price: Float;
-        lp_fee: Nat;
-        gas_fee: Nat;
-    };
-    public type SwapAmountsReply = {
-        pay_chain: Text;
-        pay_symbol: Text;
-        pay_address: Text;
-        pay_amount: Nat;
-        receive_chain: Text;
-        receive_symbol: Text;
-        receive_address: Text;
-        receive_amount: Nat;
-        price: Float;
-        mid_price: Float;
-        slippage: Float;
-        txs: [SwapAmountsTxReply];
-    };
-    public type SwapAmountsResult = { 
-        #Ok: SwapAmountsReply;
-        #Err: Text; 
-    };
-
-    public type ICTransferReply = {
-        chain : Text;
-        symbol : Text;
-        is_send : Bool;
-        amount : Nat;
-        canister_id : Text;
-        block_index : Nat;
-    };
-    public type TransferReply = {
-        #IC : ICTransferReply;
-    };
-    public type TransferIdReply = {
-        transfer_id : Nat64;
-        transfer : TransferReply
-    };
-
-    public type TxId = {
-        BlockIndex : Nat;
-        TransactionId : Text;
-    };
-
-    public type SwapArgs = {
-        pay_token: Text;
-        pay_amount: Nat;
-        pay_tx_id: ?TxId;
-        receive_token: Text;
-        receive_amount: ?Nat;
-        receive_address: ?Text;
-        max_slippage: ?Float;
-        referred_by: ?Text;
-    };
-
-    public type AugmentedSwapArgs = SwapArgs and { from: Account; }; // For unit testing purposes
-
-    public type SwapTxReply = {
-        pool_symbol : Text;
-        pay_chain : Text;
-        pay_address : Text;
-        pay_symbol : Text;
-        pay_amount : Nat;
-        receive_chain : Text;
-        receive_address : Text;
-        receive_symbol : Text;
-        receive_amount : Nat;
-        price : Float;
-        lp_fee : Nat;
-        gas_fee : Nat;
-        ts : Nat64;
-    };
-    public type SwapReply = {
-        tx_id : Nat64;
-        request_id : Nat64;
-        status : Text;
-        pay_chain : Text;
-        pay_address : Text;
-        pay_symbol : Text;
-        pay_amount : Nat;
-        receive_chain : Text;
-        receive_address : Text;
-        receive_symbol : Text;
-        receive_amount : Nat;
-        mid_price : Float;
-        price : Float;
-        slippage : Float;
-        txs : [SwapTxReply];
-        transfer_ids : [TransferIdReply];
-        claim_ids : [Nat64];
-        ts : Nat64;
-    };
-    public type SwapResult = { 
-        #Ok : SwapReply;
-        #Err : Text;
-    };
-
-    public type PriceArgs = {
-        pay_token: Text;
-        receive_token: Text;
-    };
-
-    public type DexActor = actor {
-        // swap_amounts(pay_token, pay_amount, receive_token)
-        // pay_token, receive_token - format Symbol, Chain.Symbol, CanisterId or Chain.CanisterId ie. ckBTC, IC.ckBTC, or IC.ryjl3-tyaaa-aaaaa-aaaba-cai
-        // pay_amount, receive_amount - Nat numbers with corresponding decimal precision as defined in ledger canister
-        // - calculates the expected receive_amount and price of the swap
-        // - results of swap_amounts() are then pass to swap() for execution
-        swap_amounts: shared (Text, Nat, Text) -> async SwapAmountsResult;
-
-        // swap()
-        // pay_token, receive_token - format Symbol, Chain.Symbol, CanisterId or Chain.CanisterId ie. ckBTC, IC.ckBTC, or IC.ryjl3-tyaaa-aaaaa-aaaba-cai
-        // pay_amount, receive_amount - Nat numbers with corresponding decimal precision as defined in ledger canister
-        // - swaps pay_amount of pay_token into receive_amount of receive_token
-        // - swap() has 2 variations:
-        //   1) icrc2_approve + icrc2_transfer_from - user must icrc2_approve the pay_amount+gas of pay_token and then call swap() where the canister will then icrc2_transfer_from
-        //   2) icrc1_transfer - user must icrc1_transfer the pay_amount of pay_token and then call swap() with the block index
-        swap: shared SwapArgs -> async SwapResult;
-    };
+    public type AugmentedSwapArgs = KongTypes.SwapArgs and { from: Account; }; // For unit testing purposes
+    public type SwapAmountsReply = KongTypes.SwapAmountsReply;
+    public type SwapReply = KongTypes.SwapReply;
 
     public type IDex = {
         swap_amounts: (Text, Nat, Text) -> async* Result<SwapAmountsReply, Text>;
@@ -235,6 +108,7 @@ module {
     public type ILedgerFungible = {
         balance_of: (Account) -> async* Nat;
         transfer: (Icrc1TransferArgs) -> async* Result<Nat, Text>;
+        transfer_no_commit: (Icrc1TransferArgs) -> async Result<Nat, Text>;
         transfer_from: (TransferFromArgs) -> async* Result<Nat, Text>;
         approve: (ApproveArgs) -> async* Result<Nat, Text>;
         fee: () -> Nat;
@@ -245,7 +119,9 @@ module {
         get_local_balance: () -> Nat;
         pull: (PullArgs) -> async* PullResult;
         transfer: (TransferArgs) -> async* Transfer;
-        approve: (Account, Nat) -> async* Result<TxIndex, Text>;
+        transfer_no_commit: (TransferArgs) -> async Transfer;
+        approve: { spender: Account; amount: Nat; } -> async* Result<TxIndex, Text>;
+        token_symbol: () -> Text;
     };
 
     public type ISwapPayable = {

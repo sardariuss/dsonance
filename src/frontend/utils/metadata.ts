@@ -1,6 +1,6 @@
-import { MetaDatum } from "@/declarations/ck_btc/ck_btc.did";
+import { MetadataValue } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 
-export const getTokenLogo = (metadata: MetaDatum[] | undefined) : string | undefined => {
+export const getTokenLogo = (metadata: Array<[string, MetadataValue]> | undefined) : string | undefined => {
   if (!metadata) {
     return undefined;
   }
@@ -11,7 +11,7 @@ export const getTokenLogo = (metadata: MetaDatum[] | undefined) : string | undef
   return undefined;
 }
 
-export const getTokenName = (metadata: MetaDatum[] | undefined) : string | undefined => {
+export const getTokenName = (metadata: Array<[string, MetadataValue]> | undefined) : string | undefined => {
   if (!metadata) {
     return undefined;
   }
@@ -22,7 +22,7 @@ export const getTokenName = (metadata: MetaDatum[] | undefined) : string | undef
   return undefined;
 }
 
-export const getTokenSymbol = (metadata: MetaDatum[] | undefined) : string | undefined => {
+export const getTokenSymbol = (metadata: Array<[string, MetadataValue]> | undefined) : string | undefined => {
   if (!metadata) {
     return undefined;
   } 
@@ -33,7 +33,7 @@ export const getTokenSymbol = (metadata: MetaDatum[] | undefined) : string | und
   return undefined;
 }
 
-export const getTokenDecimals = (metadata: MetaDatum[] | undefined) : number | undefined => {
+export const getTokenDecimals = (metadata: Array<[string, MetadataValue]> | undefined) : number | undefined => {
   if (!metadata) {
     return undefined;
   }
@@ -44,7 +44,7 @@ export const getTokenDecimals = (metadata: MetaDatum[] | undefined) : number | u
   return undefined;
 }
 
-export const getTokenFee = (metadata: MetaDatum[] | undefined) : bigint | undefined => {
+export const getTokenFee = (metadata: Array<[string, MetadataValue]> | undefined) : bigint | undefined => {
   if (!metadata) {
     return undefined;
   }

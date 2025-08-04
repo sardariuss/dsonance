@@ -1,7 +1,7 @@
 import { createActorContext }             from "@ic-reactor/react"
-import { ck_btc, canisterId, idlFactory } from "../../declarations/ck_btc"
+import { ckbtc_ledger, canisterId, idlFactory } from "../../declarations/ckbtc_ledger"
 
-export type CkBtc = typeof ck_btc
+export type CkBtc = typeof ckbtc_ledger
 
 export const { ActorProvider: CkBtcActorProvider, ...ckBtcActor } = createActorContext<CkBtc>({
   canisterId,

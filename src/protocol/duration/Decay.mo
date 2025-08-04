@@ -1,5 +1,4 @@
 import Types    "../Types";
-import Duration "Duration";
 
 import Float    "mo:base/Float";
 import Int      "mo:base/Int";
@@ -23,11 +22,12 @@ module {
         };
     };
 
-    public class DecayModel({half_life: Duration; time_init: Time}){
+    // TODO: think about factoring that model out with the one in ParticipationMinter
+    public class DecayModel({half_life_ns: Nat; genesis_time: Time}){
 
         // @todo: find out how small can the half-life be before the decay becomes too small or too big to be represented by a float64!
-        let _lambda = Float.log(2.0) / Float.fromInt(Duration.toTime(half_life));
-        let _shift = Float.fromInt(time_init) * _lambda;
+        let lamda = Float.log(2.0) / Float.fromInt(half_life_ns);
+        let shift = Float.fromInt(genesis_time) * lamda;
 
         public func create_decayed(value: Float, time: Nat) : Decayed {
             #DECAYED(value * compute_decay(time)); // @todo: avoid multiplication and potential overflow ?
@@ -45,7 +45,7 @@ module {
         };
 
         public func compute_decay(time: Nat) : Float {
-            Float.exp(_lambda * Float.fromInt(time) - _shift);
+            Float.exp(lamda * Float.fromInt(time) - shift);
         };
         
     };

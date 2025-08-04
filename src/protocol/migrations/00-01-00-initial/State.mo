@@ -20,6 +20,7 @@ module {
     type Account        = Types.Account;
     type ICRC1          = Types.ICRC1;
     type ICRC2          = Types.ICRC2;
+    type ParticipationTracker  = Types.ParticipationTracker;
     type InitArgs       = Types.InitArgs;
     type UpgradeArgs    = Types.UpgradeArgs;
     type DowngradeArgs  = Types.DowngradeArgs;
@@ -33,7 +34,7 @@ module {
     type BorrowPosition = Types.BorrowPosition;
     type SupplyPosition = Types.SupplyPosition;
     type Withdrawal     = Types.Withdrawal;
-    type DexActor       = Types.DexActor;
+    type KongBackendActor = Types.KongBackendActor;
     type TrackedPrice   = Types.TrackedPrice;
     type Parameters     = Types.Parameters;
     type InitParameters = Types.InitParameters;
@@ -47,9 +48,11 @@ module {
         let now = Int.abs(Time.now());
 
         #v0_1_0({
+            genesis_time = now;
             supply_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.supply_ledger));
             collateral_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.collateral_ledger));
-            dex : DexActor = actor(Principal.toText(canister_ids.dex));
+            participation_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.participation_ledger));
+            kong_backend : KongBackendActor = actor(Principal.toText(canister_ids.kong_backend));
             collateral_twap_price = {
                 var spot_price = null;
                 var observations = [];
@@ -76,10 +79,10 @@ module {
                     max_observations = parameters.twap_config.max_observations;
                 };
                 max_age = Duration.toTime(parameters.max_age);
-                decay = {
-                    half_life = parameters.ballot_half_life;
-                    time_init = now;
+                participation = { parameters.participation with
+                    emission_half_life_s = Duration.toSeconds(parameters.participation.emission_half_life);
                 };
+                ballot_half_life_ns = Duration.toTime(parameters.ballot_half_life);
                 clock : Types.ClockParameters = switch(parameters.clock) {
                     case(#REAL) { #REAL; };
                     case(#SIMULATED({ dilation_factor; })) { 
@@ -138,6 +141,10 @@ module {
                     withdraw_queue = Set.new<Text>();
                 };
             };
+            participation = {
+                var last_mint_timestamp = now;
+                tracking = Map.new<Account, ParticipationTracker>();
+            };
         });
     };
 
@@ -164,11 +171,9 @@ module {
                 max_observations = parameters.twap_config.max_observations;
             };
             max_age = Duration.toTime(parameters.max_age);
-            decay = {
-                half_life = parameters.ballot_half_life;
-                // ⚠️ Watchout: Need to keep the initial time from the original parameters, otherwise
-                // the decay model will not work correctly.
-                time_init = v1_state.parameters.decay.time_init;
+            ballot_half_life_ns = Duration.toTime(parameters.ballot_half_life);
+            participation = { parameters.participation with
+                emission_half_life_s = Duration.toSeconds(parameters.participation.emission_half_life);
             };
             clock : Types.ClockParameters = switch(parameters.clock) {
                 case(#REAL) { #REAL; };
@@ -200,7 +205,7 @@ module {
             };
         };
 
-        #v0_1_0({ v1_state with parameters = protocol_parameters;});
+        #v0_1_0({ v1_state with parameters = protocol_parameters; });
     };
 
 };
