@@ -6,6 +6,7 @@ import Result "mo:base/Result";
 
 import LedgerTypes "../../src/protocol/ledger/Types";
 import LedgerAccounting "LedgerAccounting";
+import KongTypes "../../src/protocol/kong/Types";
 
 module {
 
@@ -19,10 +20,10 @@ module {
     };
 
     type Account = LedgerTypes.Account;
-    type AugmentedSwapArgs = LedgerTypes.SwapArgs and { from: Account; };
+    type AugmentedSwapArgs = LedgerTypes.AugmentedSwapArgs;
     type TrackedPrice = LedgerTypes.TrackedPrice;
 
-    func equal_configs(a: LedgerTypes.PriceArgs, b: LedgerTypes.PriceArgs) : Bool {
+    func equal_configs(a: KongTypes.PriceArgs, b: KongTypes.PriceArgs) : Bool {
         (a.pay_token == b.pay_token) and (a.receive_token == b.receive_token)
     };
     

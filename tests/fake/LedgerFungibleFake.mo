@@ -1,6 +1,5 @@
 
 import Result "mo:base/Result";
-import Debug "mo:base/Debug";
 import LedgerTypes "../../src/protocol/ledger/Types";
 import LedgerAccounting "LedgerAccounting";
 
@@ -39,6 +38,17 @@ module {
         };
 
         public func transfer(args : Icrc1TransferArgs) : async* Result<Nat, Text> {
+            switch(info.ledger_accounting.transfer({
+                from = info.account;
+                to = args.to;
+                amount = args.amount;
+            })) {
+                case (#ok(tx_id)) { #ok(tx_id) };
+                case (#err(error)) { #err(convert_transfer_error_to_text(error)) };
+            };
+        };
+
+        public func transfer_no_commit(args : Icrc1TransferArgs) : async Result<Nat, Text> {
             switch(info.ledger_accounting.transfer({
                 from = info.account;
                 to = args.to;

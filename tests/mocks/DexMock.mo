@@ -1,9 +1,11 @@
 import Debug "mo:base/Debug";
 import Result "mo:base/Result";
+import Principal "mo:base/Principal";
 
 import MockTypes "MockTypes";
 import BaseMock "BaseMock";
 import LedgerType "../../src/protocol/ledger/Types";
+import KongTypes "../../src/protocol/kong/Types";
 
 module {
 
@@ -11,8 +13,8 @@ module {
 
     public type Method = {
         #swap_amounts : (Text, Nat, Text);
-        #swap : LedgerType.SwapArgs;
-        #last_price : LedgerType.PriceArgs;
+        #swap : LedgerType.AugmentedSwapArgs;
+        #last_price : KongTypes.PriceArgs;
         #get_main_account;
     };
 
@@ -45,7 +47,16 @@ module {
                 switch(args){
                     case(#swap_amounts(_)) { #swap_amounts("",0,"") };
                     case(#swap(_)) { #swap({
-                        pay_token=""; pay_amount=0; pay_tx_id=null; receive_token=""; receive_amount=null; receive_address=null; max_slippage=null; referred_by=null;
+                        pay_token=""; 
+                        pay_amount=0; 
+                        pay_tx_id=null; 
+                        receive_token=""; 
+                        receive_amount=null; 
+                        receive_address=null; 
+                        max_slippage=null; 
+                        referred_by=null; 
+                        from={ owner=Principal.fromText("2vxsx-fae"); 
+                        subaccount=null; };
                     }) };
                     case(#last_price(_)) { #last_price({ pay_token=""; receive_token=""; }) };
                     case(#get_main_account(_)) { #get_main_account };
@@ -80,7 +91,7 @@ module {
             }
         };
 
-        public func swap(args: LedgerType.SwapArgs) : async* Result<LedgerType.SwapReply, Text> {
+        public func swap(args: LedgerType.AugmentedSwapArgs) : async* Result<LedgerType.SwapReply, Text> {
             let arg = base.next_call(#swap(args));
             switch(arg){
                 case(#swap(#returns(result))) result;
