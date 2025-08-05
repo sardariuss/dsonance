@@ -102,7 +102,14 @@ module {
         icrc2_transfer_from: shared (TransferFromArgs) -> async {#Err : TransferFromError; #Ok : Nat};
         icrc2_approve: shared (ApproveArgs) -> async ApproveResult;
         icrc1_fee : shared query () -> async Nat;
+        icrc1_decimals : shared query () -> async Nat8;
         icrc1_metadata : shared query () -> async [(Text, Value)];
+    };
+
+    public type LedgerInfo = {
+        fee : Nat;
+        token_symbol : Text;
+        decimals : Nat8;
     };
 
     public type ILedgerFungible = {
@@ -111,8 +118,7 @@ module {
         transfer_no_commit: (Icrc1TransferArgs) -> async Result<Nat, Text>;
         transfer_from: (TransferFromArgs) -> async* Result<Nat, Text>;
         approve: (ApproveArgs) -> async* Result<Nat, Text>;
-        fee: () -> Nat;
-        token_symbol: () -> Text;
+        get_token_info: () -> LedgerInfo;
     };
 
     public type ILedgerAccount = {

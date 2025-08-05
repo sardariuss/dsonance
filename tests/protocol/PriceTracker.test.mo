@@ -4,7 +4,7 @@ import Result "mo:base/Result";
 import Int "mo:base/Int";
 import Principal "mo:base/Principal";
 
-import TWAPPriceTracker "../../src/protocol/ledger/TWAPPriceTracker";
+import PriceTracker "../../src/protocol/ledger/PriceTracker";
 import Duration "../../src/protocol/duration/Duration";
 import Types "../../src/protocol/ledger/Types";
 import Testify "../utils/Testify";
@@ -42,21 +42,21 @@ let mockDex : Types.IDex = {
 
 // Mock ledgers  
 let mockPayLedger : Types.ILedgerFungible = {
-    token_symbol = func() : Text { "ckBTC" };
     balance_of = func(_account: Types.Account) : async* Nat { 0 };
     transfer = func(_args: Types.Icrc1TransferArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
+    transfer_no_commit = func(_args: Types.Icrc1TransferArgs) : async Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     transfer_from = func(_args: Types.TransferFromArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     approve = func(_args: Types.ApproveArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
-    fee = func() : Nat { 10000 };
+    get_token_info = func() : Types.LedgerInfo { { token_symbol = "ckBTC"; decimals = 8; fee = 1000; }; };
 };
 
 let mockReceiveLedger : Types.ILedgerFungible = {
-    token_symbol = func() : Text { "ckUSDT" };
     balance_of = func(_account: Types.Account) : async* Nat { 0 };
     transfer = func(_args: Types.Icrc1TransferArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
+    transfer_no_commit = func(_args: Types.Icrc1TransferArgs) : async Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     transfer_from = func(_args: Types.TransferFromArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     approve = func(_args: Types.ApproveArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
-    fee = func() : Nat { 1000 };
+    get_token_info = func() : Types.LedgerInfo { { token_symbol = "ckUSDT"; decimals = 6; fee = 1000; }; };
 };
 
 // Test configuration with 1 hour window duration in nanoseconds
@@ -105,7 +105,7 @@ let test_twap_tracker_initialization = func() : async () {
     };
     
     // Create tracker
-    let tracker = TWAPPriceTracker.TWAPPriceTracker({
+    let tracker = PriceTracker.TWAPPriceTracker({
         dex = mockDex;
         tracked_twap_price;
         twap_config = testConfig;
@@ -135,7 +135,7 @@ let test_price_fetching_and_twap_calculation = func() : async () {
     };
     
     // Create tracker
-    let tracker = TWAPPriceTracker.TWAPPriceTracker({
+    let tracker = PriceTracker.TWAPPriceTracker({
         dex = mockDex;
         tracked_twap_price;
         twap_config = testConfig;
@@ -211,7 +211,7 @@ let test_multiple_observations_twap = func() : async () {
     };
     
     // Create tracker with dynamic prices
-    let tracker = TWAPPriceTracker.TWAPPriceTracker({
+    let tracker = PriceTracker.TWAPPriceTracker({
         dex = dynamicMockDex;
         tracked_twap_price;
         twap_config = testConfig;
@@ -272,7 +272,7 @@ let test_window_duration_filtering = func() : async () {
     };
     
     // Create tracker
-    let tracker = TWAPPriceTracker.TWAPPriceTracker({
+    let tracker = PriceTracker.TWAPPriceTracker({
         dex = mockDex;
         tracked_twap_price;
         twap_config = shortConfig;
@@ -322,7 +322,7 @@ let test_max_observations_limit = func() : async () {
     };
     
     // Create tracker
-    let tracker = TWAPPriceTracker.TWAPPriceTracker({
+    let tracker = PriceTracker.TWAPPriceTracker({
         dex = mockDex;
         tracked_twap_price;
         twap_config = limitedConfig;

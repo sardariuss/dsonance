@@ -50,10 +50,6 @@ await suite("LendingPool", func(): async() {
             { utilization = 0.8; rate = 0.20 },
             { utilization = 1.0; rate = 1.00 },
         ];
-        twap_config = {
-            window_duration_ns = 3_600_000_000_000; // 1 hour in nanoseconds  
-            max_observations = 100;
-        };
     };
 
     func unwrap<T>(value: ?T) : T {
@@ -117,14 +113,14 @@ await suite("LendingPool", func(): async() {
 
         let supply_accounting = LedgerAccounting.LedgerAccounting([(protocol, 0), (lender, 1_000), (borrower, 1_000)]);
         let collateral_accounting = LedgerAccounting.LedgerAccounting([(protocol, 0), (lender, 0), (borrower, 5_000)]);
-        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
-        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; fee = 0; token_symbol = ""});
+        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; ledger_info = {fee = 0; token_symbol = "ckUSDT"; decimals = 6}});
+        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; ledger_info = {fee = 0; token_symbol = "ckBTC"; decimals = 8}});
 
         let collateral_price_in_supply = { var value = ?1.0; }; // 1:1 price
 
         let dex = DexMock.DexMock();
 
-        let collateral_price_tracker = PriceTracker.PriceTracker({
+        let collateral_price_tracker = PriceTracker.SpotPriceTracker({
             dex;
             tracked_price = collateral_price_in_supply;
             pay_ledger = collateral_ledger;
@@ -317,8 +313,8 @@ await suite("LendingPool", func(): async() {
 
         let supply_accounting = LedgerAccounting.LedgerAccounting([(dex, 2_000), (protocol, 0), (lender, 10_000), (borrower, 10_000)]);
         let collateral_accounting = LedgerAccounting.LedgerAccounting([(dex, 0), (protocol, 0), (lender, 0), (borrower, 10_000)]);
-        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
-        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; fee = 0; token_symbol = ""});
+        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; ledger_info = {fee = 0; token_symbol = "ckUSDT"; decimals = 6}});
+        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; ledger_info = {fee = 0; token_symbol = "ckBTC"; decimals = 8}});
 
         let collateral_price_in_supply = { var value = ?1.0; }; // Start with 1:1 price
 
@@ -327,13 +323,13 @@ await suite("LendingPool", func(): async() {
             config = {
                 pay_accounting = collateral_accounting;
                 receive_accounting = supply_accounting;
-                pay_token = "";
-                receive_token = "";
+                pay_token = "ckBTC";
+                receive_token = "ckUSDT";
             };
             price = collateral_price_in_supply;
         });
 
-        let collateral_price_tracker = PriceTracker.PriceTracker({
+        let collateral_price_tracker = PriceTracker.SpotPriceTracker({
             dex = dex_fake;
             tracked_price = collateral_price_in_supply;
             pay_ledger = collateral_ledger;
@@ -474,14 +470,14 @@ await suite("LendingPool", func(): async() {
 
         let supply_accounting = LedgerAccounting.LedgerAccounting([ (protocol, 0), (lender, 1_000), (borrower, 1_000)]);
         let collateral_accounting = LedgerAccounting.LedgerAccounting([ (protocol, 0), (lender, 0), (borrower, 5_000)]);
-        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; fee = 0; token_symbol = ""});
-        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; fee = 0; token_symbol = ""});
+        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = supply_accounting; ledger_info = {fee = 0; token_symbol = "ckUSDT"; decimals = 6}});
+        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({account = protocol; ledger_accounting = collateral_accounting; ledger_info = {fee = 0; token_symbol = "ckBTC"; decimals = 8}});
 
         let collateral_price_in_supply = { var value = ?1.0; }; // 1:1 price
 
         let dex = DexMock.DexMock();
 
-        let collateral_price_tracker = PriceTracker.PriceTracker({
+        let collateral_price_tracker = PriceTracker.SpotPriceTracker({
             dex;
             tracked_price = collateral_price_in_supply;
             pay_ledger = collateral_ledger;
@@ -571,6 +567,170 @@ await suite("LendingPool", func(): async() {
         };
         // Lender should have received all tokens back
         verify(supply_accounting.balances(), [ (protocol, 3), (lender, 1_002), (borrower, 995) ], equal_balances);
+    });
+
+    await test("Health factor calculation with realistic decimal amounts", func() : async() {
+        // === Setup Phase ===
+        let clock = ClockMock.ClockMock();
+        clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
+
+        let index = { 
+            var value = {
+                borrow_rate = 0.0;
+                supply_rate = 0.0;
+                accrued_interests = {
+                    fees = 0.0;
+                    supply = 0.0;
+                    borrow = 0.0;
+                };
+                borrow_index = {
+                    value = 1.0; 
+                    timestamp = clock.get_time();
+                };
+                supply_index = {
+                    value = 1.0; 
+                    timestamp = clock.get_time();
+                };
+                timestamp = clock.get_time();  // Day 1
+                utilization = {
+                    raw_supplied = 0.0;
+                    raw_borrowed = 0.0;
+                    ratio = 0.0;
+                };
+            };
+        };
+
+        let register = {
+            borrow_positions = Map.new<Account, BorrowPosition>();
+            supply_positions = Map.new<Text, SupplyPosition>();
+            withdrawals = Map.new<Text, Withdrawal>();
+            withdraw_queue = Set.new<Text>();
+        };
+
+        let admin = fuzz.principal.randomPrincipal(10);
+        let protocol = { fuzz.icrc1.randomAccount() with name = "protocol" };
+        let lender = { fuzz.icrc1.randomAccount() with name = "lender" };
+        let borrower = { fuzz.icrc1.randomAccount() with name = "borrower" };
+
+        let protocol_info = {
+            principal = protocol.owner;
+            supply = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+            collateral = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+        };
+
+        // Use realistic decimal amounts
+        // 1 BTC = 100_000_000 satoshis (8 decimals)
+        // 50k USDT = 50_000_000_000 micro-USDT (6 decimals)
+        // 1M USDT = 1_000_000_000_000 micro-USDT
+        let supply_accounting = LedgerAccounting.LedgerAccounting([
+            (protocol, 0), 
+            (lender, 1_000_000_000_000), // 1M USDT
+            (borrower, 0)
+        ]);
+        let collateral_accounting = LedgerAccounting.LedgerAccounting([
+            (protocol, 0), 
+            (lender, 0), 
+            (borrower, 100_000_000) // 1 BTC
+        ]);
+        let supply_ledger = LedgerFungibleFake.LedgerFungibleFake({
+            account = protocol; 
+            ledger_accounting = supply_accounting; 
+            ledger_info = {
+                fee = 0; 
+                token_symbol = "ckUSDT";
+                decimals = 6;
+            };
+        });
+        let collateral_ledger = LedgerFungibleFake.LedgerFungibleFake({
+            account = protocol; 
+            ledger_accounting = collateral_accounting; 
+            ledger_info = {
+                fee = 0; 
+                token_symbol = "ckBTC";
+                decimals = 8;
+            };
+        });
+
+        // Use token price as Kong would return: 50,000 USDT per BTC (not micro-USDT per satoshi)
+        let collateral_price_in_supply : { var value: ?Float } = { var value = ?50000.0; }; // Token price in USDT per BTC
+        
+        let dex_fake = DexFake.DexFake({ 
+            account = protocol;
+            config = {
+                pay_accounting = collateral_accounting;
+                receive_accounting = supply_accounting;
+                pay_token = "ckBTC";
+                receive_token = "ckUSDT";
+            };
+            price = collateral_price_in_supply;
+        });
+
+        let collateral_price_tracker = PriceTracker.SpotPriceTracker({
+            dex = dex_fake;
+            tracked_price = collateral_price_in_supply;
+            pay_ledger = collateral_ledger;
+            receive_ledger = supply_ledger;
+        });
+
+        // Build the lending system
+        let { supply_registry; borrow_registry; } = LendingFactory.build({
+            admin;
+            protocol_info;
+            parameters;
+            index;
+            register;
+            supply_ledger;
+            collateral_ledger;
+            dex = dex_fake;
+            collateral_price_tracker;
+            clock;
+        });
+
+        // Trigger price fetch to normalize the price with decimals
+        let fetch_result = await* collateral_price_tracker.fetch_price();
+        switch(fetch_result) {
+            case(#err(error)) { Debug.trap("Failed to fetch price: " # error); };
+            case(#ok(_)) { /* Price fetched successfully */ };
+        };
+
+        // === Test Scenario ===
+        
+        // Lender supplies 1M USDT
+        let supply_1_result = await* supply_registry.add_position({
+            id = "supply1";
+            account = lender;
+            supplied = 1_000_000_000_000; // 1M USDT in micro-USDT
+        });
+        verify(supply_1_result, #ok(1), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
+
+        // Borrower provides 1 BTC collateral (100M satoshis)
+        let collateral_1_result = await* borrow_registry.run_operation({ 
+            account = borrower; 
+            amount = 100_000_000; // 1 BTC in satoshis
+            kind = #PROVIDE_COLLATERAL; 
+        });
+        verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
+
+        // Borrower borrows 30k USDT (should be safe with 1 BTC at $50k)
+        let borrow_1_result = await* borrow_registry.run_operation({ 
+            account = borrower; 
+            amount = 30_000_000_000; // 30k USDT in micro-USDT
+            kind = #BORROW_SUPPLY; 
+        });
+        verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
+
+        // Check health factor - should be reasonable (around 1.25)
+        // Expected calculation:
+        // - Collateral: 1 BTC = $50k
+        // - Borrowed: 30k USDT
+        // - LTV = 30k / 50k = 0.6
+        // - Health = liquidation_threshold / LTV = 0.75 / 0.6 = 1.25
+        let loan_position = borrow_registry.get_loan_position(borrower);
+        let health = unwrap(loan_position.loan).health;
+        
+        // Verify the health is around 1.25
+        verify(health, 1.24, Testify.float.greaterThan);
+        verify(health, 1.26, Testify.float.lessThan);
     });
 
 })

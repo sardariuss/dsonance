@@ -142,6 +142,8 @@ module {
         // pay_amount, receive_amount - Nat numbers with corresponding decimal precision as defined in ledger canister
         // - calculates the expected receive_amount and price of the swap
         // - results of swap_amounts() are then pass to swap() for execution
+        // Note: mid_price returned by swap_amounts() is in tokens, not units
+        //      ie. if pay_token is ckBTC (8 decimals) and receive_token is ckUSDT (6 decimals), mid_price is in "USDT per BTC" rather than "micro-USDT per satoshi"
         swap_amounts: shared (Text, Nat, Text) -> async SwapAmountsResult;
 
         // swap()

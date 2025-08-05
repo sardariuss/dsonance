@@ -15,22 +15,18 @@ module {
     type ApproveArgs        = LedgerTypes.ApproveArgs;
     type ApproveError       = LedgerTypes.ApproveError;
     type ILedgerFungible    = LedgerTypes.ILedgerFungible;
+    type LedgerInfo         = LedgerTypes.LedgerInfo;
 
     type Info = {
         account: Account;
         ledger_accounting: LedgerAccounting.LedgerAccounting;
-        fee: Nat;
-        token_symbol: Text;
+        ledger_info: LedgerInfo;
     };
 
     public class LedgerFungibleFake(info: Info) : ILedgerFungible {
 
-        public func fee() : Nat {
-            info.fee;
-        };
-        
-        public func token_symbol() : Text {
-            info.token_symbol;
+        public func get_token_info() : LedgerInfo {
+            info.ledger_info;
         };
 
         public func balance_of(account: Account) : async* Nat {

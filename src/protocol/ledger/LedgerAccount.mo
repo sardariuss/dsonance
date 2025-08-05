@@ -36,7 +36,7 @@ module {
         };
 
         public func token_symbol() : Text {
-            ledger.token_symbol();
+            ledger.get_token_info().token_symbol;
         };
 
         public func pull({
@@ -51,7 +51,7 @@ module {
                 from;
                 to = protocol_account;
                 amount;
-                fee = ?ledger.fee();
+                fee = ?ledger.get_token_info().fee;
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             };
@@ -76,8 +76,8 @@ module {
                 to;
                 from_subaccount = null;
                 // Deduct the transfer fee from the amount to transfer
-                amount = Int.abs(Int.max(amount - ledger.fee(), 0));
-                fee = ?ledger.fee();
+                amount = Int.abs(Int.max(amount - ledger.get_token_info().fee, 0));
+                fee = ?ledger.get_token_info().fee;
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             };
@@ -111,8 +111,8 @@ module {
                 to;
                 from_subaccount = null;
                 // Deduct the transfer fee from the amount to transfer
-                amount = Int.abs(Int.max(amount - ledger.fee(), 0));
-                fee = ?ledger.fee();
+                amount = Int.abs(Int.max(amount - ledger.get_token_info().fee, 0));
+                fee = ?ledger.get_token_info().fee;
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             };
@@ -151,10 +151,10 @@ module {
             switch(await* payload.pay_ledger.approve({
                 from_subaccount = null;
                 spender = payload.dex.get_main_account();
-                amount = payload.amount + payload.pay_ledger.fee(); // Amount + fee for the transaction
+                amount = payload.amount + payload.pay_ledger.get_token_info().fee; // Amount + fee for the transaction
                 expected_allowance = null;
                 expires_at = null;
-                fee = ?payload.pay_ledger.fee();
+                fee = ?payload.pay_ledger.get_token_info().fee;
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             })) {
@@ -164,10 +164,10 @@ module {
             
             switch(await* payload.dex.swap({
                 from = payload.from;
-                pay_token = payload.pay_ledger.token_symbol();
+                pay_token = payload.pay_ledger.get_token_info().token_symbol;
                 pay_amount = payload.amount;
                 pay_tx_id = null;
-                receive_token = ledger.token_symbol();
+                receive_token = ledger.get_token_info().token_symbol;
                 receive_amount = null;
                 receive_address = null;
                 max_slippage = ?payload.max_slippage;
@@ -208,10 +208,10 @@ module {
             switch(await* ledger.approve({
                 from_subaccount = null;
                 spender;
-                amount = amount + ledger.fee(); // Amount + fee for the transaction
+                amount = amount + ledger.get_token_info().fee; // Amount + fee for the transaction
                 expected_allowance = null;
                 expires_at = null;
-                fee = ?ledger.fee();
+                fee = ?ledger.get_token_info().fee;
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             })) {

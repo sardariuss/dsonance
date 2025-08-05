@@ -8,17 +8,13 @@ module {
 
     type Result<Ok, Err> = Result.Result<Ok, Err>;
 
-    type LedgerInfo = {
-        fee : Nat;
-        token_symbol : Text;
-    };
 
     let ICRC1_METADATA_SYMBOL_KEY = "icrc1:symbol";
 
     // TODO: use try/catch to handle errors in the async functions
     public class LedgerFungible(ledger_actor : Types.LedgerFungibleActor) : Types.ILedgerFungible {
 
-        var ledger_info : ?LedgerInfo = null;
+        var ledger_info : ?Types.LedgerInfo = null;
 
         public func initialize() : async* Result<(), Text> {
             // Check if already initialized
@@ -33,23 +29,18 @@ module {
                 case (#err(e)) { return #err("init_ledger_info: " # e); };
                 case (#ok(s)) { s; };
             };
+            // Query the token decimals
+            let decimals = await* query_token_decimals(ledger_actor);
             // Initialize the ledger info
-            ledger_info := ?{ fee; token_symbol; };
-            Debug.print("LedgerFungible.init_ledger_info: Initialized ledger info with fee " # debug_show(fee) # " and token symbol " # debug_show(token_symbol));
+            ledger_info := ?{ fee; token_symbol; decimals; };
+            Debug.print("LedgerFungible.init_ledger_info: Initialized ledger info with fee " # debug_show(fee) # ", token symbol " # debug_show(token_symbol) # ", and decimals " # debug_show(decimals));
             #ok;
         };
 
-        public func fee() : Nat {
+        public func get_token_info() : Types.LedgerInfo {
             switch (ledger_info) {
-                case (null) { Debug.trap("LedgerFungible.fee: LedgerFungible is not initialized"); };
-                case (?info) { info.fee; };
-            };
-        };
-
-        public func token_symbol() : Text {
-            switch (ledger_info) {
-                case (null) { Debug.trap("LedgerFungible.token_symbol: LedgerFungible is not initialized"); };
-                case (?info) { info.token_symbol; };
+                case (null) { Debug.trap("LedgerFungible.get_token_info: LedgerFungible is not initialized"); };
+                case (?info) { info; };
             };
         };
 
@@ -89,6 +80,10 @@ module {
 
     func query_token_fee(ledger_actor : Types.LedgerFungibleActor) : async* Nat {
         await ledger_actor.icrc1_fee();
+    };
+
+    func query_token_decimals(ledger_actor : Types.LedgerFungibleActor) : async* Nat8 {
+        await ledger_actor.icrc1_decimals();
     };
 
     func query_token_symbol(ledger_actor : Types.LedgerFungibleActor) : async* Result<Text, Text> {

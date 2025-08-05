@@ -17,7 +17,7 @@ import LedgerFungible         "ledger/LedgerFungible";
 import LedgerAccount          "ledger/LedgerAccount";
 import Cell                   "utils/Cell";
 import Dex                    "ledger/Dex";
-import TWAPPriceTracker       "ledger/TWAPPriceTracker";
+import PriceTracker           "ledger/PriceTracker";
 import ParticipationMinter    "ParticipationMinter";
 
 import Debug                  "mo:base/Debug";
@@ -72,7 +72,7 @@ module {
 
         let dex = Dex.Dex(state);
 
-        let collateral_price_tracker = TWAPPriceTracker.TWAPPriceTracker({
+        let collateral_price_tracker = PriceTracker.TWAPPriceTracker({
             dex;
             tracked_twap_price = collateral_twap_price;
             twap_config;
