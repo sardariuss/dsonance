@@ -11,7 +11,7 @@ import TelegramIcon from './icons/TelegramIcon';
 const DesktopFooter: React.FC = () => {
 
   return (
-    <footer className="w-full bg-slate-200 dark:bg-gray-800 shadow flex flex-row items-center justify-between px-4 h-16 min-h-16">
+    <footer className="w-full bg-slate-100 dark:bg-slate-900 shadow flex flex-row items-center justify-between px-4 h-16 min-h-16 border-t border-gray-300 dark:border-gray-700">
       <a href="https://internetcomputer.org/">
       <div className="flex flex-row items-center">
         <div className="sm:text-center text-l font-semibold dark:text-gray-200 dark:hover:text-white">
@@ -45,7 +45,7 @@ const DesktopFooter: React.FC = () => {
 const MobileFooter: React.FC = () => {
 
   return (
-    <footer className="w-full bg-slate-200 dark:bg-gray-800 shadow flex flex-row items-center justify-between px-4 h-20 min-h-20">
+    <footer className="w-full bg-slate-100 dark:bg-slate-900 shadow flex flex-row items-center justify-between px-4 h-20 min-h-20 border-t border-gray-300 dark:border-gray-700">
       <a href="https://internetcomputer.org/">
         <img src={icLogo} className="flex h-5" alt="the IC"/>
       </a>

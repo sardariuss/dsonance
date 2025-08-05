@@ -13,6 +13,7 @@ import { FaucetActorProvider }          from './actors/FaucetActor';
 import { ProtocolProvider }             from './components/context/ProtocolContext';
 import { FungibleLedgerProvider }       from './components/context/FungibleLedgerContext';
 import { IcpCoinsActorProvider }        from './actors/IcpCoinsActor';
+import { DsnLedgerActorProvider } from './actors/DsnLedgerActor';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
@@ -20,17 +21,19 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
       <BackendActorProvider>
         <CkBtcActorProvider>
           <CkUsdtActorProvider>
-            <ProtocolActorProvider>
-              <FaucetActorProvider>
-                <IcpCoinsActorProvider>
-                  <ProtocolProvider>
-                    <FungibleLedgerProvider>
-                      <App/>
-                    </FungibleLedgerProvider>
-                  </ProtocolProvider>
-                </IcpCoinsActorProvider>
-              </FaucetActorProvider>
-            </ProtocolActorProvider>
+            <DsnLedgerActorProvider>
+              <ProtocolActorProvider>
+                <FaucetActorProvider>
+                  <IcpCoinsActorProvider>
+                    <ProtocolProvider>
+                      <FungibleLedgerProvider>
+                        <App/>
+                      </FungibleLedgerProvider>
+                    </ProtocolProvider>
+                  </IcpCoinsActorProvider>
+                </FaucetActorProvider>
+              </ProtocolActorProvider>
+            </DsnLedgerActorProvider>
           </CkUsdtActorProvider>
         </CkBtcActorProvider>
       </BackendActorProvider>

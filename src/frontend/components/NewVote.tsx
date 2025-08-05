@@ -44,7 +44,7 @@ function NewVote() {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type === "image/png") {
+    if (file && file.type.startsWith("image/")) {
       const image = new Image();
       const reader = new FileReader();
 
@@ -84,7 +84,7 @@ function NewVote() {
 
       reader.readAsDataURL(file);
     } else {
-      showErrorToast("Please select a valid PNG file.", "Image upload");
+      showErrorToast("Please select a valid image file.", "Image upload");
     }
   };
 
@@ -150,7 +150,7 @@ function NewVote() {
         />
         <div className="flex flex-col gap-y-2">
           <label htmlFor="thumbnail-upload" className="text-sm text-gray-600 dark:text-gray-400">
-            Upload Thumbnail (PNG only):
+            Upload Thumbnail:
           </label>
           <label
             htmlFor="thumbnail-upload"
@@ -161,7 +161,7 @@ function NewVote() {
           <input
             id="thumbnail-upload"
             type="file"
-            accept="image/png"
+            accept="image/*"
             onChange={handleFileChange}
             className="hidden"
           />

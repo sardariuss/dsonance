@@ -4,6 +4,10 @@ import { protocolActor } from "../actors/ProtocolActor";
 import { formatAmountCompact } from "../utils/conversions/token";
 import DualLabel from "./common/DualLabel";
 import { ThemeContext } from "./App";
+import { FullTokenLabel } from "./common/TokenLabel";
+import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
+import { format } from "path";
+import { useProtocolContext } from "./context/ProtocolContext";
 
 interface DsnAccount {
   owner: { toText(): string } | string;
@@ -19,6 +23,8 @@ type ParticipationData = [DsnAccount, ParticipationTracker];
 
 const DsnMintingStats = () => {
   const { theme } = useContext(ThemeContext);
+  const { participationLedger : { formatAmount, totalSupply, metadata } } = useFungibleLedgerContext();
+  const { parameters } = useProtocolContext();
   const { data: participationTrackers } = protocolActor.useQueryCall({
     functionName: 'get_participation_trackers',
   });
@@ -27,16 +33,13 @@ const DsnMintingStats = () => {
     if (!participationTrackers) {
       return {
         totalMinted: 0n,
-        totalDistributed: 0n,
-        totalPending: 0n,
+        mintRemaining: undefined,
         distributionData: [],
       };
     }
 
     const data = participationTrackers as ParticipationData[];
     let totalMinted = 0n;
-    let totalDistributed = 0n;
-    let totalPending = 0n;
     
     const distributionData = data.map(([account, tracker]) => {
       const received = tracker.received;
@@ -44,8 +47,6 @@ const DsnMintingStats = () => {
       const total = received + owed;
       
       totalMinted += total;
-      totalDistributed += received;
-      totalPending += owed;
       
       const ownerText = typeof account.owner === 'string' 
         ? account.owner 
@@ -60,10 +61,14 @@ const DsnMintingStats = () => {
       };
     }).filter(item => item.value > 0); // Only show accounts with DSN
 
+    let mintRemaining = undefined;
+    if (parameters?.participation.emission_total_amount) {
+      mintRemaining = parameters.participation.emission_total_amount - totalMinted;
+    }
+
     return {
       totalMinted,
-      totalDistributed,
-      totalPending,
+      mintRemaining,
       distributionData,
     };
   }, [participationTrackers]);
@@ -76,21 +81,21 @@ const DsnMintingStats = () => {
     <div className="space-y-4">
       {/* Stats Overview */}
       <div className="flex flex-col md:flex-row text-center text-gray-800 dark:text-gray-200 space-y-4 md:space-y-0 md:space-x-8 items-center">
-        <DualLabel
-          top="Total DSN Minted"
-          bottom={formatAmountCompact(Number(miningStats.totalMinted), 2)}
+        <FullTokenLabel
+          metadata={metadata}
+          canisterId={process.env.DSN_LEDGER_CANISTER_ID || ""} // @todo: should come from participationLedger
         />
         <DualLabel
-          top="DSN Distributed"
-          bottom={formatAmountCompact(Number(miningStats.totalDistributed), 2)}
+          top="Total supply"
+          bottom={formatAmount(totalSupply)}
         />
         <DualLabel
-          top="DSN Pending"
-          bottom={formatAmountCompact(Number(miningStats.totalPending), 2)}
+          top="Total minted"
+          bottom={formatAmount(miningStats.totalMinted)}
         />
         <DualLabel
-          top="Active Accounts"
-          bottom={miningStats.distributionData.length.toString()}
+          top="Mint remaining"
+          bottom={formatAmount(miningStats.mintRemaining)}
         />
       </div>
 
@@ -98,7 +103,7 @@ const DsnMintingStats = () => {
       {miningStats.distributionData.length > 0 && miningStats.totalMinted > 0n && (
         <div className="bg-slate-200 dark:bg-gray-800 rounded p-4 md:p-6">
           <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
-            DSN Distribution by Account
+            Distribution by Account
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Pie Chart */}

@@ -74,7 +74,7 @@ const VoteList = () => {
   }, [votes]);
 
   return (
-    <div className="flex flex-col gap-y-1 w-full bg-slate-50 dark:bg-slate-850 rounded-md">
+    <div className="flex flex-col gap-y-1 w-full rounded-md">
       {/* Vote Grid */}
       <InfiniteScroll
         dataLength={votes.length}
@@ -84,7 +84,7 @@ const VoteList = () => {
         className="w-full flex flex-col min-h-full overflow-auto"
         style={{ height: "auto", overflow: "visible" }}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {votes.map((vote: SYesNoVote, index) => (
             computeDecay && vote.info.visible && info &&
               <div 

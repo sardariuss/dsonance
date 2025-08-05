@@ -21,12 +21,9 @@ const BorrowInfoPanel: React.FC<BorrowInfoProps> = ({
   const usagePercent = (totalBorrowed / borrowCap) * 100;
 
   return (
-    <div className="flex flex-col px-6 max-w-3xl w-full space-y-6">
-      <div className="flex flex-row items-center justify-start gap-6">
-        {/* Left circle */}
-        <div className="flex items-center space-x-4">
-          <ProgressCircle percentage={usagePercent} />
-        </div>
+    <div className="flex flex-col p-2 sm:px-6 max-w-3xl w-full space-y-4">
+      <div className="flex flex-wrap items-start sm:items-center justify-start gap-4 sm:gap-6">
+        <ProgressCircle percentage={usagePercent} />
 
         {/* Borrowed amount */}
         <div className="grid grid-rows-3 gap-1 h-full">
@@ -39,7 +36,7 @@ const BorrowInfoPanel: React.FC<BorrowInfoProps> = ({
             </span>
           </div>
 
-        <div className="border-l border-gray-300 dark:border-gray-700 h-1/2"></div>
+        <div className="hidden sm:block border-l border-slate-300 dark:border-slate-700 h-1/2"></div>
 
         {/* Right APY */}
         <div className="grid grid-rows-3 gap-1 h-full">
@@ -51,7 +48,7 @@ const BorrowInfoPanel: React.FC<BorrowInfoProps> = ({
 
       {/* Reserve factor */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-        <div className="p-4 rounded-md flex flex-col border border-gray-700">
+        <div className="p-4 rounded-md flex flex-col border border-slate-300 dark:border-slate-700">
           <span className="text-gray-500 dark:text-gray-400">Reserve factor</span>
           <span className="font-semibold">{(reserveFactor * 100).toFixed(2)}%</span>
         </div>

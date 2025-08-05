@@ -1,5 +1,6 @@
 import { ckBtcActor } from "../../actors/CkBtcActor";
 import { ckUsdtActor } from "../../actors/CkUsdtActor";
+import { dsnLedgerActor } from "../../actors/DsnLedgerActor";
 import { icpCoinsActor } from "../../actors/IcpCoinsActor";
 import { faucetActor } from "../../actors/FaucetActor";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
@@ -12,13 +13,15 @@ import { useAuth } from "@ic-reactor/react";
 
 export enum LedgerType {
   SUPPLY = 'supply',
-  COLLATERAL = 'collateral'
+  COLLATERAL = 'collateral',
+  PARTICIPATION = 'participation',
 }
 
 export interface FungibleLedger {
   metadata: Array<[string, MetadataValue]> | undefined;
   price: number | undefined;
   tokenDecimals: number | undefined;
+  totalSupply: bigint | undefined;
   formatAmount: (amountFixedPoint: bigint | number | undefined, notation?: "standard" | "compact") => string | undefined;
   formatAmountUsd: (amountFixedPoint: bigint | number | undefined, notation?: "standard" | "compact") => string | undefined;
   convertToUsd: (amountFixedPoint: bigint | number | undefined) => number | undefined;
@@ -35,9 +38,9 @@ export interface FungibleLedger {
 
 export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
 
-  const actor = ledgerType === LedgerType.SUPPLY ? ckUsdtActor : ckBtcActor;
+  const actor = ledgerType === LedgerType.SUPPLY ? ckUsdtActor : ledgerType === LedgerType.COLLATERAL ? ckBtcActor : dsnLedgerActor;
 
-  const { authenticated, identity, login } = useAuth({});
+  const { authenticated, identity } = useAuth({});
 
   const [account, setAccount] = useState<Account | undefined>(undefined);
 
@@ -81,10 +84,17 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     }
   });
 
+  const { data: totalSupply } = actor.useQueryCall({
+    functionName: 'icrc1_total_supply',
+    args: [],
+  });
+
   const [price, setPrice] = useState<number | undefined>(undefined);
 
   useEffect(() => {
-    fetchLatestPrices();
+    if (ledgerType === LedgerType.SUPPLY || ledgerType === LedgerType.COLLATERAL) {
+      fetchLatestPrices();
+    }
   }, []);
 
   const tokenDecimals = getTokenDecimals(metadata);
@@ -250,7 +260,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   }, [account]);
 
   const { call: mintToken, loading: mintLoading } = faucetActor.useUpdateCall({
-    functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : 'mint_btc',
+    functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : ledgerType === LedgerType.COLLATERAL ? 'mint_btc' : 'mint_dsn',
   });
 
   const mint = async(amount: number) => {
@@ -290,6 +300,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     metadata,
     price,
     tokenDecimals,
+    totalSupply,
     formatAmount,
     formatAmountUsd,
     convertToUsd,

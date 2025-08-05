@@ -194,8 +194,8 @@ const BorrowTab = () => {
   }, [loanPosition, indexerState]);
 
   return (
-    <div className="flex flex-col justify-center mt-4 space-y-4">
-      <div className="flex flex-row items-center p-2 space-x-4">
+    <div className="flex flex-col justify-center mt-4 space-y-4 w-full px-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center p-2 space-y-2 sm:space-y-0 sm:space-x-4">
         <DualLabel top="Net worth" bottom={formatAmountCompact(netWorth, 2)} />
         <DualLabel top="Net APY" bottom={`${netApy === undefined ? UNDEFINED_SCALAR : (netApy * 100).toFixed(2) + "%"}`} />
         <div className="grid grid-rows-[2fr_3fr] place-items-start">
@@ -203,10 +203,10 @@ const BorrowTab = () => {
           <HealthFactor loanPosition={loanPosition} />
         </div>
       </div>
-      <div className="flex flex-col justify-center bg-slate-200 dark:bg-gray-800 rounded p-6 space-y-6">
+      <div className="flex flex-col justify-center bg-slate-100 dark:bg-slate-900 rounded p-6 space-y-6">
         <div className="flex flex-col justify-center w-full">
           <span className="text-xl font-semibold">Your supply</span>
-          <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
+          <div className="flex flex-col sm:grid sm:grid-cols-[2fr_2fr_1fr] lg:grid-cols-[1fr_1fr_1fr_1fr_1fr] items-start sm:items-center gap-4 sm:gap-6 w-full max-w-5xl mt-4">
             <TokenLabel metadata={supplyLedger.metadata}/>
             <div className="relative flex flex-col">
               <span className="text-lg font-bold"> { supplyLedger.formatAmount(userSupply?.amount) } </span>
@@ -215,60 +215,68 @@ const BorrowTab = () => {
           </div>
         </div>
       </div>
-      <div className="flex flex-col justify-center bg-slate-200 dark:bg-gray-800 rounded p-6 space-y-6">
+      <div className="flex flex-col justify-center bg-slate-100 dark:bg-slate-900 rounded p-6 space-y-6">
         <div className="flex flex-col justify-center w-full">
           <span className="text-xl font-semibold">Your collateral</span>
-          <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
+          <div className="flex flex-col sm:grid sm:grid-cols-[2fr_2fr_1fr_1fr_1fr] lg:grid-cols-[1fr_1fr_1fr_1fr_1fr] items-start sm:items-center gap-4 sm:gap-6 w-full max-w-5xl mt-4">
             <TokenLabel metadata={collateralLedger.metadata}/>
             <div className="relative flex flex-col">
               <span className="text-lg font-bold"> { collateralLedger.formatAmount(collateral) } </span>
               <span className="absolute top-6 text-xs text-gray-400"> { collateralLedger.formatAmountUsd(collateral) } </span>
             </div>
-            <span>{/*spacer*/}</span>
-            <BorrowButton 
-              title="Supply"
-              ledger={collateralLedger}
-              previewOperation={(amount) => previewOperation(amount, { "PROVIDE_COLLATERAL" : null })}
-              runOperation={(amount) => runOperation(amount, { "PROVIDE_COLLATERAL" : null })}
-              maxLabel="Wallet balance"
-              maxAmount={collateralLedger.userBalance ?? 0n }
-            />
-            <BorrowButton 
-              title="Withdraw"
-              ledger={collateralLedger}
-              previewOperation={(amount) => previewOperation(amount, { "WITHDRAW_COLLATERAL": null })}
-              runOperation={(amount) => runOperation(amount, { "WITHDRAW_COLLATERAL": null })}
-              maxLabel="Available"
-              maxAmount={maxWithdrawable}
-            />
+            <span className="hidden lg:block">{/*spacer*/}</span>
+            <div className="flex flex-col sm:flex-row sm:col-span-2 lg:col-span-1 gap-2 sm:gap-4 w-full sm:w-auto">
+              <BorrowButton 
+                title="Supply"
+                ledger={collateralLedger}
+                previewOperation={(amount) => previewOperation(amount, { "PROVIDE_COLLATERAL" : null })}
+                runOperation={(amount) => runOperation(amount, { "PROVIDE_COLLATERAL" : null })}
+                maxLabel="Wallet balance"
+                maxAmount={collateralLedger.userBalance ?? 0n }
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row lg:col-span-1 gap-2 sm:gap-4 w-full sm:w-auto">
+              <BorrowButton 
+                title="Withdraw"
+                ledger={collateralLedger}
+                previewOperation={(amount) => previewOperation(amount, { "WITHDRAW_COLLATERAL": null })}
+                runOperation={(amount) => runOperation(amount, { "WITHDRAW_COLLATERAL": null })}
+                maxLabel="Available"
+                maxAmount={maxWithdrawable}
+              />
+            </div>
           </div>
         </div>
         <div className="border-b border-gray-300 dark:border-gray-700 w-full"></div>
         <div className="flex flex-col justify-center w-full">
           <span className="text-xl font-semibold">Your borrow</span>
-          <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] items-center gap-6 w-full max-w-5xl mt-4">
+          <div className="flex flex-col sm:grid sm:grid-cols-[2fr_2fr_1fr_1fr_1fr] lg:grid-cols-[1fr_1fr_1fr_1fr_1fr] items-start sm:items-center gap-4 sm:gap-6 w-full max-w-5xl mt-4">
             <TokenLabel metadata={supplyLedger.metadata}/>
             <div className="relative flex flex-col">
               <span className="text-lg font-bold"> { supplyLedger.formatAmount(currentOwed) } </span>
               <span className="absolute top-6 text-xs text-gray-400"> { supplyLedger.formatAmountUsd(currentOwed) } </span>
             </div>
-            <span>{/*spacer*/}</span>
-            <BorrowButton 
-              title="Borrow"
-              ledger={supplyLedger}
-              previewOperation={(amount) => previewOperation(amount, { "BORROW_SUPPLY": null })}
-              runOperation={(amount) => runOperation(amount, { "BORROW_SUPPLY": null })}
-              maxLabel="Available"
-              maxAmount={maxBorrowable}
-            />
-            <BorrowButton 
-              title="Repay"
-              ledger={supplyLedger}
-              previewOperation={(amount) => previewOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
-              runOperation={(amount) => runOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
-              maxLabel="Total owed"
-              maxAmount={currentOwed}
-            />
+            <span className="hidden lg:block">{/*spacer*/}</span>
+            <div className="flex flex-col sm:flex-row sm:col-span-2 lg:col-span-1 gap-2 sm:gap-4 w-full sm:w-auto">
+              <BorrowButton 
+                title="Borrow"
+                ledger={supplyLedger}
+                previewOperation={(amount) => previewOperation(amount, { "BORROW_SUPPLY": null })}
+                runOperation={(amount) => runOperation(amount, { "BORROW_SUPPLY": null })}
+                maxLabel="Available"
+                maxAmount={maxBorrowable}
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row lg:col-span-1 gap-2 sm:gap-4 w-full sm:w-auto">
+              <BorrowButton 
+                title="Repay"
+                ledger={supplyLedger}
+                previewOperation={(amount) => previewOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
+                runOperation={(amount) => runOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
+                maxLabel="Total owed"
+                maxAmount={currentOwed}
+              />
+            </div>
           </div>
         </div>
       </div>

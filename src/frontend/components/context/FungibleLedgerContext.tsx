@@ -4,6 +4,7 @@ import { useFungibleLedger, LedgerType, FungibleLedger } from "../hooks/useFungi
 interface FungibleLedgerContextType {
   supplyLedger: FungibleLedger;
   collateralLedger: FungibleLedger;
+  participationLedger: FungibleLedger;
 }
 
 const FungibleLedgerContext = createContext<FungibleLedgerContextType | undefined>(undefined);
@@ -11,9 +12,10 @@ const FungibleLedgerContext = createContext<FungibleLedgerContextType | undefine
 export const FungibleLedgerProvider = ({ children }: { children: ReactNode }) => {
   const supplyLedger = useFungibleLedger(LedgerType.SUPPLY);
   const collateralLedger = useFungibleLedger(LedgerType.COLLATERAL);
+  const participationLedger = useFungibleLedger(LedgerType.PARTICIPATION);
 
   return (
-    <FungibleLedgerContext.Provider value={{ supplyLedger, collateralLedger }}>
+    <FungibleLedgerContext.Provider value={{ supplyLedger, collateralLedger, participationLedger }}>
       {children}
     </FungibleLedgerContext.Provider>
   );

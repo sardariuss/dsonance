@@ -23,8 +23,8 @@ const DesktopHeader: React.FC<HeaderProps> = ({ user, login }) => {
 
   // WATCHOUT: the size of the header is set to 22 (16 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (
-    <header className="sticky top-0 z-30 flex flex-col relative w-full">
-      <nav className="flex flex-row bg-slate-200 dark:bg-gray-800 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 h-16 min-h-16 relative">
+    <header className="sticky top-0 z-30 flex flex-col relative w-full border-b border-gray-300 dark:border-gray-700">
+      <nav className="flex flex-row bg-slate-100 dark:bg-slate-900 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 h-16 min-h-16 relative">
         {/* Left-aligned Dsonance Link */}
         <Link to="/" className="flex flex-row items-baseline">
           <div className="w-16 sm:w-18 md:w-20 lg:w-22 xl:w-24 pr-2 pt-1 lg:pt-2">
@@ -76,9 +76,6 @@ const DesktopHeader: React.FC<HeaderProps> = ({ user, login }) => {
           <ThemeToggle/>
         </div>
       </nav>
-      <span className="flex flex-row w-full bg-purple-700 dark:bg-purple-700 items-center justify-center text-white h-6 min-h-6">
-        ⚠️ This is a simulated version. All coins and transactions have no real monetary value.
-      </span>
     </header>
   );
 }
@@ -110,8 +107,8 @@ const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
 
   // WATCHOUT: the size of the header is set to 26 (20 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (
-    <header className="sticky top-0 z-30 flex flex-col relative w-full">
-      <nav className="flex flex-row items-center bg-slate-200 dark:bg-gray-800 sticky top-0 z-30 w-full h-20 min-h-20 relative">
+    <header className="sticky top-0 z-30 flex flex-col relative w-full border-b border-gray-300 dark:border-gray-700">
+      <nav className="flex flex-row bg-slate-100 dark:bg-slate-900 items-center sticky top-0 z-30 w-full h-20 min-h-20 relative">
         {/* Centered Dsonance Link */}
         <Link className="flex flex-grow justify-center pt-4" to="/">
           <span className="flex flex-row items-baseline">
@@ -131,7 +128,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
         <div ref={menuButtonRef}>
           <button
             type="button"
-            className="flex p-2 mr-2 w-10 h-10 items-center justify-center rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:hover:bg-gray-700 dark:focus:ring-gray-600 ml-auto"
+            className="flex p-2 mr-2 w-10 h-10 items-center justify-center rounded-lg hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:hover:bg-slate-800 dark:focus:ring-gray-600 ml-auto"
             onClick={(e) => { setShowMenu(!showMenu); }}
           >
             <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
@@ -140,12 +137,9 @@ const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
           </button>
         </div>
       </nav>
-      <span className="flex flex-row w-full bg-purple-700 dark:bg-purple-700 items-center justify-center text-white h-6 min-h-6">
-        ⚠️ This is a simulated version.
-      </span>
       {
          showMenu && (
-          <div ref={menuRef} className="absolute top-20 left-0 flex flex-col w-full bg-slate-200 dark:bg-gray-800 text-lg py-2 px-4">
+          <div ref={menuRef} className="absolute top-20 left-0 flex flex-col w-full bg-slate-100 dark:bg-slate-900 text-lg py-2 px-4">
             <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/' ? 'bg-purple-700 text-white' : ''}`}>
               <span />
               <Link
