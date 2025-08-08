@@ -1,13 +1,12 @@
 import { useMemo, useContext } from "react";
 import { ResponsivePie } from '@nivo/pie';
-import { protocolActor } from "../actors/ProtocolActor";
-import { formatAmountCompact } from "../utils/conversions/token";
-import DualLabel from "./common/DualLabel";
-import { ThemeContext } from "./App";
-import { FullTokenLabel } from "./common/TokenLabel";
-import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
-import { format } from "path";
-import { useProtocolContext } from "./context/ProtocolContext";
+import { protocolActor } from "../../actors/ProtocolActor";
+import { formatAmountCompact } from "../../utils/conversions/token";
+import DualLabel from "../common/DualLabel";
+import { ThemeContext } from "../App";
+import { FullTokenLabel } from "../common/TokenLabel";
+import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
+import { useProtocolContext } from "../context/ProtocolContext";
 
 interface DsnAccount {
   owner: { toText(): string } | string;
@@ -21,7 +20,7 @@ interface ParticipationTracker {
 
 type ParticipationData = [DsnAccount, ParticipationTracker];
 
-const DsnMintingStats = () => {
+const ParticipationDashboard = () => {
   const { theme } = useContext(ThemeContext);
   const { participationLedger : { formatAmount, totalSupply, metadata } } = useFungibleLedgerContext();
   const { parameters } = useProtocolContext();
@@ -205,4 +204,4 @@ const DsnMintingStats = () => {
   );
 };
 
-export default DsnMintingStats;
+export default ParticipationDashboard;
