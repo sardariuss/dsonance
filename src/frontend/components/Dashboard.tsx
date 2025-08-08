@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import SupplyDashboard from "./dashboard/SupplyDashboard";
 import { TabButton } from "./TabButton";
 import ParticipationDashboard from "./dashboard/ParticipationDashboard";
+import CollateralDashboard from "./dashboard/CollateralDashboard";
 
 // @todo: perfect layout for mobile
 const Dashboard = () => {
@@ -25,9 +26,9 @@ const Dashboard = () => {
   }, [selectedTab, setSearchParams]);
 
   return (
-    <div className="flex flex-col justify-center my-4 px-2 py-4 sm:p-4 md:p-6 space-y-4">
+    <div className="w-full max-w-5xl mx-auto">
       { /* Tabs */}
-      <ul className="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-2 my-4 sm:my-6 items-center">
+      <ul className="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-2 my-4 sm:my-6 items-center justify-center">
         {tabs.map((tab) => (
           <li key={tab.key} className="min-w-max text-center">
             <TabButton
@@ -39,8 +40,8 @@ const Dashboard = () => {
         ))}
       </ul>
       {/* Content */}
-      <div className="w-full">
-        {selectedTab === "supply" ? <SupplyDashboard/> : selectedTab === "collateral" ? <SupplyDashboard/> : <ParticipationDashboard/>}
+      <div className="w-full min-h-[600px]">
+        {selectedTab === "supply" ? <SupplyDashboard/> : selectedTab === "collateral" ? <CollateralDashboard/> : <ParticipationDashboard/>}
       </div>
     </div>
   );

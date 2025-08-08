@@ -9,6 +9,7 @@ import { FullTokenLabel } from "../common/TokenLabel";
 import { aprToApy } from "../../utils/lending";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { useProtocolContext } from "../context/ProtocolContext";
+import { DASHBOARD_CONTAINER, STATS_OVERVIEW_CONTAINER, VERTICAL_DIVIDER, METRICS_WRAPPER, CONTENT_PANEL } from "../../utils/styles";
 
 // @todo: perfect layout for mobile
 const SupplyDashboard = () => {
@@ -40,14 +41,14 @@ const SupplyDashboard = () => {
   }
 
   return (
-    <div className="flex flex-col justify-center my-4 px-2 py-4 sm:p-4 md:p-6 space-y-4">
-      <div className="flex flex-col sm:flex-row text-center text-gray-800 dark:text-gray-200 px-3 sm:px-6 gap-4 lg:gap-8 items-center">
+    <div className={DASHBOARD_CONTAINER}>
+      <div className={STATS_OVERVIEW_CONTAINER}>
         <FullTokenLabel
           metadata={supplyLedger.metadata}
           canisterId={"cngnf-vqaaa-aaaar-qag4q-cai"}
         />
-        <div className="hidden lg:block border-r border-slate-300 dark:border-slate-700 h-full"></div>
-        <div className="flex flex-wrap items-center justify-center gap-2 justify-center px-3 sm:px-6 gap-4 lg:gap-8 lg:justify-around">
+        <div className={VERTICAL_DIVIDER}></div>
+        <div className={METRICS_WRAPPER}>
           <DualLabel
             top="Reserve Size"
             bottom={supplyLedger.formatAmountUsd(indexerState.utilization.raw_supplied)}
@@ -66,7 +67,7 @@ const SupplyDashboard = () => {
           />
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-y-3 md:gap-x-6 w-full max-w-5xl bg-white dark:bg-slate-800 shadow-md rounded p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700">
+      <div className={`grid grid-cols-1 md:grid-cols-[150px_1fr] gap-y-3 md:gap-x-6 ${CONTENT_PANEL}`}>
         <span className="text-base font-semibold self-start">
           Supply info
         </span>

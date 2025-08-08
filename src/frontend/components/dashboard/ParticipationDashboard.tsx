@@ -7,6 +7,7 @@ import { ThemeContext } from "../App";
 import { FullTokenLabel } from "../common/TokenLabel";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { useProtocolContext } from "../context/ProtocolContext";
+import { DASHBOARD_CONTAINER, STATS_OVERVIEW_CONTAINER, VERTICAL_DIVIDER, METRICS_WRAPPER, CONTENT_PANEL } from "../../utils/styles";
 
 interface DsnAccount {
   owner: { toText(): string } | string;
@@ -77,30 +78,32 @@ const ParticipationDashboard = () => {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Stats Overview */}
-      <div className="flex flex-col md:flex-row text-center text-gray-800 dark:text-gray-200 space-y-4 md:space-y-0 md:space-x-8 items-center">
+    <div className={DASHBOARD_CONTAINER}>
+      <div className={STATS_OVERVIEW_CONTAINER}>
         <FullTokenLabel
           metadata={metadata}
           canisterId={process.env.DSN_LEDGER_CANISTER_ID || ""} // @todo: should come from participationLedger
         />
-        <DualLabel
-          top="Total supply"
-          bottom={formatAmount(totalSupply)}
-        />
-        <DualLabel
-          top="Total minted"
-          bottom={formatAmount(miningStats.totalMinted)}
-        />
-        <DualLabel
-          top="Mint remaining"
-          bottom={formatAmount(miningStats.mintRemaining)}
-        />
+        <div className={VERTICAL_DIVIDER}></div>
+        <div className={METRICS_WRAPPER}>
+          <DualLabel
+            top="Total supply"
+            bottom={formatAmount(totalSupply)}
+          />
+          <DualLabel
+            top="Total minted"
+            bottom={formatAmount(miningStats.totalMinted)}
+          />
+          <DualLabel
+            top="Mint remaining"
+            bottom={formatAmount(miningStats.mintRemaining)}
+          />
+        </div>
       </div>
 
       {/* Distribution Chart */}
       {miningStats.distributionData.length > 0 && miningStats.totalMinted > 0n && (
-        <div className="bg-slate-200 dark:bg-gray-800 rounded p-4 md:p-6">
+        <div className={CONTENT_PANEL}>
           <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
             Distribution by Account
           </h3>
