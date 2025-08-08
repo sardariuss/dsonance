@@ -28,7 +28,7 @@ module {
     public func fromTime(time: Nat) : Duration {
         let time_float = Float.fromInt(time);
         if (Float.rem(time_float,  Float.fromInt(NS_IN_YEAR)) == 0.0){
-            return #DAYS(time / NS_IN_YEAR);
+            return #YEARS(time / NS_IN_YEAR);
         };
         if (Float.rem(time_float, Float.fromInt(NS_IN_DAY)) == 0.0){
             return #DAYS(time / NS_IN_DAY);
