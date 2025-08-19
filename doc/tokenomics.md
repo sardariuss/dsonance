@@ -3,7 +3,6 @@ cover: .gitbook/assets/logo.png
 coverY: 0
 ---
 
-
 # Tokenomics
 
 Dsonance operates with three tokens:
@@ -26,9 +25,7 @@ The DSN token serves as a utility and governance token for the Dsonance platform
 * **Burn Mechanism** – Required to open new votes.
 * **Governance** – Locked in neurons, enabling participation in decisions shaping the future of Dsonance.
 
-
 The minting of DSN rewards follows an **exponential decay model** with a **4-year half-life**. Early users earn more, while emissions gradually decrease, ensuring long-term scarcity and sustainability.
-
 
 ### **Supply Dynamics & Deflationary Mechanisms**
 
@@ -41,18 +38,17 @@ To reinforce this deflationary shift, platform lending fees will be used to buy 
 
 #### **DSN Token Allocation**
 
-<figure><img src=".gitbook/assets/image.png" alt=""><figcaption></figcaption></figure>
+<figure><img src=".gitbook/assets/image (7).png" alt=""><figcaption></figcaption></figure>
 
 The total supply of DSN will be **1 billion tokens** distributed as follows:
 
-* **120 million DSN (12%) – Dev team**\
-  Reserved as a **reward and incentive for the development team** for their contributions to the project.
-* **180 million DSN (18%) – SNS Decentralization Swap**\
-  Allocated for the SNS swap, ensuring broad community ownership and decentralized governance.
-* **145 million DSN (14.5%) – Treasury**\
-  Held in reserve for future initiatives, partnerships, ecosystem grants, and unforeseen needs.
-* **5 million DSN (0.5%) – Airdrop**\
-  A small portion dedicated to initial distribution, rewarding early adopters and fostering community engagement while minimizing the risk of excessive sell pressure.
-* **550 million DSN (55%) – Mining**\
-  Gradually distributed to users over time as incentives for opening votes and voting, following an **exponential halving model every four years**, ensuring long-term engagement and sustainable growth.
-
+* **40 million DSN (4%) – Core Builder Seed**\
+  Initial allocation to the founding developer, recognizing early work and providing runway to continue building.
+* **60 million DSN (6%) – Governance Bootstrap (SNS Swap)**\
+  Allocated for the SNS decentralization swap, ensuring early community participation and a decentralized platform.
+* **90 million DSN (9%) – Community Treasury**\
+  Reserved for future initiatives such as ecosystem grants, partnerships, liquidity, and strategic growth, under the control of SNS governance.
+* **110 million DSN (11%) – Core Builder Vesting Pool**\
+  A vesting pool reserved for the core builder, gradually unlocked through SNS governance proposals to align long-term incentives.
+* **700 million DSN (70%) – User Mining Rewards**\
+  Distributed to users over time as incentives for participation (for voting and borrowing), following a halving-based emission model to sustain engagement and growth.
