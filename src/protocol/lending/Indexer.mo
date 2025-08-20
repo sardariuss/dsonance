@@ -39,6 +39,10 @@ module {
             observers.add(observer);
         };
 
+        public func get_parameters() : IndexerParameters {
+            parameters;
+        };
+
         public func get_index() : LendingIndex {
             update(null);
             index.value;
@@ -169,7 +173,7 @@ module {
             case(?utilization) {
                 // Update rates based on the new utilization
                 let borrow_rate = interest_rate_curve.get_apr(utilization.ratio);
-                let supply_rate = borrow_rate * utilization.ratio;
+                let supply_rate = borrow_rate * utilization.ratio * (1.0 - parameters.lending_fee_ratio);
                 { state with utilization; borrow_rate; supply_rate; };
             };
         };
@@ -187,20 +191,25 @@ module {
         let borrow_interests = state.utilization.raw_borrowed * state.borrow_rate * elapsed_annual;
 
         let accrued_interests = {
-            fees = state.accrued_interests.fees + supply_interests * parameters.lending_fee_ratio;
-            supply = state.accrued_interests.supply + supply_interests * (1.0 - parameters.lending_fee_ratio);
+            fees = 0.0; // @todo: to be removed
+            supply = state.accrued_interests.supply + supply_interests;
             borrow = state.accrued_interests.borrow + borrow_interests;
         };
 
+        var borrow_index = state.borrow_index;
+        var supply_index = state.supply_index;
         // Update the indexes based on the new rates
-        // @todo: is it not (old) state rates?
-        let borrow_index = {
-            value = state.borrow_index.value * (1.0 + new_state.borrow_rate * elapsed_annual);
-            timestamp;
-        };
-        let supply_index = {
-            value = state.supply_index.value * (1.0 + new_state.supply_rate * elapsed_annual);
-            timestamp;
+        // Do not update indexes if utilization is null: because borrow rate can be > 0
+        // even if utilization is null, this check avoids compounding the indexes for nothing
+        if (state.utilization.ratio > 0) {
+            borrow_index := {
+                value = state.borrow_index.value * (1.0 + state.borrow_rate * elapsed_annual);
+                timestamp;
+            };
+            supply_index := {
+                value = state.supply_index.value * (1.0 + state.supply_rate * elapsed_annual);
+                timestamp;
+            };
         };
 
         return { new_state with accrued_interests; borrow_index; supply_index; timestamp; };

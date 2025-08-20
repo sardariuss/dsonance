@@ -111,7 +111,6 @@ module {
 
     public type LockState = {
         locks: Iter<Lock>;
-        tvl: Nat;
     };
 
     public type BeforeChangeArgs = { 

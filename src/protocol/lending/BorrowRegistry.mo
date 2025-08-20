@@ -78,11 +78,13 @@ module {
                 case(#ok(p)) { p; };
             };
 
+            let fee_share = ?indexer.get_parameters().lending_fee_ratio;
+
             let transfer = switch(args.kind){
-                case(#PROVIDE_COLLATERAL (_)) {  await* collateral.pull    ({ from = account; amount = to_transfer; });         };
-                case(#WITHDRAW_COLLATERAL(_)) { (await* collateral.transfer({ to = account;   amount = to_transfer; })).result; };
-                case(#BORROW_SUPPLY      (_)) {  await* supply.transfer    ({ to = account;   amount = to_transfer; });         };
-                case(#REPAY_SUPPLY       (_)) {  await* supply.pull        ({ from = account; amount = to_transfer; });         };
+                case(#PROVIDE_COLLATERAL (_)) {  await* collateral.pull    ({ from = account; amount = to_transfer; });            };
+                case(#WITHDRAW_COLLATERAL(_)) { (await* collateral.transfer({ to = account;   amount = to_transfer; })).result;    };
+                case(#BORROW_SUPPLY      (_)) {  await* supply.transfer    ({ to = account;   amount = to_transfer; });            };
+                case(#REPAY_SUPPLY       (_)) {  await* supply.pull        ({ from = account; amount = to_transfer; fee_share; }); };
             };
 
             let tx = switch(transfer){
@@ -334,11 +336,6 @@ module {
             account: Account;
             amount: Nat;
         }) : Result<PreparedOperation, Text> {
-
-            let supply_balance = supply.get_balance_without_fees();
-            if (supply_balance < amount){
-                return #err("Available liquidity " # debug_show(supply_balance) # " is less than the requested amount " # debug_show(amount));
-            };
 
             let index = indexer.get_index();
 

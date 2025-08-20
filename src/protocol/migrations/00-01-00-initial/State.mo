@@ -12,6 +12,7 @@ import Principal      "mo:base/Principal";
 import Time           "mo:base/Time";
 import Debug          "mo:base/Debug";
 import Int            "mo:base/Int";
+import Text           "mo:base/Text";
 
 module {
 
@@ -71,7 +72,6 @@ module {
             lock_scheduler_state = {
                 btree = BTree.init<Lock, ()>(?BTREE_ORDER);
                 map = Map.new<Text, Lock>();
-                tvl = Timeline.initialize<Nat>(now, 0);
             };
             parameters = { parameters with 
                 twap_config = {
@@ -97,15 +97,13 @@ module {
             accounts = {
                 supply = {
                     subaccount = null;
-                    local_balance = {
+                    fees_subaccount = Text.encodeUtf8("LENDING_FEES");
+                    unclaimed_fees = {
                         var value = 0;
                     };
                 };
                 collateral = {
                     subaccount = null;
-                    local_balance = {
-                        var value = 0;
-                    };
                 };
             };
             lending = {

@@ -560,7 +560,6 @@ module {
     public type LockSchedulerState = {
         btree: BTree<Lock, ()>;
         map: Map<Text, Lock>;
-        tvl: Timeline<Nat>;
     };
 
     public type YieldState = {
@@ -602,11 +601,13 @@ module {
     public type ProtocolAccounts = {
         supply: {
             subaccount: ?Subaccount;
-            local_balance: Var<Nat>;
+            fees_subaccount: Subaccount;
+            unclaimed_fees: {
+                var value: Float;
+            };
         };
         collateral: {
             subaccount: ?Subaccount;
-            local_balance: Var<Nat>;
         };
     };
 

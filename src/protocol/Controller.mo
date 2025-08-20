@@ -202,12 +202,12 @@ module {
             borrow_registry.get_loans_info();
         };
 
-        public func get_supply_balance() : Nat {
-            supply.get_local_balance();
+        public func get_available_liquidities() : async* Nat {
+            await* supply.get_available_liquidities();
         };
 
-        public func get_available_fees() : Nat {
-            supply.get_available_fees();
+        public func get_unclaimed_fees() : Nat {
+            supply.get_unclaimed_fees();
         };
 
         public func withdraw_fees({ caller: Principal; to: Account; amount: Nat; }) : async* TransferResult {

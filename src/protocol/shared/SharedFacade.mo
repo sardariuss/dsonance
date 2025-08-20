@@ -147,12 +147,12 @@ module {
             controller.get_loans_info();
         };
 
-        public func get_supply_balance() : Nat {
-            controller.get_supply_balance();
+        public func get_available_liquidities() : async* Nat {
+            await* controller.get_available_liquidities();
         };
 
-        public func get_available_fees() : Nat {
-            controller.get_available_fees();
+        public func get_unclaimed_fees() : Nat {
+            controller.get_unclaimed_fees();
         };
 
         public func withdraw_fees({ caller: Principal; to: Account; amount: Nat; }) : async* TransferResult {

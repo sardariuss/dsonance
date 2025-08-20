@@ -39,11 +39,16 @@ module {
             };
 
             // Update the lock info of the previous elems
-            for (prev in previous.reset()) {
+            label update_previous for (prev in previous.reset()) {
 
                 let lock = switch(prev.lock){
                     case(null) { Debug.trap("The previous lock is missing"); };
                     case(?l) { l; };
+                };
+
+                // Do not update already released elems
+                if (lock.release_date < time){
+                    continue update_previous;
                 };
                 
                 // Compute the new duration and release date

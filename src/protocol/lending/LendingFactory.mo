@@ -69,9 +69,12 @@ module {
                     subaccount = protocol_info.supply.subaccount;
                 };
                 ledger = supply_ledger;
-                local_balance = Cell.Cell(protocol_info.supply.local_balance);
             });
-            indexer;
+            fees_account = {
+                owner = protocol_info.principal;
+                subaccount = ?protocol_info.supply.fees_subaccount;
+            };
+            unclaimed_fees = protocol_info.supply.unclaimed_fees;
         });
         let collateral = LedgerAccount.LedgerAccount({
             protocol_account = {
@@ -79,7 +82,6 @@ module {
                 subaccount = protocol_info.collateral.subaccount;
             };
             ledger = collateral_ledger;
-            local_balance = Cell.Cell(protocol_info.collateral.local_balance);
         });
 
         let withdrawal_queue = WithdrawalQueue.WithdrawalQueue({

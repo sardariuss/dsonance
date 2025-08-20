@@ -10,12 +10,12 @@ import LockScheduler          "LockScheduler";
 import Clock                  "utils/Clock";
 import Timeline               "utils/Timeline"; 
 import IterUtils              "utils/Iter";
+import MapUtils               "utils/Map";
 import ForesightUpdater       "ForesightUpdater";
 import Incentives             "votes/Incentives";
 import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
 import LedgerAccount          "ledger/LedgerAccount";
-import Cell                   "utils/Cell";
 import Dex                    "ledger/Dex";
 import PriceTracker           "ledger/PriceTracker";
 import ParticipationMinter    "ParticipationMinter";
@@ -23,6 +23,7 @@ import ParticipationMinter    "ParticipationMinter";
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
 import Map                    "mo:map/Map";
+import Set                    "mo:map/Set";
 import Result                 "mo:base/Result";
 import Timer                  "mo:base/Timer";
 
@@ -41,6 +42,7 @@ module {
     
     type Iter<T>     = Map.Iter<T>;
     type Map<K, V>   = Map.Map<K, V>;
+    type Set<K>      = Set.Set<K>;
     type Time        = Int;
 
     type BuildOutput = {
@@ -67,7 +69,6 @@ module {
         let participation_account = LedgerAccount.LedgerAccount({
             protocol_account = { owner = protocol; subaccount = null; };
             ledger = participation_ledger;
-            local_balance = Cell.Cell({ var value = 550_000_000_000_000; }); // TODO urgent: do not use hardcoded local balance.
         });
 
         let dex = Dex.Dex(state);
@@ -100,7 +101,7 @@ module {
             initial_supply_info = to_supply_info(indexer.get_index());
             get_items = func() : Iter<ForesightUpdater.ForesightItem> {
                 // Map the ballots to foresight items
-                map_ballots_to_foresight_items(ballot_register.ballots, parameters);
+                get_foresight_items(Map.keys(lock_scheduler_state.map), ballot_register.ballots, parameters);
             };
         });
 
@@ -127,6 +128,7 @@ module {
                         let ballot = get_ballot(ballot_register.ballots, id);
                         
                         // TODO: what if it returns an error?
+                        // @todo: could be done in the controller instead
                         ignore supply_registry.remove_position({
                             id;
                             share = ballot.foresight.share;
@@ -136,6 +138,7 @@ module {
                 };
 
                 // Update the vote TVL
+                // @todo: TVL could be computed on query
                 let vote = get_vote(vote_register.votes, ballot.vote_id);
                 vote.tvl := do {
                     let new_tvl : Int = vote.tvl + diff;
@@ -239,9 +242,9 @@ module {
         };
     };
 
-    // @todo: could return only the items which release_date is in the future, it would avoid to do it in the ForesightUpdater
-    func map_ballots_to_foresight_items(ballots: Map<UUID, BallotType>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {
-        IterUtils.map(Map.vals(ballots), func(ballot_type: BallotType) : ForesightUpdater.ForesightItem {
+    func get_foresight_items(locked_ballots: Iter<Text>, ballots: Map<UUID, BallotType>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {
+        IterUtils.map(locked_ballots, func(ballot_id: Text) : ForesightUpdater.ForesightItem {
+            let ballot_type = MapUtils.getOrTrap(ballots, Map.thash, ballot_id);
             switch(ballot_type){
                 case(#YES_NO(b)) {     
                     let release_date = switch(b.lock){

@@ -64,10 +64,6 @@ module {
                 });
             };
 
-            // Update the total locked value
-            let new_tvl = Timeline.current(state.tvl) + new.amount;
-            Timeline.insert(state.tvl, time, new_tvl);
-
             after_change({ time; event = #LOCK_ADDED(new); state = get_state();});
         };
 
@@ -91,17 +87,6 @@ module {
                                 ignore Set.put<Text>(removed, Set.thash, lock.id);
                             };
                         };
-                        
-                        let new_tvl = do {
-                            let diff : Int = Timeline.current(state.tvl) - lock.amount;
-                            if (diff < 0) {
-                                Debug.trap("Total locked value cannot be negative");
-                            };
-                            Int.abs(diff);
-                        };
-                        
-                        // Update the total locked value
-                        Timeline.insert(state.tvl, lock.release_date, new_tvl);
                         
                         after_change({ time = lock.release_date; event = #LOCK_REMOVED(lock); state = get_state(); });
                     };
@@ -141,7 +126,6 @@ module {
         public func get_state() : LockState {
             {
                 locks = Map.vals(state.map);
-                tvl = Timeline.current(state.tvl);
             };
         };
 
