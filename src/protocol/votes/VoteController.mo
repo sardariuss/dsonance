@@ -139,7 +139,7 @@ module {
                 dissent;
                 consent = Timeline.initialize<Float>(timestamp, consent);
                 decay = decay_model.compute_decay(timestamp);
-                var foresight : Foresight = { share = 0.0; reward = 0; apr = { current = 0.0; potential = 0.0; }; };
+                var foresight : Foresight = { reward = 0; apr = { current = 0.0; potential = 0.0; }; };
                 var hotness = 0.0;
                 var lock : ?LockInfo = null;
             };

@@ -85,7 +85,7 @@ module {
 
         // Remove a position from the supply registry.
         // Watchout, the transfer is not done immediately, it is added to the withdrawal queue.
-        public func remove_position({ id: Text; share: Float; }) : Result<Nat, Text> {
+        public func remove_position({ id: Text; interest_amount: Nat; }) : Result<Nat, Text> {
             
             let position = switch(Map.get(register.supply_positions, Map.thash, id)){
                 case(null) { return #err("The map does not have a position with the ID " # debug_show(id)); };
@@ -95,10 +95,10 @@ module {
             // Remove from supply positions
             Map.delete(register.supply_positions, Map.thash, id);
 
-            // Compute the amount due
-            let interest_amount = switch(indexer.take_supply_interests({ share; minimum = -position.supplied; })){
+            // Take the specified amount from supply interests
+            switch(indexer.take_supply_interests({ amount = interest_amount; })){
                 case(#err(err)) { return #err(err); };
-                case(#ok(amount)) { amount; };
+                case(#ok) {};
             };
             let due = do {
                 let sum : Int = position.supplied + interest_amount;

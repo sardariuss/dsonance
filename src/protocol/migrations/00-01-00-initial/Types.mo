@@ -483,7 +483,6 @@ module {
     };
 
     public type Foresight = {
-        share: Float;
         reward: Int;
         apr: {
             current: Float;

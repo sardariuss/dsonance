@@ -9,7 +9,6 @@ import LendingTypes       "Types";
 import UtilizationUpdater "UtilizationUpdater";
 import InterestRateCurve  "InterestRateCurve";
 import Types              "../Types";
-import Math               "../utils/Math";
 import Clock              "../utils/Clock";
 import Duration           "../duration/Duration";
 
@@ -80,23 +79,21 @@ module {
             update(?utilization);
         };
 
-        public func take_supply_interests({ share: Float; minimum: Int; }) : Result<Int, Text> {
+        public func take_supply_interests({ amount: Nat; }) : Result<(), Text> {
             update(null);
-            // Make sure the share is normalized
-            if (not Math.is_normalized(share)) {
-                return #err("Invalid interest share");
-            };
             let accrued_interests = index.value.accrued_interests;
-            // Make sure the interests is above the minimum
-            let interests_amount = Float.toInt(Float.max(Float.fromInt(minimum), accrued_interests.supply * share));
+            let amount_float = Float.fromInt(amount);
+            // Make sure the amount is not greater than available supply interests
+            if (amount_float > accrued_interests.supply) {
+                return #err("Amount " # debug_show(amount) # " is greater than available supply interests " # debug_show(accrued_interests.supply));
+            };
             // Remove the interests from the supply
             index.value := { index.value with
                 accrued_interests = { accrued_interests with
-                    supply = accrued_interests.supply - Float.fromInt(interests_amount);
+                    supply = accrued_interests.supply - amount_float;
                 };
             };
-            // Return the amount
-            #ok(interests_amount);
+            #ok;
         };
 
         public func take_supply_fees(amount: Nat) : Result<{ revert: () -> () }, Text> {

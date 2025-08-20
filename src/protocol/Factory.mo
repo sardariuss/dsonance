@@ -131,7 +131,7 @@ module {
                         // @todo: could be done in the controller instead
                         ignore supply_registry.remove_position({
                             id;
-                            share = ballot.foresight.share;
+                            interest_amount = Int.abs(ballot.foresight.reward);
                         });
                         { ballot; diff = -amount; };
                     };
