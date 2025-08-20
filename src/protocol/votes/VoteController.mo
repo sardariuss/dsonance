@@ -94,7 +94,16 @@ module {
             add_ballot(ballot_id, new);
             Set.add(vote.ballots, Set.thash, ballot_id);
 
+            // Update TVL by adding the ballot amount
+            vote.tvl += amount;
+
             { new; previous = Iter.toArray(vote_ballots(vote)); };
+        };
+
+        public func unlock_ballot(vote: Vote<A, B>, ballot_id: UUID) {
+            // Just update the TVL
+            let ballot = get_ballot(ballot_id);
+            vote.tvl -= ballot.amount;
         };
 
         public func vote_ballots(vote: Vote<A, B>) : Iter<Ballot<B>> {

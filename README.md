@@ -60,7 +60,7 @@ The frontend should be available on localhost:3000
 * The foresight updates shall be done on any APR change. The trigger chain is:
  - borrow/repay/supply/withdraw -> indexer.add_raw_supply or remove_raw_supply
   -> the supply is done in Controller.put_ballot
-  -> the withdraw is done in Factory after unlock
+  -> the withdraw is done in Controller.run
 
 When adding a supply position, no need to update the indexes up to that time BEFORE adding, but after (in order for queried elments'APR to be correct).
 When removing a supply position, need to update the indexes up to that time BEFORE removing (in order for the APR of removed element to be correct), and after (in order for queried elements'APR to be correct).

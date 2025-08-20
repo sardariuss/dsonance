@@ -43,6 +43,14 @@ module {
             };
         };
 
+        public func unlock_ballot({ vote_type: VoteType; ballot_id: UUID; }) {
+            switch(vote_type){
+                case(#YES_NO(vote)){
+                    yes_no_controller.unlock_ballot(vote, ballot_id);      
+                };
+            };
+        };
+
         public func vote_ballots(vote_type: VoteType) : Iter<BallotType> {
             switch(vote_type){
                 case(#YES_NO(vote)) { 

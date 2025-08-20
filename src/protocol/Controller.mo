@@ -240,17 +240,22 @@ module {
             
             // 4. Process each unlocked ballot
             for (ballot_id in Set.keys(unlocked_ids)) {
+
                 let ballot = get_ballot(ballot_id);
+                let { vote_id; } = ballot;
+
+                let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)) {
+                    case(null) { Debug.trap("Vote " # debug_show(vote_id) # " not found"); };
+                    case(?v) { v; };
+                };
+
+                vote_type_controller.unlock_ballot({ vote_type; ballot_id; });
                 
                 // Remove supply position using the ballot's foresight reward
                 ignore supply_registry.remove_position({
                     id = ballot_id;
                     interest_amount = Int.abs(ballot.foresight.reward);
                 });
-                
-                // Update vote TVL by subtracting the ballot amount
-                let vote = get_vote(ballot.vote_id);
-                vote.tvl -= ballot.amount;
             };
             
             switch(await* withdrawal_queue.process_pending_withdrawals()){
@@ -336,10 +341,6 @@ module {
                 args = { args with ballot_id; tx_id; timestamp; from };
             });
 
-            // Update vote TVL by adding the ballot amount
-            let vote = get_vote(args.vote_id);
-            vote.tvl += args.amount;
-
             ignore lock_scheduler.try_unlock(timestamp);
 
             lock_scheduler.add(
@@ -353,13 +354,6 @@ module {
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
 
             #ok(SharedConversions.sharePutBallotSuccess(put_ballot));
-        };
-
-        func get_vote(vote_id: UUID) : YesNoVote {
-            switch(Map.get(vote_register.votes, Map.thash, vote_id)) {
-                case(null) { Debug.trap("Vote " # debug_show(vote_id) # " not found"); };
-                case(?#YES_NO(vote)) { vote; };
-            };
         };
 
         func get_ballot(ballot_id: UUID) : YesNoBallot {
