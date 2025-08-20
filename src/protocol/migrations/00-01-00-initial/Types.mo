@@ -461,7 +461,7 @@ module {
         aggregate: Timeline<A>;
         ballots: Set<UUID>;
         author: Account;
-        var tvl: Nat;
+        var tvl: Int;
     };
 
     public type DebtRecord = {

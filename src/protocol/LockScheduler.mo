@@ -24,9 +24,6 @@ module {
     type Timeline<T> = Types.Timeline<T>;
     type LockEvent = Types.LockEvent;
     type LockSchedulerState = Types.LockSchedulerState;
-    type LockState = Types.LockState;
-    type BeforeChangeArgs = Types.BeforeChangeArgs;
-    type AfterChangeArgs = Types.AfterChangeArgs;
 
     public func compare_locks(a: Lock, b: Lock) : Order {
         switch(Int.compare(a.release_date, b.release_date)){
@@ -38,13 +35,9 @@ module {
 
     public class LockScheduler({
         state: LockSchedulerState;
-        before_change: BeforeChangeArgs -> ();
-        after_change: AfterChangeArgs -> ();
     }) {
 
-        public func add(new: Lock, previous: Iter<Lock>, time: Nat) {
-
-            before_change({ time; state = get_state(); });
+        public func add(new: Lock, previous: Iter<Lock>) {
 
             // Add the new lock
             if (has_lock(new.id)) {
@@ -63,8 +56,6 @@ module {
                     add_lock(prev);
                 });
             };
-
-            after_change({ time; event = #LOCK_ADDED(new); state = get_state();});
         };
 
         public func try_unlock(time: Nat) : Set<Text> {
@@ -79,16 +70,12 @@ module {
                         // Stop here if release date is greater than now
                         if (lock.release_date > time) { break remove_expired; };
 
-                        before_change({ time = lock.release_date; state = get_state(); });
-
                         switch(remove_lock(lock.id)){
                             case(null) {}; // Lock not found, continue
                             case(_) {
                                 ignore Set.put<Text>(removed, Set.thash, lock.id);
                             };
                         };
-                        
-                        after_change({ time = lock.release_date; event = #LOCK_REMOVED(lock); state = get_state(); });
                     };
                 };
             };
@@ -120,12 +107,6 @@ module {
                 case(?lock) { 
                     BTree.has(state.btree, compare_locks, lock);
                 };
-            };
-        };
-
-        public func get_state() : LockState {
-            {
-                locks = Map.vals(state.map);
             };
         };
 

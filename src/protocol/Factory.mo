@@ -38,7 +38,6 @@ module {
     type LockEvent   = Types.LockEvent;
     type BallotType  = Types.BallotType;
     type VoteType    = Types.VoteType;
-    type LockState   = Types.LockState;
     
     type Iter<T>     = Map.Iter<T>;
     type Map<K, V>   = Map.Map<K, V>;
@@ -110,44 +109,8 @@ module {
             foresight_updater.set_supply_info(to_supply_info(lending_index));
         });
         
-        // TODO: the foresight_updater should directly listen to the Indexer updates instead of the LockScheduler
         let lock_scheduler = LockScheduler.LockScheduler({
             state = lock_scheduler_state;
-            before_change = func({ time: Nat; state: LockState; }){};
-            after_change = func({ time: Nat; event: LockEvent; state: LockState; }){
-                
-                // Update the ballots foresights
-                foresight_updater.update_foresights();
-
-                let { ballot; diff; } = switch(event){
-                    case(#LOCK_ADDED({id; amount;})){
-                        { ballot = get_ballot(ballot_register.ballots, id); diff = amount; };
-                    };
-                    case(#LOCK_REMOVED({id; amount;})){
-
-                        let ballot = get_ballot(ballot_register.ballots, id);
-                        
-                        // TODO: what if it returns an error?
-                        // @todo: could be done in the controller instead
-                        ignore supply_registry.remove_position({
-                            id;
-                            interest_amount = Int.abs(ballot.foresight.reward);
-                        });
-                        { ballot; diff = -amount; };
-                    };
-                };
-
-                // Update the vote TVL
-                // @todo: TVL could be computed on query
-                let vote = get_vote(vote_register.votes, ballot.vote_id);
-                vote.tvl := do {
-                    let new_tvl : Int = vote.tvl + diff;
-                    if (new_tvl < 0) {
-                        Debug.trap("TVL cannot be negative");
-                    };
-                    Int.abs(new_tvl);
-                };
-            };
         });
 
         let duration_scaler_instance = DurationScaler.DurationScaler({
@@ -190,6 +153,7 @@ module {
             collateral_price_tracker;
             participation_minter;
             parameters;
+            foresight_updater;
         });
         let queries = Queries.Queries({
             state;
@@ -220,24 +184,6 @@ module {
                     await* controller.run();
                 });
                 #ok;
-            };
-        };
-    };
-
-    func get_ballot(ballots: Map<UUID, BallotType>, id: UUID) : YesNoBallot {
-        switch(Map.get(ballots, Map.thash, id)) {
-            case(null) { Debug.trap("Ballot " #  debug_show(id) # " not found"); };
-            case(?#YES_NO(ballot)) {
-                ballot;
-            };
-        };
-    };
-
-    func get_vote(votes: Map<UUID, VoteType>, id: UUID) : YesNoVote {
-        switch(Map.get(votes, Map.thash, id)) {
-            case(null) { Debug.trap("Vote " #  debug_show(id) # " not found"); };
-            case(?#YES_NO(vote)) {
-                vote;
             };
         };
     };

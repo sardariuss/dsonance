@@ -15,6 +15,7 @@ import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
 import SupplyAccount           "lending/SupplyAccount";
+import ForesightUpdater        "ForesightUpdater";
 
 import Map                     "mo:map/Map";
 import Set                     "mo:map/Set";
@@ -95,6 +96,7 @@ module {
         collateral_price_tracker: IPriceTracker;
         participation_minter: ParticipationMinter.ParticipationMinter;
         parameters: Parameters;
+        foresight_updater: ForesightUpdater.ForesightUpdater;
     }){
 
         public func new_vote(args: NewVoteArgs) : async* SNewVoteResult {
@@ -230,14 +232,33 @@ module {
                 };
             };
             
-            // 2. Unlock expired locks
-            ignore lock_scheduler.try_unlock(time);
+            // 2. Update foresights before unlocking, so the rewards are up-to-date
+            foresight_updater.update_foresights();
+            
+            // 3. Unlock expired locks and process them
+            let unlocked_ids = lock_scheduler.try_unlock(time);
+            
+            // 4. Process each unlocked ballot
+            for (ballot_id in Set.keys(unlocked_ids)) {
+                let ballot = get_ballot(ballot_id);
+                
+                // Remove supply position using the ballot's foresight reward
+                ignore supply_registry.remove_position({
+                    id = ballot_id;
+                    interest_amount = Int.abs(ballot.foresight.reward);
+                });
+                
+                // Update vote TVL by subtracting the ballot amount
+                let vote = get_vote(ballot.vote_id);
+                vote.tvl -= ballot.amount;
+            };
+            
             switch(await* withdrawal_queue.process_pending_withdrawals()){
                 case(#err(error)) { Debug.print("Failed to process pending withdrawals: " # error); };
                 case(#ok(_)) {};
             };
 
-            // 3. Mint participation tokens
+            // 6. Mint participation tokens
             switch(await* participation_minter.mint(time)){
                 case(#err(error)) { Debug.print("Failed to mint participation tokens: " # error); };
                 case(#ok(_)) {};
@@ -315,6 +336,10 @@ module {
                 args = { args with ballot_id; tx_id; timestamp; from };
             });
 
+            // Update vote TVL by adding the ballot amount
+            let vote = get_vote(args.vote_id);
+            vote.tvl += args.amount;
+
             ignore lock_scheduler.try_unlock(timestamp);
 
             lock_scheduler.add(
@@ -322,13 +347,26 @@ module {
                 IterUtils.map<BallotType, Lock>(
                     vote_type_controller.vote_ballots(vote_type),
                     BallotUtils.unwrap_lock
-                ),
-                timestamp
+                )
             );
 
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
 
             #ok(SharedConversions.sharePutBallotSuccess(put_ballot));
+        };
+
+        func get_vote(vote_id: UUID) : YesNoVote {
+            switch(Map.get(vote_register.votes, Map.thash, vote_id)) {
+                case(null) { Debug.trap("Vote " # debug_show(vote_id) # " not found"); };
+                case(?#YES_NO(vote)) { vote; };
+            };
+        };
+
+        func get_ballot(ballot_id: UUID) : YesNoBallot {
+            switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)) {
+                case(null) { Debug.trap("Ballot " # debug_show(ballot_id) # " not found"); };
+                case(?#YES_NO(ballot)) { ballot; };
+            };
         };
 
     };
