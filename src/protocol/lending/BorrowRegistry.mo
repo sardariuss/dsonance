@@ -207,7 +207,6 @@ module {
                 total_raw_repaid += raw_repaid;
             };
 
-            // @todo: does this still make sense? remove_raw_borrow is already called before
             indexer.remove_raw_borrow({ amount = total_raw_repaid; time; });
 
             // Once positions are liquidated, it might allow the unlock withdrawal of supply
