@@ -1,7 +1,6 @@
 import Types "Types";
 import Duration "duration/Duration";
 import IterUtils "utils/Iter";
-import Math "utils/Math";
 
 import Float "mo:base/Float";
 

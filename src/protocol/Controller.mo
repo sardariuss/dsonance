@@ -140,6 +140,7 @@ module {
             // TODO: this preview is somehow required to trigger the update of the foresight
             // Why? Because currently the foresight updater is filtering out the items based on the timestamp,
             // adding a position, even with a supplied amount of 0, will update the indexer's timestamp.
+            let time = clock.get_time();
             let preview_result = supply_registry.add_position_without_transfer({
                 id = ballot_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
@@ -147,7 +148,7 @@ module {
                 // it can lead to a miscomprehension of the ballot APY preview. Ideally, one should have a way
                 // to preview with our without the impact on the supply APY.
                 supplied = 0;
-            });
+            }, time);
 
             let tx_id = switch(preview_result){
                 case(#err(err)) { return #err(err); };
@@ -169,11 +170,12 @@ module {
                 case(#ok(input)) { input; };
             };
 
+            let time = clock.get_time();
             let transfer = await* supply_registry.add_position({
                 id = ballot_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
                 supplied = args.amount;
-            });
+            }, time);
 
             let tx_id = switch(transfer){
                 case(#err(err)) { return #err(err); };
@@ -189,19 +191,19 @@ module {
         };
 
         public func run_borrow_operation(args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {
-            await* borrow_registry.run_operation(args);
+            await* borrow_registry.run_operation(clock.get_time(), args);
         };
 
         public func run_borrow_operation_for_free(args: BorrowOperationArgs) : Result<BorrowOperation, Text> {
-            borrow_registry.run_operation_for_free(args);
+            borrow_registry.run_operation_for_free(clock.get_time(), args);
         };
 
         public func get_loan_position(account: Account) : LoanPosition {
-            borrow_registry.get_loan_position(account);
+            borrow_registry.get_loan_position(clock.get_time(), account);
         };
 
         public func get_loans_info() : { positions: [Loan]; max_ltv: Float } {
-            borrow_registry.get_loans_info();
+            borrow_registry.get_loans_info(clock.get_time());
         };
 
         public func get_available_liquidities() : async* Nat {
@@ -216,6 +218,8 @@ module {
             await* supply.withdraw_fees({ caller; to; amount; });
         };
 
+        // TODO: make sure none of the methods called in this function can trap:
+        // it should only log errors
         public func run() : async* () {
             
             let time = clock.get_time();
@@ -225,7 +229,7 @@ module {
             switch(await* collateral_price_tracker.fetch_price()){
                 case(#err(error)) { Debug.print("Failed to update collateral price: " # error); };
                 case(#ok(_)) {
-                    switch(await* borrow_registry.check_all_positions_and_liquidate()){
+                    switch(await* borrow_registry.check_all_positions_and_liquidate(time)){
                         case(#err(error)) { Debug.print("Failed to check positions and liquidate: " # error); };
                         case(#ok(_)) {};
                     };
@@ -239,26 +243,39 @@ module {
             let unlocked_ids = lock_scheduler.try_unlock(time);
             
             // 4. Process each unlocked ballot
-            for (ballot_id in Set.keys(unlocked_ids)) {
+            label unlock_supply for (ballot_id in Set.keys(unlocked_ids)) {
 
-                let ballot = get_ballot(ballot_id);
+                let ballot = switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)) {
+                    case(null) { 
+                        Debug.print("Ballot " # debug_show(ballot_id) # " not found");
+                        continue unlock_supply;
+                    };
+                    case(?#YES_NO(ballot)) { ballot; };
+                };
                 let { vote_id; } = ballot;
 
                 let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)) {
-                    case(null) { Debug.trap("Vote " # debug_show(vote_id) # " not found"); };
+                    case(null) { 
+                        Debug.print("Vote " # debug_show(vote_id) # " not found");
+                        continue unlock_supply;
+                    };
                     case(?v) { v; };
                 };
 
                 vote_type_controller.unlock_ballot({ vote_type; ballot_id; });
                 
                 // Remove supply position using the ballot's foresight reward
-                ignore supply_registry.remove_position({
+                switch(supply_registry.remove_position({
                     id = ballot_id;
                     interest_amount = Int.abs(ballot.foresight.reward);
-                });
+                    time;
+                })){
+                    case(#err(err)) { Debug.print("Failed to remove supply position for ballot " # debug_show(ballot_id) # ": " # err); };
+                    case(#ok(_)) {};
+                };
             };
             
-            switch(await* withdrawal_queue.process_pending_withdrawals()){
+            switch(await* withdrawal_queue.process_pending_withdrawals(time)){
                 case(#err(error)) { Debug.print("Failed to process pending withdrawals: " # error); };
                 case(#ok(_)) {};
             };
@@ -354,13 +371,6 @@ module {
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
 
             #ok(SharedConversions.sharePutBallotSuccess(put_ballot));
-        };
-
-        func get_ballot(ballot_id: UUID) : YesNoBallot {
-            switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)) {
-                case(null) { Debug.trap("Ballot " # debug_show(ballot_id) # " not found"); };
-                case(?#YES_NO(ballot)) { ballot; };
-            };
         };
 
     };

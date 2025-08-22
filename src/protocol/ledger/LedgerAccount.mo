@@ -1,5 +1,4 @@
 import Types         "Types";
-import Cell          "../utils/Cell";
 
 import Int           "mo:base/Int";
 import Result        "mo:base/Result";
@@ -10,7 +9,6 @@ import Nat64         "mo:base/Nat64";
 module {
 
     type Result<Ok, Err>   = Result.Result<Ok, Err>;
-    type Cell<T>           = Cell.Cell<T>;
     type Transfer          = Types.Transfer;
     type Account           = Types.Account;
     type TxIndex           = Types.TxIndex;

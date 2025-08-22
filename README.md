@@ -58,12 +58,14 @@ The frontend should be available on localhost:3000
 
 * Investigate cases which allow re-entry, especially when two async calls are called in the same function (e.g. approve + swap in LedgerAccount). Can 'await?' help with that?
 * The foresight updates shall be done on any APR change. The trigger chain is:
- - borrow/repay/supply/withdraw -> indexer.add_raw_supply or remove_raw_supply
-  -> the supply is done in Controller.put_ballot
-  -> the withdraw is done in Controller.run
+ - borrow/repay/supply/withdraw 
+ -> indexer.add_raw_supply or remove_raw_supply
+ -> call observers
+ -> call foresight updater
+An extra moment the foresight shall be updated is right before the unlock of the ballot. This is why it is called in Controller.run.
+
 
 When adding a supply position, no need to update the indexes up to that time BEFORE adding, but after (in order for queried elments'APR to be correct).
 When removing a supply position, need to update the indexes up to that time BEFORE removing (in order for the APR of removed element to be correct), and after (in order for queried elements'APR to be correct).
 
 Problem: if you add a position at t2 when run() should remove a position at t1 < t2, will both APR be wrong? I guess it is something that can be accepted, because the position to be removed is technically still there.
-A real problem can arise because the supply_registry calls take_supply_interests using a share as argument, not an amount. So the indexer has to be updated in-between remove_positions, otherwise the share will not be updated to tkae account of the last removal and be wrong. Use the absolute reward instead!!

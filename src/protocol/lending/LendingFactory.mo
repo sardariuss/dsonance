@@ -9,8 +9,6 @@ import UtilizationUpdater "UtilizationUpdater";
 import SupplyAccount      "SupplyAccount";
 import LedgerTypes        "../ledger/Types";
 import LedgerAccount      "../ledger/LedgerAccount";
-import Clock              "../utils/Clock";
-import Cell               "../utils/Cell";
 
 import Result             "mo:base/Result";
 
@@ -38,7 +36,6 @@ module {
         collateral_ledger: ILedgerFungible;
         dex: IDex;
         collateral_price_tracker: IPriceTracker;
-        clock: Clock.IClock;
     }) : {
         indexer: Indexer.Indexer;
         supply: SupplyAccount.SupplyAccount;
@@ -52,7 +49,6 @@ module {
         });
 
         let indexer = Indexer.Indexer({
-            clock;
             parameters;
             index;
             utilization_updater;

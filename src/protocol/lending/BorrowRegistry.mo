@@ -69,11 +69,11 @@ module {
             Map.vals(register.borrow_positions);
         };
 
-        public func run_operation(args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {
+        public func run_operation(time: Nat, args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {
 
             let { account; } = args;
 
-            let { to_transfer; finalize; } = switch(prepare_operation(args)){
+            let { to_transfer; finalize; } = switch(prepare_operation(time, args)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
@@ -97,7 +97,7 @@ module {
             switch(args.kind){
                 case(#REPAY_SUPPLY(_)) {
                     // Once a position is repaid, it might allow to process pending withdrawal of supply
-                    ignore await* withdrawal_queue.process_pending_withdrawals();
+                    ignore await* withdrawal_queue.process_pending_withdrawals(time);
                 };
                 case(_) {}; // No need to process pending withdrawals for other operations
             };
@@ -105,9 +105,9 @@ module {
             #ok(to_return);
         };
 
-        public func run_operation_for_free(args: BorrowOperationArgs) : Result<BorrowOperation, Text> {
+        public func run_operation_for_free(time: Nat, args: BorrowOperationArgs) : Result<BorrowOperation, Text> {
 
-            let { finalize; } = switch(prepare_operation(args)){
+            let { finalize; } = switch(prepare_operation(time, args)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
@@ -119,10 +119,10 @@ module {
         };
 
         /// Liquidate borrow positions if their health factor is below 1.0.
-        public func check_all_positions_and_liquidate() : async* Result<(), Text> {
+        public func check_all_positions_and_liquidate(time: Nat) : async* Result<(), Text> {
 
-            let index = indexer.get_index().borrow_index;
-            let loans = get_loans();
+            let index = indexer.get_index(time).borrow_index;
+            let loans = get_loans(time);
 
             let total_to_liquidate = IterUtils.fold_left(Map.vals(loans), 0, func (sum: Nat, loan: Loan): Nat {
                 sum + Option.get(loan.collateral_to_liquidate, 0);
@@ -208,17 +208,17 @@ module {
             };
 
             // @todo: does this still make sense? remove_raw_borrow is already called before
-            indexer.remove_raw_borrow({ amount = total_raw_repaid });
+            indexer.remove_raw_borrow({ amount = total_raw_repaid; time; });
 
             // Once positions are liquidated, it might allow the unlock withdrawal of supply
-            ignore await* withdrawal_queue.process_pending_withdrawals();
+            ignore await* withdrawal_queue.process_pending_withdrawals(time);
 
             #ok;
         };
 
-        public func get_loan_position(account: Account) : LoanPosition {
+        public func get_loan_position(time: Nat, account: Account) : LoanPosition {
 
-            let index = indexer.get_index().borrow_index;
+            let index = indexer.get_index(time).borrow_index;
 
             switch (Map.get(register.borrow_positions, MapUtils.acchash, account)){
                 case(null) { 
@@ -234,9 +234,9 @@ module {
             };
         };
 
-        public func get_loans_info() : { positions: [Loan]; max_ltv: Float } {
+        public func get_loans_info(time: Nat) : { positions: [Loan]; max_ltv: Float } {
 
-            let index = indexer.get_index().borrow_index;
+            let index = indexer.get_index(time).borrow_index;
 
             var max_ltv : Float = 0.0;
             let positions : [Loan] = Map.toArrayMap<Account, BorrowPosition, Loan>(register.borrow_positions, func (account: Account, position: BorrowPosition) : ?Loan {
@@ -249,23 +249,23 @@ module {
             };
         };
 
-        func get_loans() : Map.Map<Account, Loan> {
+        func get_loans(time: Nat) : Map.Map<Account, Loan> {
 
-            let index = indexer.get_index().borrow_index;
+            let index = indexer.get_index(time).borrow_index;
 
             Map.mapFilter<Account, BorrowPosition, Loan>(register.borrow_positions, MapUtils.acchash, func (account: Account, position: BorrowPosition) : ?Loan {
                 borrow_positionner.to_loan_position({ position; index; }).loan;
             });
         };
 
-        func prepare_operation(args: BorrowOperationArgs) : Result<PreparedOperation, Text> {
+        func prepare_operation(time: Nat, args: BorrowOperationArgs) : Result<PreparedOperation, Text> {
 
             let { amount; account; } = args;
             switch(args.kind){
-                case(#PROVIDE_COLLATERAL                 ) { prepare_supply_collateral   ({ amount; account;               }) };
-                case(#WITHDRAW_COLLATERAL                ) { prepare_withdraw_collateral ({ amount; account;               }) };
-                case(#BORROW_SUPPLY                      ) { prepare_borrow              ({ amount; account;               }) };
-                case(#REPAY_SUPPLY({max_slippage_amount})) { prepare_repay               ({ amount; account; max_slippage_amount; }) };
+                case(#PROVIDE_COLLATERAL                 ) { prepare_supply_collateral   ({ time; amount; account;               }) };
+                case(#WITHDRAW_COLLATERAL                ) { prepare_withdraw_collateral ({ time; amount; account;               }) };
+                case(#BORROW_SUPPLY                      ) { prepare_borrow              ({ time; amount; account;               }) };
+                case(#REPAY_SUPPLY({max_slippage_amount})) { prepare_repay               ({ time; amount; account; max_slippage_amount; }) };
             };
         };
 
@@ -273,20 +273,22 @@ module {
             account: Account;
             position: BorrowPosition; 
             tx: BorrowPositionTx;
+            time: Nat;
         }) : BorrowOperation {
             // Add the transaction to the position
             let update = BorrowPositionner.add_tx({ position; tx; });
             Map.set(register.borrow_positions, MapUtils.acchash, account, update);
-            let index = indexer.get_index();
+            let index = indexer.get_index(time);
             {
                 position = borrow_positionner.to_loan_position({ position = update; index = index.borrow_index; });
-                index = indexer.get_index();
+                index;
             };
         };
 
         func prepare_supply_collateral({
             account: Account;
             amount: Nat;
+            time: Nat;
         }) : Result<PreparedOperation, Text> {
 
             let position = Map.get(register.borrow_positions, MapUtils.acchash, account);
@@ -297,6 +299,7 @@ module {
                     account;
                     position = update;
                     tx = #COLLATERAL_PROVIDED(tx);
+                    time;
                 });
             };
 
@@ -306,6 +309,7 @@ module {
         func prepare_withdraw_collateral({
             account: Account;
             amount: Nat;
+            time: Nat;
         }) : Result<PreparedOperation, Text> {
 
             let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
@@ -313,7 +317,7 @@ module {
                 case(?p) { p; };
             };
 
-            let index = indexer.get_index().borrow_index;
+            let index = indexer.get_index(time).borrow_index;
 
             // Remove the collateral from the borrow position
             let update = switch(borrow_positionner.withdraw_collateral({ position; amount; index; })){
@@ -326,6 +330,7 @@ module {
                     account;
                     position = update;
                     tx = #COLLATERAL_WITHDRAWNED(tx);
+                    time;
                 });
             };
 
@@ -335,9 +340,10 @@ module {
         func prepare_borrow({
             account: Account;
             amount: Nat;
+            time: Nat;
         }) : Result<PreparedOperation, Text> {
 
-            let index = indexer.get_index();
+            let index = indexer.get_index(time);
 
             // @todo: should add to a map of <Account, Nat> the amount concurrent borrows that could 
             // increase the utilization ratio more than 1.0
@@ -365,11 +371,12 @@ module {
             };
 
             let finalize = func(tx: TxIndex) : BorrowOperation {
-                indexer.add_raw_borrow({ amount; });
+                indexer.add_raw_borrow({ amount; time; });
                 common_finalize({
                     account;
                     position = update;
                     tx = #SUPPLY_BORROWED(tx);
+                    time;
                 });
             };
 
@@ -380,6 +387,7 @@ module {
             account: Account;
             amount: Nat;
             max_slippage_amount: Nat;
+            time: Nat;
         }) : Result<PreparedOperation, Text> {
 
             let position = switch(Map.get(register.borrow_positions, MapUtils.acchash, account)){
@@ -387,7 +395,7 @@ module {
                 case(?p) { p; };
             };
 
-            let index = indexer.get_index().borrow_index;
+            let index = indexer.get_index(time).borrow_index;
 
             let { repaid; raw_repaid; remaining; } = switch(borrow_positionner.repay_supply({ position; index; amount; max_slippage_amount })){
                 case(#err(err)) { return #err(err); };
@@ -397,11 +405,12 @@ module {
             let update = { position with borrow = remaining; };
 
             let finalize = func(tx: TxIndex) : BorrowOperation {
-                indexer.remove_raw_borrow({ amount = raw_repaid });
+                indexer.remove_raw_borrow({ amount = raw_repaid; time; });
                 common_finalize({
                     account;
                     position = update;
                     tx = #SUPPLY_REPAID(tx);
+                    time;
                 });
             };
 

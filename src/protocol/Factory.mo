@@ -93,11 +93,10 @@ module {
             supply_ledger;
             collateral_ledger;
             dex;
-            clock;
         });
 
         let foresight_updater = ForesightUpdater.ForesightUpdater({
-            initial_supply_info = to_supply_info(indexer.get_index());
+            initial_supply_info = to_supply_info(indexer.get_index(clock.get_time()));
             get_items = func() : Iter<ForesightUpdater.ForesightItem> {
                 // Map the ballots to foresight items
                 get_foresight_items(Map.keys(lock_scheduler_state.map), ballot_register.ballots, parameters);

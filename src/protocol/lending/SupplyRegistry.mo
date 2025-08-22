@@ -45,19 +45,19 @@ module {
         // No check are done to ensure that the supply cap is not reached.
         // It is required to do the add_raw_supplied to update the indexer in order to notify the
         // foresight updater which is an observer of the indexer.
-        public func add_position_without_transfer(input: SupplyInput) : Result<Nat, Text> {
+        public func add_position_without_transfer(input: SupplyInput, time: Nat) : Result<Nat, Text> {
 
             let { id; supplied; } = input;
 
             let tx = 0; // Tx set arbitrarily to 0, as no transfer is done
 
             Map.set(register.supply_positions, Map.thash, id, { input with tx; });
-            indexer.add_raw_supplied({ amount = supplied; });
+            indexer.add_raw_supplied({ amount = supplied; time; });
 
             #ok(tx);
         };
 
-        public func add_position(input: SupplyInput) : async* Result<Nat, Text> {
+        public func add_position(input: SupplyInput, time: Nat) : async* Result<Nat, Text> {
 
             let { id; account; supplied; } = input;
 
@@ -65,7 +65,7 @@ module {
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
-            if (indexer.get_index().utilization.raw_supplied + Float.fromInt(supplied) > Float.fromInt(parameters.supply_cap)){
+            if (indexer.get_index(time).utilization.raw_supplied + Float.fromInt(supplied) > Float.fromInt(parameters.supply_cap)){
                 return #err("Cannot add position, the supply cap of " # debug_show(parameters.supply_cap) # " is reached");
             };
 
@@ -78,14 +78,14 @@ module {
             // and only one position is set
 
             Map.set(register.supply_positions, Map.thash, id, { input with tx; });
-            indexer.add_raw_supplied({ amount = supplied; });
+            indexer.add_raw_supplied({ amount = supplied; time; });
 
             #ok(tx);
         };
 
         // Remove a position from the supply registry.
         // Watchout, the transfer is not done immediately, it is added to the withdrawal queue.
-        public func remove_position({ id: Text; interest_amount: Nat; }) : Result<Nat, Text> {
+        public func remove_position({ id: Text; interest_amount: Nat; time: Nat; }) : Result<Nat, Text> {
             
             let position = switch(Map.get(register.supply_positions, Map.thash, id)){
                 case(null) { return #err("The map does not have a position with the ID " # debug_show(id)); };
@@ -96,9 +96,9 @@ module {
             Map.delete(register.supply_positions, Map.thash, id);
 
             // Take the specified amount from supply interests
-            switch(indexer.take_supply_interests({ amount = interest_amount; })){
+            switch(indexer.take_supply_interests({ amount = interest_amount; time; })){
                 case(#err(err)) { return #err(err); };
-                case(#ok) {};
+                case(#ok(_)) {};
             };
             let due = do {
                 let sum : Int = position.supplied + interest_amount;
@@ -108,7 +108,7 @@ module {
                 Int.abs(sum);
             };
 
-            withdrawal_queue.add({ position; due; });
+            withdrawal_queue.add({ position; due; time; });
 
             #ok(due);
         };

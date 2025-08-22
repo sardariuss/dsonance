@@ -9,7 +9,6 @@ import LendingTypes       "Types";
 import UtilizationUpdater "UtilizationUpdater";
 import InterestRateCurve  "InterestRateCurve";
 import Types              "../Types";
-import Clock              "../utils/Clock";
 import Duration           "../duration/Duration";
 
 module {
@@ -28,7 +27,6 @@ module {
         index: { var value: LendingIndex; };
         parameters: IndexerParameters;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
-        clock: Clock.IClock;
         utilization_updater: UtilizationUpdater.UtilizationUpdater;
     }){
 
@@ -42,45 +40,45 @@ module {
             parameters;
         };
 
-        public func get_index() : LendingIndex {
-            update(null);
+        public func get_index(time: Nat) : LendingIndex {
+            update(null, time);
             index.value;
         };
 
-        public func add_raw_supplied({ amount: Nat; }) {
+        public func add_raw_supplied({ amount: Nat; time: Nat; }) {
             let utilization = switch(utilization_updater.add_raw_supplied(index.value.utilization, amount)){
                 case(#err(err)) { Debug.trap(err); };
                 case(#ok(u)){ u; };
             };
-            update(?utilization);
+            update(?utilization, time);
         };
 
-        public func remove_raw_supplied({ amount: Float; }) {
+        public func remove_raw_supplied({ amount: Float; time: Nat; }) {
             let utilization = switch(utilization_updater.remove_raw_supplied(index.value.utilization, amount)){
                 case(#err(err)) { Debug.trap(err); };
                 case(#ok(u)){ u; };
             };
-            update(?utilization);
+            update(?utilization, time);
         };
 
-        public func add_raw_borrow({ amount: Nat; }) {
+        public func add_raw_borrow({ amount: Nat; time: Nat; }) {
             let utilization = switch(utilization_updater.add_raw_borrow(index.value.utilization, amount)){
                 case(#err(err)) { Debug.trap(err); };
                 case(#ok(u)){ u; };
             };
-            update(?utilization);
+            update(?utilization, time);
         };
 
-        public func remove_raw_borrow({ amount: Float; }) {
+        public func remove_raw_borrow({ amount: Float; time: Nat; }) {
             let utilization = switch(utilization_updater.remove_raw_borrow(index.value.utilization, amount)){
                 case(#err(err)) { Debug.trap(err); };
                 case(#ok(u)){ u; };
             };
-            update(?utilization);
+            update(?utilization, time);
         };
 
-        public func take_supply_interests({ amount: Nat; }) : Result<(), Text> {
-            update(null);
+        public func take_supply_interests({ amount: Nat; time: Nat; }) : Result<(), Text> {
+            update(null, time);
             let accrued_interests = index.value.accrued_interests;
             let amount_float = Float.fromInt(amount);
             // Make sure the amount is not greater than available supply interests
@@ -93,40 +91,18 @@ module {
                     supply = accrued_interests.supply - amount_float;
                 };
             };
+            // Return the amount as Int for consistency with existing signature
             #ok;
         };
 
-        public func take_supply_fees(amount: Nat) : Result<{ revert: () -> () }, Text> {
-            update(null);
-            // Make sure the amount is not greater than the fees
-            if (Float.fromInt(amount) > index.value.accrued_interests.fees) {
-                return #err("Not enough fees available to take");
-            };
-            // Remove the fees from the accrued interests
-            index.value := { index.value with
-                accrued_interests = { index.value.accrued_interests with
-                    fees = index.value.accrued_interests.fees - Float.fromInt(amount);
-                };
-            };
-            // Revert function in case the transfer ever fails
-            let revert = func(){
-                index.value := { index.value with
-                    accrued_interests = { index.value.accrued_interests with
-                        fees = index.value.accrued_interests.fees + Float.fromInt(amount);
-                    };
-                };
-            };
-            #ok({ revert; });
-        };
-
-        public func update(new_utilization: ?Utilization) {
+        public func update(new_utilization: ?Utilization, time: Nat) {
             
             // Update the state with the new utilization and interest rates
             index.value := update_index({
                 state = index.value;
                 parameters;
                 interest_rate_curve;
-                timestamp = clock.get_time();
+                timestamp = time;
                 new_utilization;
             });
             

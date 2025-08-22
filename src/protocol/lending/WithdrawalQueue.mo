@@ -34,7 +34,7 @@ module {
 
         var awaiting_transfer = false;
 
-        public func add({ position: SupplyPosition; due: Nat }) {
+        public func add({ position: SupplyPosition; due: Nat; time: Nat; }) {
 
             let { id; account; supplied; } = position;
 
@@ -55,11 +55,11 @@ module {
                 Set.add(register.withdraw_queue, Set.thash, id);
             } else {
                 // If not, no transfer to be done, so we can remove the supplied amount right away!
-                indexer.remove_raw_supplied({ amount = Float.fromInt(supplied); });
+                indexer.remove_raw_supplied({ amount = Float.fromInt(supplied); time; });
             };
         };
 
-        public func process_pending_withdrawals() : async* Result<[TransferResult], Text> {
+        public func process_pending_withdrawals(time: Nat) : async* Result<[TransferResult], Text> {
 
             // Prevent re-entry
             if (awaiting_transfer){
@@ -95,7 +95,7 @@ module {
                 };
 
                 let amount = Nat.min(Int.abs(diff), available_for_transfer);
-                buffer_transferring.add(transfer({ withdrawal; amount; }));
+                buffer_transferring.add(transfer({ withdrawal; amount; time; }));
                 available_for_transfer -= amount;
 
                 // No need to continue
@@ -115,7 +115,7 @@ module {
             #ok(Buffer.toArray(transfers));
         };
 
-        func transfer({ withdrawal: Withdrawal; amount: Nat; }) : async* TransferResult {
+        func transfer({ withdrawal: Withdrawal; amount: Nat; time: Nat; }) : async* TransferResult {
 
             let transfer = await* supply.transfer({ to = withdrawal.account; amount; });
 
@@ -130,7 +130,7 @@ module {
                     let new_raw_withdrawn = compute_raw_withdrawn(withdrawal);
 
                     // Remove the amount from the raw supply
-                    indexer.remove_raw_supplied({ amount = new_raw_withdrawn - prev_raw_withdrawn; });
+                    indexer.remove_raw_supplied({ amount = new_raw_withdrawn - prev_raw_withdrawn; time; });
 
                     // Delete from the queue if all due has been transferred
                     if (withdrawal.transferred >= withdrawal.due) {
