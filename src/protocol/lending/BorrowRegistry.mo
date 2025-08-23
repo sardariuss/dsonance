@@ -11,6 +11,7 @@ import MapUtils           "../utils/Map";
 import IterUtils          "../utils/Iter";
 import LedgerTypes        "../ledger/Types";
 import Borrow             "./primitives/Borrow";
+import Owed               "./primitives/Owed";
 import BorrowPositionner  "BorrowPositionner";
 import LendingTypes       "Types";
 import Indexer            "Indexer";
@@ -43,6 +44,7 @@ module {
     };
     type PreparedOperation = {
         to_transfer: Nat;
+        protocol_fees: ?Float;
         finalize: (TxIndex) -> BorrowOperation;
     };
 
@@ -73,18 +75,16 @@ module {
 
             let { account; } = args;
 
-            let { to_transfer; finalize; } = switch(prepare_operation(time, args)){
+            let { to_transfer; protocol_fees; finalize; } = switch(prepare_operation(time, args)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
 
-            let fee_share = ?indexer.get_parameters().lending_fee_ratio;
-
             let transfer = switch(args.kind){
-                case(#PROVIDE_COLLATERAL (_)) {  await* collateral.pull    ({ from = account; amount = to_transfer; });            };
-                case(#WITHDRAW_COLLATERAL(_)) { (await* collateral.transfer({ to = account;   amount = to_transfer; })).result;    };
-                case(#BORROW_SUPPLY      (_)) {  await* supply.transfer    ({ to = account;   amount = to_transfer; });            };
-                case(#REPAY_SUPPLY       (_)) {  await* supply.pull        ({ from = account; amount = to_transfer; fee_share; }); };
+                case(#PROVIDE_COLLATERAL (_)) {  await* collateral.pull    ({ from = account; amount = to_transfer; }); };
+                case(#WITHDRAW_COLLATERAL(_)) { (await* collateral.transfer({ to = account;   amount = to_transfer; })).result;        };
+                case(#BORROW_SUPPLY      (_)) {  await* supply.transfer    ({ to = account;   amount = to_transfer; });                };
+                case(#REPAY_SUPPLY       (_)) {  await* supply.pull        ({ from = account; amount = to_transfer; protocol_fees; }); };
             };
 
             let tx = switch(transfer){
@@ -181,10 +181,8 @@ module {
                 let ratio_repaid = Float.fromInt(collateral_to_liquidate) / Float.fromInt(total_to_liquidate);
                 let debt_repaid = Float.fromInt(receive_amount) * ratio_repaid / (1.0 + loan.liquidation_penalty);
 
-                let #ok(new_borrow) = Borrow.slash(borrow, { 
-                    index; // @todo: maybe index shall be refreshed to the current index
-                    accrued_amount = debt_repaid;
-                }) else {
+                // @todo: maybe index shall be refreshed to the current index
+                let #ok(new_borrow) = Borrow.slash(borrow, Owed.new(debt_repaid, index)) else { 
                     Debug.trap("Failed to slash borrow: " # debug_show(borrow));
                 };
 
@@ -261,9 +259,9 @@ module {
 
             let { amount; account; } = args;
             switch(args.kind){
-                case(#PROVIDE_COLLATERAL                 ) { prepare_supply_collateral   ({ time; amount; account;               }) };
-                case(#WITHDRAW_COLLATERAL                ) { prepare_withdraw_collateral ({ time; amount; account;               }) };
-                case(#BORROW_SUPPLY                      ) { prepare_borrow              ({ time; amount; account;               }) };
+                case(#PROVIDE_COLLATERAL                 ) { prepare_supply_collateral   ({ time; amount; account;                      }) };
+                case(#WITHDRAW_COLLATERAL                ) { prepare_withdraw_collateral ({ time; amount; account;                      }) };
+                case(#BORROW_SUPPLY                      ) { prepare_borrow              ({ time; amount; account;                      }) };
                 case(#REPAY_SUPPLY({max_slippage_amount})) { prepare_repay               ({ time; amount; account; max_slippage_amount; }) };
             };
         };
@@ -302,7 +300,7 @@ module {
                 });
             };
 
-            #ok({ to_transfer = amount; finalize; });
+            #ok({ to_transfer = amount; protocol_fees = null; finalize; });
         };
 
         func prepare_withdraw_collateral({
@@ -333,7 +331,7 @@ module {
                 });
             };
 
-            #ok({ to_transfer = amount; finalize; });
+            #ok({ to_transfer = amount; protocol_fees = null; finalize; });
         };
 
         func prepare_borrow({
@@ -379,7 +377,7 @@ module {
                 });
             };
 
-            #ok({ to_transfer = amount; finalize; });
+            #ok({ to_transfer = amount; protocol_fees = null; finalize; });
         };
 
         func prepare_repay({
@@ -396,10 +394,13 @@ module {
 
             let index = indexer.get_index(time).borrow_index;
 
-            let { repaid; raw_repaid; remaining; } = switch(borrow_positionner.repay_supply({ position; index; amount; max_slippage_amount })){
+            let repay_result = borrow_positionner.repay_supply({ position; index; amount; max_slippage_amount; });
+            let { repaid; raw_repaid; remaining; from_interests; } = switch(repay_result){
                 case(#err(err)) { return #err(err); };
                 case(#ok(p)) { p; };
             };
+
+            let protocol_fees = ?(indexer.get_parameters().lending_fee_ratio * from_interests);
 
             let update = { position with borrow = remaining; };
 
@@ -413,7 +414,7 @@ module {
                 });
             };
 
-            #ok({ to_transfer = repaid; finalize; });
+            #ok({ to_transfer = repaid; protocol_fees; finalize; });
         };
 
     };

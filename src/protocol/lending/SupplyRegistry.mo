@@ -69,7 +69,7 @@ module {
                 return #err("Cannot add position, the supply cap of " # debug_show(parameters.supply_cap) # " is reached");
             };
 
-            let tx = switch(await* supply.pull({ from = account; amount = supplied; fee_share = null; })) {
+            let tx = switch(await* supply.pull({ from = account; amount = supplied; protocol_fees = null; })) {
                 case(#err(err)) { return #err(err); };
                 case(#ok(tx_index)) { tx_index; };
             };

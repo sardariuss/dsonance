@@ -133,6 +133,7 @@ module {
     public type Owed = {
         index: Index;
         accrued_amount: Float;
+        from_interests: Float; // portion of the accrued_amount that comes from interests, used to compute fees
     };
 
     public type Borrow = {
@@ -159,6 +160,7 @@ module {
         repaid: Nat;
         raw_repaid: Float;
         remaining: ?Borrow;
+        from_interests: Float;
     };
 
     public type BorrowPositionTx = {

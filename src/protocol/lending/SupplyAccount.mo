@@ -82,10 +82,10 @@ module {
            (await* ledger_account.transfer({ amount; to; })).result;
         };
 
-        public func pull(args : PullArgs and { fee_share: ?Float; }) : async* PullResult {
-            let fees_amount = Option.get(args.fee_share, 0.0) * Float.fromInt(args.amount);
-            if (fees_amount < 0.0) {
-                return #err("Fees amount cannot be negative");
+        public func pull(args : PullArgs and { protocol_fees: ?Float; }) : async* PullResult {
+            let fees_amount = switch(args.protocol_fees){
+                case(null) { 0.0; };
+                case(?f) { f; };
             };
             if (fees_amount > Float.fromInt(args.amount)) {
                 return #err("Fees amount cannot be greater than the pulled amount");

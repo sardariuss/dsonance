@@ -654,6 +654,7 @@ module {
     public type Owed = {
         index: Index;
         accrued_amount: Float;
+        from_interests: Float;
     };
 
     public type Borrow = {

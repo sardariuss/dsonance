@@ -27,7 +27,7 @@ module {
     public func new(amount: Nat, index: Index) : Borrow {
         {
             raw_amount = Float.fromInt(amount);
-            owed = Owed.new(amount, index);
+            owed = Owed.new(Float.fromInt(amount), index);
         };
     };
 

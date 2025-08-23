@@ -12,13 +12,14 @@ module {
     type Owed = LendingTypes.Owed;
 
     public func is_valid(owed: Owed) : Bool {
-        owed.accrued_amount >= 0.0 and Index.is_valid(owed.index);
+        owed.accrued_amount >= 0.0 and Index.is_valid(owed.index) and owed.from_interests >= 0.0;
     };
 
-    public func new(amount: Nat, index: Index) : Owed {
+    public func new(amount: Float, index: Index) : Owed {
         {
             index;
-            accrued_amount = Float.fromInt(amount);
+            accrued_amount = amount;
+            from_interests = 0.0;
         };
     };
 
@@ -26,6 +27,7 @@ module {
         {
             index;
             accrued_amount = owed.accrued_amount * index.value / owed.index.value;
+            from_interests = owed.accrued_amount * (index.value / owed.index.value - 1.0);
         };
     };
 
@@ -48,6 +50,7 @@ module {
         #ok({
             owed with
             accrued_amount = owed.accrued_amount + addend.accrued_amount;
+            from_interests = owed.from_interests + addend.from_interests;
         });
     };
 
@@ -66,15 +69,21 @@ module {
         };
 
         let owed = accrue_interests(minuend, subtrahend.index);
-        let accrued_diff = owed.accrued_amount - subtrahend.accrued_amount;
 
+        let accrued_diff = owed.accrued_amount - subtrahend.accrued_amount;
         if (accrued_diff < 0) {
             return #err("Owed sub error: Subtraction resulted in negative owed amount");
+        };
+
+        let interests_diff = owed.from_interests - subtrahend.from_interests;
+        if (interests_diff < 0) {
+            return #err("Owed sub error: Subtraction resulted in negative owed from_interests");
         };
 
         #ok({
             owed with
             accrued_amount = accrued_diff;
+            from_interests = interests_diff;
         });
     };
     
