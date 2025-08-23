@@ -348,7 +348,6 @@ await suite("LendingPool", func(): async() {
             supply_ledger;
             collateral_ledger;
             dex = dex_fake;
-            clock;
         });
 
         // === Initial Assertions ===
@@ -412,14 +411,17 @@ await suite("LendingPool", func(): async() {
         // Lender withdraws their supply
         let withdraw_result = supply_registry.remove_position({
             id = "supply1";
-            interest_amount = 0;
+            interest_amount = 10; // Arbitrarily take 10 tokens as interest
             time = clock.get_time();
         });
+        verify(withdraw_result, #ok(1010), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
+
         ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time()); // To effectively withdraw the funds from remove_position
-        verify(withdraw_result, #ok(1019), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
-        // Lender could only withdraw up to 830 tokens (-3 for fees)
-        // TODO: fee
-        //verify(supply_accounting.balances(), [ (dex, 1_677), (protocol, 3), (lender, 9_820), (borrower, 10_500) ], equal_balances);
+        
+        // Lender could only withdraw up to 823 tokens
+        verify(supply_accounting.balances(), [ (dex, 1_677), (protocol, 0), (lender, 9_823), (borrower, 10_500) ], equal_balances);
+
+        // TODO: need to know how much is pending in the withdrawal queue
     });
 
     await test("Lender withdrawal triggers withdrawal queue with partial repayment", func() : async() {
@@ -505,7 +507,7 @@ await suite("LendingPool", func(): async() {
         });
 
         // Lender supplies 1000 tokens
-        let _ = await* supply_registry.add_position({
+        ignore await* supply_registry.add_position({
             id = "supply1";
             account = lender;
             supplied = 1000;
@@ -526,7 +528,7 @@ await suite("LendingPool", func(): async() {
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
         let withdraw_result = supply_registry.remove_position({
             id = "supply1";
-            interest_amount = 0;
+            interest_amount = 2; // Arbitrarily take 10 tokens as interest
             time = clock.get_time();
         });
         ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time()); // To effectively withdraw the funds from remove_position
