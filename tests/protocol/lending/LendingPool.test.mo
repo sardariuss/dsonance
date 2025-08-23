@@ -38,7 +38,7 @@ await suite("LendingPool", func(): async() {
         supply_cap = 1_000_000_000_000; // arbitrary supply cap
         borrow_cap = 1_000_000_000_000; // arbitrary borrow cap
         reserve_liquidity = 0.1;
-        lending_fee_ratio = 0.1;
+        lending_fee_ratio = 0.25;
         target_ltv = 0.60;
         max_ltv = 0.70;
         liquidation_threshold = 0.75;
@@ -494,7 +494,7 @@ await suite("LendingPool", func(): async() {
         });
 
         // Build the lending system
-        let { supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { supply; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             collateral_price_tracker;
             protocol_info;
@@ -528,19 +528,18 @@ await suite("LendingPool", func(): async() {
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
         let withdraw_result = supply_registry.remove_position({
             id = "supply1";
-            interest_amount = 2; // Arbitrarily take 10 tokens as interest
+            interest_amount = 2; // Arbitrarily take 2 tokens as interest
             time = clock.get_time();
         });
         ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time()); // To effectively withdraw the funds from remove_position
         verify(withdraw_result, #ok(1002), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
-        // At this point, only 100 tokens (-1 for the fees) are available for transfer to the lender
+        // At this point, only 100 tokens are available for transfer to the lender
         // The rest is queued in the withdrawal queue, waiting for borrowers to repay
         // The withdrawal queue should have an entry for "supply1" with transferred = 100 and due > 100
         let withdrawal = Map.get(register.withdrawals, Map.thash, "supply1");
         switch (withdrawal) {
             case (?w) {
-                //verify(w.transferred, 99, Testify.nat.equal);
                 verify(w.transferred, 100, Testify.nat.equal);
                 verify(w.due > 100, true, Testify.bool.equal);
                 // The withdrawal queue should still contain the id
@@ -551,9 +550,10 @@ await suite("LendingPool", func(): async() {
             };
         };
         // Lender's balance should have increased by 100
-        // TODO: fee
-        //verify(supply_accounting.balances(), [ (protocol, 1), (lender, 99), (borrower, 1_900) ], equal_balances);
         verify(supply_accounting.balances(), [ (protocol, 0), (lender, 100), (borrower, 1_900) ], equal_balances);
+
+        Debug.print("Available liquidities: " # debug_show(await* supply.get_available_liquidities()));
+        Debug.print("Unclaimed fees: " # debug_show(supply.get_unclaimed_fees()));
 
         // Now, borrower repays 900 tokens
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(3)))), #repeatedly);
@@ -564,6 +564,9 @@ await suite("LendingPool", func(): async() {
             kind = #REPAY_SUPPLY({ max_slippage_amount = 1; }); // Use slippage of 1 because the amount has been truncated
         });
         verify(Result.isOk(repay_result), true, Testify.bool.equal);
+
+        Debug.print("Available liquidities: " # debug_show(await* supply.get_available_liquidities()));
+        Debug.print("Unclaimed fees: " # debug_show(supply.get_unclaimed_fees()));
 
         // After repayment, the withdrawal queue should have processed the rest
         let withdrawal_after = Map.get(register.withdrawals, Map.thash, "supply1");
@@ -579,6 +582,9 @@ await suite("LendingPool", func(): async() {
         };
         // Lender should have received all tokens back
         verify(supply_accounting.balances(), [ (protocol, 3), (lender, 1_002), (borrower, 995) ], equal_balances);
+
+        Debug.print("Available liquidities: " # debug_show(await* supply.get_available_liquidities()));
+        Debug.print("Unclaimed fees: " # debug_show(supply.get_unclaimed_fees()));
     });
 
     await test("Health factor calculation with realistic decimal amounts", func() : async() {

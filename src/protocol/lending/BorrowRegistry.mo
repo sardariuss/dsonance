@@ -182,7 +182,7 @@ module {
                 let debt_repaid = Float.fromInt(receive_amount) * ratio_repaid / (1.0 + loan.liquidation_penalty);
 
                 // @todo: maybe index shall be refreshed to the current index
-                let #ok(new_borrow) = Borrow.slash(borrow, Owed.new(debt_repaid, index)) else { 
+                let #ok(new_borrow) = Borrow.slash(borrow, debt_repaid, index) else { 
                     Debug.trap("Failed to slash borrow: " # debug_show(borrow));
                 };
 

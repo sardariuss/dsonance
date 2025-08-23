@@ -140,14 +140,14 @@ module {
             // Do not take more than what is owed
             let clamp_amount = Float.min(Float.fromInt(amount), owed.accrued_amount);
  
-            var remaining = switch(Borrow.slash(borrow, Owed.new(clamp_amount, index))){
+            var remaining = switch(Borrow.slash(borrow, clamp_amount, index)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(b)) { b; };
             };
             var repaid = amount; // @todo: should not be clamp_amount instead?
             let still_owed = switch(remaining){
                 case(null) { 0; };
-                case(?r) { 
+                case(?r) {
                     from_interests -= r.owed.from_interests;
                     Math.ceil_to_int(r.owed.accrued_amount);    
                 };

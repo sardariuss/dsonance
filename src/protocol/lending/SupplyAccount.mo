@@ -1,10 +1,8 @@
 import Int         "mo:base/Int";
 import Float       "mo:base/Float";
 import Result      "mo:base/Result";
-import Option      "mo:base/Option";
 
 import Types       "Types";
-import Indexer     "Indexer";
 import LedgerTypes "../ledger/Types";
 import Math        "../utils/Math";
 
