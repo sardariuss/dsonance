@@ -1,3 +1,8 @@
+---
+cover: .gitbook/assets/logo.png
+coverY: 0
+---
+
 # DSN Mining
 
 Dsonance includes a sophisticated mining mechanism that distributes DSN tokens to protocol participants. This system rewards both suppliers and borrowers who contribute to the lending protocol's.
