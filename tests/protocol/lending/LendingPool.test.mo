@@ -132,7 +132,7 @@ await suite("LendingPool", func(): async() {
         });
 
         // Build the lending system
-        let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { indexer; supply; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             protocol_info;
             parameters;
@@ -209,6 +209,9 @@ await suite("LendingPool", func(): async() {
 
         // === Borrower Repayment ===
 
+        // No fee accrued before repayment
+        verify(supply.get_unclaimed_fees(), 0, Testify.nat.equal);
+
         // Borrower repays full amount, got to 201 tokens to account for accrued interest
         let { current_owed } = unwrap(borrow_registry.get_loan_position(clock.get_time(), borrower).loan);
         let repay_result = await* borrow_registry.run_operation(clock.get_time(), { 
@@ -220,6 +223,7 @@ await suite("LendingPool", func(): async() {
 
         // Protocol should receive more tokens than it lent out due to interest
         verify(supply_accounting.balances(), [ (protocol, 1_004), (lender, 0), (borrower, 996) ], equal_balances);
+        verify(supply.get_unclaimed_fees(), 1, Testify.nat.equal); // Some small fees have accrued
 
         // Utilization should return to 0
         verify(indexer.get_index(clock.get_time()).utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
@@ -236,6 +240,7 @@ await suite("LendingPool", func(): async() {
         
         ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time());
         verify(supply_accounting.balances(), [ (protocol, 1), (lender, 1_003), (borrower, 996) ], equal_balances);
+        verify(supply.get_unclaimed_fees(), 1, Testify.nat.equal); // Fees are still there
 
         // Final state checks: indexes still increasing, no liquidation, clean balances
         let final_state = indexer.get_index(clock.get_time());
@@ -552,8 +557,8 @@ await suite("LendingPool", func(): async() {
         // Lender's balance should have increased by 100
         verify(supply_accounting.balances(), [ (protocol, 0), (lender, 100), (borrower, 1_900) ], equal_balances);
 
-        Debug.print("Available liquidities: " # debug_show(await* supply.get_available_liquidities()));
-        Debug.print("Unclaimed fees: " # debug_show(supply.get_unclaimed_fees()));
+        // No fees before repayment
+        verify(supply.get_unclaimed_fees(), 0, Testify.nat.equal);
 
         // Now, borrower repays 900 tokens
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(3)))), #repeatedly);
@@ -564,9 +569,6 @@ await suite("LendingPool", func(): async() {
             kind = #REPAY_SUPPLY({ max_slippage_amount = 1; }); // Use slippage of 1 because the amount has been truncated
         });
         verify(Result.isOk(repay_result), true, Testify.bool.equal);
-
-        Debug.print("Available liquidities: " # debug_show(await* supply.get_available_liquidities()));
-        Debug.print("Unclaimed fees: " # debug_show(supply.get_unclaimed_fees()));
 
         // After repayment, the withdrawal queue should have processed the rest
         let withdrawal_after = Map.get(register.withdrawals, Map.thash, "supply1");
@@ -582,9 +584,7 @@ await suite("LendingPool", func(): async() {
         };
         // Lender should have received all tokens back
         verify(supply_accounting.balances(), [ (protocol, 3), (lender, 1_002), (borrower, 995) ], equal_balances);
-
-        Debug.print("Available liquidities: " # debug_show(await* supply.get_available_liquidities()));
-        Debug.print("Unclaimed fees: " # debug_show(supply.get_unclaimed_fees()));
+        verify(supply.get_unclaimed_fees(), 2, Testify.nat.equal);
     });
 
     await test("Health factor calculation with realistic decimal amounts", func() : async() {
