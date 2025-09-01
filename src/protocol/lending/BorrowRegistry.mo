@@ -58,7 +58,6 @@ module {
         borrow_positionner: BorrowPositionner.BorrowPositionner;
         indexer: Indexer.Indexer;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
-        utilization_updater: UtilizationUpdater.UtilizationUpdater;
         parameters: BorrowParameters;
         dex: IDex;
     }){
@@ -346,14 +345,18 @@ module {
             // @todo: should add to a map of <Account, Nat> the amount concurrent borrows that could 
             // increase the utilization ratio more than 1.
 
-            // Verify the utilization does not exceed the allowed limit
-            let utilization = switch(utilization_updater.add_raw_borrow(index.utilization, amount)){
-                case(#err(err)) { return #err("Failed to update utilization: " # err); };
+            // Check mathematical constraints and get new utilization
+            let utilization = switch(UtilizationUpdater.add_raw_borrow(index.utilization, amount)){
+                case(#err(err)) { return #err("Mathematical constraint violated: " # err); };
                 case(#ok(u)) { u; };
             };
-            if (utilization.ratio > 1.0) {
-                return #err("Utilization of " # debug_show(utilization) # " is greater than 1.0");
+            
+            // Apply business policy constraints
+            let available_to_borrow = utilization.raw_supplied * (1.0 - parameters.reserve_liquidity);
+            if (utilization.raw_borrowed > available_to_borrow) {
+                return #err("Insufficient liquidity due to reserve policy - available: " # debug_show(available_to_borrow) # ", requested: " # debug_show(utilization.raw_borrowed));
             };
+            
             if (utilization.raw_borrowed > Float.fromInt(parameters.borrow_cap)){
                 return #err("Borrow cap of " # debug_show(parameters.borrow_cap) # " exceeded with current utilization " # debug_show(utilization));
             };

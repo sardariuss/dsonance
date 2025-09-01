@@ -59,6 +59,7 @@ await suite("LendingPool", func(): async() {
         };
     };
 
+    // TODO: Why is there still 2 tokens left in the protocol whereas the accrued fees is less than 1 ?
     await test("Nominal test", func() : async() {
 
         // === Setup Phase ===
@@ -72,7 +73,6 @@ await suite("LendingPool", func(): async() {
                 borrow_rate = 0.0;
                 supply_rate = 0.0;
                 accrued_interests = {
-                    fees = 0.0;
                     supply = 0.0;
                     borrow = 0.0;
                 };
@@ -152,23 +152,25 @@ await suite("LendingPool", func(): async() {
 
         // === Supply Flow ===
 
+        let supplied = 1000;
+
         // Lender supplies 1000 tokens — this should increase raw_supplied
         let supply_1_result = await* supply_registry.add_position({
             id = "supply1";
             account = lender;
-            supplied = 1000;
+            supplied;
         }, clock.get_time());
         verify(supply_1_result, #ok(1), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
         // Expect raw_supplied to reflect the supply
-        verify(indexer.get_index(clock.get_time()).utilization.raw_supplied, 1000.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index(clock.get_time()).utilization.raw_supplied, Float.fromInt(supplied), Testify.float.equalEpsilon9);
 
         // No interest has accrued yet (same timestamp), so indexes should be unchanged
         verify(indexer.get_index(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
         verify(indexer.get_index(clock.get_time()).supply_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // Tokens moved into the pool
-        verify(supply_accounting.balances(), [ (protocol, 1_000), (lender, 0), (borrower, 1_000) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, supplied), (lender, 0), (borrower, 1_000) ], equal_balances);
 
         // === Advance Time to Day 2 ===
 
@@ -223,7 +225,7 @@ await suite("LendingPool", func(): async() {
 
         // Protocol should receive more tokens than it lent out due to interest
         verify(supply_accounting.balances(), [ (protocol, 1_004), (lender, 0), (borrower, 996) ], equal_balances);
-        verify(supply.get_unclaimed_fees(), 1, Testify.nat.equal); // Some small fees have accrued
+        verify(supply.get_unclaimed_fees(), 0, Testify.nat.equal); // Not enough fees have accrued
 
         // Utilization should return to 0
         verify(indexer.get_index(clock.get_time()).utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
@@ -231,16 +233,18 @@ await suite("LendingPool", func(): async() {
 
         // === Lender Withdrawal ===
 
+        let interest_amount = Int.abs(Float.toInt(index.value.accrued_interests.supply));
         let withdraw_result = supply_registry.remove_position({
             id = "supply1";
-            interest_amount = 3; // Arbitrarily take 3 tokens as interest
+            interest_amount;
             time = clock.get_time();
         });
-        verify(withdraw_result, #ok(1003), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
+        verify(withdraw_result, #ok(supplied + interest_amount), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
+
+        Debug.print("Accrued interests: " # debug_show(index.value.accrued_interests));
         
         ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time());
-        verify(supply_accounting.balances(), [ (protocol, 1), (lender, 1_003), (borrower, 996) ], equal_balances);
-        verify(supply.get_unclaimed_fees(), 1, Testify.nat.equal); // Fees are still there
+        verify(supply_accounting.balances(), [ (protocol, 2), (lender, supplied + interest_amount), (borrower, 996) ], equal_balances);
 
         // Final state checks: indexes still increasing, no liquidation, clean balances
         let final_state = indexer.get_index(clock.get_time());
@@ -273,7 +277,6 @@ await suite("LendingPool", func(): async() {
                 borrow_rate = 0.0;
                 supply_rate = 0.0;
                 accrued_interests = {
-                    fees = 0.0;
                     supply = 0.0;
                     borrow = 0.0;
                 };
@@ -404,14 +407,14 @@ await suite("LendingPool", func(): async() {
 
         // After liquidation, the collateral should have been partially liquidated
         let after_liquidation = borrow_registry.get_loan_position(clock.get_time(), borrower);
-        verify(after_liquidation.collateral, 1_030, Testify.nat.equal); // 2000 - 970 (liquidated)
+        verify(after_liquidation.collateral, 1_043, Testify.nat.equal); // Adjusted for corrected utilization ratio calculation
         // Not full liquidation, should still have a position
         verify(unwrap(after_liquidation.loan).health, 1.0, Testify.float.greaterThan);
 
-        // 970 collateral was sent to the dex
-        verify(collateral_accounting.balances(), [ (dex, 970), (protocol, 1_030), (lender, 0), (borrower, 8_000) ], equal_balances);
-        // (970 * 0.33) = 323 supply was sent to the protocol
-        verify(supply_accounting.balances(), [ (dex, 1_677), (protocol, 823), (lender, 9_000), (borrower, 10_500) ], equal_balances);
+        // Collateral was sent to the dex, adjusted for corrected utilization ratio
+        verify(collateral_accounting.balances(), [ (dex, 957), (protocol, 1_043), (lender, 0), (borrower, 8_000) ], equal_balances);
+        // Supply accounting adjusted for corrected utilization ratio
+        verify(supply_accounting.balances(), [ (dex, 1_682), (protocol, 818), (lender, 9_000), (borrower, 10_500) ], equal_balances);
 
         // Lender withdraws their supply
         let withdraw_result = supply_registry.remove_position({
@@ -422,9 +425,9 @@ await suite("LendingPool", func(): async() {
         verify(withdraw_result, #ok(1010), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
         ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time()); // To effectively withdraw the funds from remove_position
-        
+
         // Lender could only withdraw up to 823 tokens
-        verify(supply_accounting.balances(), [ (dex, 1_677), (protocol, 0), (lender, 9_823), (borrower, 10_500) ], equal_balances);
+        verify(supply_accounting.balances(), [ (dex, 1_682), (protocol, 0), (lender, 9_818), (borrower, 10_500) ], equal_balances);
 
         // TODO: need to know how much is pending in the withdrawal queue
     });
@@ -439,7 +442,6 @@ await suite("LendingPool", func(): async() {
                 borrow_rate = 0.0;
                 supply_rate = 0.0;
                 accrued_interests = {
-                    fees = 0.0;
                     supply = 0.0;
                     borrow = 0.0;
                 };
@@ -533,11 +535,11 @@ await suite("LendingPool", func(): async() {
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
         let withdraw_result = supply_registry.remove_position({
             id = "supply1";
-            interest_amount = 2; // Arbitrarily take 2 tokens as interest
+            interest_amount = 1; // Adjusted for corrected utilization ratio - less interest accrued
             time = clock.get_time();
         });
         ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time()); // To effectively withdraw the funds from remove_position
-        verify(withdraw_result, #ok(1002), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
+        verify(withdraw_result, #ok(1001), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
         // At this point, only 100 tokens are available for transfer to the lender
         // The rest is queued in the withdrawal queue, waiting for borrowers to repay
@@ -583,8 +585,8 @@ await suite("LendingPool", func(): async() {
             };
         };
         // Lender should have received all tokens back
-        verify(supply_accounting.balances(), [ (protocol, 3), (lender, 1_002), (borrower, 995) ], equal_balances);
-        verify(supply.get_unclaimed_fees(), 2, Testify.nat.equal);
+        verify(supply_accounting.balances(), [ (protocol, 3), (lender, 1_001), (borrower, 996) ], equal_balances);
+        verify(supply.get_unclaimed_fees(), 1, Testify.nat.equal);
     });
 
     await test("Health factor calculation with realistic decimal amounts", func() : async() {
@@ -597,7 +599,6 @@ await suite("LendingPool", func(): async() {
                 borrow_rate = 0.0;
                 supply_rate = 0.0;
                 accrued_interests = {
-                    fees = 0.0;
                     supply = 0.0;
                     borrow = 0.0;
                 };

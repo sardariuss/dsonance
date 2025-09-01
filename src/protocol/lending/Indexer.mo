@@ -27,7 +27,6 @@ module {
         index: { var value: LendingIndex; };
         parameters: IndexerParameters;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
-        utilization_updater: UtilizationUpdater.UtilizationUpdater;
     }){
 
         let observers = Buffer.Buffer<Observer>(0);
@@ -46,23 +45,17 @@ module {
         };
 
         public func add_raw_supplied({ amount: Nat; time: Nat; }) {
-            let utilization = switch(utilization_updater.add_raw_supplied(index.value.utilization, amount)){
-                case(#err(err)) { Debug.trap(err); };
-                case(#ok(u)){ u; };
-            };
+            let utilization = UtilizationUpdater.add_raw_supplied(index.value.utilization, amount);
             update(?utilization, time);
         };
 
         public func remove_raw_supplied({ amount: Float; time: Nat; }) {
-            let utilization = switch(utilization_updater.remove_raw_supplied(index.value.utilization, amount)){
-                case(#err(err)) { Debug.trap(err); };
-                case(#ok(u)){ u; };
-            };
+            let utilization = UtilizationUpdater.remove_raw_supplied(index.value.utilization, amount);
             update(?utilization, time);
         };
 
         public func add_raw_borrow({ amount: Nat; time: Nat; }) {
-            let utilization = switch(utilization_updater.add_raw_borrow(index.value.utilization, amount)){
+            let utilization = switch(UtilizationUpdater.add_raw_borrow(index.value.utilization, amount)){
                 case(#err(err)) { Debug.trap(err); };
                 case(#ok(u)){ u; };
             };
@@ -70,10 +63,7 @@ module {
         };
 
         public func remove_raw_borrow({ amount: Float; time: Nat; }) {
-            let utilization = switch(utilization_updater.remove_raw_borrow(index.value.utilization, amount)){
-                case(#err(err)) { Debug.trap(err); };
-                case(#ok(u)){ u; };
-            };
+            let utilization = UtilizationUpdater.remove_raw_borrow(index.value.utilization, amount);
             update(?utilization, time);
         };
 
@@ -167,7 +157,6 @@ module {
         let borrow_interests = state.utilization.raw_borrowed * state.borrow_rate * elapsed_annual;
 
         let accrued_interests = {
-            fees = 0.0; // @todo: to be removed
             supply = state.accrued_interests.supply + supply_interests;
             borrow = state.accrued_interests.borrow + borrow_interests;
         };

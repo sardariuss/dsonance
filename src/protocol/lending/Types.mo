@@ -76,11 +76,6 @@ module {
 
     // ------------------------------ ACTUAL MODULE TYPES ------------------------------
 
-    public type UtilizationParameters = {
-        // @todo: remove reserve_liquidity, since accumulated fees can already not be withdrawn?
-        // Otherwise it should be taken into account when withdrawing supply!
-        reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
-    };
 
     public type IndexerParameters = {
         lending_fee_ratio: Float; // portion of the supply interest reserved as a fee for the protocol
@@ -101,6 +96,7 @@ module {
                               // in a single transaction, e.g. 50% of the borrow
                               // can be repaid in a single transaction
         max_slippage: Float;
+        reserve_liquidity: Float; // portion of supply reserved (0.0 to 1.0, e.g., 0.1 for 10%), to mitigate illiquidity risk
     };
 
     public type TWAPConfig = {
@@ -108,7 +104,7 @@ module {
         max_observations: Nat; // Maximum number of price observations to store
     };
 
-    public type LendingParameters = IndexerParameters and SupplyParameters and BorrowParameters and UtilizationParameters and {
+    public type LendingParameters = IndexerParameters and SupplyParameters and BorrowParameters and {
         interest_rate_curve: [CurvePoint];
     };
 
@@ -246,7 +242,6 @@ module {
         borrow_rate: Float;
         supply_rate: Float;
         accrued_interests: {
-            fees: Float;
             supply: Float;
             borrow: Float;
         };

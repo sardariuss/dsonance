@@ -1,10 +1,10 @@
 import Int         "mo:base/Int";
 import Float       "mo:base/Float";
 import Result      "mo:base/Result";
+import Debug       "mo:base/Debug";
 
 import Types       "Types";
 import LedgerTypes "../ledger/Types";
-import Math        "../utils/Math";
 
 module {
 
@@ -49,7 +49,10 @@ module {
         };
 
         public func get_unclaimed_fees() : Nat {
-            Int.abs(Math.ceil_to_int(unclaimed_fees.value));
+            if (unclaimed_fees.value < 0.0) {
+                Debug.trap("Invariant broken: unclaimed_fees is negative: " # debug_show(unclaimed_fees.value));
+            };
+            Int.abs(Float.toInt(unclaimed_fees.value));
         };
 
         public func claim_fees() : async* TransferResult {

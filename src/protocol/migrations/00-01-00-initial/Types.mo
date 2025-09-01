@@ -732,7 +732,6 @@ module {
         borrow_rate: Float; // borrow rate (ratio)
         supply_rate: Float; // supply rate (ratio)
         accrued_interests: {
-            fees: Float;
             supply: Float;
             borrow: Float;
         };

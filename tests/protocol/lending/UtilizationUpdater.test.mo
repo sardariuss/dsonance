@@ -4,15 +4,6 @@ import { verify; Testify; } = "../../utils/Testify";
 
 suite("Utilization", func() {
 
-    let parameters = {
-        reserve_liquidity = 0.1;
-    };
-    let updater = UtilizationUpdater.UtilizationUpdater({ parameters });
-
-    let testify_utilization_result = {
-        equal = Testify.result(Testify.utilization.equal, Testify.text.equal).equal;
-    };
-
     test("add_raw_supplied increases raw_supplied and updates ratio", func() {
         let u0 = {
             raw_supplied = 0.0;
@@ -24,7 +15,8 @@ suite("Utilization", func() {
             raw_borrowed = 0.0;
             ratio = 0.0;
         };
-        verify(updater.add_raw_supplied(u0, 100), #ok(expected), testify_utilization_result.equal);
+        let result = UtilizationUpdater.add_raw_supplied(u0, 100);
+        verify(result, expected, Testify.utilization.equal);
     });
 
     test("remove_raw_supplied decreases raw_supplied and updates ratio", func() {
@@ -38,7 +30,8 @@ suite("Utilization", func() {
             raw_borrowed = 0.0;
             ratio = 0.0;
         };
-        verify(updater.remove_raw_supplied(u0, 50.0), #ok(expected), testify_utilization_result.equal);
+        let result = UtilizationUpdater.remove_raw_supplied(u0, 50.0);
+        verify(result, expected, Testify.utilization.equal);
     });
 
     test("add_raw_borrow increases raw_borrowed and updates ratio", func() {
@@ -50,37 +43,35 @@ suite("Utilization", func() {
         let expected = {
             raw_supplied = 100.0;
             raw_borrowed = 75.0;
-            ratio = 75.0 / 90.0;
+            ratio = 75.0 / 100.0; // Pure mathematical ratio: borrowed / supplied
         };
-        verify(updater.add_raw_borrow(u0, 75), #ok(expected), testify_utilization_result.equal);
+        let result = UtilizationUpdater.add_raw_borrow(u0, 75);
+        verify(result, #ok(expected), Testify.result(Testify.utilization.equal, Testify.text.equal).equal);
     });
 
     test("remove_raw_borrow decreases raw_borrowed and updates ratio", func() {
         let u0 = {
             raw_supplied = 100.0;
             raw_borrowed = 80.0;
-            ratio = 0.8 / 0.9; // 80/90
+            ratio = 80.0 / 100.0; // Pure mathematical ratio: borrowed / supplied
         };
         let expected = {
             raw_supplied = 100.0;
             raw_borrowed = 50.0;
-            ratio = 50.0 / 90.0;
+            ratio = 50.0 / 100.0; // Pure mathematical ratio: borrowed / supplied
         };
-        verify(updater.remove_raw_borrow(u0, 30.0), #ok(expected), testify_utilization_result.equal);
+        let result = UtilizationUpdater.remove_raw_borrow(u0, 30.0);
+        verify(result, expected, Testify.utilization.equal);
     });
 
-    test("ratio is 1.0 if borrowed > available", func() {
+    test("add_raw_borrow fails if trying to borrow more than supplied", func() {
         let u0 = {
             raw_supplied = 100.0;
             raw_borrowed = 95.0;
-            ratio = 0.0;
+            ratio = 0.95;
         };
-        let expected = {
-            raw_supplied = 100.0;
-            raw_borrowed = 105.0;
-            ratio = 1.0;
-        };
-        verify(updater.add_raw_borrow(u0, 10), #ok(expected), testify_utilization_result.equal);
+        let result = UtilizationUpdater.add_raw_borrow(u0, 10);
+        verify(result, #err("Cannot borrow more than total supplied: 105 > 100"), Testify.result(Testify.utilization.equal, Testify.text.equal).equal);
     });
 
     test("ratio is 0.0 if nothing supplied", func() {
@@ -94,47 +85,48 @@ suite("Utilization", func() {
             raw_borrowed = 0.0;
             ratio = 0.0;
         };
-        verify(updater.add_raw_borrow(u0, 0), #ok(expected), testify_utilization_result.equal);
+        let result = UtilizationUpdater.add_raw_borrow(u0, 0);
+        verify(result, #ok(expected), Testify.result(Testify.utilization.equal, Testify.text.equal).equal);
     });
 
-    test("ratio is 1.0 if nothing supplied but something borrowed", func() {
+    test("add_raw_borrow fails if nothing supplied but trying to borrow", func() {
         let u0 = {
             raw_supplied = 0.0;
             raw_borrowed = 0.0;
             ratio = 0.0;
         };
-        let expected = {
-            raw_supplied = 0.0;
-            raw_borrowed = 10.0;
-            ratio = 1.0;
-        };
-        verify(updater.add_raw_borrow(u0, 10), #ok(expected), testify_utilization_result.equal);
+        let result = UtilizationUpdater.add_raw_borrow(u0, 10);
+        verify(result, #err("Cannot borrow more than total supplied: 10 > 0"), Testify.result(Testify.utilization.equal, Testify.text.equal).equal);
     });
 
-    test("remove_raw_supplied returns #err if removing too much", func() {
+    test("remove_raw_supplied clamps to zero instead of erroring", func() {
         let u0 = {
             raw_supplied = 10.0;
             raw_borrowed = 0.0;
             ratio = 0.0;
         };
-        verify(
-            updater.remove_raw_supplied(u0, 20.0),
-            #err("Cannot remove more than total supplied"),
-            testify_utilization_result.equal
-        );
+        let expected_clamped = {
+            raw_supplied = 0.0;
+            raw_borrowed = 0.0;
+            ratio = 0.0;
+        };
+        let result = UtilizationUpdater.remove_raw_supplied(u0, 20.0);
+        verify(result, expected_clamped, Testify.utilization.equal);
     });
 
-    test("remove_raw_borrow returns #err if removing too much", func() {
+    test("remove_raw_borrow clamps to zero instead of erroring", func() {
         let u0 = {
             raw_supplied = 0.0;
             raw_borrowed = 5.0;
             ratio = 0.0;
         };
-        verify(
-            updater.remove_raw_borrow(u0, 10.0),
-            #err("Cannot remove more than total borrowed"),
-            testify_utilization_result.equal
-        );
+        let expected_clamped = {
+            raw_supplied = 0.0;
+            raw_borrowed = 0.0;
+            ratio = 0.0;
+        };
+        let result = UtilizationUpdater.remove_raw_borrow(u0, 10.0);
+        verify(result, expected_clamped, Testify.utilization.equal);
     });
 
 });

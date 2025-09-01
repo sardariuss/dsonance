@@ -117,7 +117,6 @@ module {
                         borrow_rate = 0.0;
                         supply_rate = 0.0;
                         accrued_interests = {
-                            fees = 0.0;
                             supply = 0.0;
                             borrow = 0.0;
                         };

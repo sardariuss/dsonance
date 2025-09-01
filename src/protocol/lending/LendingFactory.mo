@@ -5,7 +5,6 @@ import SupplyRegistry     "SupplyRegistry";
 import InterestRateCurve  "InterestRateCurve";
 import WithdrawalQueue    "WithdrawalQueue";
 import Indexer            "Indexer";
-import UtilizationUpdater "UtilizationUpdater";
 import SupplyAccount      "SupplyAccount";
 import LedgerTypes        "../ledger/Types";
 import LedgerAccount      "../ledger/LedgerAccount";
@@ -44,14 +43,9 @@ module {
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
     } {
 
-        let utilization_updater = UtilizationUpdater.UtilizationUpdater({
-            parameters;
-        });
-
         let indexer = Indexer.Indexer({
             parameters;
             index;
-            utilization_updater;
             interest_rate_curve = InterestRateCurve.InterestRateCurve(
                 parameters.interest_rate_curve
             );
@@ -97,7 +91,6 @@ module {
         let borrow_registry = BorrowRegistry.BorrowRegistry({
             indexer;
             register;
-            utilization_updater;
             withdrawal_queue;
             supply;
             collateral;
