@@ -121,6 +121,7 @@ module {
         /// Liquidate borrow positions if their health factor is below 1.0.
         public func check_all_positions_and_liquidate(time: Nat) : async* Result<(), Text> {
 
+            // @index_todo: need current index
             let index = indexer.get_index(time).borrow_index;
             let loans = get_loans(time);
 
@@ -343,7 +344,7 @@ module {
             let index = indexer.get_index(time);
 
             // @todo: should add to a map of <Account, Nat> the amount concurrent borrows that could 
-            // increase the utilization ratio more than 1.0
+            // increase the utilization ratio more than 1.
 
             // Verify the utilization does not exceed the allowed limit
             let utilization = switch(utilization_updater.add_raw_borrow(index.utilization, amount)){
@@ -368,7 +369,7 @@ module {
             };
 
             let finalize = func(tx: TxIndex) : BorrowOperation {
-                indexer.add_raw_borrow({ amount; time; });
+                indexer.add_raw_borrow({ amount; time; }); // TODO: can trap after transfer, not safe!
                 common_finalize({
                     account;
                     position = update;

@@ -44,17 +44,6 @@ module {
             };
         };
 
-        public func transfer_no_commit(args : Icrc1TransferArgs) : async Result<Nat, Text> {
-            switch(info.ledger_accounting.transfer({
-                from = info.account;
-                to = args.to;
-                amount = args.amount;
-            })) {
-                case (#ok(tx_id)) { #ok(tx_id) };
-                case (#err(error)) { #err(convert_transfer_error_to_text(error)) };
-            };
-        };
-
         public func transfer_from(args : TransferFromArgs) : async* Result<Nat, Text> {
             switch(info.ledger_accounting.transfer({
                 from = args.from;

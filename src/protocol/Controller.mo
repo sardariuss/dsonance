@@ -1,6 +1,6 @@
 import Types                   "Types";
 import LockScheduler           "LockScheduler";
-import ParticipationMinter     "ParticipationMinter";
+import ParticipationMiner     "ParticipationMiner";
 import MapUtils                "utils/Map";
 import Timeline                "utils/Timeline";
 import Clock                   "utils/Clock";
@@ -94,7 +94,7 @@ module {
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         collateral_price_tracker: IPriceTracker;
-        participation_minter: ParticipationMinter.ParticipationMinter;
+        participation_miner: ParticipationMiner.ParticipationMiner;
         parameters: Parameters;
         foresight_updater: ForesightUpdater.ForesightUpdater;
     }){
@@ -132,6 +132,8 @@ module {
         // TODO: ideally one should have a true preview function that does not mutate the state
         public func put_ballot_for_free(args: PutBallotArgs) : PutBallotResult {
 
+            let timestamp = clock.get_time();
+
             let { ballot_id; vote_type; } = switch(process_ballot_input(args)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(input)) { input; };
@@ -140,7 +142,6 @@ module {
             // TODO: this preview is somehow required to trigger the update of the foresight
             // Why? Because currently the foresight updater is filtering out the items based on the timestamp,
             // adding a position, even with a supplied amount of 0, will update the indexer's timestamp.
-            let time = clock.get_time();
             let preview_result = supply_registry.add_position_without_transfer({
                 id = ballot_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
@@ -148,7 +149,7 @@ module {
                 // it can lead to a miscomprehension of the ballot APY preview. Ideally, one should have a way
                 // to preview with our without the impact on the supply APY.
                 supplied = 0;
-            }, time);
+            }, timestamp);
 
             let tx_id = switch(preview_result){
                 case(#err(err)) { return #err(err); };
@@ -157,6 +158,7 @@ module {
 
             perform_put_ballot({
                 args;
+                timestamp;
                 vote_type;
                 ballot_id;
                 tx_id;
@@ -165,17 +167,18 @@ module {
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
 
+            let timestamp = clock.get_time();
+
             let { ballot_id; vote_type; } = switch(process_ballot_input(args)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(input)) { input; };
             };
 
-            let time = clock.get_time();
             let transfer = await* supply_registry.add_position({
                 id = ballot_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
                 supplied = args.amount;
-            }, time);
+            }, timestamp);
 
             let tx_id = switch(transfer){
                 case(#err(err)) { return #err(err); };
@@ -184,6 +187,7 @@ module {
 
             perform_put_ballot({
                 args;
+                timestamp;
                 vote_type;
                 ballot_id;
                 tx_id;
@@ -281,22 +285,22 @@ module {
             };
 
             // 6. Mint participation tokens
-            switch(await* participation_minter.mint(time)){
-                case(#err(error)) { Debug.print("Failed to mint participation tokens: " # error); };
+            switch(participation_miner.distribute(time)){
+                case(#err(error)) { Debug.print("Failed to distribute participation: " # error); };
                 case(#ok(_)) {};
             };
         };
 
-        public func claim_participation_owed(account: Account) : async* ?Nat {
-            await* participation_minter.claim_owed(account);
+        public func mine_participation(account: Account) : async* ?Nat {
+            await* participation_miner.mine(account);
         };
 
         public func get_participation_trackers() : [(Account, ParticipationTracker)] {
-            participation_minter.get_trackers();
+            participation_miner.get_trackers();
         };
 
         public func get_participation_tracker(account: Account) : ?ParticipationTracker {
-            participation_minter.get_tracker(account);
+            participation_miner.get_tracker(account);
         };
 
         public func get_clock() : Clock.Clock {
@@ -343,12 +347,11 @@ module {
 
         func perform_put_ballot({
             args: PutBallotArgs;
+            timestamp: Nat;
             vote_type: VoteType;
             ballot_id: Text;
             tx_id: Nat;
         }): PutBallotResult {
-
-            let timestamp = clock.get_time();
             
             let from = { owner = args.caller; subaccount = args.from_subaccount };
 

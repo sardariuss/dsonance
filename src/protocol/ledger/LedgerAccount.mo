@@ -90,35 +90,6 @@ module {
             { args; result; };
         };
 
-        public func transfer_no_commit({
-            amount: Nat;
-            to: Account;
-        }) : async Transfer {
-
-            let args = {
-                to;
-                from_subaccount = null;
-                // Deduct the transfer fee from the amount to transfer
-                amount = Int.abs(Int.max(amount - ledger.get_token_info().fee, 0));
-                fee = ?ledger.get_token_info().fee;
-                memo = null;
-                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
-            };
-
-            if (args.amount == 0) {
-                return { args; result = #err("Amount " # debug_show(amount) # " is too low to cover the transfer fee"); };
-            };
-
-            // Perform the transfer without state commit
-            let result = try {
-                await? ledger.transfer_no_commit(args);
-            } catch(err) {
-                #err("transfer trapped with error code: " # debug_show(Error.code(err)));
-            };
-
-            { args; result; };
-        };
-
         public func perform_swap(payload: SwapPayload) : async* Result<SwapReply, Text> {
             // Check if the from account matches the protocol account
             if (payload.from != protocol_account) {

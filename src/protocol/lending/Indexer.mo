@@ -102,7 +102,7 @@ module {
                 state = index.value;
                 parameters;
                 interest_rate_curve;
-                timestamp = time;
+                time;
                 new_utilization;
             });
             
@@ -130,16 +130,9 @@ module {
         state: LendingIndex;
         parameters: IndexerParameters;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
-        timestamp: Nat;
+        time: Nat;
         new_utilization: ?Utilization;
     }) : LendingIndex {
-
-        let elapsed_ns : Int = timestamp - state.timestamp;
-
-        // If the time is before the last update
-        if (elapsed_ns < 0) {
-            Debug.trap("Cannot update state: time is before last update");
-        };
 
         let new_state = switch(new_utilization){
             case(null) { state; };
@@ -150,6 +143,16 @@ module {
                 { state with utilization; borrow_rate; supply_rate; };
             };
         };
+
+        // Ensure timestamp is monotonic.
+        // On the IC, certified block time (`time`) is not guaranteed to
+        // strictly increase between messages — it can stay the same or
+        // even appear to go backwards relative to our last state.
+        // To explicitly account for the IC’s time model and prevent
+        // negative elapsed periods (which would imply "negative interest
+        // accrual"), we clamp forward with Nat.max.
+        let timestamp = Nat.max(time, state.timestamp);
+        let elapsed_ns : Int = timestamp - state.timestamp;
 
         // If no time has passed, no need to accrue interests nor update indexes
         if (elapsed_ns == 0) {

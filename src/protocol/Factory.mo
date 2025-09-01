@@ -18,7 +18,7 @@ import LedgerFungible         "ledger/LedgerFungible";
 import LedgerAccount          "ledger/LedgerAccount";
 import Dex                    "ledger/Dex";
 import PriceTracker           "ledger/PriceTracker";
-import ParticipationMinter    "ParticipationMinter";
+import ParticipationMiner     "ParticipationMiner";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
@@ -117,7 +117,7 @@ module {
             b = duration_scaler.b;
         });
 
-        let participation_minter = ParticipationMinter.ParticipationMinter({
+        let participation_miner = ParticipationMiner.ParticipationMiner({
             genesis_time;
             parameters = parameters.participation;
             minting_account = participation_account;
@@ -150,7 +150,7 @@ module {
             borrow_registry;
             withdrawal_queue;
             collateral_price_tracker;
-            participation_minter;
+            participation_miner;
             parameters;
             foresight_updater;
         });

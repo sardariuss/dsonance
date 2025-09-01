@@ -44,7 +44,6 @@ let mockDex : Types.IDex = {
 let mockPayLedger : Types.ILedgerFungible = {
     balance_of = func(_account: Types.Account) : async* Nat { 0 };
     transfer = func(_args: Types.Icrc1TransferArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
-    transfer_no_commit = func(_args: Types.Icrc1TransferArgs) : async Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     transfer_from = func(_args: Types.TransferFromArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     approve = func(_args: Types.ApproveArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     get_token_info = func() : Types.LedgerInfo { { token_symbol = "ckBTC"; decimals = 8; fee = 1000; }; };
@@ -53,7 +52,6 @@ let mockPayLedger : Types.ILedgerFungible = {
 let mockReceiveLedger : Types.ILedgerFungible = {
     balance_of = func(_account: Types.Account) : async* Nat { 0 };
     transfer = func(_args: Types.Icrc1TransferArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
-    transfer_no_commit = func(_args: Types.Icrc1TransferArgs) : async Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     transfer_from = func(_args: Types.TransferFromArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     approve = func(_args: Types.ApproveArgs) : async* Result.Result<Nat, Text> { #err("Service temporarily unavailable") };
     get_token_info = func() : Types.LedgerInfo { { token_symbol = "ckUSDT"; decimals = 6; fee = 1000; }; };

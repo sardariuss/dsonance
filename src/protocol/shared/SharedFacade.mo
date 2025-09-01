@@ -61,8 +61,8 @@ module {
             await* controller.run();
         };
 
-        public func claim_participation_owed(account: Account) : async* ?Nat {
-            await* controller.claim_participation_owed(account);
+        public func mine_participation(account: Account) : async* ?Nat {
+            await* controller.mine_participation(account);
         };
 
         public func get_participation_trackers() : [(Account, ParticipationTracker)] {
