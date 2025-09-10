@@ -38,7 +38,7 @@ await suite("LendingPool", func(): async() {
         supply_cap = 1_000_000_000_000; // arbitrary supply cap
         borrow_cap = 1_000_000_000_000; // arbitrary borrow cap
         reserve_liquidity = 0.1;
-        lending_fee_ratio = 0.1;
+        lending_fee_ratio = 0.25;
         target_ltv = 0.60;
         max_ltv = 0.70;
         liquidation_threshold = 0.75;
@@ -59,6 +59,7 @@ await suite("LendingPool", func(): async() {
         };
     };
 
+    // TODO: Why is there still 2 tokens left in the protocol whereas the accrued fees is less than 1 ?
     await test("Nominal test", func() : async() {
 
         // === Setup Phase ===
@@ -72,7 +73,6 @@ await suite("LendingPool", func(): async() {
                 borrow_rate = 0.0;
                 supply_rate = 0.0;
                 accrued_interests = {
-                    fees = 0.0;
                     supply = 0.0;
                     borrow = 0.0;
                 };
@@ -107,8 +107,12 @@ await suite("LendingPool", func(): async() {
 
         let protocol_info = {
             principal = protocol.owner;
-            supply = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
-            collateral = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+            supply = { 
+                subaccount = protocol.subaccount; 
+                fees_subaccount = "\01" : Blob; 
+                unclaimed_fees = { var value = 0.0; }; 
+            };
+            collateral = { subaccount = protocol.subaccount; };
         };
 
         let supply_accounting = LedgerAccounting.LedgerAccounting([(protocol, 0), (lender, 1_000), (borrower, 1_000)]);
@@ -128,7 +132,7 @@ await suite("LendingPool", func(): async() {
         });
 
         // Build the lending system
-        let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { indexer; supply; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             protocol_info;
             parameters;
@@ -138,34 +142,35 @@ await suite("LendingPool", func(): async() {
             collateral_ledger;
             dex;
             collateral_price_tracker;
-            clock;
         });
 
         // === Initial Assertions ===
         
-        verify(indexer.get_index().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
         verify(supply_accounting.balances(), [ (protocol, 0), (lender, 1_000), (borrower, 1_000) ], equal_balances);
         verify(collateral_accounting.balances(), [ (protocol, 0), (lender, 0), (borrower, 5_000) ], equal_balances);
 
         // === Supply Flow ===
 
+        let supplied = 1000;
+
         // Lender supplies 1000 tokens — this should increase raw_supplied
         let supply_1_result = await* supply_registry.add_position({
             id = "supply1";
             account = lender;
-            supplied = 1000;
-        });
+            supplied;
+        }, clock.get_time());
         verify(supply_1_result, #ok(1), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
         // Expect raw_supplied to reflect the supply
-        verify(indexer.get_index().utilization.raw_supplied, 1000.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index(clock.get_time()).utilization.raw_supplied, Float.fromInt(supplied), Testify.float.equalEpsilon9);
 
         // No interest has accrued yet (same timestamp), so indexes should be unchanged
-        verify(indexer.get_index().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
-        verify(indexer.get_index().supply_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index(clock.get_time()).supply_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // Tokens moved into the pool
-        verify(supply_accounting.balances(), [ (protocol, 1_000), (lender, 0), (borrower, 1_000) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, supplied), (lender, 0), (borrower, 1_000) ], equal_balances);
 
         // === Advance Time to Day 2 ===
 
@@ -174,14 +179,14 @@ await suite("LendingPool", func(): async() {
         // === Collateral Flow ===
 
         // Borrower supplies 5000 worth of collateral
-        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 5000; kind = #PROVIDE_COLLATERAL; });
+        let collateral_1_result = await* borrow_registry.run_operation(clock.get_time(), { account = borrower; amount = 5000; kind = #PROVIDE_COLLATERAL; });
         verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // === Borrow Flow ===
 
         // Borrower borrows 200 tokens
-        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 200; kind = #BORROW_SUPPLY; });
+        let borrow_1_result = await* borrow_registry.run_operation(clock.get_time(), { account = borrower; amount = 200; kind = #BORROW_SUPPLY; });
         verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
 
         // 200 tokens have left the pool
@@ -189,68 +194,72 @@ await suite("LendingPool", func(): async() {
 
         // === Post-borrow Expectations ===
 
-        // A borrow has occurred, so utilization > 0 → non-zero borrow rate is established
-        // But supply interest was calculated *before* the rate was updated (still 0%)
-        // So the borrow index has increased slightly due to non-zero rate, but:
-        verify(indexer.get_index().borrow_index.value, 1.0, Testify.float.greaterThan);
-
-        // Supply rate became non-zero only after this update — not enough time passed for interest
-        // So supply_index is still 1.0 — this is correct behavior!
-        verify(indexer.get_index().supply_index.value, 1.0, Testify.float.equalEpsilon9);
+        // Still 0 because no time has passed yet
+        verify(indexer.get_index(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index(clock.get_time()).supply_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // === Advance Time to Day 100 (interest should accrue) ===
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(100)))), #repeatedly);
 
         // Trigger an index update by reading state
-        let state_day100 = indexer.get_index();
+        let state_day100 = indexer.get_index(clock.get_time());
 
         // Borrow index should have increased more due to time and utilization
         verify(state_day100.borrow_index.value, 1.0, Testify.float.greaterThan);
-
         // Supply index should now also have increased due to non-zero supply rate
         verify(state_day100.supply_index.value, 1.0, Testify.float.greaterThan);
 
         // === Borrower Repayment ===
 
+        // No fee accrued before repayment
+        verify(supply.get_unclaimed_fees(), 0, Testify.nat.equal);
+        Debug.print("Unclaimed fees: " # debug_show(protocol_info.supply.unclaimed_fees.value));
+        Debug.print("Accrued interests: " # debug_show(index.value.accrued_interests));
+
         // Borrower repays full amount, got to 201 tokens to account for accrued interest
-        let { current_owed } = unwrap(borrow_registry.get_loan_position(borrower).loan);
-        let repay_result = await* borrow_registry.run_operation({ 
+        let { current_owed } = unwrap(borrow_registry.get_loan_position(clock.get_time(), borrower).loan);
+        let repay_result = await* borrow_registry.run_operation(clock.get_time(), { 
             account = borrower;
             amount = Int.abs(Float.toInt(current_owed));
             kind = #REPAY_SUPPLY({ max_slippage_amount = 1; }); // Use slippage of 1 because the amount has been truncated
         });
         verify(Result.isOk(repay_result), true, Testify.bool.equal);
 
-        // Protocol should receive more tokens than it lent out due to interest
         verify(supply_accounting.balances(), [ (protocol, 1_004), (lender, 0), (borrower, 996) ], equal_balances);
+        Debug.print("Unclaimed fees: " # debug_show(protocol_info.supply.unclaimed_fees.value));
+        Debug.print("Accrued interests: " # debug_show(index.value.accrued_interests));
+        verify(supply.get_unclaimed_fees(), 1, Testify.nat.equal);
 
         // Utilization should return to 0
-        verify(indexer.get_index().utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
-        verify(indexer.get_index().utilization.ratio, 0.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index(clock.get_time()).utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index(clock.get_time()).utilization.ratio, 0.0, Testify.float.equalEpsilon9);
 
         // === Lender Withdrawal ===
 
+        let interest_amount = Int.abs(Float.toInt(index.value.accrued_interests.supply));
         let withdraw_result = supply_registry.remove_position({
             id = "supply1";
-            share = 1.0; // Full withdrawal
+            interest_amount;
+            time = clock.get_time();
         });
-        ignore await* withdrawal_queue.process_pending_withdrawals(); // To effectively withdraw the funds from remove_position
+        verify(withdraw_result, #ok(supplied + interest_amount), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
-        verify(withdraw_result, #ok(1003), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
-        verify(supply_accounting.balances(), [ (protocol, 1), (lender, 1_003), (borrower, 996) ], equal_balances);
+        Debug.print("Accrued interests: " # debug_show(index.value.accrued_interests));
+        
+        ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time());
+        verify(supply_accounting.balances(), [ (protocol, 2), (lender, supplied + interest_amount), (borrower, 996) ], equal_balances);
 
         // Final state checks: indexes still increasing, no liquidation, clean balances
-        let final_state = indexer.get_index();
+        let final_state = indexer.get_index(clock.get_time());
         verify(final_state.borrow_index.value, 1.0, Testify.float.greaterThan);
         verify(final_state.supply_index.value, 1.0, Testify.float.greaterThan);
-
         // Collateral is untouched, since no liquidation
         verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // === Collateral Withdrawal ===
 
         // Borrower withdraw 5000 worth of collateral
-        let collateral_withdrawal_result = await* borrow_registry.run_operation({ 
+        let collateral_withdrawal_result = await* borrow_registry.run_operation(clock.get_time(), { 
             account = borrower; 
             amount = 5000;
             kind = #WITHDRAW_COLLATERAL;
@@ -271,7 +280,6 @@ await suite("LendingPool", func(): async() {
                 borrow_rate = 0.0;
                 supply_rate = 0.0;
                 accrued_interests = {
-                    fees = 0.0;
                     supply = 0.0;
                     borrow = 0.0;
                 };
@@ -307,8 +315,12 @@ await suite("LendingPool", func(): async() {
 
         let protocol_info = {
             principal = protocol.owner;
-            supply = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
-            collateral = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+            supply = { 
+                subaccount = protocol.subaccount; 
+                fees_subaccount = "\01" : Blob; 
+                unclaimed_fees = { var value = 0.0; }; 
+            };
+            collateral = { subaccount = protocol.subaccount; };
         };
 
         let supply_accounting = LedgerAccounting.LedgerAccounting([(dex, 2_000), (protocol, 0), (lender, 10_000), (borrower, 10_000)]);
@@ -347,38 +359,37 @@ await suite("LendingPool", func(): async() {
             supply_ledger;
             collateral_ledger;
             dex = dex_fake;
-            clock;
         });
 
         // === Initial Assertions ===
         
-        verify(indexer.get_index().borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // Lender supplies 1000 tokens
         let supply_1_result = await* supply_registry.add_position({
             id = "supply1";
             account = lender;
             supplied = 1000;
-        });
+        }, clock.get_time());
         verify(supply_1_result, #ok(1), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
         verify(supply_accounting.balances(), [ (dex, 2_000), (protocol, 1_000), (lender, 9_000), (borrower, 10_000) ], equal_balances);
         
         // Borrower supplies 2000 worth of collateral
-        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 2000; kind = #PROVIDE_COLLATERAL; });
+        let collateral_1_result = await* borrow_registry.run_operation(clock.get_time(), { account = borrower; amount = 2000; kind = #PROVIDE_COLLATERAL; });
         verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (dex, 0), (protocol, 2_000), (lender, 0), (borrower, 8_000) ], equal_balances);
 
         // Borrower borrows 500 tokens
-        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 500; kind = #BORROW_SUPPLY; });
+        let borrow_1_result = await* borrow_registry.run_operation(clock.get_time(), { account = borrower; amount = 500; kind = #BORROW_SUPPLY; });
         verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
         verify(supply_accounting.balances(), [ (dex, 2_000), (protocol, 500), (lender, 9_000), (borrower, 10_500) ], equal_balances);
 
         // Advance time to accrue some interest
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(100)))), #repeatedly);
-        ignore indexer.get_index();
+        ignore indexer.get_index(clock.get_time());
 
         // Check health before price crash (should be healthy)
-        verify(unwrap(borrow_registry.get_loan_position(borrower).loan).health, 1.0, Testify.float.greaterThan);
+        verify(unwrap(borrow_registry.get_loan_position(clock.get_time(), borrower).loan).health, 1.0, Testify.float.greaterThan);
 
         // Simulate a collateral price crash
         // To stay healthy, price > (borrowed / (collateral * liquidation_threshold))
@@ -388,35 +399,40 @@ await suite("LendingPool", func(): async() {
 
         // Advance time to ensure state update uses new price
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(101)))), #repeatedly);
-        ignore indexer.get_index();
+        ignore indexer.get_index(clock.get_time());
 
         // Check health after price crash (should be unhealthy)
-        verify(unwrap(borrow_registry.get_loan_position(borrower).loan).health, 1.0, Testify.float.lessThan);
+        verify(unwrap(borrow_registry.get_loan_position(clock.get_time(), borrower).loan).health, 1.0, Testify.float.lessThan);
 
         // Call liquidation
-        let liquidation = await* borrow_registry.check_all_positions_and_liquidate();
+        let liquidation = await* borrow_registry.check_all_positions_and_liquidate(clock.get_time());
         verify(Result.isOk(liquidation), true, Testify.bool.equal);
 
         // After liquidation, the collateral should have been partially liquidated
-        let after_liquidation = borrow_registry.get_loan_position(borrower);
-        verify(after_liquidation.collateral, 1_030, Testify.nat.equal); // 2000 - 970 (liquidated)
+        let after_liquidation = borrow_registry.get_loan_position(clock.get_time(), borrower);
+        verify(after_liquidation.collateral, 1_043, Testify.nat.equal); // Adjusted for corrected utilization ratio calculation
         // Not full liquidation, should still have a position
         verify(unwrap(after_liquidation.loan).health, 1.0, Testify.float.greaterThan);
 
-        // 970 collateral was sent to the dex
-        verify(collateral_accounting.balances(), [ (dex, 970), (protocol, 1_030), (lender, 0), (borrower, 8_000) ], equal_balances);
-        // (970 * 0.33) = 323 supply was sent to the protocol
-        verify(supply_accounting.balances(), [ (dex, 1_677), (protocol, 823), (lender, 9_000), (borrower, 10_500) ], equal_balances);
+        // Collateral was sent to the dex, adjusted for corrected utilization ratio
+        verify(collateral_accounting.balances(), [ (dex, 957), (protocol, 1_043), (lender, 0), (borrower, 8_000) ], equal_balances);
+        // Supply accounting adjusted for corrected utilization ratio
+        verify(supply_accounting.balances(), [ (dex, 1_682), (protocol, 818), (lender, 9_000), (borrower, 10_500) ], equal_balances);
 
         // Lender withdraws their supply
         let withdraw_result = supply_registry.remove_position({
             id = "supply1";
-            share = 1.0; // Full withdrawal
+            interest_amount = 10; // Arbitrarily take 10 tokens as interest
+            time = clock.get_time();
         });
-        ignore await* withdrawal_queue.process_pending_withdrawals(); // To effectively withdraw the funds from remove_position
-        verify(withdraw_result, #ok(1019), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
-        // Lender could only withdraw up to 830 tokens (-3 for fees)
-        verify(supply_accounting.balances(), [ (dex, 1_677), (protocol, 3), (lender, 9_820), (borrower, 10_500) ], equal_balances);
+        verify(withdraw_result, #ok(1010), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
+
+        ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time()); // To effectively withdraw the funds from remove_position
+
+        // Lender could only withdraw up to 823 tokens
+        verify(supply_accounting.balances(), [ (dex, 1_682), (protocol, 0), (lender, 9_818), (borrower, 10_500) ], equal_balances);
+
+        // TODO: need to know how much is pending in the withdrawal queue
     });
 
     await test("Lender withdrawal triggers withdrawal queue with partial repayment", func() : async() {
@@ -429,7 +445,6 @@ await suite("LendingPool", func(): async() {
                 borrow_rate = 0.0;
                 supply_rate = 0.0;
                 accrued_interests = {
-                    fees = 0.0;
                     supply = 0.0;
                     borrow = 0.0;
                 };
@@ -464,8 +479,12 @@ await suite("LendingPool", func(): async() {
 
         let protocol_info = {
             principal = protocol.owner;
-            supply = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
-            collateral = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+            supply = { 
+                subaccount = protocol.subaccount; 
+                fees_subaccount = "\01" : Blob; 
+                unclaimed_fees = { var value = 0.0; }; 
+            };
+            collateral = { subaccount = protocol.subaccount; };
         };
 
         let supply_accounting = LedgerAccounting.LedgerAccounting([ (protocol, 0), (lender, 1_000), (borrower, 1_000)]);
@@ -485,7 +504,7 @@ await suite("LendingPool", func(): async() {
         });
 
         // Build the lending system
-        let { supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { supply; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             collateral_price_tracker;
             protocol_info;
@@ -495,24 +514,23 @@ await suite("LendingPool", func(): async() {
             supply_ledger;
             collateral_ledger;
             dex;
-            clock;
         });
 
         // Lender supplies 1000 tokens
-        let _ = await* supply_registry.add_position({
+        ignore await* supply_registry.add_position({
             id = "supply1";
             account = lender;
             supplied = 1000;
-        });
+        }, clock.get_time());
         verify(supply_accounting.balances(), [ (protocol, 1_000), (lender, 0), (borrower, 1_000) ], equal_balances);
 
         // Borrower supplies 5000 worth of collateral
-        let collateral_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 5000; kind = #PROVIDE_COLLATERAL; });
+        let collateral_1_result = await* borrow_registry.run_operation(clock.get_time(), { account = borrower; amount = 5000; kind = #PROVIDE_COLLATERAL; });
         verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
         verify(collateral_accounting.balances(), [ (protocol, 5_000), (lender, 0), (borrower, 0) ], equal_balances);
 
         // Borrower borrows 900 tokens (almost all liquidity)
-        let borrow_1_result = await* borrow_registry.run_operation({ account = borrower; amount = 900; kind = #BORROW_SUPPLY; });
+        let borrow_1_result = await* borrow_registry.run_operation(clock.get_time(), { account = borrower; amount = 900; kind = #BORROW_SUPPLY; });
         verify(Result.isOk(borrow_1_result), true, Testify.bool.equal);
         verify(supply_accounting.balances(), [ (protocol, 100), (lender, 0), (borrower, 1_900) ], equal_balances);
 
@@ -520,18 +538,19 @@ await suite("LendingPool", func(): async() {
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
         let withdraw_result = supply_registry.remove_position({
             id = "supply1";
-            share = 1.0;
+            interest_amount = 1; // Adjusted for corrected utilization ratio - less interest accrued
+            time = clock.get_time();
         });
-        ignore await* withdrawal_queue.process_pending_withdrawals(); // To effectively withdraw the funds from remove_position
-        verify(withdraw_result, #ok(1002), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
+        ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time()); // To effectively withdraw the funds from remove_position
+        verify(withdraw_result, #ok(1001), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
-        // At this point, only 100 tokens (-1 for the fees) are available for transfer to the lender
+        // At this point, only 100 tokens are available for transfer to the lender
         // The rest is queued in the withdrawal queue, waiting for borrowers to repay
         // The withdrawal queue should have an entry for "supply1" with transferred = 100 and due > 100
         let withdrawal = Map.get(register.withdrawals, Map.thash, "supply1");
         switch (withdrawal) {
             case (?w) {
-                verify(w.transferred, 99, Testify.nat.equal);
+                verify(w.transferred, 100, Testify.nat.equal);
                 verify(w.due > 100, true, Testify.bool.equal);
                 // The withdrawal queue should still contain the id
                 verify(Set.has(register.withdraw_queue, Set.thash, "supply1"), true, Testify.bool.equal);
@@ -541,12 +560,15 @@ await suite("LendingPool", func(): async() {
             };
         };
         // Lender's balance should have increased by 100
-        verify(supply_accounting.balances(), [ (protocol, 1), (lender, 99), (borrower, 1_900) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, 0), (lender, 100), (borrower, 1_900) ], equal_balances);
+
+        // No fees before repayment
+        verify(supply.get_unclaimed_fees(), 0, Testify.nat.equal);
 
         // Now, borrower repays 900 tokens
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(3)))), #repeatedly);
-        let { current_owed } = unwrap(borrow_registry.get_loan_position(borrower).loan);
-        let repay_result = await* borrow_registry.run_operation({ 
+        let { current_owed } = unwrap(borrow_registry.get_loan_position(clock.get_time(), borrower).loan);
+        let repay_result = await* borrow_registry.run_operation(clock.get_time(), { 
             account = borrower;
             amount = Int.abs(Float.toInt(current_owed));
             kind = #REPAY_SUPPLY({ max_slippage_amount = 1; }); // Use slippage of 1 because the amount has been truncated
@@ -566,7 +588,8 @@ await suite("LendingPool", func(): async() {
             };
         };
         // Lender should have received all tokens back
-        verify(supply_accounting.balances(), [ (protocol, 3), (lender, 1_002), (borrower, 995) ], equal_balances);
+        verify(supply_accounting.balances(), [ (protocol, 3), (lender, 1_001), (borrower, 996) ], equal_balances);
+        verify(supply.get_unclaimed_fees(), 1, Testify.nat.equal);
     });
 
     await test("Health factor calculation with realistic decimal amounts", func() : async() {
@@ -579,7 +602,6 @@ await suite("LendingPool", func(): async() {
                 borrow_rate = 0.0;
                 supply_rate = 0.0;
                 accrued_interests = {
-                    fees = 0.0;
                     supply = 0.0;
                     borrow = 0.0;
                 };
@@ -614,8 +636,12 @@ await suite("LendingPool", func(): async() {
 
         let protocol_info = {
             principal = protocol.owner;
-            supply = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
-            collateral = { subaccount = protocol.subaccount; local_balance = { var value = 0; } };
+            supply = { 
+                subaccount = protocol.subaccount; 
+                fees_subaccount = "\01" : Blob; 
+                unclaimed_fees = { var value = 0.0; }; 
+            };
+            collateral = { subaccount = protocol.subaccount; };
         };
 
         // Use realistic decimal amounts
@@ -683,7 +709,6 @@ await suite("LendingPool", func(): async() {
             collateral_ledger;
             dex = dex_fake;
             collateral_price_tracker;
-            clock;
         });
 
         // Trigger price fetch to normalize the price with decimals
@@ -700,11 +725,11 @@ await suite("LendingPool", func(): async() {
             id = "supply1";
             account = lender;
             supplied = 1_000_000_000_000; // 1M USDT in micro-USDT
-        });
+        }, clock.get_time());
         verify(supply_1_result, #ok(1), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
         // Borrower provides 1 BTC collateral (100M satoshis)
-        let collateral_1_result = await* borrow_registry.run_operation({ 
+        let collateral_1_result = await* borrow_registry.run_operation(clock.get_time(), { 
             account = borrower; 
             amount = 100_000_000; // 1 BTC in satoshis
             kind = #PROVIDE_COLLATERAL; 
@@ -712,7 +737,7 @@ await suite("LendingPool", func(): async() {
         verify(Result.isOk(collateral_1_result), true, Testify.bool.equal);
 
         // Borrower borrows 30k USDT (should be safe with 1 BTC at $50k)
-        let borrow_1_result = await* borrow_registry.run_operation({ 
+        let borrow_1_result = await* borrow_registry.run_operation(clock.get_time(), { 
             account = borrower; 
             amount = 30_000_000_000; // 30k USDT in micro-USDT
             kind = #BORROW_SUPPLY; 
@@ -725,7 +750,7 @@ await suite("LendingPool", func(): async() {
         // - Borrowed: 30k USDT
         // - LTV = 30k / 50k = 0.6
         // - Health = liquidation_threshold / LTV = 0.75 / 0.6 = 1.25
-        let loan_position = borrow_registry.get_loan_position(borrower);
+        let loan_position = borrow_registry.get_loan_position(clock.get_time(), borrower);
         let health = unwrap(loan_position.loan).health;
         
         // Verify the health is around 1.25

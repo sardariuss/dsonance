@@ -1,6 +1,6 @@
 import Types                   "Types";
 import LockScheduler           "LockScheduler";
-import ParticipationMinter     "ParticipationMinter";
+import ParticipationMiner     "ParticipationMiner";
 import MapUtils                "utils/Map";
 import Timeline                "utils/Timeline";
 import Clock                   "utils/Clock";
@@ -15,6 +15,7 @@ import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
 import SupplyAccount           "lending/SupplyAccount";
+import ForesightUpdater        "ForesightUpdater";
 
 import Map                     "mo:map/Map";
 import Set                     "mo:map/Set";
@@ -93,8 +94,9 @@ module {
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         collateral_price_tracker: IPriceTracker;
-        participation_minter: ParticipationMinter.ParticipationMinter;
+        participation_miner: ParticipationMiner.ParticipationMiner;
         parameters: Parameters;
+        foresight_updater: ForesightUpdater.ForesightUpdater;
     }){
 
         public func new_vote(args: NewVoteArgs) : async* SNewVoteResult {
@@ -130,6 +132,8 @@ module {
         // TODO: ideally one should have a true preview function that does not mutate the state
         public func put_ballot_for_free(args: PutBallotArgs) : PutBallotResult {
 
+            let timestamp = clock.get_time();
+
             let { ballot_id; vote_type; } = switch(process_ballot_input(args)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(input)) { input; };
@@ -145,7 +149,7 @@ module {
                 // it can lead to a miscomprehension of the ballot APY preview. Ideally, one should have a way
                 // to preview with our without the impact on the supply APY.
                 supplied = 0;
-            });
+            }, timestamp);
 
             let tx_id = switch(preview_result){
                 case(#err(err)) { return #err(err); };
@@ -154,6 +158,7 @@ module {
 
             perform_put_ballot({
                 args;
+                timestamp;
                 vote_type;
                 ballot_id;
                 tx_id;
@@ -161,6 +166,8 @@ module {
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
+
+            let timestamp = clock.get_time();
 
             let { ballot_id; vote_type; } = switch(process_ballot_input(args)){
                 case(#err(err)) { return #err(err); };
@@ -171,7 +178,7 @@ module {
                 id = ballot_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
                 supplied = args.amount;
-            });
+            }, timestamp);
 
             let tx_id = switch(transfer){
                 case(#err(err)) { return #err(err); };
@@ -180,6 +187,7 @@ module {
 
             perform_put_ballot({
                 args;
+                timestamp;
                 vote_type;
                 ballot_id;
                 tx_id;
@@ -187,33 +195,35 @@ module {
         };
 
         public func run_borrow_operation(args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {
-            await* borrow_registry.run_operation(args);
+            await* borrow_registry.run_operation(clock.get_time(), args);
         };
 
         public func run_borrow_operation_for_free(args: BorrowOperationArgs) : Result<BorrowOperation, Text> {
-            borrow_registry.run_operation_for_free(args);
+            borrow_registry.run_operation_for_free(clock.get_time(), args);
         };
 
         public func get_loan_position(account: Account) : LoanPosition {
-            borrow_registry.get_loan_position(account);
+            borrow_registry.get_loan_position(clock.get_time(), account);
         };
 
         public func get_loans_info() : { positions: [Loan]; max_ltv: Float } {
-            borrow_registry.get_loans_info();
+            borrow_registry.get_loans_info(clock.get_time());
         };
 
-        public func get_supply_balance() : Nat {
-            supply.get_local_balance();
+        public func get_available_liquidities() : async* Nat {
+            await* supply.get_available_liquidities();
         };
 
-        public func get_available_fees() : Nat {
-            supply.get_available_fees();
+        public func get_unclaimed_fees() : Nat {
+            supply.get_unclaimed_fees();
         };
 
         public func withdraw_fees({ caller: Principal; to: Account; amount: Nat; }) : async* TransferResult {
             await* supply.withdraw_fees({ caller; to; amount; });
         };
 
+        // TODO: make sure none of the methods called in this function can trap:
+        // it should only log errors
         public func run() : async* () {
             
             let time = clock.get_time();
@@ -223,37 +233,74 @@ module {
             switch(await* collateral_price_tracker.fetch_price()){
                 case(#err(error)) { Debug.print("Failed to update collateral price: " # error); };
                 case(#ok(_)) {
-                    switch(await* borrow_registry.check_all_positions_and_liquidate()){
+                    switch(await* borrow_registry.check_all_positions_and_liquidate(time)){
                         case(#err(error)) { Debug.print("Failed to check positions and liquidate: " # error); };
                         case(#ok(_)) {};
                     };
                 };
             };
             
-            // 2. Unlock expired locks
-            ignore lock_scheduler.try_unlock(time);
-            switch(await* withdrawal_queue.process_pending_withdrawals()){
+            // 2. Update foresights before unlocking, so the rewards are up-to-date
+            foresight_updater.update_foresights();
+            
+            // 3. Unlock expired locks and process them
+            let unlocked_ids = lock_scheduler.try_unlock(time);
+            
+            // 4. Process each unlocked ballot
+            label unlock_supply for (ballot_id in Set.keys(unlocked_ids)) {
+
+                let ballot = switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)) {
+                    case(null) { 
+                        Debug.print("Ballot " # debug_show(ballot_id) # " not found");
+                        continue unlock_supply;
+                    };
+                    case(?#YES_NO(ballot)) { ballot; };
+                };
+                let { vote_id; } = ballot;
+
+                let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)) {
+                    case(null) { 
+                        Debug.print("Vote " # debug_show(vote_id) # " not found");
+                        continue unlock_supply;
+                    };
+                    case(?v) { v; };
+                };
+
+                vote_type_controller.unlock_ballot({ vote_type; ballot_id; });
+                
+                // Remove supply position using the ballot's foresight reward
+                switch(supply_registry.remove_position({
+                    id = ballot_id;
+                    interest_amount = Int.abs(ballot.foresight.reward);
+                    time;
+                })){
+                    case(#err(err)) { Debug.print("Failed to remove supply position for ballot " # debug_show(ballot_id) # ": " # err); };
+                    case(#ok(_)) {};
+                };
+            };
+            
+            switch(await* withdrawal_queue.process_pending_withdrawals(time)){
                 case(#err(error)) { Debug.print("Failed to process pending withdrawals: " # error); };
                 case(#ok(_)) {};
             };
 
-            // 3. Mint participation tokens
-            switch(await* participation_minter.mint(time)){
-                case(#err(error)) { Debug.print("Failed to mint participation tokens: " # error); };
+            // 6. Mint participation tokens
+            switch(participation_miner.distribute(time)){
+                case(#err(error)) { Debug.print("Failed to distribute participation: " # error); };
                 case(#ok(_)) {};
             };
         };
 
-        public func claim_participation_owed(account: Account) : async* ?Nat {
-            await* participation_minter.claim_owed(account);
+        public func mine_participation(account: Account) : async* ?Nat {
+            await* participation_miner.mine(account);
         };
 
         public func get_participation_trackers() : [(Account, ParticipationTracker)] {
-            participation_minter.get_trackers();
+            participation_miner.get_trackers();
         };
 
         public func get_participation_tracker(account: Account) : ?ParticipationTracker {
-            participation_minter.get_tracker(account);
+            participation_miner.get_tracker(account);
         };
 
         public func get_clock() : Clock.Clock {
@@ -300,12 +347,11 @@ module {
 
         func perform_put_ballot({
             args: PutBallotArgs;
+            timestamp: Nat;
             vote_type: VoteType;
             ballot_id: Text;
             tx_id: Nat;
         }): PutBallotResult {
-
-            let timestamp = clock.get_time();
             
             let from = { owner = args.caller; subaccount = args.from_subaccount };
 
@@ -322,8 +368,7 @@ module {
                 IterUtils.map<BallotType, Lock>(
                     vote_type_controller.vote_ballots(vote_type),
                     BallotUtils.unwrap_lock
-                ),
-                timestamp
+                )
             );
 
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);

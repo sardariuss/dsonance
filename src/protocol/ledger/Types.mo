@@ -46,7 +46,6 @@ module {
         amount: Nat;
         max_slippage: Float;
         dex: IDex;
-        callback: () -> ();
     };
 
     public type Swap = {
@@ -115,17 +114,15 @@ module {
     public type ILedgerFungible = {
         balance_of: (Account) -> async* Nat;
         transfer: (Icrc1TransferArgs) -> async* Result<Nat, Text>;
-        transfer_no_commit: (Icrc1TransferArgs) -> async Result<Nat, Text>;
         transfer_from: (TransferFromArgs) -> async* Result<Nat, Text>;
         approve: (ApproveArgs) -> async* Result<Nat, Text>;
         get_token_info: () -> LedgerInfo;
     };
 
     public type ILedgerAccount = {
-        get_local_balance: () -> Nat;
+        get_balance: () -> async* Nat;
         pull: (PullArgs) -> async* PullResult;
         transfer: (TransferArgs) -> async* Transfer;
-        transfer_no_commit: (TransferArgs) -> async Transfer;
         approve: { spender: Account; amount: Nat; } -> async* Result<TxIndex, Text>;
         token_symbol: () -> Text;
     };
@@ -142,15 +139,13 @@ module {
         principal: Principal;
         supply: {
             subaccount: ?Blob;
-            local_balance: {
-                var value: Nat;
+            fees_subaccount: Blob;
+            unclaimed_fees: {
+                var value: Float;
             };
         };
         collateral: {
             subaccount: ?Blob;
-            local_balance: {
-                var value: Nat;
-            };
         };
     };
 

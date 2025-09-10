@@ -94,7 +94,16 @@ module {
             add_ballot(ballot_id, new);
             Set.add(vote.ballots, Set.thash, ballot_id);
 
+            // Update TVL by adding the ballot amount
+            vote.tvl += amount;
+
             { new; previous = Iter.toArray(vote_ballots(vote)); };
+        };
+
+        public func unlock_ballot(vote: Vote<A, B>, ballot_id: UUID) {
+            // Just update the TVL
+            let ballot = get_ballot(ballot_id);
+            vote.tvl -= ballot.amount;
         };
 
         public func vote_ballots(vote: Vote<A, B>) : Iter<Ballot<B>> {
@@ -139,7 +148,7 @@ module {
                 dissent;
                 consent = Timeline.initialize<Float>(timestamp, consent);
                 decay = decay_model.compute_decay(timestamp);
-                var foresight : Foresight = { share = 0.0; reward = 0; apr = { current = 0.0; potential = 0.0; }; };
+                var foresight : Foresight = { reward = 0; apr = { current = 0.0; potential = 0.0; }; };
                 var hotness = 0.0;
                 var lock : ?LockInfo = null;
             };

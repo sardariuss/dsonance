@@ -334,6 +334,13 @@ async function callCanisterMethod() {
         tick++;
     }
 
+    // Mine participation
+    for (let [_, actors] of userActors) {
+        actors.protocol.mine_participation([]).then((mined) => {
+            console.log('Mined participation:', mined);
+        });
+    }
+
     protocolActor.get_info().then((info) => {
         console.log('Scenario date:', Date(Number(info.current_time / 1_000_000n)));
     });

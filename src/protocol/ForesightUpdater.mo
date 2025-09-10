@@ -1,7 +1,6 @@
 import Types "Types";
 import Duration "duration/Duration";
 import IterUtils "utils/Iter";
-import Math "utils/Math";
 
 import Float "mo:base/Float";
 
@@ -65,10 +64,7 @@ module {
 
             let { accrued_interests; interests_rate; timestamp; } = supply_info;
 
-            // Filter out the inactive items: take only the one which timeline intersects with the timestamp
-            let active_items = IterUtils.filter<ForesightItem>(get_items(), func(item: ForesightItem) : Bool {
-                item.timestamp <= timestamp and item.release_date >= timestamp;
-            });
+            let active_items = get_items();
             
             // Compute the contribution of each item
             let contrib_items = IterUtils.map<ForesightItem, ContribItem>(active_items, func(item: ForesightItem) : ContribItem {
@@ -134,7 +130,6 @@ module {
 
                 let item_apr = (actual_reward + projected_reward) / Float.fromInt(item.amount) / lock_duration;
                 let foresight = {
-                    share;
                     reward = Float.toInt(actual_reward);
                     apr = {
                         current = item_apr;

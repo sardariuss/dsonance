@@ -5,12 +5,9 @@ import SupplyRegistry     "SupplyRegistry";
 import InterestRateCurve  "InterestRateCurve";
 import WithdrawalQueue    "WithdrawalQueue";
 import Indexer            "Indexer";
-import UtilizationUpdater "UtilizationUpdater";
 import SupplyAccount      "SupplyAccount";
 import LedgerTypes        "../ledger/Types";
 import LedgerAccount      "../ledger/LedgerAccount";
-import Clock              "../utils/Clock";
-import Cell               "../utils/Cell";
 
 import Result             "mo:base/Result";
 
@@ -38,7 +35,6 @@ module {
         collateral_ledger: ILedgerFungible;
         dex: IDex;
         collateral_price_tracker: IPriceTracker;
-        clock: Clock.IClock;
     }) : {
         indexer: Indexer.Indexer;
         supply: SupplyAccount.SupplyAccount;
@@ -47,15 +43,9 @@ module {
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
     } {
 
-        let utilization_updater = UtilizationUpdater.UtilizationUpdater({
-            parameters;
-        });
-
         let indexer = Indexer.Indexer({
-            clock;
             parameters;
             index;
-            utilization_updater;
             interest_rate_curve = InterestRateCurve.InterestRateCurve(
                 parameters.interest_rate_curve
             );
@@ -69,9 +59,12 @@ module {
                     subaccount = protocol_info.supply.subaccount;
                 };
                 ledger = supply_ledger;
-                local_balance = Cell.Cell(protocol_info.supply.local_balance);
             });
-            indexer;
+            fees_account = {
+                owner = protocol_info.principal;
+                subaccount = ?protocol_info.supply.fees_subaccount;
+            };
+            unclaimed_fees = protocol_info.supply.unclaimed_fees;
         });
         let collateral = LedgerAccount.LedgerAccount({
             protocol_account = {
@@ -79,7 +72,6 @@ module {
                 subaccount = protocol_info.collateral.subaccount;
             };
             ledger = collateral_ledger;
-            local_balance = Cell.Cell(protocol_info.collateral.local_balance);
         });
 
         let withdrawal_queue = WithdrawalQueue.WithdrawalQueue({
@@ -99,7 +91,6 @@ module {
         let borrow_registry = BorrowRegistry.BorrowRegistry({
             indexer;
             register;
-            utilization_updater;
             withdrawal_queue;
             supply;
             collateral;

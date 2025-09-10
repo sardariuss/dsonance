@@ -27,7 +27,11 @@ module {
     public func new(amount: Nat, index: Index) : Borrow {
         {
             raw_amount = Float.fromInt(amount);
-            owed = Owed.new(amount, index);
+            owed = {
+                accrued_amount = Float.fromInt(amount);
+                from_interests = 0.0;
+                index;
+            };
         };
     };
 
@@ -53,24 +57,36 @@ module {
     };
 
     // Slash a borrow by an owed amount, returning the remaining borrow if any.
-    public func slash(borrow: Borrow, owed: Owed) : Result<?Borrow, Text> {
+    public func slash(borrow: Borrow, amount: Float, index: Index) : Result<?Borrow, Text> {
 
         if (not is_valid(borrow)) {
-            return #err("Borrow.repay error: Invalid borrow");
+            return #err("Borrow.slash error: Invalid borrow");
         };
 
-        if (owed.accrued_amount <= EPSILON) {
-            return #err("Borrow.repay error: Repayment owed.accrued_amount too small");
+        if (not Index.less_or_equal(borrow.owed.index, index)) {
+            return #err("Borrow.slash error: index of borrow is greater than given index");
         };
 
-        let update_owed = switch(Owed.sub(borrow.owed, owed)){
-            case(#err(err)) { return #err(err); };
-            case(#ok(o)) { o; };
+        if (amount <= EPSILON) {
+            return #err("Borrow.slash error: amount too small");
+        };
+
+        let { accrued_amount; from_interests; } = Owed.accrue_interests(borrow.owed, index);
+
+        if (amount > accrued_amount + EPSILON) {
+            return #err("Borrow.slash error: amount to slash is greater than owed amount");
+        };
+
+        let interests_ratio = from_interests / accrued_amount;
+
+        let new_owed = {
+            accrued_amount = accrued_amount - amount;
+            from_interests = from_interests - amount * interests_ratio;
+            index;
         };
 
         // Compute the raw amount left after slashing
-        // TODO: this is convoluted, it should be simplified
-        let remaining_ratio = update_owed.accrued_amount / Owed.accrue_interests(borrow.owed, owed.index).accrued_amount;
+        let remaining_ratio = new_owed.accrued_amount / accrued_amount;
         let raw_amount = remaining_ratio * borrow.raw_amount;
 
         if (raw_amount < EPSILON) {
@@ -79,7 +95,7 @@ module {
         
         #ok(?{
             raw_amount;
-            owed = update_owed;
+            owed = new_owed;
         });
     };
     

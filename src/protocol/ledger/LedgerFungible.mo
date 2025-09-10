@@ -55,13 +55,6 @@ module {
             };
         };
 
-        public func transfer_no_commit(args: Types.Icrc1TransferArgs) : async Result<Nat, Text> {
-            switch(Result.fromUpper(await? ledger_actor.icrc1_transfer(args))) {
-                case (#ok(value)) { #ok(value) };
-                case (#err(error)) { #err(ErrorConverter.transferErrorToText(error)) };
-            };
-        };
-
         public func transfer_from(args: Types.TransferFromArgs) : async* Result<Nat, Text> {
             switch(Result.fromUpper(await ledger_actor.icrc2_transfer_from(args))) {
                 case (#ok(value)) { #ok(value) };

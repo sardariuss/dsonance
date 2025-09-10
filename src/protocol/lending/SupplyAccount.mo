@@ -1,11 +1,10 @@
 import Int         "mo:base/Int";
 import Float       "mo:base/Float";
 import Result      "mo:base/Result";
+import Debug       "mo:base/Debug";
 
 import Types       "Types";
-import Indexer     "Indexer";
 import LedgerTypes "../ledger/Types";
-import Math        "../utils/Math";
 
 module {
 
@@ -26,33 +25,49 @@ module {
     public class SupplyAccount({
         admin: Principal;
         ledger_account: ILedgerAccount and ISwapReceivable;
-        indexer: Indexer.Indexer;
+        fees_account: Account;
+        unclaimed_fees: { var value: Float; };
     }) : ISwapReceivable {
 
-        public func get_local_balance() : Nat {
-            ledger_account.get_local_balance();
+        public func get_available_liquidities() : async* Nat {
+            let supply_balance = await* ledger_account.get_balance();
+            let unclaimed_fees = get_unclaimed_fees();
+            let diff : Int = supply_balance - unclaimed_fees;
+            if (diff < 0){
+                return 0;
+            };
+            Int.abs(diff);
         };
-        
-        public func get_balance_without_fees() : Int {
-            let supply_balance = ledger_account.get_local_balance();
-            let interest_fees = Math.ceil_to_int(indexer.get_index().accrued_interests.fees);
-            supply_balance - interest_fees;
-        };
+
+        // @todo: need a function to get the balance of the subaccount
 
         public func transfer({
             to: Account;
             amount: Nat;
         }) : async* TransferResult {
-
-            if (amount > get_balance_without_fees()) {
-                return #err("Not enough supply available to transfer");
-            };
-
             (await* ledger_account.transfer({ amount; to; })).result;
         };
 
-        public func get_available_fees() : Nat {
-            Int.abs(Float.toInt(indexer.get_index().accrued_interests.fees));
+        public func get_unclaimed_fees() : Nat {
+            if (unclaimed_fees.value < 0.0) {
+                Debug.trap("Invariant broken: unclaimed_fees is negative: " # debug_show(unclaimed_fees.value));
+            };
+            Int.abs(Float.toInt(unclaimed_fees.value));
+        };
+
+        public func claim_fees() : async* TransferResult {
+            let fees_amount = get_unclaimed_fees();
+            unclaimed_fees.value -= Float.fromInt(fees_amount);
+            switch((await* ledger_account.transfer({ 
+                amount = fees_amount; 
+                to = fees_account;
+            })).result){
+                case(#ok(tx_id)){ #ok(tx_id); };
+                case(#err(err)) {
+                    unclaimed_fees.value += Float.fromInt(fees_amount);
+                    #err(err);
+                };
+            };
         };
 
         public func withdraw_fees({
@@ -62,28 +77,26 @@ module {
         }) : async* TransferResult {
 
             if (caller != admin) {
-                return #err("Caller is not the admin of the protocol");
-            };
-            
-            let revert_take_fees = switch(indexer.take_supply_fees(amount)){
-                case(#err(error)) { return #err(error); };
-                case(#ok({revert})) { revert; };
+                return #err("The caller is not the admin of the protocol");
             };
 
-            switch((await* ledger_account.transfer({ amount; to; })).result){
-                case(#err(error)) { 
-                    // Revert the fees if the transfer fails
-                    revert_take_fees();
-                    #err(error); 
-                };
-                case(#ok(tx_id)) {
-                    #ok(tx_id);
-                };
-            };
+           (await* ledger_account.transfer({ amount; to; })).result;
         };
 
-        public func pull(args : PullArgs) : async* PullResult {
-            await* ledger_account.pull(args);
+        public func pull(args : PullArgs and { protocol_fees: ?Float; }) : async* PullResult {
+            let fees_amount = switch(args.protocol_fees){
+                case(null) { 0.0; };
+                case(?f) { f; };
+            };
+            if (fees_amount > Float.fromInt(args.amount)) {
+                return #err("Fees amount cannot be greater than the pulled amount");
+            };
+            let tx_id = switch(await* ledger_account.pull(args)){
+                case(#err(err)) { return #err(err); };
+                case(#ok(tx)) { tx; };
+            };
+            unclaimed_fees.value += fees_amount;
+            #ok(tx_id);
         };
 
         public func perform_swap(payload: SwapPayload) : async* Result<SwapReply, Text> {

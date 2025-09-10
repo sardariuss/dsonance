@@ -109,22 +109,6 @@ module {
         ballot_id: UUID;
     };
 
-    public type LockState = {
-        locks: Iter<Lock>;
-        tvl: Nat;
-    };
-
-    public type BeforeChangeArgs = { 
-        time: Nat;
-        state: LockState;
-    };
-
-    public type AfterChangeArgs = { 
-        time: Nat;
-        event: LockEvent;
-        state: LockState;
-    };
-
     public type UserSupply = {
         amount: Nat;
         apr: Float;
@@ -188,7 +172,7 @@ module {
         date: Nat;
         origin: Principal;
         aggregate: STimeline<A>;
-        tvl: Nat;
+        tvl: Int;
     };
 
     public type SClockParameters = {

@@ -461,7 +461,7 @@ module {
         aggregate: Timeline<A>;
         ballots: Set<UUID>;
         author: Account;
-        var tvl: Nat;
+        var tvl: Int;
     };
 
     public type DebtRecord = {
@@ -483,7 +483,6 @@ module {
     };
 
     public type Foresight = {
-        share: Float;
         reward: Int;
         apr: {
             current: Float;
@@ -560,7 +559,6 @@ module {
     public type LockSchedulerState = {
         btree: BTree<Lock, ()>;
         map: Map<Text, Lock>;
-        tvl: Timeline<Nat>;
     };
 
     public type YieldState = {
@@ -602,11 +600,13 @@ module {
     public type ProtocolAccounts = {
         supply: {
             subaccount: ?Subaccount;
-            local_balance: Var<Nat>;
+            fees_subaccount: Subaccount;
+            unclaimed_fees: {
+                var value: Float;
+            };
         };
         collateral: {
             subaccount: ?Subaccount;
-            local_balance: Var<Nat>;
         };
     };
 
@@ -654,6 +654,7 @@ module {
     public type Owed = {
         index: Index;
         accrued_amount: Float;
+        from_interests: Float;
     };
 
     public type Borrow = {
@@ -731,7 +732,6 @@ module {
         borrow_rate: Float; // borrow rate (ratio)
         supply_rate: Float; // supply rate (ratio)
         accrued_interests: {
-            fees: Float;
             supply: Float;
             borrow: Float;
         };

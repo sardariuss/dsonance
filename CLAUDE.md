@@ -302,20 +302,6 @@ This pattern is also known as "guard clauses" or "early return pattern" in softw
 - When you don't want that specific await to create a commit point
 - Fire-and-forget style operations
 
-### Examples in This Codebase
-
-```motoko
-// Standard pattern - commits at await
-public func transfer(args) : async* Transfer {
-    switch(await* ledger.transfer(args)) { ... };
-}
-
-// No-commit pattern - avoids commit at that point
-public func transfer_no_commit(args) : async Transfer {
-    switch(await? ledger.transfer_no_commit(args)) { ... };
-}
-```
-
 ## Parameter and Type System Guidelines
 
 ### Parameter Architecture

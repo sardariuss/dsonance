@@ -80,8 +80,8 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         await* getFacade().run();
     };
 
-    public shared({caller}) func claim_participation_owed(subaccount: ?Blob) : async ?Nat {
-        await* getFacade().claim_participation_owed({ owner = caller; subaccount; });
+    public shared({caller}) func mine_participation(subaccount: ?Blob) : async ?Nat {
+        await* getFacade().mine_participation({ owner = caller; subaccount; });
     };
 
     public query func get_participation_trackers() : async [(Types.Account, Types.ParticipationTracker)] {
@@ -139,12 +139,12 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         getFacade().get_loans_info();
     };
 
-    public query func get_supply_balance() : async Nat {
-        getFacade().get_supply_balance();
+    public shared func get_available_liquidities() : async Nat {
+        await* getFacade().get_available_liquidities();
     };
 
-    public query func get_available_fees() : async Nat {
-        getFacade().get_available_fees();
+    public query func get_unclaimed_fees() : async Nat {
+        getFacade().get_unclaimed_fees();
     };
 
     public shared({caller}) func withdraw_fees({ to: Types.Account; amount: Nat; }) : async LendingTypes.TransferResult {

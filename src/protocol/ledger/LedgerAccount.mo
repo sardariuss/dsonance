@@ -1,5 +1,4 @@
 import Types         "Types";
-import Cell          "../utils/Cell";
 
 import Int           "mo:base/Int";
 import Result        "mo:base/Result";
@@ -10,7 +9,6 @@ import Nat64         "mo:base/Nat64";
 module {
 
     type Result<Ok, Err>   = Result.Result<Ok, Err>;
-    type Cell<T>           = Cell.Cell<T>;
     type Transfer          = Types.Transfer;
     type Account           = Types.Account;
     type TxIndex           = Types.TxIndex;
@@ -28,15 +26,14 @@ module {
     public class LedgerAccount({
         protocol_account: Account;
         ledger: ILedgerFungible;
-        local_balance: Cell<Nat>;
     }) : ILedgerAccount and ISwapPayable and ISwapReceivable {
-
-        public func get_local_balance() : Nat {
-            local_balance.get();
-        };
 
         public func token_symbol() : Text {
             ledger.get_token_info().token_symbol;
+        };
+
+        public func get_balance() : async* Nat {
+            await* ledger.balance_of(protocol_account);
         };
 
         public func pull({
@@ -57,13 +54,10 @@ module {
             };
 
             // Perform the transfer
-            // @todo: can this trap ?
-            switch(await* ledger.transfer_from(args)){
-                case(#err(error)){ #err(error); };
-                case(#ok(tx_id)){ 
-                    local_balance.set(local_balance.get() + amount);
-                    #ok(tx_id); 
-                };
+            try {
+                await* ledger.transfer_from(args);
+            } catch(err) {
+                #err("transfer_from trapped with error code: " # debug_show(Error.code(err)));
             };
         };
 
@@ -88,50 +82,9 @@ module {
 
             // Perform the transfer
             let result = try {
-                switch(await* ledger.transfer(args)){
-                    case(#err(error)){ #err(error); };
-                    case(#ok(tx_id)){
-                        local_balance.set(local_balance.get() - amount); 
-                        #ok(tx_id); 
-                    };
-                };
+                await* ledger.transfer(args);
             } catch(err) {
-                #err("Transfer trapped with error code: " # debug_show(Error.code(err)));
-            };
-
-            { args; result; };
-        };
-
-        public func transfer_no_commit({
-            amount: Nat;
-            to: Account;
-        }) : async Transfer {
-
-            let args = {
-                to;
-                from_subaccount = null;
-                // Deduct the transfer fee from the amount to transfer
-                amount = Int.abs(Int.max(amount - ledger.get_token_info().fee, 0));
-                fee = ?ledger.get_token_info().fee;
-                memo = null;
-                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
-            };
-
-            if (args.amount == 0) {
-                return { args; result = #err("Amount " # debug_show(amount) # " is too low to cover the transfer fee"); };
-            };
-
-            // Perform the transfer without state commit
-            let result = try {
-                switch(await? ledger.transfer_no_commit(args)){
-                    case(#err(error)){ #err(error); };
-                    case(#ok(tx_id)){
-                        local_balance.set(local_balance.get() - amount); 
-                        #ok(tx_id); 
-                    };
-                };
-            } catch(err) {
-                #err("Transfer trapped with error code: " # debug_show(Error.code(err)));
+                #err("transfer trapped with error code: " # debug_show(Error.code(err)));
             };
 
             { args; result; };
@@ -162,7 +115,7 @@ module {
                 case(#ok(_)) { }; // Approval successful, continue with swap
             };
             
-            switch(await* payload.dex.swap({
+            await* payload.dex.swap({
                 from = payload.from;
                 pay_token = payload.pay_ledger.get_token_info().token_symbol;
                 pay_amount = payload.amount;
@@ -172,15 +125,7 @@ module {
                 receive_address = null;
                 max_slippage = ?payload.max_slippage;
                 referred_by = null;
-            })) {
-                case(#err(error)){ return #err(error); };
-                case(#ok(reply)) {
-                    local_balance.set(local_balance.get() + reply.receive_amount);
-                    // Call the callback to update the local_balance of the other ledger account
-                    payload.callback();
-                    #ok(reply);
-                };
-            };
+            });
         };
 
         public func swap({
@@ -195,7 +140,6 @@ module {
                 amount;
                 max_slippage;
                 dex;
-                callback = func() { local_balance.set(local_balance.get() - amount); };
             };
             {
                 against = func(swap_receivable: ISwapReceivable) : async* Result<SwapReply, Text> {
@@ -205,7 +149,7 @@ module {
         };
 
         public func approve({spender: Account; amount: Nat; }) : async* Result<TxIndex, Text> {
-            switch(await* ledger.approve({
+            await* ledger.approve({
                 from_subaccount = null;
                 spender;
                 amount = amount + ledger.get_token_info().fee; // Amount + fee for the transaction
@@ -214,10 +158,7 @@ module {
                 fee = ?ledger.get_token_info().fee;
                 memo = null;
                 created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
-            })) {
-                case(#err(error)) { #err(debug_show(error)); };
-                case(#ok(tx_index)) { #ok(tx_index); };
-            };
+            });
         };
 
     };

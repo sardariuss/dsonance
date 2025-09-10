@@ -9,8 +9,6 @@ import LendingTypes       "Types";
 import UtilizationUpdater "UtilizationUpdater";
 import InterestRateCurve  "InterestRateCurve";
 import Types              "../Types";
-import Math               "../utils/Math";
-import Clock              "../utils/Clock";
 import Duration           "../duration/Duration";
 
 module {
@@ -29,8 +27,6 @@ module {
         index: { var value: LendingIndex; };
         parameters: IndexerParameters;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
-        clock: Clock.IClock;
-        utilization_updater: UtilizationUpdater.UtilizationUpdater;
     }){
 
         let observers = Buffer.Buffer<Observer>(0);
@@ -39,93 +35,74 @@ module {
             observers.add(observer);
         };
 
-        public func get_index() : LendingIndex {
-            update(null);
+        public func get_parameters() : IndexerParameters {
+            parameters;
+        };
+
+        public func get_index(time: Nat) : LendingIndex {
+            update(null, time);
             index.value;
         };
 
-        public func add_raw_supplied({ amount: Nat; }) {
-            let utilization = switch(utilization_updater.add_raw_supplied(index.value.utilization, amount)){
+        public func add_raw_supplied({ amount: Nat; time: Nat; }) {
+            let utilization = UtilizationUpdater.add_raw_supplied(index.value.utilization, amount);
+            update(?utilization, time);
+        };
+
+        public func remove_raw_supplied({ amount: Float; time: Nat; }) {
+            let utilization = UtilizationUpdater.remove_raw_supplied(index.value.utilization, amount);
+            update(?utilization, time);
+        };
+
+        public func add_raw_borrow({ amount: Nat; time: Nat; }) {
+            let utilization = switch(UtilizationUpdater.add_raw_borrow(index.value.utilization, amount)){
                 case(#err(err)) { Debug.trap(err); };
                 case(#ok(u)){ u; };
             };
-            update(?utilization);
+            update(?utilization, time);
         };
 
-        public func remove_raw_supplied({ amount: Float; }) {
-            let utilization = switch(utilization_updater.remove_raw_supplied(index.value.utilization, amount)){
-                case(#err(err)) { Debug.trap(err); };
-                case(#ok(u)){ u; };
-            };
-            update(?utilization);
+        public func remove_raw_borrow({ amount: Float; time: Nat; }) {
+            let utilization = UtilizationUpdater.remove_raw_borrow(index.value.utilization, amount);
+            update(?utilization, time);
         };
 
-        public func add_raw_borrow({ amount: Nat; }) {
-            let utilization = switch(utilization_updater.add_raw_borrow(index.value.utilization, amount)){
-                case(#err(err)) { Debug.trap(err); };
-                case(#ok(u)){ u; };
-            };
-            update(?utilization);
-        };
-
-        public func remove_raw_borrow({ amount: Float; }) {
-            let utilization = switch(utilization_updater.remove_raw_borrow(index.value.utilization, amount)){
-                case(#err(err)) { Debug.trap(err); };
-                case(#ok(u)){ u; };
-            };
-            update(?utilization);
-        };
-
-        public func take_supply_interests({ share: Float; minimum: Int; }) : Result<Int, Text> {
-            update(null);
-            // Make sure the share is normalized
-            if (not Math.is_normalized(share)) {
-                return #err("Invalid interest share");
-            };
+        public func take_borrow_interests({ amount: Float; time: Nat }) {
+            update(null, time);
             let accrued_interests = index.value.accrued_interests;
-            // Make sure the interests is above the minimum
-            let interests_amount = Float.toInt(Float.max(Float.fromInt(minimum), accrued_interests.supply * share));
+            let clamped_amount = Float.min(amount, accrued_interests.borrow);
+            // Remove the interests from the borrow
+            index.value := { index.value with
+                accrued_interests = { accrued_interests with
+                    borrow = accrued_interests.borrow - clamped_amount;
+                };
+            };
+        };
+
+        public func take_supply_interests({ amount: Float; time: Nat; }) : Result<(), Text> {
+            update(null, time);
+            let accrued_interests = index.value.accrued_interests;
+            // Make sure the amount is not greater than available supply interests
+            if (amount > accrued_interests.supply) {
+                return #err("Amount " # debug_show(amount) # " is greater than available supply interests " # debug_show(accrued_interests.supply));
+            };
             // Remove the interests from the supply
             index.value := { index.value with
                 accrued_interests = { accrued_interests with
-                    supply = accrued_interests.supply - Float.fromInt(interests_amount);
+                    supply = accrued_interests.supply - amount;
                 };
             };
-            // Return the amount
-            #ok(interests_amount);
+            #ok;
         };
 
-        public func take_supply_fees(amount: Nat) : Result<{ revert: () -> () }, Text> {
-            update(null);
-            // Make sure the amount is not greater than the fees
-            if (Float.fromInt(amount) > index.value.accrued_interests.fees) {
-                return #err("Not enough fees available to take");
-            };
-            // Remove the fees from the accrued interests
-            index.value := { index.value with
-                accrued_interests = { index.value.accrued_interests with
-                    fees = index.value.accrued_interests.fees - Float.fromInt(amount);
-                };
-            };
-            // Revert function in case the transfer ever fails
-            let revert = func(){
-                index.value := { index.value with
-                    accrued_interests = { index.value.accrued_interests with
-                        fees = index.value.accrued_interests.fees + Float.fromInt(amount);
-                    };
-                };
-            };
-            #ok({ revert; });
-        };
-
-        public func update(new_utilization: ?Utilization) {
+        public func update(new_utilization: ?Utilization, time: Nat) {
             
             // Update the state with the new utilization and interest rates
             index.value := update_index({
                 state = index.value;
                 parameters;
                 interest_rate_curve;
-                timestamp = clock.get_time();
+                time;
                 new_utilization;
             });
             
@@ -153,26 +130,29 @@ module {
         state: LendingIndex;
         parameters: IndexerParameters;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
-        timestamp: Nat;
+        time: Nat;
         new_utilization: ?Utilization;
     }) : LendingIndex {
-
-        let elapsed_ns : Int = timestamp - state.timestamp;
-
-        // If the time is before the last update
-        if (elapsed_ns < 0) {
-            Debug.trap("Cannot update state: time is before last update");
-        };
 
         let new_state = switch(new_utilization){
             case(null) { state; };
             case(?utilization) {
                 // Update rates based on the new utilization
                 let borrow_rate = interest_rate_curve.get_apr(utilization.ratio);
-                let supply_rate = borrow_rate * utilization.ratio;
+                let supply_rate = borrow_rate * utilization.ratio * (1.0 - parameters.lending_fee_ratio);
                 { state with utilization; borrow_rate; supply_rate; };
             };
         };
+
+        // Ensure timestamp is monotonic.
+        // On the IC, certified block time (`time`) is not guaranteed to
+        // strictly increase between messages — it can stay the same or
+        // even appear to go backwards relative to our last state.
+        // To explicitly account for the IC’s time model and prevent
+        // negative elapsed periods (which would imply "negative interest
+        // accrual"), we clamp forward with Nat.max.
+        let timestamp = Nat.max(time, state.timestamp);
+        let elapsed_ns : Int = timestamp - state.timestamp;
 
         // If no time has passed, no need to accrue interests nor update indexes
         if (elapsed_ns == 0) {
@@ -187,20 +167,24 @@ module {
         let borrow_interests = state.utilization.raw_borrowed * state.borrow_rate * elapsed_annual;
 
         let accrued_interests = {
-            fees = state.accrued_interests.fees + supply_interests * parameters.lending_fee_ratio;
-            supply = state.accrued_interests.supply + supply_interests * (1.0 - parameters.lending_fee_ratio);
+            supply = state.accrued_interests.supply + supply_interests;
             borrow = state.accrued_interests.borrow + borrow_interests;
         };
 
+        var borrow_index = state.borrow_index;
+        var supply_index = state.supply_index;
         // Update the indexes based on the new rates
-        // @todo: is it not (old) state rates?
-        let borrow_index = {
-            value = state.borrow_index.value * (1.0 + new_state.borrow_rate * elapsed_annual);
-            timestamp;
-        };
-        let supply_index = {
-            value = state.supply_index.value * (1.0 + new_state.supply_rate * elapsed_annual);
-            timestamp;
+        // Do not update indexes if utilization is null: because borrow rate can be > 0
+        // even if utilization is null, this check avoids compounding the indexes for nothing
+        if (state.utilization.ratio > 0) {
+            borrow_index := {
+                value = state.borrow_index.value * (1.0 + state.borrow_rate * elapsed_annual);
+                timestamp;
+            };
+            supply_index := {
+                value = state.supply_index.value * (1.0 + state.supply_rate * elapsed_annual);
+                timestamp;
+            };
         };
 
         return { new_state with accrued_interests; borrow_index; supply_index; timestamp; };
