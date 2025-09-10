@@ -9,6 +9,7 @@ import Int                "mo:base/Int";
 import Types              "../Types";
 import MapUtils           "../utils/Map";
 import IterUtils          "../utils/Iter";
+import Math               "../utils/Math";
 import LedgerTypes        "../ledger/Types";
 import Borrow             "./primitives/Borrow";
 import Owed               "./primitives/Owed";
@@ -205,6 +206,7 @@ module {
                 total_raw_repaid += raw_repaid;
             };
 
+            // TODO: check how much interests to remove from the index?
             indexer.remove_raw_borrow({ amount = total_raw_repaid; time; });
 
             // Once positions are liquidated, it might allow the unlock withdrawal of supply
@@ -404,12 +406,18 @@ module {
                 case(#ok(p)) { p; };
             };
 
-            let protocol_fees = ?(indexer.get_parameters().lending_fee_ratio * from_interests);
+            // Follow a "round-up for debt, round-down for rewards" policy
+            let repaid_nat = Int.abs(Math.ceil_to_int(repaid));
+            let ceil_diff = Float.ceil(repaid) - repaid;
+
+            // Consider the rounding difference as protocol fees
+            let protocol_fees = ?(indexer.get_parameters().lending_fee_ratio * from_interests + ceil_diff);
 
             let update = { position with borrow = remaining; };
 
             let finalize = func(tx: TxIndex) : BorrowOperation {
                 indexer.remove_raw_borrow({ amount = raw_repaid; time; });
+                indexer.take_borrow_interests({ amount = from_interests; time; });
                 common_finalize({
                     account;
                     position = update;
@@ -418,7 +426,7 @@ module {
                 });
             };
 
-            #ok({ to_transfer = repaid; protocol_fees; finalize; });
+            #ok({ to_transfer = repaid_nat; protocol_fees; finalize; });
         };
 
     };

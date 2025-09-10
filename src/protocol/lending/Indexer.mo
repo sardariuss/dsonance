@@ -67,21 +67,31 @@ module {
             update(?utilization, time);
         };
 
-        public func take_supply_interests({ amount: Nat; time: Nat; }) : Result<(), Text> {
+        public func take_borrow_interests({ amount: Float; time: Nat }) {
             update(null, time);
             let accrued_interests = index.value.accrued_interests;
-            let amount_float = Float.fromInt(amount);
+            let clamped_amount = Float.min(amount, accrued_interests.borrow);
+            // Remove the interests from the borrow
+            index.value := { index.value with
+                accrued_interests = { accrued_interests with
+                    borrow = accrued_interests.borrow - clamped_amount;
+                };
+            };
+        };
+
+        public func take_supply_interests({ amount: Float; time: Nat; }) : Result<(), Text> {
+            update(null, time);
+            let accrued_interests = index.value.accrued_interests;
             // Make sure the amount is not greater than available supply interests
-            if (amount_float > accrued_interests.supply) {
+            if (amount > accrued_interests.supply) {
                 return #err("Amount " # debug_show(amount) # " is greater than available supply interests " # debug_show(accrued_interests.supply));
             };
             // Remove the interests from the supply
             index.value := { index.value with
                 accrued_interests = { accrued_interests with
-                    supply = accrued_interests.supply - amount_float;
+                    supply = accrued_interests.supply - amount;
                 };
             };
-            // Return the amount as Int for consistency with existing signature
             #ok;
         };
 

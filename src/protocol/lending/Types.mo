@@ -153,7 +153,7 @@ module {
     };
 
     public type RepaymentInfo = {
-        repaid: Nat;
+        repaid: Float;
         raw_repaid: Float;
         remaining: ?Borrow;
         from_interests: Float;

@@ -96,7 +96,7 @@ module {
             Map.delete(register.supply_positions, Map.thash, id);
 
             // Take the specified amount from supply interests
-            switch(indexer.take_supply_interests({ amount = interest_amount; time; })){
+            switch(indexer.take_supply_interests({ amount = Float.fromInt(interest_amount); time; })){
                 case(#err(err)) { return #err(err); };
                 case(#ok(_)) {};
             };

@@ -213,6 +213,8 @@ await suite("LendingPool", func(): async() {
 
         // No fee accrued before repayment
         verify(supply.get_unclaimed_fees(), 0, Testify.nat.equal);
+        Debug.print("Unclaimed fees: " # debug_show(protocol_info.supply.unclaimed_fees.value));
+        Debug.print("Accrued interests: " # debug_show(index.value.accrued_interests));
 
         // Borrower repays full amount, got to 201 tokens to account for accrued interest
         let { current_owed } = unwrap(borrow_registry.get_loan_position(clock.get_time(), borrower).loan);
@@ -223,9 +225,10 @@ await suite("LendingPool", func(): async() {
         });
         verify(Result.isOk(repay_result), true, Testify.bool.equal);
 
-        // Protocol should receive more tokens than it lent out due to interest
         verify(supply_accounting.balances(), [ (protocol, 1_004), (lender, 0), (borrower, 996) ], equal_balances);
-        verify(supply.get_unclaimed_fees(), 0, Testify.nat.equal); // Not enough fees have accrued
+        Debug.print("Unclaimed fees: " # debug_show(protocol_info.supply.unclaimed_fees.value));
+        Debug.print("Accrued interests: " # debug_show(index.value.accrued_interests));
+        verify(supply.get_unclaimed_fees(), 1, Testify.nat.equal);
 
         // Utilization should return to 0
         verify(indexer.get_index(clock.get_time()).utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);

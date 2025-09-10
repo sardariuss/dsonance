@@ -97,10 +97,10 @@ dfx deploy ckusdt_ledger --argument '(
 dfx deploy dsn_ledger --argument '(
   variant {
     Init = record {
-      decimals = opt (6 : nat8);
+      decimals = opt (9 : nat8);
       token_symbol = "DSN";
       token_name = "DSN";
-      transfer_fee = 1000 : nat;
+      transfer_fee = 100 : nat;
       max_memo_length = null;
       feature_flags = null;
       metadata = (
@@ -230,7 +230,7 @@ dfx canister call faucet mint_dsn '(
       owner = principal "'${PROTOCOL_PRINCIPAL}'";
       subaccount = null;
     };
-    amount = 550_000_000_000_000 : nat;
+    amount = 6_700_000_000_000_000 : nat;
   },
 )'
 

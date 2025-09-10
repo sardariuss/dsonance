@@ -135,31 +135,28 @@ module {
             };
 
             let owed = Owed.accrue_interests(borrow.owed, index);
-            var from_interests = owed.from_interests;
 
-            // Do not take more than what is owed
-            let clamp_amount = Float.min(Float.fromInt(amount), owed.accrued_amount);
+            var repaid = Float.fromInt(amount);
+            if (Float.fromInt(amount + max_slippage_amount) >= owed.accrued_amount) {
+                repaid := owed.accrued_amount;
+            };
  
-            var remaining = switch(Borrow.slash(borrow, clamp_amount, index)){
+            let remaining = switch(Borrow.slash(borrow, repaid, index)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(b)) { b; };
             };
-            var repaid = amount; // @todo: should not be clamp_amount instead?
-            let still_owed = switch(remaining){
-                case(null) { 0; };
-                case(?r) {
-                    from_interests -= r.owed.from_interests;
-                    Math.ceil_to_int(r.owed.accrued_amount);    
+
+            // Compute the raw repaid and from interests
+            var raw_repaid = borrow.raw_amount;
+            var from_interests = owed.from_interests;
+            switch(remaining){
+                case(null) {};
+                case(?remain) {
+                    raw_repaid -= remain.raw_amount; 
+                    from_interests -= remain.owed.from_interests; 
                 };
             };
-            if (still_owed > 0 and still_owed <= max_slippage_amount){
-                repaid := amount + Int.abs(still_owed);
-                remaining := null; // All owed is repaid
-            };
-            let raw_repaid = switch(remaining){
-                case(null) { borrow.raw_amount; };
-                case(?r) { borrow.raw_amount - r.raw_amount; };
-            };
+
             #ok({ repaid; raw_repaid; remaining; from_interests; });
         };
 
