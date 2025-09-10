@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate }      from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
-import { useAuth } from "@ic-reactor/react";
+import { useAuth } from "@nfid/identitykit/react";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import LoginIcon from "./icons/LoginIcon";
 import Logo from "./icons/Logo";
@@ -10,15 +10,11 @@ import Balance from "./Balance";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import Avatar from "boring-avatars";
 import { useUser } from "./hooks/useUser";
-import { User } from "@/declarations/backend/backend.did";
 
-interface HeaderProps {
-  user: User | undefined;
-  login: () => void;
-}
+const DesktopHeader: React.FC = () => {
 
-const DesktopHeader: React.FC<HeaderProps> = ({ user, login }) => {
-
+  const { connect } = useAuth();
+  const { user } = useUser();
   const { supplyLedger } = useFungibleLedgerContext();
 
   // WATCHOUT: the size of the header is set to 22 (16 + 6), it is used in User.tsx as margin (see scroll-mt)
@@ -68,7 +64,7 @@ const DesktopHeader: React.FC<HeaderProps> = ({ user, login }) => {
               />
               <span className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white">{user.nickname}</span>
             </Link> :
-            <div className="flex fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white rounded-lg hover:cursor-pointer" onClick={() => { login() }}>
+            <div className="flex fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white rounded-lg hover:cursor-pointer" onClick={() => { connect() }}>
               <LoginIcon /> 
             </div>
           }
@@ -80,8 +76,10 @@ const DesktopHeader: React.FC<HeaderProps> = ({ user, login }) => {
   );
 }
 
-const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
+const MobileHeader: React.FC = () => {
 
+  const { connect } = useAuth();
+  const { user } = useUser();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null); // Reference to the menu
   const menuButtonRef = useRef<HTMLDivElement | null>(null); // Reference to the menu button
@@ -201,7 +199,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
             ) : (
               <div
                 className="grid grid-cols-12 py-2 px-4 rounded-lg flex flex-row items-center fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white rounded-lg hover:cursor-pointer"
-                onClick={() => { setShowMenu(false); login(); }}
+                onClick={() => { setShowMenu(false); connect(); }}
               >
                 <LoginIcon />
                 <span className="cols-span-11">Login</span>
@@ -216,22 +214,12 @@ const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
 
 const Header = () => {
 
-  const navigate = useNavigate();
-
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
-
-  const { user } = useUser();
-
-  const { login } = useAuth({ 
-    onLoginSuccess: (principal) => {
-      navigate(`/user/${principal.toText()}`)
-    },
-  });
 
   return (
     isMobile ? 
-      <MobileHeader user={user} login={login} /> :
-      <DesktopHeader user={user} login={login} />
+      <MobileHeader /> :
+      <DesktopHeader />
   );
 }
 

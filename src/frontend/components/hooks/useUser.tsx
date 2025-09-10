@@ -1,6 +1,6 @@
-import { useAuth } from "@ic-reactor/react";
-import { useCallback, useEffect } from "react";
-import { backendActor } from "../../actors/BackendActor";
+import { useAuth } from "@nfid/identitykit/react";
+import { useCallback, useEffect, useState } from "react";
+import { backendActor } from "../actors/BackendActor";
 import { User } from "../../../declarations/backend/backend.did";
 
 interface UseUserResult {
@@ -10,28 +10,32 @@ interface UseUserResult {
 }
 
 export const useUser = (): UseUserResult => {
-  const { identity, authenticated } = useAuth({});
+  const { user : authenticatedUser } = useAuth();
 
-  // Get user data from backend - ic-reactor handles state sharing automatically
-  const { data: user, call: getOrCreateUser, loading: getOrCreateUserLoading } = backendActor.useUpdateCall({
+  // State for user data
+  const [user, setUser] = useState<User | undefined>(undefined);
+  
+  // Get user data from backend
+  const { call: getOrCreateUser, loading: getOrCreateUserLoading } = backendActor.authenticated.useUpdateCall({
     functionName: 'get_or_create_user',
+    onSuccess: (userData) => setUser(userData),
   });
 
   // Set user nickname
-  const { call: setNickname, loading: setNicknameLoading } = backendActor.useUpdateCall({
+  const { call: setNickname, loading: setNicknameLoading } = backendActor.authenticated.useUpdateCall({
     functionName: 'set_user_nickname',
   });
 
   useEffect(() => {
-    if (authenticated && identity && !identity.getPrincipal().isAnonymous() && !user) {
+    if (authenticatedUser && !authenticatedUser?.principal.isAnonymous() && !user) {
       // Automatically create user if not exists
       getOrCreateUser();
     }
-  }, [authenticated, identity]);
+  }, [authenticatedUser]);
 
   // Update nickname function
   const updateNickname = useCallback(async (nickname: string): Promise<boolean> => {
-    if (!authenticated || !identity || identity.getPrincipal().isAnonymous()) {
+    if (!authenticatedUser || !authenticatedUser?.principal.isAnonymous()) {
       return false;
     }
 
@@ -47,7 +51,7 @@ export const useUser = (): UseUserResult => {
       console.error("Error updating nickname:", error);
       return false;
     }
-  }, [authenticated, identity, setNickname]);
+  }, [authenticatedUser, setNickname]);
 
   // Determine loading state
   const isLoading = getOrCreateUserLoading || setNicknameLoading;

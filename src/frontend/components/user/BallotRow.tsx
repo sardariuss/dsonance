@@ -1,5 +1,5 @@
 import { timeDifference, timeToDate } from "../../utils/conversions/date";
-import { backendActor } from "../../actors/BackendActor";
+import { backendActor } from "../actors/BackendActor";
 
 import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
 import { fromNullable } from "@dfinity/utils";
@@ -63,7 +63,7 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
     [ballot]
   );
 
-  const { data: opt_vote } = backendActor.useQueryCall({
+  const { data: opt_vote } = backendActor.unauthenticated.useQueryCall({
     functionName: "get_vote",
     args: [{ vote_id: ballot.YES_NO.vote_id }],
   });

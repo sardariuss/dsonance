@@ -1,10 +1,10 @@
-import { protocolActor } from "../../actors/ProtocolActor";
+import { protocolActor } from "../actors/ProtocolActor";
 import { fromNullableExt } from "../../utils/conversions/nullable";
 import { TokenLabel } from "../common/TokenLabel";
 import BorrowButton from "./BorrowButton";
 import { OperationKind, Result_1 } from "../../../declarations/protocol/protocol.did";
 import { useMemo, useEffect } from "react";
-import { useAuth } from "@ic-reactor/react";
+import { useAuth } from "@nfid/identitykit/react";
 import { Account } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import DualLabel from "../common/DualLabel";
 import { aprToApy } from "../../utils/lending";
@@ -17,39 +17,39 @@ import { showErrorToast, extractErrorMessage } from "../../utils/toasts";
 
 const BorrowTab = () => {
 
-  const { identity } = useAuth({});
+  const { user } = useAuth();
 
-  if (!identity) {
+  if (!user || user.principal.isAnonymous()) {
     return null;
   }
 
   const account : Account= useMemo(() => ({
-    owner: identity?.getPrincipal(),
+    owner: user.principal,
     subaccount: []
-  }), [identity]);
+  }), [user]);
 
   const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
 
-  const { data: indexerState, call: refreshIndexerState } = protocolActor.useQueryCall({
+  const { data: indexerState, call: refreshIndexerState } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_lending_index',
   });
 
-  const { data: loanPosition, call: refreshLoanPosition } = protocolActor.useQueryCall({
+  const { data: loanPosition, call: refreshLoanPosition } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_loan_position',
     args: [account]
   });
 
   const { parameters } = useProtocolContext();
 
-  const { call: previewBorrowOperation } = protocolActor.useUpdateCall({
+  const { call: previewBorrowOperation } = protocolActor.authenticated.useUpdateCall({
     functionName: 'preview_borrow_operation',
   });
 
-  const { call: runBorrowOperation } = protocolActor.useUpdateCall({
+  const { call: runBorrowOperation } = protocolActor.authenticated.useUpdateCall({
     functionName: 'run_borrow_operation',
   });
 
-  const { data: userSupply, call: refreshUserSupply } = protocolActor.useQueryCall({
+  const { data: userSupply, call: refreshUserSupply } = protocolActor.unauthenticated.useQueryCall({
     functionName: "get_user_supply",
     args: [{ account }],
   });

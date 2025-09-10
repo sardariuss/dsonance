@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
-import { useAuth } from "@ic-reactor/react";
-import { protocolActor } from "../../actors/ProtocolActor";
+import { useAuth } from "@nfid/identitykit/react";
+import { protocolActor } from "../actors/ProtocolActor";
 import { ProtocolInfo, SParameters } from "@/declarations/protocol/protocol.did";
 import { compute_decay } from "../../utils/decay";
 import { durationToNs } from "../../utils/conversions/duration";
@@ -17,18 +17,12 @@ const ProtocolContext = createContext<ProtocolContextType | undefined>(undefined
 
 export const ProtocolProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
-  const { identity } = useAuth({});
-
-  if(!identity) {
-    return null;
-  };
-
-  const { data: parameters, call: refreshParameters } = protocolActor.useQueryCall({
+  const { data: parameters, call: refreshParameters } = protocolActor.unauthenticated.useQueryCall({
       functionName: "get_parameters",
       args: [],
   });
 
-  const { data: info, call: refreshInfo } = protocolActor.useQueryCall({
+  const { data: info, call: refreshInfo } = protocolActor.unauthenticated.useQueryCall({
       functionName: "get_info",
       args: [],
   });

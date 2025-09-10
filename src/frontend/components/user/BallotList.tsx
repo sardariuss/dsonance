@@ -1,10 +1,10 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { protocolActor } from "../../actors/ProtocolActor";
+import { protocolActor } from "../actors/ProtocolActor";
 
 import BallotRow from "./BallotRow";
 import { useProtocolContext } from "../context/ProtocolContext";
-import { useAuth } from "@ic-reactor/react";
+import { useAuth, useIdentity } from "@nfid/identitykit/react";
 import { Account, SBallotType } from "@/declarations/protocol/protocol.did";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
@@ -13,7 +13,6 @@ import AdaptiveInfiniteScroll from "../AdaptiveInfinitScroll";
 import IntervalPicker from "../charts/IntervalPicker";
 import { DurationUnit } from "../../utils/conversions/durationUnit";
 import LockChart from "../charts/LockChart";
-import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 
 type BallotEntries = {
   ballots: SBallotType[];
@@ -23,7 +22,7 @@ type BallotEntries = {
 
 const BallotList = () => {
   
-  const {login, identity} = useAuth();
+  const { connect, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const ballotRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
   const [triggerScroll, setTriggerScroll] = useState(false);
@@ -35,8 +34,8 @@ const BallotList = () => {
   const limit = isMobile ? 8n : 10n;
   const [duration, setDuration] = useState<DurationUnit | undefined>(DurationUnit.MONTH);
 
-  if (identity === null || identity?.getPrincipal().isAnonymous()) {
-    return <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full text-lg hover:cursor-pointer" onClick={() => login()}>
+  if (user === undefined || user.principal.isAnonymous()) {
+    return <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full text-lg hover:cursor-pointer" onClick={() => connect()}>
       Log in to see your ballots
     </div>;
   }
@@ -91,14 +90,14 @@ const BallotList = () => {
 
   const { info, refreshInfo } = useProtocolContext();
 
-  const { call: getBallots } = protocolActor.useQueryCall({
+  const { call: getBallots } = protocolActor.unauthenticated.useQueryCall({
     functionName: "get_ballots",
   });
 
   const account : Account = useMemo(() => ({
-    owner: identity?.getPrincipal(),
+    owner: user?.principal,
     subaccount: []
-  }), [identity]);
+  }), [user]);
 
   useEffect(() => {
     refreshInfo();

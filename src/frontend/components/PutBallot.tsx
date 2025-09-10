@@ -2,10 +2,10 @@ import { EYesNoChoice, toCandid } from '../utils/conversions/yesnochoice';
 import { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { BallotInfo } from './types';
-import { useAuth } from '@ic-reactor/react';
+import { useAuth } from '@nfid/identitykit/react';
 import { useProtocolContext } from './context/ProtocolContext';
 import PutBallotPreview from './PutBallotPreview';
-import { protocolActor } from '../actors/ProtocolActor';
+import { protocolActor } from "./actors/ProtocolActor";
 import { useNavigate } from 'react-router-dom';
 import ResetIcon from './icons/ResetIcon';
 import { SBallot } from '@/declarations/protocol/protocol.did';
@@ -25,18 +25,19 @@ type Props = {
 const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
 
   const { supplyLedger: { formatAmount, formatAmountUsd, metadata, convertToFixedPoint, approveIfNeeded, userBalance, refreshUserBalance } } = useFungibleLedgerContext();
-  const { authenticated, login } = useAuth();
+  const { user, connect } = useAuth();
+  const authenticated = !!user;
   const { parameters } = useProtocolContext();
   const [putBallotLoading, setPutBallotLoading] = useState(false);
   const navigate = useNavigate();
   
-  const { call: putBallot } = protocolActor.useUpdateCall({
+  const { call: putBallot } = protocolActor.authenticated.useUpdateCall({
     functionName: "put_ballot",
   });
 
   const triggerVote = () => {
     if (!authenticated) {
-      login();
+      connect();
       return;
     }
     if (putBallotLoading) {
@@ -158,7 +159,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
               <button 
                 key={percentage} 
                 className={`rounded-lg h-9 text-base justify-center flex-grow ${userBalance && ballot.amount === BigInt(Math.floor(percentage * Number(userBalance))) ? "bg-purple-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
-                onClick={() => { if(!authenticated) { login() } else { setBallot({ amount: BigInt(Math.floor(percentage * Number(userBalance))), choice: ballot.choice })}}}
+                onClick={() => { if(!authenticated) { connect() } else { setBallot({ amount: BigInt(Math.floor(percentage * Number(userBalance))), choice: ballot.choice })}}}
                 disabled={(userBalance !== undefined && userBalance === 0n) || putBallotLoading}
               >
                   {percentage * 100}%

@@ -1,4 +1,4 @@
-import { useAuth } from "@ic-reactor/react";
+import { useAuth } from "@nfid/identitykit/react";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import Faucet from "./Faucet";
 import { FullTokenLabel } from "./common/TokenLabel";
@@ -6,10 +6,10 @@ import { canisterId as ckUsdtCanisterId } from "@/declarations/ckusdt_ledger";
 import { canisterId as ckBtcCanisterId } from "@/declarations/ckbtc_ledger";
 
 const FaucetPage = () => {
-  const { authenticated } = useAuth();
+  const { user } = useAuth();
   const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
 
-  if (!authenticated) {
+  if (!user || user.principal.isAnonymous()) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <div className="text-center text-gray-500 dark:text-gray-400">

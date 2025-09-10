@@ -1,15 +1,15 @@
-import { ckBtcActor } from "../../actors/CkBtcActor";
-import { ckUsdtActor } from "../../actors/CkUsdtActor";
-import { dsnLedgerActor } from "../../actors/DsnLedgerActor";
-import { icpCoinsActor } from "../../actors/IcpCoinsActor";
-import { faucetActor } from "../../actors/FaucetActor";
+import { ckBtcLedgerActor } from "../actors/CkBtcActor";
+import { ckUsdtLedgerActor } from "../actors/CkUsdtActor";
+import { dsnLedgerActor } from "../actors/DsnLedgerActor";
+import { icpCoinsActor } from "../actors/IcpCoinsActor";
+import { faucetActor } from "../actors/FaucetActor";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
 import { getTokenDecimals, getTokenFee } from "../../utils/metadata";
 import { useEffect, useState } from "react";
 import { canisterId as protocolCanisterId } from "../../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
 import { Account, MetadataValue } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
-import { useAuth } from "@ic-reactor/react";
+import { useAuth, useIdentity } from "@nfid/identitykit/react";
 
 export enum LedgerType {
   SUPPLY = 'supply',
@@ -38,14 +38,15 @@ export interface FungibleLedger {
 
 export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
 
-  const actor = ledgerType === LedgerType.SUPPLY ? ckUsdtActor : ledgerType === LedgerType.COLLATERAL ? ckBtcActor : dsnLedgerActor;
+  const ledgerActor = ledgerType === LedgerType.SUPPLY ? ckUsdtLedgerActor : ledgerType === LedgerType.COLLATERAL ? ckBtcLedgerActor : dsnLedgerActor;
 
-  const { authenticated, identity } = useAuth({});
+  const { user } = useAuth();
+  const identity = useIdentity();
 
   const [account, setAccount] = useState<Account | undefined>(undefined);
 
   useEffect(() => {
-    if (authenticated && identity) {
+    if (user && identity) {
       setAccount({
         owner: identity.getPrincipal(),
         subaccount: []
@@ -53,13 +54,13 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     } else {
       setAccount(undefined);
     }
-  }, [authenticated, identity]);
+  }, [user, identity]);
   
-  const { data: metadata } = actor.useQueryCall({
+  const { data: metadata } = ledgerActor.unauthenticated.useQueryCall({
     functionName: 'icrc1_metadata'
   });
 
-  const { call: fetchLatestPrices } = icpCoinsActor.useQueryCall({
+  const { call: fetchLatestPrices } = icpCoinsActor.unauthenticated.useQueryCall({
     functionName: "get_latest",
     args: [],
     onSuccess: (data) => {
@@ -84,7 +85,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     }
   });
 
-  const { data: totalSupply } = actor.useQueryCall({
+  const { data: totalSupply } = ledgerActor.unauthenticated.useQueryCall({
     functionName: 'icrc1_total_supply',
     args: [],
   });
@@ -152,10 +153,10 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     return fromFixedPoint(amount, tokenDecimals);
   };
 
-  const { call: icrc2Approve } = actor.useUpdateCall({
+  const { call: icrc2Approve } = ledgerActor.authenticated.useUpdateCall({
     functionName: 'icrc2_approve',
   });
-  const { call: icrc2Allowance } = actor.useQueryCall({
+  const { call: icrc2Allowance } = ledgerActor.authenticated.useQueryCall({
     functionName: 'icrc2_allowance',
   });
 
@@ -234,7 +235,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     return { tokenFee, approveCalled: true };
   };
 
-  const { call: icrc1BalanceOf } = actor.useQueryCall({
+  const { call: icrc1BalanceOf } = ledgerActor.unauthenticated.useQueryCall({
     functionName: 'icrc1_balance_of',
   });
 
@@ -259,7 +260,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     refreshUserBalance();
   }, [account]);
 
-  const { call: mintToken, loading: mintLoading } = faucetActor.useUpdateCall({
+  const { call: mintToken, loading: mintLoading } = faucetActor.unauthenticated.useUpdateCall({
     functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : ledgerType === LedgerType.COLLATERAL ? 'mint_btc' : 'mint_dsn',
   });
 

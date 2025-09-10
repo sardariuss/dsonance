@@ -152,4 +152,39 @@ shared({ caller = admin }) persistent actor class Backend() = this {
         };
     };
 
+    type SupportedStandard = {
+        url: Text;
+        name: Text;
+    };
+
+    public query func icrc10_supported_standards() : async [SupportedStandard] {
+        return [
+            {
+                url = "https://github.com/dfinity/ICRC/blob/main/ICRCs/ICRC-10/ICRC-10.md";
+                name = "ICRC-10";
+            },
+            {
+                url = "https://github.com/dfinity/wg-identity-authentication/blob/main/topics/icrc_28_trusted_origins.md";
+                name = "ICRC-28";
+            }
+        ];
+    };
+
+    type Icrc28TrustedOriginsResponse = {
+        trusted_origins: [Text];
+    };
+
+    public func icrc28_trusted_origins() : async Icrc28TrustedOriginsResponse {
+        let trusted_origins = [
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.icp0.io",
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.raw.icp0.io",
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.ic0.app",
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.raw.ic0.app",
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.icp0.icp-api.io",
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.icp-api.io",
+            "https://app.dsonance.xyz",
+        ];
+        return { trusted_origins; };
+    };
+
 };

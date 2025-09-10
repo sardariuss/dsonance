@@ -1,8 +1,8 @@
 import { useParams } from "react-router-dom";
 import VoteView, { VoteViewSkeleton } from "./VoteView";
-import { backendActor } from "../actors/BackendActor";
 import { fromNullable } from "@dfinity/utils";
 import { useEffect, useMemo } from "react";
+import { backendActor } from "./actors/BackendActor";
 
 const Vote = () => {
 
@@ -12,7 +12,7 @@ const Vote = () => {
         return <span>Invalid vote</span>;
     }
 
-    const { data: vote, call: refreshVote, loading } = backendActor.useQueryCall({
+    const { data: vote, call: refreshVote, loading } = backendActor.unauthenticated.useQueryCall({
         functionName: 'get_vote',
         args: [{ vote_id: id }],
     });

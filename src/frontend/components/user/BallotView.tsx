@@ -12,7 +12,7 @@ import ChevronUpIcon from "../icons/ChevronUpIcon";
 import ChevronDownIcon from "../icons/ChevronDownIcon";
 import { useMediaQuery } from "react-responsive";
 import { useNavigate } from "react-router-dom";
-import { backendActor } from "../../actors/BackendActor";
+import { backendActor } from "../actors/BackendActor";
 import { fromNullable } from "@dfinity/utils";
 import { toEnum } from "../../utils/conversions/yesnochoice";
 import ChoiceView from "../ChoiceView";
@@ -150,7 +150,7 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
   const navigate = useNavigate();
   const { supplyLedger: { formatAmountUsd } } = useFungibleLedgerContext();
 
-  const { data: vote, call: refreshVote } = backendActor.useQueryCall({
+  const { data: vote, call: refreshVote } = backendActor.unauthenticated.useQueryCall({
       functionName: 'get_vote',
       args: [{ vote_id: ballot.YES_NO.vote_id }],
   });

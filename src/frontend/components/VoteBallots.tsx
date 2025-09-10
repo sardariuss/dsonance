@@ -1,5 +1,5 @@
 import { useMemo, useEffect } from "react";
-import { backendActor } from "../actors/BackendActor";
+import { backendActor } from "./actors/BackendActor";
 import { timeDifference, timeToDate } from "../utils/conversions/date";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import { SYesNoBallotWithUser } from "@/declarations/backend/backend.did";
@@ -17,7 +17,7 @@ const VoteBallots = ({ voteId }: VoteBallotsProps) => {
   const { info } = useProtocolContext();
 
   // Get ballots for this vote
-  const { data: ballots, call: fetchBallots } = backendActor.useQueryCall({
+  const { data: ballots, call: fetchBallots } = backendActor.unauthenticated.useQueryCall({
     functionName: 'get_vote_ballots',
     args: [voteId],
   });
