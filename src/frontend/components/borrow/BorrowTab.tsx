@@ -16,12 +16,16 @@ import { useProtocolContext } from "../context/ProtocolContext";
 import { showErrorToast, extractErrorMessage } from "../../utils/toasts";
 
 const BorrowTab = () => {
-
   const { user } = useAuth();
 
   if (!user || user.principal.isAnonymous()) {
     return null;
   }
+
+  return <BorrowTabContent user={user} />;
+};
+
+const BorrowTabContent = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
 
   const account : Account= useMemo(() => ({
     owner: user.principal,
@@ -282,6 +286,6 @@ const BorrowTab = () => {
       </div>
     </div>
   );
-}
+};
 
 export default BorrowTab;

@@ -11,14 +11,25 @@ import AdaptiveInfiniteScroll from "../AdaptiveInfinitScroll";
 
 
 const UserVotes = () => {
-
   const { user, connect } = useAuth();
 
   if (user === undefined || user.principal.isAnonymous()) {
-    return <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full text-lg hover:cursor-pointer" onClick={() => connect()}>
-      Log in to see your opened votes
-    </div>;
+    return <UserVotesLogin connect={connect} />;
   }
+
+  return <UserVotesContent user={user} />;
+};
+
+const UserVotesLogin = ({ connect }: { connect: () => void }) => (
+  <div
+    className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full text-lg hover:cursor-pointer"
+    onClick={() => connect()}
+  >
+    Log in to see your opened votes
+  </div>
+);
+
+const UserVotesContent = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const voteRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
