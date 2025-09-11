@@ -60,7 +60,7 @@ const VoteList = () => {
   // Initial Fetch on Mount
   useEffect(() => {
     fetchAndSetVotes();
-  }, []);
+  }, [fetchVotes]);
 
   useEffect(() => {
     if (votes && selectedVoteId !== null) {

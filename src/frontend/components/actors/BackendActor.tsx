@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useActors } from '../common/ActorsContext';
 import { ActorMethod, ActorSubclass } from '@dfinity/agent';
 import { _SERVICE as Backend } from "../../../declarations/backend/backend.did";
@@ -21,27 +21,29 @@ const useQueryCall = <T extends BackendMethods>(options: UseQueryCallOptions<T>,
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
 
-  const call = async (callArgs?: ExtractArgs<Backend[T]>): Promise<ExtractReturn<Backend[T]> | undefined> => {
+  const call = useCallback(
+    async (callArgs?: ExtractArgs<Backend[T]>): Promise<ExtractReturn<Backend[T]> | undefined> => {
+      if (!actor) return undefined;
 
-    if (!actor) return undefined;
-
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const args = callArgs || options.args || [];
-      const result = await (actor as any)[options.functionName](...args);
-      setData(result);
-      options.onSuccess?.(result);
-      return result;
-    } catch (err) {
-      setError(err);
-      options.onError?.(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const args = callArgs || options.args || [];
+        const result = await (actor as any)[options.functionName](...args);
+        setData(result);
+        options.onSuccess?.(result);
+        return result;
+      } catch (err) {
+        setError(err);
+        options.onError?.(err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [actor, options.functionName, options.args, options.onSuccess, options.onError]
+  );
 
   // Helper function to safely serialize args including BigInt
   const serializeArgs = (args: any) => {
@@ -78,26 +80,29 @@ const useUpdateCall = <T extends BackendMethods>(options: UseUpdateCallOptions<T
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
 
-  const call = async (args: ExtractArgs<Backend[T]> = [] as any): Promise<ExtractReturn<Backend[T]> | undefined> => {
+  const call = useCallback(
+    async (args: ExtractArgs<Backend[T]> = [] as any): Promise<ExtractReturn<Backend[T]> | undefined> => {
 
-    if (!actor) return undefined;
+      if (!actor) return undefined;
 
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const result = await (actor as any)[options.functionName](...args);
-      options.onSuccess?.(result);
-      return result;
-    } catch (err) {
-      setError(err);
-      options.onError?.(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const result = await (actor as any)[options.functionName](...args);
+        options.onSuccess?.(result);
+        return result;
+      } catch (err) {
+        setError(err);
+        options.onError?.(err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [actor, options.functionName, options.onSuccess, options.onError]
+  );
+  
   return { call, loading, error };
 };
 
