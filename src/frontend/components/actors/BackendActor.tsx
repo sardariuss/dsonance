@@ -59,6 +59,9 @@ const useQueryCall = <T extends BackendMethods>(options: UseQueryCallOptions<T>,
   useEffect(() => {
     if (options.args !== undefined) {
       call();
+    } else {
+      // Reset data if no args
+      setData(undefined);
     }
   }, [actor, options.functionName, serializeArgs(options.args)]);
 

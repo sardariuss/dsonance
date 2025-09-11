@@ -57,7 +57,8 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   }, [user, identity]);
   
   const { data: metadata } = ledgerActor.unauthenticated.useQueryCall({
-    functionName: 'icrc1_metadata'
+    functionName: 'icrc1_metadata',
+    args: [],
   });
 
   const { call: fetchLatestPrices } = icpCoinsActor.unauthenticated.useQueryCall({

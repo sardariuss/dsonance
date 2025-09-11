@@ -27,6 +27,7 @@ const ParticipationDashboard = () => {
   const { parameters } = useProtocolContext();
   const { data: participationTrackers } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_participation_trackers',
+    args: [],
   });
 
   const miningStats = useMemo(() => {

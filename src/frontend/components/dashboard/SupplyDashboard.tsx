@@ -18,6 +18,7 @@ const SupplyDashboard = () => {
 
   const { data: indexerState, call: refreshIndexerState } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_lending_index',
+    args: [],
   });
 
   const { supplyLedger } = useFungibleLedgerContext();

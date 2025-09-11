@@ -11,6 +11,7 @@ import LogoutIcon from "../icons/LogoutIcon";
 import Avatar from "boring-avatars";
 import { useUser } from "../hooks/useUser";
 import { useAuth } from "@nfid/identitykit/react";
+import { toAccount } from "@/frontend/utils/conversions/account";
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -40,19 +41,14 @@ const Profile = () => {
   const { user, updateNickname, loading } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
+  const [copied, setCopied] = useState(false);
 
+  // Early return after all hooks are called
   if (connectedUser === undefined || connectedUser.principal.isAnonymous()) {
     return <div>Invalid principal</div>;
   }
-  
-  const account : Account = useMemo(() => ({
-    owner: connectedUser.principal,
-    subaccount: []
-  }), [connectedUser]);
-  
-  const [copied, setCopied] = useState(false);
   const handleCopy = () => {
-    navigator.clipboard.writeText(accountToString(account));
+    navigator.clipboard.writeText(accountToString(toAccount(connectedUser)));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000); // Hide tooltip after 2 seconds
   };
@@ -126,7 +122,7 @@ const Profile = () => {
               className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white bg-gray-300 dark:bg-gray-700 rounded-md px-2 py-1 font-medium self-center hover:cursor-pointer"
               onClick={handleCopy}
             >
-              {truncateAccount(accountToString(account))}
+              {truncateAccount(accountToString(toAccount(connectedUser)))}
             </span>
           </div>
           { connectedUser.principal.toString() === principal && 

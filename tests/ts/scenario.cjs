@@ -3,8 +3,8 @@ require('dotenv').config({ path: '../../.env' });
 
 const { getActor } = require("./actor.cjs");
 const { toNs } = require("./duration.cjs");
-const { Ed25519KeyIdentity } = require("@dfinity/agent/identity");
-const { Principal } = require('@dfinity/agent/principal');
+const { Ed25519KeyIdentity } = require("@dfinity/identity");
+const { Principal } = require('@dfinity/principal');
 // v4 from UUID
 const { v4: uuidv4 } = require('uuid');
 const seedrandom = require('seedrandom');

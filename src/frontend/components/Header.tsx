@@ -15,6 +15,7 @@ const DesktopHeader: React.FC = () => {
 
   const { connect } = useAuth();
   const { user } = useUser();
+
   const { supplyLedger } = useFungibleLedgerContext();
 
   // WATCHOUT: the size of the header is set to 22 (16 + 6), it is used in User.tsx as margin (see scroll-mt)
@@ -62,7 +63,6 @@ const DesktopHeader: React.FC = () => {
                 name={user.principal.toString()}
                 variant="marble"
               />
-              <span className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white">{user.nickname}</span>
             </Link> :
             <div className="flex fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white rounded-lg hover:cursor-pointer" onClick={() => { connect() }}>
               <LoginIcon /> 

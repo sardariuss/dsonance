@@ -13,6 +13,7 @@ import AdaptiveInfiniteScroll from "../AdaptiveInfinitScroll";
 import IntervalPicker from "../charts/IntervalPicker";
 import { DurationUnit } from "../../utils/conversions/durationUnit";
 import LockChart from "../charts/LockChart";
+import { toAccount } from "@/frontend/utils/conversions/account";
 
 type BallotEntries = {
   ballots: SBallotType[];
@@ -34,13 +35,20 @@ const BallotList = () => {
   const limit = isMobile ? 8n : 10n;
   const [duration, setDuration] = useState<DurationUnit | undefined>(DurationUnit.MONTH);
 
+  const selectedBallotId = useMemo(() => searchParams.get("ballotId"), [searchParams]);
+
+  const { info, refreshInfo } = useProtocolContext();
+
+  const { call: getBallots } = protocolActor.unauthenticated.useQueryCall({
+    functionName: "get_ballots",
+  });
+
+  // Early return after all hooks are called
   if (user === undefined || user.principal.isAnonymous()) {
     return <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full text-lg hover:cursor-pointer" onClick={() => connect()}>
       Log in to see your ballots
     </div>;
   }
-
-  const selectedBallotId = useMemo(() => searchParams.get("ballotId"), [searchParams]);
 
   const toggleBallot = (ballotId: string) => {
     setSearchParams((prevParams) => {
@@ -85,28 +93,17 @@ const BallotList = () => {
   };
 
   const fetchNextBallots = () => {
-    fetchBallots(account, ballotEntries, filterActive).then(setBallotEntries);
+    fetchBallots(toAccount(user), ballotEntries, filterActive).then(setBallotEntries);
   }
-
-  const { info, refreshInfo } = useProtocolContext();
-
-  const { call: getBallots } = protocolActor.unauthenticated.useQueryCall({
-    functionName: "get_ballots",
-  });
-
-  const account : Account = useMemo(() => ({
-    owner: user?.principal,
-    subaccount: []
-  }), [user]);
 
   useEffect(() => {
     refreshInfo();
-    fetchBallots(account, ballotEntries, filterActive).then(setBallotEntries);
+    fetchBallots(toAccount(user), ballotEntries, filterActive).then(setBallotEntries);
   }, []);
 
   const toggleFilterActive = (active: boolean) => {
     setFilterActive(active);
-    fetchBallots(account, { ballots: [], previous: undefined, hasMore: true }, active).then(setBallotEntries);
+    fetchBallots(toAccount(user), { ballots: [], previous: undefined, hasMore: true }, active).then(setBallotEntries);
   }
 
   useEffect(() => {
