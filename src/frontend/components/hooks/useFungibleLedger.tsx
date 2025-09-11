@@ -8,8 +8,9 @@ import { getTokenDecimals, getTokenFee } from "../../utils/metadata";
 import { useEffect, useState } from "react";
 import { canisterId as protocolCanisterId } from "../../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
-import { Account, MetadataValue } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
+import { Account, MetadataValue, TransferResult } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import { useAuth, useIdentity } from "@nfid/identitykit/react";
+import { toNullable } from "@dfinity/utils";
 
 export enum LedgerType {
   SUPPLY = 'supply',
@@ -30,6 +31,7 @@ export interface FungibleLedger {
   convertToFloatingPoint: (amountFixedPoint: bigint | number | undefined) => number | undefined;
   subtractFee?: (amount: bigint) => bigint;
   approveIfNeeded: (amount: bigint) => Promise<{ tokenFee: bigint, approveCalled: boolean }>;
+  transferTokens: (amount: bigint, to: Account) => Promise<TransferResult | undefined>;
   userBalance: bigint | undefined;
   refreshUserBalance: () => void;
   mint: (amount: number) => Promise<boolean>;
@@ -236,6 +238,21 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     return { tokenFee, approveCalled: true };
   };
 
+  const { call: transfer } = ledgerActor.authenticated.useUpdateCall({
+    functionName: 'icrc1_transfer',
+  });
+
+  const transferTokens = (amount: bigint, to: Account) => {
+    return transfer([{
+        fee: toNullable(tokenFee),
+        from_subaccount: account?.subaccount || [],
+        memo: [],
+        created_at_time: [],
+        to,
+        amount
+    }]);
+  };
+
   const { call: icrc1BalanceOf } = ledgerActor.unauthenticated.useQueryCall({
     functionName: 'icrc1_balance_of',
   });
@@ -311,6 +328,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     convertToFloatingPoint,
     subtractFee,
     approveIfNeeded,
+    transferTokens,
     userBalance,
     refreshUserBalance,
     mint,

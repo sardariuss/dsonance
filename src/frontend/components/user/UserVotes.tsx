@@ -8,6 +8,7 @@ import { toNullable } from "@dfinity/utils";
 import { useAuth } from "@nfid/identitykit/react";
 import UserVoteRow from "./UserVoteRow";
 import AdaptiveInfiniteScroll from "../AdaptiveInfinitScroll";
+import LoginIcon from "../icons/LoginIcon";
 
 
 const UserVotes = () => {
@@ -21,11 +22,14 @@ const UserVotes = () => {
 };
 
 const UserVotesLogin = ({ connect }: { connect: () => void }) => (
-  <div
-    className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full text-lg hover:cursor-pointer"
-    onClick={() => connect()}
-  >
-    Log in to see your opened votes
+  <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full">
+    <button
+      className="button-simple flex items-center space-x-2 px-6 py-3"
+      onClick={() => connect()}
+    >
+      <LoginIcon />
+      <span>Login to see your opened votes</span>
+    </button>
   </div>
 );
 

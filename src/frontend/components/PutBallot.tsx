@@ -8,6 +8,7 @@ import PutBallotPreview from './PutBallotPreview';
 import { protocolActor } from "./actors/ProtocolActor";
 import { useNavigate } from 'react-router-dom';
 import ResetIcon from './icons/ResetIcon';
+import LoginIcon from './icons/LoginIcon';
 import { SBallot } from '@/declarations/protocol/protocol.did';
 import { useFungibleLedgerContext } from './context/FungibleLedgerContext';
 import { getTokenLogo, getTokenSymbol } from '../utils/metadata';
@@ -169,11 +170,18 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
         </div>
       </div>
       <button 
-        className="button-simple w-full h-9 justify-center items-center text-base mt-2"
+        className="button-simple w-full h-9 justify-center items-center text-base mt-2 flex space-x-2"
         disabled={putBallotLoading || errorMsg !== undefined || ballot.amount === 0n}
         onClick={triggerVote}
       >
-        { errorMsg ? errorMsg : (putBallotLoading ? "Locking ballot..." : "Lock ballot") }
+        {!authenticated ? (
+          <>
+            <LoginIcon />
+            <span>Login to lock ballot</span>
+          </>
+        ) : (
+          <span>{ errorMsg ? errorMsg : (putBallotLoading ? "Locking ballot..." : "Lock ballot") }</span>
+        )}
       </button>
     </div>
     

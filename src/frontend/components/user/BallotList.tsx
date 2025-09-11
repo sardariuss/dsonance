@@ -14,6 +14,7 @@ import IntervalPicker from "../charts/IntervalPicker";
 import { DurationUnit } from "../../utils/conversions/durationUnit";
 import LockChart from "../charts/LockChart";
 import { toAccount } from "@/frontend/utils/conversions/account";
+import LoginIcon from "../icons/LoginIcon";
 
 type BallotEntries = {
   ballots: SBallotType[];
@@ -32,11 +33,14 @@ const BallotList = () => {
 };
 
 const BallotListLogin = ({ connect }: { connect: () => void }) => (
-  <div
-    className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full text-lg hover:cursor-pointer"
-    onClick={() => connect()}
-  >
-    Log in to see your ballots
+  <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full">
+    <button
+      className="button-simple flex items-center space-x-2 px-6 py-3"
+      onClick={() => connect()}
+    >
+      <LoginIcon />
+      <span>Login to see your ballots</span>
+    </button>
   </div>
 );
 

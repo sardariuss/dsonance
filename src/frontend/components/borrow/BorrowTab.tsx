@@ -14,12 +14,23 @@ import { REPAY_SLIPPAGE_RATIO, UNDEFINED_SCALAR } from "../../constants";
 import HealthFactor from "./HealthFactor";
 import { useProtocolContext } from "../context/ProtocolContext";
 import { showErrorToast, extractErrorMessage } from "../../utils/toasts";
+import LoginIcon from "../icons/LoginIcon";
 
 const BorrowTab = () => {
-  const { user } = useAuth();
+  const { user, connect } = useAuth();
 
   if (!user || user.principal.isAnonymous()) {
-    return null;
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <button
+          className="button-simple flex items-center space-x-2 px-6 py-3"
+          onClick={() => connect()}
+        >
+          <LoginIcon />
+          <span>Login to access borrowing</span>
+        </button>
+      </div>
+    );
   }
 
   return <BorrowTabContent user={user} />;

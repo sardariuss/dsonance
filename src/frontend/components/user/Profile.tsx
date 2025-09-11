@@ -1,6 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { useMemo, useState } from "react";
-import Wallet from "../Wallet";
+import { useState } from "react";
 
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
@@ -144,15 +143,9 @@ const Profile = () => {
           </div>
         )}
       </div>
-      {
-        !connectedUser.principal.isAnonymous() && connectedUser.principal.toString() === principal && <Wallet/>
-      }
-      {
-        isMobile && 
-          <div className="flex flex-row justify-center w-full p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
-            <ThemeToggle/>
-          </div>
-      }
+      <div className="flex flex-row justify-center w-full p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
+        <ThemeToggle/>
+      </div>
     </div>
   );
 }
