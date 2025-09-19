@@ -40,7 +40,12 @@ export interface FungibleLedger {
 
 export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
 
-  const ledgerActor = ledgerType === LedgerType.SUPPLY ? ckUsdtLedgerActor : ledgerType === LedgerType.COLLATERAL ? ckBtcLedgerActor : dsnLedgerActor;
+  const ledgerActorMap: Record<LedgerType, typeof ckUsdtLedgerActor> = {
+    [LedgerType.SUPPLY]: ckUsdtLedgerActor,
+    [LedgerType.COLLATERAL]: ckBtcLedgerActor,
+    [LedgerType.PARTICIPATION]: dsnLedgerActor,
+  };
+  const ledgerActor = ledgerActorMap[ledgerType] ?? dsnLedgerActor;
 
   const { user } = useAuth();
   const identity = useIdentity();
