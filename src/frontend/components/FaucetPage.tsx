@@ -1,21 +1,25 @@
-import { useAuth } from "@ic-reactor/react";
+import { useAuth } from "@nfid/identitykit/react";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import Faucet from "./Faucet";
+import LoginIcon from "./icons/LoginIcon";
 import { FullTokenLabel } from "./common/TokenLabel";
 import { canisterId as ckUsdtCanisterId } from "@/declarations/ckusdt_ledger";
 import { canisterId as ckBtcCanisterId } from "@/declarations/ckbtc_ledger";
 
 const FaucetPage = () => {
-  const { authenticated } = useAuth();
+  const { user, connect } = useAuth();
   const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
 
-  if (!authenticated) {
+  if (!user || user.principal.isAnonymous()) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
-        <div className="text-center text-gray-500 dark:text-gray-400">
-          <p className="text-lg mb-2">Please log in to access the faucet</p>
-          <p className="text-sm">You need to be authenticated to mint tokens</p>
-        </div>
+        <button
+          className="button-simple flex items-center space-x-2 px-6 py-3"
+          onClick={() => connect()}
+        >
+          <LoginIcon />
+          <span>Login to access the faucet</span>
+        </button>
       </div>
     );
   }

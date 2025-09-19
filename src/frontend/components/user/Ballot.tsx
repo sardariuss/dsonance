@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import BallotView, { BallotViewSkeleton } from "./BallotView";
 import { fromNullable } from "@dfinity/utils";
-import { protocolActor } from "../../actors/ProtocolActor";
+import { protocolActor } from "../actors/ProtocolActor";
 import { useProtocolContext } from "../context/ProtocolContext";
 import { useEffect, useMemo } from "react";
 
@@ -13,7 +13,7 @@ const Ballot = () => {
         return <span>Invalid ballot</span>;
     }
 
-    const { data: ballot, call: refreshBallot, loading } = protocolActor.useQueryCall({
+    const { data: ballot, call: refreshBallot, loading } = protocolActor.unauthenticated.useQueryCall({
         functionName: 'find_ballot',
         args: [id],
     });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { protocolActor } from "../../actors/ProtocolActor";
+import { protocolActor } from "../actors/ProtocolActor";
 import { formatAmountCompact } from "../../utils/conversions/token";
 import BorrowInfoPanel from "../borrow/BorrowInfoPanel";
 import InterestRateModel from "../borrow/InterestRateModel";
@@ -16,8 +16,9 @@ const SupplyDashboard = () => {
 
   const { parameters } = useProtocolContext();
 
-  const { data: indexerState, call: refreshIndexerState } = protocolActor.useQueryCall({
+  const { data: indexerState, call: refreshIndexerState } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_lending_index',
+    args: [],
   });
 
   const { supplyLedger } = useFungibleLedgerContext();

@@ -1,6 +1,6 @@
 import { useMemo, useContext } from "react";
 import { ResponsivePie } from '@nivo/pie';
-import { protocolActor } from "../../actors/ProtocolActor";
+import { protocolActor } from "../actors/ProtocolActor";
 import { formatAmountCompact } from "../../utils/conversions/token";
 import DualLabel from "../common/DualLabel";
 import { ThemeContext } from "../App";
@@ -25,8 +25,9 @@ const ParticipationDashboard = () => {
   const { theme } = useContext(ThemeContext);
   const { participationLedger : { formatAmount, totalSupply, metadata } } = useFungibleLedgerContext();
   const { parameters } = useProtocolContext();
-  const { data: participationTrackers } = protocolActor.useQueryCall({
+  const { data: participationTrackers } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_participation_trackers',
+    args: [],
   });
 
   const miningStats = useMemo(() => {

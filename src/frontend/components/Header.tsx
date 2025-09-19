@@ -1,23 +1,21 @@
 import { Link, useLocation, useNavigate }      from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
-import { useAuth } from "@ic-reactor/react";
+import { useAuth } from "@nfid/identitykit/react";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import LoginIcon from "./icons/LoginIcon";
 import Logo from "./icons/Logo";
 import { useMediaQuery } from "react-responsive";
-import ThemeToggle from "./ThemeToggle";
-import Balance from "./Balance";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import Avatar from "boring-avatars";
 import { useUser } from "./hooks/useUser";
-import { User } from "@/declarations/backend/backend.did";
+import { MdOutlineAccountBalanceWallet } from "react-icons/md";
+import Wallet from "./wallet/Wallet";
 
-interface HeaderProps {
-  user: User | undefined;
-  login: () => void;
-}
+const DesktopHeader: React.FC = () => {
 
-const DesktopHeader: React.FC<HeaderProps> = ({ user, login }) => {
+  const { connect } = useAuth();
+  const { user } = useUser();
+  const [showWallet, setShowWallet] = useState(false);
 
   const { supplyLedger } = useFungibleLedgerContext();
 
@@ -46,43 +44,51 @@ const DesktopHeader: React.FC<HeaderProps> = ({ user, login }) => {
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/"}>
             Vote
           </Link>
-          { user && <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/borrow"}>
+          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/borrow"}>
             Borrow
           </Link>
-          }
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/dashboard"}>
             Dashboard
           </Link>
-          { user && <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/faucet"}>
+          <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/faucet"}>
             Faucet
           </Link>
-          }
-          <Balance ledger={supplyLedger} amount={supplyLedger.userBalance}/>
-          <div>
           { user ? 
-            <Link className="flex items-center space-x-2 stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${user.principal}`}>
+            <Link className="flex items-center stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer" to={`/user/${user.principal}`}>
               <Avatar
                 size={32}
                 name={user.principal.toString()}
                 variant="marble"
               />
-              <span className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white">{user.nickname}</span>
             </Link> :
-            <div className="flex fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white rounded-lg hover:cursor-pointer" onClick={() => { login() }}>
+            <div className="flex fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white rounded-lg hover:cursor-pointer" onClick={() => { connect() }}>
               <LoginIcon /> 
             </div>
           }
-          </div>
-          <ThemeToggle/>
+          {/* Wallet Button */}
+            { user && <button
+                className="h-10 w-10 rounded-full bg-white p-2 text-xl text-black dark:bg-white/10 dark:text-white"
+                onClick={() => setShowWallet(true)}
+              >
+                <MdOutlineAccountBalanceWallet size={22} />
+              </button> 
+            }
         </div>
       </nav>
+      <Wallet
+        isOpen={showWallet}
+        onClose={() => setShowWallet(false)}
+      />
     </header>
   );
 }
 
-const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
+const MobileHeader: React.FC = () => {
 
+  const { connect } = useAuth();
+  const { user } = useUser();
   const [showMenu, setShowMenu] = useState(false);
+  const [showWallet, setShowWallet] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null); // Reference to the menu
   const menuButtonRef = useRef<HTMLDivElement | null>(null); // Reference to the menu button
   const location = useLocation(); // Current location/path
@@ -150,7 +156,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
                 Vote
               </Link>
             </div>
-            {user && <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/borrow' ? 'bg-purple-700 text-white' : ''}`}>
+            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/borrow' ? 'bg-purple-700 text-white' : ''}`}>
               <span />
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
@@ -160,7 +166,6 @@ const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
                 Borrow
               </Link>
             </div>
-            }
             <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/dashboard' ? 'bg-purple-700 text-white' : ''}`}>
               <span />
               <Link
@@ -171,7 +176,7 @@ const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
                 Dashboard
               </Link>
             </div>
-            {user && <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/faucet' ? 'bg-purple-700 text-white' : ''}`}>
+            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/faucet' ? 'bg-purple-700 text-white' : ''}`}>
               <span />
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
@@ -181,7 +186,6 @@ const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
                 Faucet
               </Link>
             </div>
-            }
             <span />
             {user ? (
               <Link
@@ -201,37 +205,39 @@ const MobileHeader: React.FC<HeaderProps> = ({ user, login }) => {
             ) : (
               <div
                 className="grid grid-cols-12 py-2 px-4 rounded-lg flex flex-row items-center fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white rounded-lg hover:cursor-pointer"
-                onClick={() => { setShowMenu(false); login(); }}
+                onClick={() => { setShowMenu(false); connect(); }}
               >
                 <LoginIcon />
                 <span className="cols-span-11">Login</span>
               </div>
             )}
+            {/* Wallet Button */}
+            { user && <button
+                className="h-10 w-10 rounded-full bg-white p-2 text-xl text-black dark:bg-white/10 dark:text-white"
+                onClick={() => setShowWallet(true)}
+              >
+                <MdOutlineAccountBalanceWallet size={22} />
+              </button> 
+            }
           </div>
         )
       }
+      <Wallet
+        isOpen={showWallet}
+        onClose={() => setShowWallet(false)}
+      />
     </header>
   );
 }
 
 const Header = () => {
 
-  const navigate = useNavigate();
-
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
-
-  const { user } = useUser();
-
-  const { login } = useAuth({ 
-    onLoginSuccess: (principal) => {
-      navigate(`/user/${principal.toText()}`)
-    },
-  });
 
   return (
     isMobile ? 
-      <MobileHeader user={user} login={login} /> :
-      <DesktopHeader user={user} login={login} />
+      <MobileHeader /> :
+      <DesktopHeader />
   );
 }
 

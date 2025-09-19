@@ -1,16 +1,16 @@
 import { Link, useParams } from "react-router-dom";
-import { useMemo, useState } from "react";
-import Wallet from "../Wallet";
+import { useState } from "react";
 
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
 import ThemeToggle from "../ThemeToggle";
-import { useAuth } from "@ic-reactor/react";
 import { Account } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
 import LogoutIcon from "../icons/LogoutIcon";
 import Avatar from "boring-avatars";
 import { useUser } from "../hooks/useUser";
+import { useAuth } from "@nfid/identitykit/react";
+import { toAccount } from "@/frontend/utils/conversions/account";
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -35,24 +35,19 @@ const truncateAccount = (accountStr: string) => {
 const Profile = () => {
   
   const { principal } = useParams();
-  const { identity, logout } = useAuth();
+  const { user: connectedUser, connect, disconnect } = useAuth();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const { user, updateNickname, loading } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
+  const [copied, setCopied] = useState(false);
 
-  if (!principal || !identity) {
+  // Early return after all hooks are called
+  if (connectedUser === undefined || connectedUser.principal.isAnonymous()) {
     return <div>Invalid principal</div>;
   }
-  
-  const account : Account = useMemo(() => ({
-    owner: identity?.getPrincipal(),
-    subaccount: []
-  }), [identity]);
-  
-  const [copied, setCopied] = useState(false);
   const handleCopy = () => {
-    navigator.clipboard.writeText(accountToString(account));
+    navigator.clipboard.writeText(accountToString(toAccount(connectedUser)));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000); // Hide tooltip after 2 seconds
   };
@@ -76,7 +71,7 @@ const Profile = () => {
     setNicknameInput("");
   };
 
-  if (principal !== identity.getPrincipal().toString()) {
+  if (principal !== connectedUser.principal.toString()) {
     return <div>Unauthorized</div>;
   }
 
@@ -86,7 +81,7 @@ const Profile = () => {
         <div className="flex flex-row items-center space-x-2">
           <Avatar
             size={isMobile ? 40 : 60}
-            name={identity.getPrincipal().toString()}
+            name={connectedUser.principal.toString()}
             variant="marble"
           />
           <div className="flex flex-col space-y-1">
@@ -126,13 +121,13 @@ const Profile = () => {
               className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white bg-gray-300 dark:bg-gray-700 rounded-md px-2 py-1 font-medium self-center hover:cursor-pointer"
               onClick={handleCopy}
             >
-              {truncateAccount(accountToString(account))}
+              {truncateAccount(accountToString(toAccount(connectedUser)))}
             </span>
           </div>
-          { identity.getPrincipal().toString() === principal && 
+          { connectedUser.principal.toString() === principal && 
             <Link 
               className="fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white p-2.5 rounded-lg hover:cursor-pointer"
-              onClick={()=>{logout()}}
+              onClick={()=>{ disconnect(); }}
               to="/">
               <LogoutIcon />
             </Link>
@@ -148,15 +143,9 @@ const Profile = () => {
           </div>
         )}
       </div>
-      {
-        !identity.getPrincipal().isAnonymous() && identity.getPrincipal().toString() === principal && <Wallet/>
-      }
-      {
-        isMobile && 
-          <div className="flex flex-row justify-center w-full p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
-            <ThemeToggle/>
-          </div>
-      }
+      <div className="flex flex-row justify-center w-full p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
+        <ThemeToggle/>
+      </div>
     </div>
   );
 }

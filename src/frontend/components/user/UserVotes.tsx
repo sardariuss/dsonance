@@ -1,24 +1,39 @@
 import { SYesNoVote } from "../../../declarations/backend/backend.did";
-import { backendActor } from "../../actors/BackendActor";
+import { backendActor } from "../actors/BackendActor";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
 import { toNullable } from "@dfinity/utils";
-import { useAuth } from "@ic-reactor/react";
+import { useAuth } from "@nfid/identitykit/react";
 import UserVoteRow from "./UserVoteRow";
 import AdaptiveInfiniteScroll from "../AdaptiveInfinitScroll";
+import LoginIcon from "../icons/LoginIcon";
 
 
 const UserVotes = () => {
+  const { user, connect } = useAuth();
 
-  const { login, identity } = useAuth();
-
-  if (identity === null || identity?.getPrincipal().isAnonymous()) {
-    return <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full text-lg hover:cursor-pointer" onClick={() => login()}>
-      Log in to see your opened votes
-    </div>;
+  if (user === undefined || user.principal.isAnonymous()) {
+    return <UserVotesLogin connect={connect} />;
   }
+
+  return <UserVotesContent user={user} />;
+};
+
+const UserVotesLogin = ({ connect }: { connect: () => void }) => (
+  <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full">
+    <button
+      className="button-simple flex items-center space-x-2 px-6 py-3"
+      onClick={() => connect()}
+    >
+      <LoginIcon />
+      <span>Login to see your opened votes</span>
+    </button>
+  </div>
+);
+
+const UserVotesContent = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const voteRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
@@ -30,7 +45,7 @@ const UserVotes = () => {
   const [hasMore, setHasMore] = useState<boolean>(true);
   const limit = isMobile ? 10 : 16;
 
-  const { call: fetchVotes } = backendActor.useQueryCall({
+  const { call: fetchVotes } = backendActor.unauthenticated.useQueryCall({
     functionName: "get_votes_by_author",
   });
 
@@ -53,7 +68,7 @@ const UserVotes = () => {
 
     const fetchedVotes = await fetchVotes([{ 
       author: {
-        owner: identity?.getPrincipal(),
+        owner: user?.principal,
         subaccount: [],
       },
       previous: toNullable(previous), 

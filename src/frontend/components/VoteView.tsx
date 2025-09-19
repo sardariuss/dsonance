@@ -12,7 +12,7 @@ import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import VoteFigures, { VoteFiguresSkeleton } from "./VoteFigures";
 import { interpolate_now, map_timeline } from "../utils/timeline";
 import ConsensusChart from "./charts/ConsensusChart";
-import { protocolActor } from "../actors/ProtocolActor";
+import { protocolActor } from "./actors/ProtocolActor";
 import LockChart from "./charts/LockChart";
 import { useBallotPreview } from "./hooks/useBallotPreview";
 import { DurationUnit } from "../utils/conversions/durationUnit";
@@ -33,7 +33,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
   const [duration, setDuration] = useState<DurationUnit | undefined>(DurationUnit.MONTH);
   const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.Consensus);
 
-  const { data: voteBallots } = protocolActor.useQueryCall({
+  const { data: voteBallots } = protocolActor.unauthenticated.useQueryCall({
     functionName: "get_vote_ballots",
     args: [vote.vote_id], 
   });

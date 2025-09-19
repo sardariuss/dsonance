@@ -1,10 +1,10 @@
-import { protocolActor } from "../../actors/ProtocolActor";
+import { protocolActor } from "../actors/ProtocolActor";
 import { fromNullableExt } from "../../utils/conversions/nullable";
 import { TokenLabel } from "../common/TokenLabel";
 import BorrowButton from "./BorrowButton";
 import { OperationKind, Result_1 } from "../../../declarations/protocol/protocol.did";
 import { useMemo, useEffect } from "react";
-import { useAuth } from "@ic-reactor/react";
+import { useAuth } from "@nfid/identitykit/react";
 import { Account } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import DualLabel from "../common/DualLabel";
 import { aprToApy } from "../../utils/lending";
@@ -14,42 +14,57 @@ import { REPAY_SLIPPAGE_RATIO, UNDEFINED_SCALAR } from "../../constants";
 import HealthFactor from "./HealthFactor";
 import { useProtocolContext } from "../context/ProtocolContext";
 import { showErrorToast, extractErrorMessage } from "../../utils/toasts";
+import LoginIcon from "../icons/LoginIcon";
 
 const BorrowTab = () => {
+  const { user, connect } = useAuth();
 
-  const { identity } = useAuth({});
-
-  if (!identity) {
-    return null;
+  if (!user || user.principal.isAnonymous()) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <button
+          className="button-simple flex items-center space-x-2 px-6 py-3"
+          onClick={() => connect()}
+        >
+          <LoginIcon />
+          <span>Login to access borrowing</span>
+        </button>
+      </div>
+    );
   }
 
+  return <BorrowTabContent user={user} />;
+};
+
+const BorrowTabContent = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
+
   const account : Account= useMemo(() => ({
-    owner: identity?.getPrincipal(),
+    owner: user.principal,
     subaccount: []
-  }), [identity]);
+  }), [user]);
 
   const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
 
-  const { data: indexerState, call: refreshIndexerState } = protocolActor.useQueryCall({
+  const { data: indexerState, call: refreshIndexerState } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_lending_index',
   });
 
-  const { data: loanPosition, call: refreshLoanPosition } = protocolActor.useQueryCall({
+  const { data: loanPosition, call: refreshLoanPosition } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_loan_position',
     args: [account]
   });
 
   const { parameters } = useProtocolContext();
 
-  const { call: previewBorrowOperation } = protocolActor.useUpdateCall({
+  const { call: previewBorrowOperation } = protocolActor.authenticated.useUpdateCall({
     functionName: 'preview_borrow_operation',
   });
 
-  const { call: runBorrowOperation } = protocolActor.useUpdateCall({
+  const { call: runBorrowOperation } = protocolActor.authenticated.useUpdateCall({
     functionName: 'run_borrow_operation',
   });
 
-  const { data: userSupply, call: refreshUserSupply } = protocolActor.useQueryCall({
+  const { data: userSupply, call: refreshUserSupply } = protocolActor.unauthenticated.useQueryCall({
     functionName: "get_user_supply",
     args: [{ account }],
   });
@@ -282,6 +297,6 @@ const BorrowTab = () => {
       </div>
     </div>
   );
-}
+};
 
 export default BorrowTab;

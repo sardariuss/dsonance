@@ -1,5 +1,5 @@
 import { SYesNoVote } from "../../declarations/backend/backend.did";
-import { backendActor } from "../actors/BackendActor";
+import { backendActor } from "./actors/BackendActor";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMediaQuery } from "react-responsive";
@@ -33,7 +33,7 @@ const VoteList = () => {
   const { computeDecay, info } = useProtocolContext();
   const navigate = useNavigate();
 
-  const { call: fetchVotes } = backendActor.useQueryCall({
+  const { call: fetchVotes } = backendActor.unauthenticated.useQueryCall({
     functionName: "get_votes",
   });
 
@@ -60,7 +60,7 @@ const VoteList = () => {
   // Initial Fetch on Mount
   useEffect(() => {
     fetchAndSetVotes();
-  }, []);
+  }, [fetchVotes]);
 
   useEffect(() => {
     if (votes && selectedVoteId !== null) {

@@ -98,18 +98,22 @@ shared({ caller = admin }) persistent actor class Backend() = this {
         #ok;
     };
 
-    public shared({caller}) func get_or_create_user() : async User {
-        if (Principal.isAnonymous(caller)) {
-            Debug.trap("Anonymous users cannot create or retrieve a user");
+    public shared func create_user({ principal: Principal; nickname: Text; }) : async Result.Result<User, Text> {
+        if (Principal.isAnonymous(principal)) {
+            return #err("Anonymous users cannot be created");
         };
 
-        let user = switch(Map.get<Principal, User>(_users, Map.phash, caller)){
-            case(null) { { principal = caller; nickname = "New user"; joinedDate = Time.now(); }; };
-            case(?u) { u; };
+        if (Map.has<Principal, User>(_users, Map.phash, principal)) {
+            return #err("User already exists");
         };
+        
+        let user = { principal; nickname; joinedDate = Time.now(); };
+        Map.set(_users, Map.phash, principal, user);
+        #ok(user);
+    };
 
-        Map.set(_users, Map.phash, caller, user);
-        user;
+    public query func get_user({ principal: Principal }) : async ?User {
+        Map.get<Principal, User>(_users, Map.phash, principal);
     };
 
     public shared({ caller }) func set_user_nickname({ nickname: Text }) : async Result.Result<(), Text> {
@@ -124,10 +128,6 @@ shared({ caller = admin }) persistent actor class Backend() = this {
 
         Map.set(_users, Map.phash, caller, user);
         #ok;
-    };
-
-    public query func get_user({ principal: Principal }) : async ?User {
-        Map.get<Principal, User>(_users, Map.phash, principal);
     };
 
     public composite query func get_vote_ballots(vote_id: Text) : async [SYesNoBallotWithUser] {
@@ -150,6 +150,41 @@ shared({ caller = admin }) persistent actor class Backend() = this {
                 };
             };
         };
+    };
+
+    type SupportedStandard = {
+        url: Text;
+        name: Text;
+    };
+
+    public query func icrc10_supported_standards() : async [SupportedStandard] {
+        return [
+            {
+                url = "https://github.com/dfinity/ICRC/blob/main/ICRCs/ICRC-10/ICRC-10.md";
+                name = "ICRC-10";
+            },
+            {
+                url = "https://github.com/dfinity/wg-identity-authentication/blob/main/topics/icrc_28_trusted_origins.md";
+                name = "ICRC-28";
+            }
+        ];
+    };
+
+    type Icrc28TrustedOriginsResponse = {
+        trusted_origins: [Text];
+    };
+
+    public func icrc28_trusted_origins() : async Icrc28TrustedOriginsResponse {
+        let trusted_origins = [
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.icp0.io",
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.raw.icp0.io",
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.ic0.app",
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.raw.ic0.app",
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.icp0.icp-api.io",
+            "https://hrr6s-tyaaa-aaaap-anxha-cai.icp-api.io",
+            "https://app.dsonance.xyz",
+        ];
+        return { trusted_origins; };
     };
 
 };

@@ -1,5 +1,5 @@
-import { useAuth } from "@ic-reactor/react";
-import { backendActor } from "../actors/BackendActor";
+import { useAuth } from "@nfid/identitykit/react";
+import { backendActor } from "./actors/BackendActor";
 import pica from "pica";
 
 import { useState, useEffect } from "react";
@@ -14,7 +14,8 @@ function NewVote() {
 
   const INPUT_BOX_ID = "new-vote-input";
 
-  const { authenticated, login } = useAuth({});
+  const { user, connect } = useAuth();
+  const authenticated = !!user;
   
   const [text, setText] = useState("");
   const [thumbnail, setThumbnail] = useState<Uint8Array | null>(null);
@@ -22,7 +23,7 @@ function NewVote() {
 
   const navigate = useNavigate();
 
-  const { call: newVote, loading } = backendActor.useUpdateCall({
+  const { call: newVote, loading } = backendActor.authenticated.useUpdateCall({
     functionName: 'new_vote',
     onSuccess: (result) => {
       if (result === undefined) {
@@ -95,7 +96,7 @@ function NewVote() {
       };
       newVote([{ text, id: uuidv4(), from_subaccount: [], thumbnail }]);
     } else {
-      login();
+      connect();
     }
   }
 
