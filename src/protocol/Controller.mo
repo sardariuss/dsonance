@@ -1,6 +1,6 @@
 import Types                   "Types";
 import LockScheduler           "LockScheduler";
-import ParticipationMiner     "ParticipationMiner";
+import ParticipationMiner      "ParticipationMiner";
 import MapUtils                "utils/Map";
 import Timeline                "utils/Timeline";
 import Clock                   "utils/Clock";
@@ -285,14 +285,14 @@ module {
             };
 
             // 6. Mint participation tokens
-            switch(participation_miner.distribute(time)){
+            switch(participation_miner.mine(time)){
                 case(#err(error)) { Debug.print("Failed to distribute participation: " # error); };
                 case(#ok(_)) {};
             };
         };
 
-        public func mine_participation(account: Account) : async* ?Nat {
-            await* participation_miner.mine(account);
+        public func withdraw_mined(account: Account) : async* ?Nat {
+            await* participation_miner.withdraw(account);
         };
 
         public func get_participation_trackers() : [(Account, ParticipationTracker)] {

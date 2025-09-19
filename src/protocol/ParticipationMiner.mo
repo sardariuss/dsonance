@@ -46,7 +46,7 @@ module {
         };
     }) {
 
-        public func distribute(now: Nat) : Result<(), Text> {
+        public func mine(now: Nat) : Result<(), Text> {
 
             // Ensure the current time is after the last mint timestamp
             if (now <= register.last_mint_timestamp) {
@@ -108,7 +108,7 @@ module {
             #ok;
         };
 
-        public func mine(account: Account) : async* ?Nat {
+        public func withdraw(account: Account) : async* ?Nat {
             let tracker = switch (Map.get(register.tracking, MapUtils.acchash, account)) {
                 case (null) { 
                     Debug.print("ParticipationMiner: No participations found for account " # debug_show(account));

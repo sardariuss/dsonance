@@ -336,7 +336,7 @@ async function callCanisterMethod() {
 
     // Mine participation
     for (let [_, actors] of userActors) {
-        actors.protocol.mine_participation([]).then((mined) => {
+        actors.protocol.withdraw_mined([]).then((mined) => {
             console.log('Mined participation:', mined);
         });
     }

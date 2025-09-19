@@ -126,7 +126,7 @@ function NewVote() {
         <div className="hover:cursor-pointer justify-self-start" onClick={() => navigate(-1)}>
           <BackArrowIcon/>
         </div>
-        <span className="text-xl font-semibold items-baseline justify-self-center truncate">Create vote</span>
+        <span className="text-xl font-semibold items-baseline justify-self-center truncate">New market</span>
         <span className="grow">{/* spacer */}</span>
       </div>
 
@@ -185,7 +185,7 @@ function NewVote() {
         <button className={`button-simple text-lg`} 
                 onClick={openVote}
                 disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS || thumbnail === null}>
-          Create vote
+          Open new market
         </button>
       </div>
     </div>

@@ -80,8 +80,8 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         await* getFacade().run();
     };
 
-    public shared({caller}) func mine_participation(subaccount: ?Blob) : async ?Nat {
-        await* getFacade().mine_participation({ owner = caller; subaccount; });
+    public shared({caller}) func withdraw_mined(subaccount: ?Blob) : async ?Nat {
+        await* getFacade().withdraw_mined({ owner = caller; subaccount; });
     };
 
     public query func get_participation_trackers() : async [(Types.Account, Types.ParticipationTracker)] {

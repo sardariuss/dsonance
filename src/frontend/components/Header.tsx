@@ -42,7 +42,7 @@ const DesktopHeader: React.FC = () => {
         {/* Right-aligned Profile and Theme Toggle */}
         <div className="flex flex-row items-center justify-end md:space-x-6 space-x-2">
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/"}>
-            Vote
+            Markets
           </Link>
           <Link className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white hover:cursor-pointer" to={"/borrow"}>
             Borrow
@@ -153,7 +153,7 @@ const MobileHeader: React.FC = () => {
                 to="/"
                 onClick={() => setShowMenu(false)}
               >
-                Vote
+                Markets
               </Link>
             </div>
             <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/borrow' ? 'bg-purple-700 text-white' : ''}`}>

@@ -177,10 +177,10 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
         {!authenticated ? (
           <>
             <LoginIcon />
-            <span>Login to lock ballot</span>
+            <span>Login to lock foresight</span>
           </>
         ) : (
-          <span>{ errorMsg ? errorMsg : (putBallotLoading ? "Locking ballot..." : "Lock ballot") }</span>
+          <span>{ errorMsg ? errorMsg : (putBallotLoading ? "Locking foresight..." : "Lock foresight") }</span>
         )}
       </button>
     </div>

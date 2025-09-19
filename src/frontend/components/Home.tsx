@@ -11,18 +11,18 @@ const Home = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tabs = [
-    { key: "all_votes", label: "All votes" },
-    { key: "your_ballots", label: "Your ballots" },
-    { key: "your_votes", label: "Your votes" },
+    { key: "all_markets", label: "All markets" },
+    { key: "your_foresights", label: "Your foresights" },
+    { key: "opened_markets", label: "Your opened markets" },
   ];
 
   // Get the current tab or default to "votes"
-  let selectedTab = searchParams.get("tab") || "all_votes";
+  let selectedTab = searchParams.get("tab") || "all_markets";
 
   // Ensure the tab is valid, otherwise reset to "votes"
   useEffect(() => {
     if (!tabs.some(tab => tab.key === selectedTab)) {
-      setSearchParams({ tab: "all_votes" }, { replace: true });
+      setSearchParams({ tab: "all_markets" }, { replace: true });
     }
   }, [selectedTab, setSearchParams]);
 
@@ -41,13 +41,13 @@ const Home = () => {
         ))}
         {/* New Button to the right */}
         <li className="ml-auto" onClick={() => navigate("/new")}>
-          <button className="button-simple text-base font-semibold">Create vote</button>
+          <button className="button-simple text-base font-semibold">Open new market</button>
         </li>
       </ul>
 
       {/* Content */}
       <div className="w-full">
-        {selectedTab === "all_votes" ? <VoteList /> : selectedTab === "your_ballots" ? <BallotList/> : <UserVotes/>}
+        {selectedTab === "all_markets" ? <VoteList /> : selectedTab === "your_foresights" ? <BallotList/> : <UserVotes/>}
       </div>
     </div>
   );
