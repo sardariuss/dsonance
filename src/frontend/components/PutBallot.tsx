@@ -67,9 +67,9 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
           throw new Error(`Put ballot failed: ${result.err.toString()}`);
         }
         refreshUserBalance();
-        showSuccessToast("Your ballot has been locked successfully", "Put ballot");
+        showSuccessToast("Foresight locked successfully", "Put ballot");
         // Ballot successfully put, navigate to the ballot page
-        navigate(`/?tab=your_ballots\&ballotId=${result.ok.new.YES_NO.ballot_id}`);
+        navigate(`/?tab=your_foresights\&ballotId=${result.ok.new.YES_NO.ballot_id}`);
       });
     }).catch((error) => {
       console.error("Error during put ballot:", error);

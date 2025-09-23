@@ -113,11 +113,39 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     if (amount === undefined || tokenDecimals === undefined) {
       return undefined;
     }
+
+    const value = fromFixedPoint(amount, tokenDecimals);
+
+    // Calculate significant digits formatting
+    const getSignificantDigitsFormatting = (num: number, significantDigits: number = 5) => {
+      if (num === 0) {
+        return { minimumFractionDigits: 0, maximumFractionDigits: 0 };
+      }
+
+      const absNum = Math.abs(num);
+      const orderOfMagnitude = Math.floor(Math.log10(absNum));
+
+      if (orderOfMagnitude >= significantDigits - 1) {
+        // Large numbers: no decimal places needed for 5 sig digits
+        return { minimumFractionDigits: 0, maximumFractionDigits: 0 };
+      } else if (orderOfMagnitude >= 0) {
+        // Numbers >= 1: limit decimal places to achieve 5 sig digits
+        const decimalPlaces = significantDigits - 1 - orderOfMagnitude;
+        return { minimumFractionDigits: 0, maximumFractionDigits: decimalPlaces };
+      } else {
+        // Numbers < 1: need more decimal places, but respect token decimals limit
+        const decimalPlaces = Math.min(significantDigits - 1 - orderOfMagnitude, tokenDecimals);
+        return { minimumFractionDigits: 0, maximumFractionDigits: decimalPlaces };
+      }
+    };
+
+    const { minimumFractionDigits, maximumFractionDigits } = getSignificantDigitsFormatting(value);
+
     return new Intl.NumberFormat("en-US", {
       notation,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: ledgerType === LedgerType.SUPPLY ? 2 : tokenDecimals,
-    }).format(fromFixedPoint(amount, tokenDecimals));
+      minimumFractionDigits,
+      maximumFractionDigits,
+    }).format(value);
   };
 
   const formatAmountUsd = (amount: bigint | number | undefined, notation: "standard" | "compact" = "compact") => {

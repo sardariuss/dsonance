@@ -141,7 +141,7 @@ const ParticipationDashboard = () => {
                   tooltip={({ datum }) => (
                     <div className="bg-white dark:bg-gray-800 p-2 rounded shadow-lg border border-gray-200 dark:border-gray-700">
                       <div className="font-mono text-xs">{datum.data?.label || 'Unknown'}</div>
-                      <div className="text-sm font-semibold">{formatAmountCompact(datum.value || 0, 2)} DSN</div>
+                      <div className="text-sm font-semibold">{formatAmount(datum.value)} DSN</div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">
                         {miningStats.totalMinted > 0n ? ((datum.value / Number(miningStats.totalMinted)) * 100).toFixed(2) : '0.00'}% of total
                       </div>
@@ -191,9 +191,9 @@ const ParticipationDashboard = () => {
                       return (
                         <tr key={item.id} className="border-b border-gray-200 dark:border-gray-700">
                           <td className="p-2 font-mono text-xs">{item.label}</td>
-                          <td className="text-right p-2">{formatAmountCompact(item.value, 2)}</td>
-                          <td className="text-right p-2">{formatAmountCompact(item.received, 2)}</td>
-                          <td className="text-right p-2">{formatAmountCompact(item.owed, 2)}</td>
+                          <td className="text-right p-2">{formatAmount(item.value)}</td>
+                          <td className="text-right p-2">{formatAmount(item.received)}</td>
+                          <td className="text-right p-2">{formatAmount(item.owed)}</td>
                           <td className="text-right p-2">{percentage}%</td>
                         </tr>
                       );

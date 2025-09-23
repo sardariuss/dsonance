@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
@@ -11,6 +11,9 @@ import Avatar from "boring-avatars";
 import { useUser } from "../hooks/useUser";
 import { useAuth } from "@nfid/identitykit/react";
 import { toAccount } from "@/frontend/utils/conversions/account";
+import { protocolActor } from "../actors/ProtocolActor";
+import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
+import { fromNullableExt } from "@/frontend/utils/conversions/nullable";
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -33,7 +36,7 @@ const truncateAccount = (accountStr: string) => {
 }
 
 const Profile = () => {
-  
+
   const { principal } = useParams();
   const { user: connectedUser, connect, disconnect } = useAuth();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
@@ -41,6 +44,26 @@ const Profile = () => {
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
   const [copied, setCopied] = useState(false);
+  const { participationLedger: { formatAmount, refreshUserBalance } } = useFungibleLedgerContext();
+
+  // Fetch participation tracker data
+  const { data: participationTracker, call: refetchTracker } = protocolActor.authenticated.useQueryCall({
+    functionName: 'get_participation_tracker',
+    args: [[]],
+  });
+
+  // Withdraw functionality
+  const { call: withdrawMined, loading: withdrawLoading } = protocolActor.authenticated.useUpdateCall({
+    functionName: 'withdraw_mined',
+    onSuccess: () => {
+      refetchTracker(); // Refresh data after successful withdrawal
+      refreshUserBalance(); // Refresh user balance after successful withdrawal
+    },
+  });
+
+  const tracker = useMemo(() => {
+    return fromNullableExt(participationTracker);
+  }, [participationTracker]);
 
   // Early return after all hooks are called
   if (connectedUser === undefined || connectedUser.principal.isAnonymous()) {
@@ -69,6 +92,14 @@ const Profile = () => {
   const handleCancelEdit = () => {
     setIsEditingNickname(false);
     setNicknameInput("");
+  };
+
+  const handleWithdraw = async () => {
+    try {
+      await withdrawMined([[]]); // null subaccount
+    } catch (error) {
+      console.error("Failed to withdraw DSN:", error);
+    }
   };
 
   if (principal !== connectedUser.principal.toString()) {
@@ -145,6 +176,49 @@ const Profile = () => {
       </div>
       <div className="flex flex-row justify-center w-full p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
         <ThemeToggle/>
+      </div>
+
+      {/* Mining Section */}
+      <div className="w-full p-4 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
+        <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Mining</h3>
+
+        {tracker ? (
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700 dark:text-gray-300">DSN Received:</span>
+              <span className="font-medium text-gray-900 dark:text-white">
+                {formatAmount(tracker.received)}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700 dark:text-gray-300">DSN Owed:</span>
+              <span className="font-medium text-gray-900 dark:text-white">
+                {formatAmount(tracker.owed)}
+              </span>
+            </div>
+
+            {tracker.owed > 0n && (
+              <button
+                onClick={handleWithdraw}
+                disabled={withdrawLoading}
+                className="w-full mt-3 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+              >
+                {withdrawLoading ? "Withdrawing..." : "Withdraw DSN"}
+              </button>
+            )}
+
+            {tracker.owed === 0n && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-3">
+                No DSN available to withdraw
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 dark:text-gray-400">
+            <p>No mining data available</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -39,7 +39,7 @@ const BallotListLogin = ({ connect }: { connect: () => void }) => (
       onClick={() => connect()}
     >
       <LoginIcon />
-      <span>Login to see your ballots</span>
+      <span>Login to see your foresights</span>
     </button>
   </div>
 );
