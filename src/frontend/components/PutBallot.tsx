@@ -30,6 +30,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
   const authenticated = !!user;
   const { parameters } = useProtocolContext();
   const [putBallotLoading, setPutBallotLoading] = useState(false);
+  const [selectedPredefined, setSelectedPredefined] = useState<number | null>(null);
   const navigate = useNavigate();
   
   const { call: putBallot } = protocolActor.authenticated.useUpdateCall({
@@ -117,7 +118,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
         {/* Divider */}
       </span>
       <div className="flex flex-row w-full justify-between space-x-2">
-        <button className={`w-1/2 h-9 text-base rounded-lg ${ballot.choice === EYesNoChoice.Yes ? "bg-brand-true text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.Yes })}>True</button>
+        <button className={`w-1/2 h-9 text-base rounded-lg ${ballot.choice === EYesNoChoice.Yes ? "bg-brand-true dark:bg-brand-true-dark text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.Yes })}>True</button>
         <button className={`w-1/2 h-9 text-base rounded-lg ${ballot.choice === EYesNoChoice.No ? "bg-brand-false text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.No })}>False</button>
       </div>
       <span className="w-full border-b border-gray-300 dark:border-gray-700 my-2">
@@ -138,6 +139,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
                   choice: ballot.choice,
                   amount: convertToFixedPoint(Number(e.target.value)) ?? 0n,
                 });
+                setSelectedPredefined(null);
               }
             }}
           />
@@ -156,14 +158,14 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
         </div>
         <div className="flex flex-row items-center space-x-1 w-full">
           {
-            PREDEFINED_PERCENTAGES.map((percentage) => (
+            PREDEFINED_PERCENTAGES.map((percentage, index) => (
               <button 
                 key={percentage} 
-                className={`rounded-lg h-9 text-base justify-center flex-grow ${userBalance && ballot.amount === BigInt(Math.floor(percentage * Number(userBalance))) ? "bg-purple-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
-                onClick={() => { if(!authenticated) { connect() } else { setBallot({ amount: BigInt(Math.floor(percentage * Number(userBalance))), choice: ballot.choice })}}}
-                disabled={(userBalance !== undefined && userBalance === 0n) || putBallotLoading}
+                className={`rounded-lg h-9 text-base justify-center flex-grow ${selectedPredefined === index ? "bg-blue-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
+                onClick={() => { if(!authenticated) { connect() } else { setBallot({ amount: BigInt(Math.floor(percentage * Number(userBalance))), choice: ballot.choice }), setSelectedPredefined(index); }}}
+                disabled={putBallotLoading}
               >
-                  {percentage * 100}%
+                {percentage * 100}%
               </button>
             ))
           }
@@ -171,17 +173,10 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview}: Props) => {
       </div>
       <button 
         className="button-simple w-full h-9 justify-center items-center text-base mt-2 flex space-x-2"
-        disabled={putBallotLoading || errorMsg !== undefined || ballot.amount === 0n}
-        onClick={triggerVote}
+        disabled={authenticated && (putBallotLoading || errorMsg !== undefined || ballot.amount === 0n)}
+        onClick={() => { if (!authenticated) { connect() } else { triggerVote() } }}
       >
-        {!authenticated ? (
-          <>
-            <LoginIcon />
-            <span>Login to lock foresight</span>
-          </>
-        ) : (
-          <span>{ errorMsg ? errorMsg : (putBallotLoading ? "Locking foresight..." : "Lock foresight") }</span>
-        )}
+        <span>{ putBallotLoading ? "Locking foresight..." : "Lock foresight" }</span>
       </button>
     </div>
     

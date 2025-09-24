@@ -144,7 +144,7 @@ function NewVote() {
         </div>
         <div 
           id={INPUT_BOX_ID} 
-          className={`input-box break-words min-h-24 w-full text-sm p-3 rounded-lg border transition-all duration-200 bg-slate-200 dark:bg-gray-800 border-gray-300 dark:border-slate-700 focus:ring-2 focus:ring-purple-500
+          className={`input-box break-words min-h-24 w-full text-sm p-3 rounded-lg border transition-all duration-200 bg-slate-200 dark:bg-gray-800 border-gray-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500
             ${text.length > 0 ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}`}
           data-placeholder={NEW_VOTE_PLACEHOLDER}
           contentEditable="true"

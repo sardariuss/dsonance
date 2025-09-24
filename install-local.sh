@@ -3,7 +3,7 @@ set -ex
 
 dfx identity use default
 export DEFAULT_USER=$(dfx identity get-principal)
-export DSN_LOGO=$(base64 -w 0 logo_coin_xs.png)
+export DSN_LOGO=$(base64 -w 0 ./src/frontend/assets/tower_coin.png)
 
 # Create the canisters
 dfx canister create --all

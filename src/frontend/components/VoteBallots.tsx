@@ -113,15 +113,15 @@ const VoteBallots = ({ voteId }: VoteBallotsProps) => {
 
   return (
     <div className="flex flex-col space-y-4">
-      <div className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-        Vote Ballots ({ballots.length})
+      <div className="text-lg font-semibold text-gray-800 dark:text-gray-200 border-b pb-1 border-gray-500 dark:border-gray-300">
+        Vote Ballots
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* YES Ballots Column */}
         <div className="flex flex-col space-y-3">
           <div className="flex items-center space-x-2">
-            <div className="text-base font-medium text-green-600 dark:text-green-400">
+            <div className="text-base font-semibold">
               YES Votes
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -142,7 +142,7 @@ const VoteBallots = ({ voteId }: VoteBallotsProps) => {
         {/* NO Ballots Column */}
         <div className="flex flex-col space-y-3">
           <div className="flex items-center space-x-2">
-            <div className="text-base font-medium text-red-600 dark:text-red-400">
+            <div className="text-base font-semibold">
               NO Votes
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400">

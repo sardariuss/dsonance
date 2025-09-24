@@ -1,15 +1,15 @@
-import { Link, useLocation, useNavigate }      from "react-router-dom";
+import { Link, useLocation }      from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@nfid/identitykit/react";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import LoginIcon from "./icons/LoginIcon";
-import Logo from "./icons/Logo";
+import Tower from "../assets/tower.png"
 import { useMediaQuery } from "react-responsive";
-import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import Avatar from "boring-avatars";
 import { useUser } from "./hooks/useUser";
 import { MdOutlineAccountBalanceWallet } from "react-icons/md";
 import Wallet from "./wallet/Wallet";
+import ThemeToggle from "./ThemeToggle";
 
 const DesktopHeader: React.FC = () => {
 
@@ -17,27 +17,27 @@ const DesktopHeader: React.FC = () => {
   const { user } = useUser();
   const [showWallet, setShowWallet] = useState(false);
 
-  const { supplyLedger } = useFungibleLedgerContext();
-
   // WATCHOUT: the size of the header is set to 22 (16 + 6), it is used in User.tsx as margin (see scroll-mt)
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full border-b border-gray-300 dark:border-gray-700">
       <nav className="flex flex-row bg-slate-100 dark:bg-slate-900 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 h-16 min-h-16 relative">
         {/* Left-aligned Dsonance Link */}
         <Link to="/" className="flex flex-row items-baseline">
-          <div className="w-16 sm:w-18 md:w-20 lg:w-22 xl:w-24 pr-2 pt-1 lg:pt-2">
-            <Logo />
+          <div className="h-10 pr-2">
+            <img src={Tower} className="h-full w-full object-contain dark:invert"/>
           </div>
-          <span className="text-3xl md:text-4xl 2xl:text-5xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold">
-            DSONANCE
+          <span className="text-5xl font-decoment whitespace-nowrap drop-shadow-lg shadow-white font-bold">
+            TOWER
           </span>
-          <span className="text-3xl md:text-4xl 2xl:text-5xl font-cafe whitespace-nowrap drop-shadow-lg shadow-white">
-            .xyz
+          <span className="text-5xl font-decoment whitespace-nowrap drop-shadow-lg shadow-white font-bold dark:text-green-500 text-red-500">
+            VIEW
           </span>
         </Link>
 
         {/* Spacer to center the second element */}
         <div className="flex-grow"></div>
+
+        <ThemeToggle/>
         
         {/* Right-aligned Profile and Theme Toggle */}
         <div className="flex flex-row items-center justify-end md:space-x-6 space-x-2">
@@ -116,16 +116,16 @@ const MobileHeader: React.FC = () => {
     <header className="sticky top-0 z-30 flex flex-col relative w-full border-b border-gray-300 dark:border-gray-700">
       <nav className="flex flex-row bg-slate-100 dark:bg-slate-900 items-center sticky top-0 z-30 w-full h-20 min-h-20 relative">
         {/* Centered Dsonance Link */}
-        <Link className="flex flex-grow justify-center pt-4" to="/">
+        <Link className="flex flex-grow justify-center" to="/">
           <span className="flex flex-row items-baseline">
-            <div className="h-10 w-20 pt-1 pr-1">
-              <Logo />
-            </div>
-            <span className="text-4xl font-acelon whitespace-nowrap drop-shadow-lg shadow-white font-bold ">
-              DSONANCE
+            <span className="h-12 pr-2">
+              <img src={Tower} className="h-full w-full object-contain dark:invert"/>
             </span>
-            <span className="text-4xl font-cafe whitespace-nowrap drop-shadow-lg shadow-white">
-              .xyz
+            <span className="text-[54px] font-decoment whitespace-nowrap drop-shadow-lg shadow-white font-bold leading-none flex items-center">
+              TOWER
+            </span>
+            <span className="text-[54px] font-decoment whitespace-nowrap drop-shadow-lg shadow-white font-bold dark:text-green-500 text-red-500 h-12 leading-none flex items-center">
+              VIEW
             </span>
           </span>
         </Link>
@@ -146,7 +146,7 @@ const MobileHeader: React.FC = () => {
       {
          showMenu && (
           <div ref={menuRef} className="absolute top-20 left-0 flex flex-col w-full bg-slate-100 dark:bg-slate-900 text-lg py-2 px-4">
-            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/' ? 'bg-purple-700 text-white' : ''}`}>
+            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/' ? 'bg-blue-700 text-white' : ''}`}>
               <span />
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
@@ -156,7 +156,7 @@ const MobileHeader: React.FC = () => {
                 Markets
               </Link>
             </div>
-            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/borrow' ? 'bg-purple-700 text-white' : ''}`}>
+            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/borrow' ? 'bg-blue-700 text-white' : ''}`}>
               <span />
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
@@ -166,7 +166,7 @@ const MobileHeader: React.FC = () => {
                 Borrow
               </Link>
             </div>
-            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/dashboard' ? 'bg-purple-700 text-white' : ''}`}>
+            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/dashboard' ? 'bg-blue-700 text-white' : ''}`}>
               <span />
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
@@ -176,7 +176,7 @@ const MobileHeader: React.FC = () => {
                 Dashboard
               </Link>
             </div>
-            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/faucet' ? 'bg-purple-700 text-white' : ''}`}>
+            <div className={`grid grid-cols-12 py-2 px-4 rounded-lg ${location.pathname === '/faucet' ? 'bg-blue-700 text-white' : ''}`}>
               <span />
               <Link
                 className="cols-span-11 overflow-visible whitespace-nowrap"
@@ -190,7 +190,7 @@ const MobileHeader: React.FC = () => {
             {user ? (
               <Link
                 className={`grid grid-cols-12 py-2 px-4 rounded-lg flex flex-row items-center stroke-gray-800 hover:stroke-black dark:stroke-gray-200 dark:hover:stroke-white rounded-lg hover:cursor-pointer ${
-                  location.pathname === `/user/${user.principal}` ? 'bg-purple-700 text-white' : ''
+                  location.pathname === `/user/${user.principal}` ? 'bg-blue-700 text-white' : ''
                 }`}
                 to={`/user/${user.principal}`}
                 onClick={() => setShowMenu(false)}

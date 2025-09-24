@@ -31,7 +31,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
   const [duration, setDuration] = useState<DurationUnit | undefined>(DurationUnit.MONTH);
-  const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.Consensus);
+  const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.EVP);
 
   const { data: voteBallots } = protocolActor.unauthenticated.useQueryCall({
     functionName: "get_vote_ballots",
@@ -95,14 +95,14 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
       {/* Mobile Layout: Keep original structure */}
       <div className="block md:hidden w-full">
         {/* Top Row: Image and Vote Text */}
-        <div className="w-full flex flex-row items-center gap-4 mb-4">
+        <div className="w-full flex flex-row items-center gap-4 mb-2">
           {/* Placeholder Image */}
           <img 
-            className="w-20 h-20 bg-contain bg-no-repeat bg-center rounded-md self-start"
+            className="w-16 h-16 bg-contain bg-no-repeat bg-center rounded-md self-start"
             src={thumbnail}
           />
           {/* Vote Text */}
-          <div className="flex-grow text-gray-800 dark:text-gray-200 font-medium text-lg">
+          <div className="flex-grow text-gray-800 dark:text-gray-200 text-lg font-bold">
             {vote.info.text}
           </div>
         </div>
@@ -117,16 +117,16 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
       {/* Desktop Layout: Main content + Sidebar */}
       <div className="hidden md:flex w-full gap-8">
         {/* Main Content Panel */}
-        <div className="flex-1 flex flex-col space-y-4 items-center">
+        <div className="flex-1 flex flex-col items-center">
           {/* Top Row: Image and Vote Text */}
           <div className="w-full flex flex-row items-center gap-4 mb-4">
             {/* Placeholder Image */}
             <img 
-              className="w-20 h-20 bg-contain bg-no-repeat bg-center rounded-md self-start"
+              className="w-16 h-16 bg-contain bg-no-repeat bg-center rounded-md self-start"
               src={thumbnail}
             />
             {/* Vote Text */}
-            <div className="flex-grow text-gray-800 dark:text-gray-200 font-medium text-lg max-w-none">
+            <div className="flex-grow text-gray-800 dark:text-gray-200 text-lg max-w-none font-bold">
               {vote.info.text}
             </div>
           </div>
@@ -142,7 +142,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
             <div className="flex flex-col space-y-4 w-full">
               {voteBallots && voteBallots.length > 0 &&
                 <div className="w-full flex flex-col items-center justify-between space-y-2">
-                  <div className="w-full h-[400px]">
+                  <div className="w-full h-[250px]">
                     {selectedChart === ChartType.EVP ?
                       (voteDetails.total > 0 && <EvpChart vote={vote} ballot={ballot} durationWindow={duration} />)
                       : selectedChart === ChartType.Consensus ?

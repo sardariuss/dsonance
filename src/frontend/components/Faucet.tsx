@@ -34,7 +34,7 @@ const Faucet = ({ ledger }: FaucetProps) => {
           min="0"
           value={mintAmount}
           onChange={e => setMintAmount(e.target.value)}
-          className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-purple-500 bg-gray-100 dark:bg-gray-900 text-right"
+          className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-blue-500 bg-gray-100 dark:bg-gray-900 text-right"
         />
         <button
           className="px-10 button-simple h-10 justify-center items-center text-lg"

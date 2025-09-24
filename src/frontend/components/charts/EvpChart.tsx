@@ -9,7 +9,9 @@ import { CHART_CONFIGURATIONS, chartTheme, computeInterval, DurationParameters }
 import { ThemeContext }                                     from "../App";
 import { useProtocolContext }                               from "../context/ProtocolContext";
 import { useMediaQuery }                                    from "react-responsive";
-import { BRAND_FALSE_COLOR, BRAND_TRUE_COLOR, MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from "../../constants";
+import { BRAND_FALSE_COLOR, BRAND_TRUE_COLOR, BRAND_TRUE_COLOR_DARK, 
+  MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT,
+  CHART_MOBILE_HORIZONTAL_MARGIN } from "../../constants";
 import { useContainerSize } from "../hooks/useContainerSize";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 
@@ -17,6 +19,7 @@ import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 // up to the coder to make it so the interval between the time values are constant.
 
 interface ComputeChartPropsArgs {
+  theme: string;
   currentTime: bigint;
   computeDecay: (time: bigint) => number;
   durationWindow: DurationUnit | undefined;
@@ -27,10 +30,10 @@ type ChartData = AreaBumpSerie<{x: number; y: number;}, {id: string; data: {x: n
 type ChartProperties = { chartData: ChartData, total: { maximum: number, current: number }, priceLevels: number[], dateTicks: number[], dateFormat: (date: Date) => string; };
 
 // TODO: this is very convoluted, we should try to simplify it
-const computeChartProps = ({ currentTime, computeDecay, durationWindow, aggregate } : ComputeChartPropsArgs) : ChartProperties => {
+const computeChartProps = ({ theme, currentTime, computeDecay, durationWindow, aggregate } : ComputeChartPropsArgs) : ChartProperties => {
 
   let chartData : ChartData = [
-    { id: EYesNoChoice.Yes, data: [], color: BRAND_TRUE_COLOR },
+    { id: EYesNoChoice.Yes, data: [], color: theme === "dark" ? BRAND_TRUE_COLOR_DARK : BRAND_TRUE_COLOR },
     { id: EYesNoChoice.No, data: [], color: BRAND_FALSE_COLOR },
   ];
 
@@ -136,7 +139,8 @@ const EvpChart: React.FC<EvpChartrops> = ({ vote, ballot, durationWindow }) => {
     if (!info || !parameters || !computeDecay) {
       return ({ chartData: [], total: { current: 0, maximum: 0 }, priceLevels: [], dateTicks: [], dateFormat: () => "" });
     }
-    return computeChartProps({ 
+    return computeChartProps({
+      theme,
       currentTime: info.current_time,
       computeDecay,
       durationWindow,
@@ -201,7 +205,7 @@ const EvpChart: React.FC<EvpChartrops> = ({ vote, ballot, durationWindow }) => {
       { containerSize &&
       <div style={{ position: 'relative', width: `${containerSize.width}px`, height: `${containerSize.height}px`, zIndex: 10 }}>
         { /* TODO: fix opacity of price levels via a custom layer */ }
-        <div style={{ position: 'absolute', top: AXIS_MARGIN, right: 25, bottom: AXIS_MARGIN, left: isMobile ? 25 : 60, zIndex: 5 }} className="flex flex-col">
+        <div style={{ position: 'absolute', top: AXIS_MARGIN, right: CHART_MOBILE_HORIZONTAL_MARGIN, bottom: AXIS_MARGIN, left: isMobile ? CHART_MOBILE_HORIZONTAL_MARGIN : 60, zIndex: 5 }} className="flex flex-col">
           <ul className="flex flex-col w-full" key={vote.vote_id}>
             {
               priceLevels.slice().reverse().map((price, index) => (
@@ -237,13 +241,13 @@ const EvpChart: React.FC<EvpChartrops> = ({ vote, ballot, durationWindow }) => {
           xPadding={0} // Important to avoid "bump effects" in the chart (because AreaBump consider the x values as categories)
           align= "end"
           data={chartData}
-          margin={{ top: AXIS_MARGIN + marginTop(priceLevels, Math.max(total.maximum, total.current)),  right: 25, bottom: AXIS_MARGIN, left: isMobile ? 25 : 60 }}
+          margin={{ top: AXIS_MARGIN + marginTop(priceLevels, Math.max(total.maximum, total.current)),  right: CHART_MOBILE_HORIZONTAL_MARGIN, bottom: AXIS_MARGIN, left: isMobile ? CHART_MOBILE_HORIZONTAL_MARGIN : 60 }}
           spacing={0}
           activeBorderOpacity={0.5}
           colors={(serie) => serie.color}
           borderColor={(serie) => serie.color}
           fillOpacity={0.8}
-          borderWidth={2}
+          borderWidth={0}
           blendMode="normal"
           axisTop={null}
           axisBottom={{

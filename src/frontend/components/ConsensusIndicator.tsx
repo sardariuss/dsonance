@@ -28,7 +28,7 @@ const ConsensusIndicator: React.FC<ConsensusIndicatorProps> = ({ cursor, pulse }
           d={pathDefinition}
           fill="none"
           strokeWidth={strokeWidth}
-          className={`${cursor < 0.5 ? 'stroke-brand-false' : 'stroke-brand-true'} ${pulse? "animate-pulse" : ""}`}
+          className={`${cursor < 0.5 ? 'stroke-brand-false' : 'stroke-brand-true dark:stroke-brand-true-dark'} ${pulse? "animate-pulse" : ""}`}
           style={{
             strokeDasharray: halfCircumference,
             strokeDashoffset: halfCircumference * (1 - cursor),

@@ -158,7 +158,7 @@ const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
         <label className="inline-flex items-center me-5 cursor-pointer justify-self-end pb-5">
           <span className="mr-2 text-gray-900 dark:text-gray-100 truncate">Show unlocked</span>
           <input type="checkbox" value={(!filterActive).toString()} className="sr-only peer" onChange={() => toggleFilterActive(!filterActive)}/>
-          <div className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-focus:ring-2 peer-focus:ring-purple-900 dark:peer-focus:ring-purple-900 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-900 dark:peer-checked:bg-purple-700"></div>
+          <div className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-focus:ring-2 peer-focus:ring-blue-900 dark:peer-focus:ring-blue-900 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-900 dark:peer-checked:bg-blue-700"></div>
         </label>
       }
       <AdaptiveInfiniteScroll
