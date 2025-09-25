@@ -24,6 +24,7 @@ import Int                     "mo:base/Int";
 import Float                   "mo:base/Float";
 import Debug                   "mo:base/Debug";
 import Result                  "mo:base/Result";
+import Principal               "mo:base/Principal";
 
 module {
 
@@ -172,6 +173,10 @@ module {
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
+
+            if (Principal.isAnonymous(args.caller)) {
+                return #err("Anonymous caller cannot put a ballot");
+            };
 
             let timestamp = clock.get_time();
 
