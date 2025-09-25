@@ -12,7 +12,7 @@ const Home = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabs = [
     { key: "all_markets", label: "All markets" },
-    { key: "your_foresights", label: "Your foresights" },
+    { key: "your_views", label: "Your views" },
     { key: "opened_markets", label: "Your opened markets" },
   ];
 
@@ -47,7 +47,7 @@ const Home = () => {
 
       {/* Content */}
       <div className="w-full">
-        {selectedTab === "all_markets" ? <VoteList /> : selectedTab === "your_foresights" ? <BallotList/> : <UserVotes/>}
+        {selectedTab === "all_markets" ? <VoteList /> : selectedTab === "your_views" ? <BallotList/> : <UserVotes/>}
       </div>
     </div>
   );

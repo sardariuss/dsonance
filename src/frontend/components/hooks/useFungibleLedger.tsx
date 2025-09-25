@@ -241,7 +241,6 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
       throw new Error(`Failed to fetch allowance`);
     }
     const currentAllowance: bigint = allowanceResult.allowance;
-    console.log(`Current allowance for ${account.owner.toText()} is ${currentAllowance}, requested amount is ${amount}`);
     if (currentAllowance >= amount) {
       return { tokenFee, approveCalled: false }; // No need to call approve
     }
@@ -260,7 +259,6 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
         },
       },
     ]);
-    console.log(`Approve result:`, approveResult);
     if (approveResult === undefined) {
       throw new Error(`Failed to approve ${amount}: icrc2_approve returned an undefined result`);
     } 
@@ -293,10 +291,8 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   const [userBalance, setUserBalance] = useState<bigint | undefined>(undefined);
 
   const refreshUserBalance = () => {
-    console.log("Refreshing user balance for account:", account);
     if (account) {
       icrc1BalanceOf([account]).then(balance => {
-        console.log("Fetched user balance:", balance);
         setUserBalance(balance);
       }).catch(error => {
         console.error("Error fetching user balance:", error);
