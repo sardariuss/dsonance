@@ -112,14 +112,14 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
   , [ballot, parameters]);
 
 	return (
-    <div className="flex flex-col items-center w-full gap-y-2 rounded-lg shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 p-3">
+    <div className="flex flex-col items-center w-full gap-y-2 rounded-lg shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 p-4">
       <div className="flex flex-row w-full justify-between space-x-2">
         <button className={`w-1/2 h-10 text-lg rounded-lg ${ballot.choice === EYesNoChoice.Yes ? "bg-brand-true dark:bg-brand-true-dark text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.Yes })}>True</button>
         <button className={`w-1/2 h-10 text-lg rounded-lg ${ballot.choice === EYesNoChoice.No ? "bg-brand-false text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.No })}>False</button>
       </div>
       <div className={`flex flex-col items-center w-full space-y-2`}>
-        <div className="grid grid-cols-[auto_1fr_auto_auto] items-center space-x-1 w-full px-2">
-          <span className="sm:pl-2">Amount</span>
+        <div className="grid grid-cols-[auto_1fr_auto_auto] items-center space-x-1 w-full">
+          <span className="">Amount</span>
           <input
             ref={customRef}
             type="text"
@@ -143,11 +143,9 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
             </div>
           </div>
           <span/>
-          { ballot.amount > 0n &&
-            <div className="text-gray-500 text-sm text-right">
-              {formatAmountUsd(ballot.amount)}
-            </div>
-          }
+          <div className="text-gray-500 text-sm text-right">
+            {formatAmountUsd(ballot.amount)}
+          </div>
         </div>
         <div className="flex flex-row items-center self-end space-x-1 w-3/4">
           {
@@ -164,13 +162,17 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
           }
         </div>
       </div>
-      <span className="w-full border-b border-gray-300 dark:border-gray-700 my-2">
+      <span className="w-full border-b border-gray-300 dark:border-gray-700">
         {/* Divider */}
       </span>
-      <PutBallotPreview
-        ballotPreview={ballotPreview}
-        ballotPreviewWithoutImpact={ballotPreviewWithoutImpact}
-      />      
+      {ballotPreview && (
+        <div className="animate-in slide-in-from-top-4 fade-in-0 duration-300 w-full">
+          <PutBallotPreview
+            ballotPreview={ballotPreview}
+            ballotPreviewWithoutImpact={ballotPreviewWithoutImpact}
+          />
+        </div>
+      )}
       <button 
         className="button-simple w-full h-9 justify-center items-center text-base mt-2 flex space-x-2"
         disabled={authenticated && (putBallotLoading || errorMsg !== undefined || ballot.amount === 0n)}
