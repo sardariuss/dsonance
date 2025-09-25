@@ -181,6 +181,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
               setBallot={setBallot}
               ballotPreview={ballotPreview?.new.YES_NO}
               ballotPreviewWithoutImpact={ballotPreviewWithoutImpact?.new.YES_NO}
+              vote={vote}
             />
           )}
         </div>
@@ -222,6 +223,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
               setBallot={setBallot}
               ballotPreview={ballotPreview?.new.YES_NO}
               ballotPreviewWithoutImpact={ballotPreviewWithoutImpact?.new.YES_NO}
+              vote={vote}
             />
             <VoteBallots voteId={vote.vote_id} />
           </div> : 

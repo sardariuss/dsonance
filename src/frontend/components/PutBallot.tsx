@@ -1,5 +1,5 @@
 import { EYesNoChoice, toCandid } from '../utils/conversions/yesnochoice';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { BallotInfo } from './types';
 import { useAuth } from '@nfid/identitykit/react';
@@ -12,6 +12,14 @@ import { SBallot } from '@/declarations/protocol/protocol.did';
 import { useFungibleLedgerContext } from './context/FungibleLedgerContext';
 import { getTokenLogo, getTokenSymbol } from '../utils/metadata';
 import { showErrorToast, showSuccessToast, extractErrorMessage } from '../utils/toasts';
+import Modal from './common/Modal';
+import { formatDuration } from '../utils/conversions/durationUnit';
+import { get_current } from '../utils/timeline';
+import { unwrapLock } from '../utils/conversions/ballot';
+import { aprToApy } from '../utils/lending';
+import { HiMiniArrowTrendingUp, HiOutlineClock, HiOutlineExclamationTriangle } from 'react-icons/hi2';
+import { SYesNoVote } from '@/declarations/backend/backend.did';
+import { createThumbnailUrl } from '../utils/thumbnail';
 
 const PREDEFINED_PERCENTAGES = [0.1, 0.25, 0.5, 1.0];
 
@@ -21,9 +29,10 @@ type Props = {
   setBallot: (ballot: BallotInfo) => void;
   ballotPreview: SBallot | undefined;
   ballotPreviewWithoutImpact?: SBallot | undefined;
+  vote: SYesNoVote;
 };
 
-const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutImpact}: Props) => {
+const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutImpact, vote}: Props) => {
 
   const { supplyLedger: { formatAmount, formatAmountUsd, metadata, convertToFixedPoint, approveIfNeeded, userBalance, refreshUserBalance } } = useFungibleLedgerContext();
   const { user, connect } = useAuth();
@@ -31,13 +40,16 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
   const { parameters } = useProtocolContext();
   const [putBallotLoading, setPutBallotLoading] = useState(false);
   const [selectedPredefined, setSelectedPredefined] = useState<number | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const navigate = useNavigate();
+
+  const thumbnail = useMemo(() => createThumbnailUrl(vote.info.thumbnail), [vote]);
   
   const { call: putBallot } = protocolActor.authenticated.useUpdateCall({
     functionName: "put_ballot",
   });
 
-  const triggerVote = () => {
+  const showConfirmation = () => {
     if (!authenticated) {
       connect();
       return;
@@ -46,6 +58,11 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
       console.warn("Put ballot is already in progress");
       return;
     }
+    setShowConfirmModal(true);
+  };
+
+  const executeVote = () => {
+    
     setPutBallotLoading(true);
     
     approveIfNeeded(ballot.amount).then(({tokenFee, approveCalled}) => {
@@ -68,7 +85,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
           throw new Error(`Put ballot failed: ${result.err.toString()}`);
         }
         refreshUserBalance();
-        showSuccessToast("Foresight locked successfully", "Put ballot");
+        showSuccessToast("View locked successfully", "Put ballot");
         // Ballot successfully put, navigate to the ballot page
         navigate(`/?tab=your_foresights\&ballotId=${result.ok.new.YES_NO.ballot_id}`);
       });
@@ -173,15 +190,114 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
           />
         </div>
       )}
-      <button 
+      <button
         className="button-simple w-full h-9 justify-center items-center text-base mt-2 flex space-x-2"
         disabled={authenticated && (putBallotLoading || errorMsg !== undefined || ballot.amount === 0n)}
-        onClick={() => { if (!authenticated) { connect() } else { triggerVote() } }}
+        onClick={() => { if (!authenticated) { connect() } else { showConfirmation() } }}
       >
-        <span>{ putBallotLoading ? "Locking foresight..." : "Lock foresight" }</span>
+        <span>Lock view</span>
       </button>
+
+      {/* Confirmation Modal */}
+      <Modal
+        isVisible={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        title="Confirm Lock"
+      >
+        <div className="flex flex-col w-full text-black dark:text-white space-y-4">
+          {/* Vote Information */}
+          <div className="w-full flex flex-row items-center gap-4">
+            {/* Thumbnail */}
+            <img
+              className="w-16 h-16 bg-contain bg-no-repeat bg-center rounded-md flex-shrink-0"
+              src={thumbnail}
+            />
+            {/* Vote Text */}
+            <div className="flex-grow text-gray-800 dark:text-gray-200 text-lg font-bold">
+              {vote.info.text}
+            </div>
+          </div>
+
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700 dark:text-gray-300">Choice</span>
+              <span className={`font-semibold px-2 rounded text-white ${
+                ballot.choice === EYesNoChoice.Yes
+                  ? 'bg-brand-true dark:bg-brand-true-dark'
+                  : 'bg-brand-false'
+              }`}>
+                {ballot.choice === EYesNoChoice.Yes ? 'True' : 'False'}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700 dark:text-gray-300">Amount</span>
+              <div className="text-right flex flex-row space-x-1 items-center">
+                <div className="font-semibold">
+                  {formatAmount(ballot.amount)} {getTokenSymbol(metadata)}
+                </div>
+                <div className="text-sm text-gray-500">
+                  {`(${formatAmountUsd(ballot.amount)})`}
+                </div>
+              </div>
+            </div>
+
+            {ballotPreview && (
+              <>
+                { /* spacer */ }
+                <div className="border-t border-gray-300 dark:border-gray-600"></div>
+
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-row items-center space-x-2">
+                    
+                    <span className="text-gray-700 dark:text-gray-300">Min Duration</span>
+                    <HiOutlineClock className="w-5 h-5" />
+                  </div>
+                  <span className="font-medium">
+                    {formatDuration(get_current(unwrapLock(ballotPreview).duration_ns).data)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-row items-center space-x-2">
+                    
+                    <span className="text-gray-700 dark:text-gray-300">Max APY</span>
+                    <HiMiniArrowTrendingUp className="w-5 h-5" />
+                  </div>
+                  <span className="font-medium text-green-600 dark:text-green-400">
+                    {(aprToApy(ballotPreview.foresight.apr.potential) * 100).toFixed(2)}%
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex flex-row items-center space-x-2">
+            <HiOutlineExclamationTriangle className="w-6 h-6 text-orange-500 flex-shrink-0" />
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              By confirming, your tokens will be locked for a duration that can be no less than the minimum duration shown above.
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+              onClick={() => setShowConfirmModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              onClick={executeVote}
+              disabled={putBallotLoading}
+            >
+              {putBallotLoading ? 'Processing...' : 'Confirm Lock'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
-    
+
 	);
 };
 

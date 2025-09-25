@@ -62,6 +62,12 @@ const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
 
   const { call: getBallots } = protocolActor.unauthenticated.useQueryCall({
     functionName: "get_ballots",
+    onError: (error) => {
+      console.error("Error fetching ballots:", error);
+    },
+    onSuccess: (data) => {
+      console.log("Fetched ballots:", data);
+    }
   });
 
   const toggleBallot = useCallback((ballotId: string) => {
@@ -87,6 +93,8 @@ const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
   }, [setSearchParams]);
 
   const fetchBallots = async (account: Account, entries: BallotEntries, filter_active: boolean) : Promise<BallotEntries> => {
+
+    console.log("Account owner:", account.owner.toText());
 
     const fetchedBallots = await getBallots([{
       account,

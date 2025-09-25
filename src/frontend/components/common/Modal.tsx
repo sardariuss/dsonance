@@ -1,6 +1,6 @@
 import { ReactNode, MouseEvent } from "react";
 import ReactDOM from "react-dom";
-import { MdCancel } from "react-icons/md";
+import { MdClose, MdOutlineCancel } from "react-icons/md";
 
 interface Props {
   isVisible: boolean;
@@ -37,7 +37,7 @@ const Modal = ({ isVisible, children, onClose, title }: Props) => {
         {/* Header with title and close button on same line */}
         <div className="flex w-full justify-between items-center mb-4">
           {title && (
-            <h2 className="text-xl font-semibold text-black dark:text-white pt-4">
+            <h2 className="text-xl text-black dark:text-white pt-4">
               {title}
             </h2>
           )}
@@ -45,7 +45,7 @@ const Modal = ({ isVisible, children, onClose, title }: Props) => {
             onClick={onClose} 
             className={`text-black dark:text-white ${title ? '' : 'ml-auto'} self-start mt-4`}
           >
-            <MdCancel size={24} />
+            <MdClose size={24} />
           </button>
         </div>
         {children}

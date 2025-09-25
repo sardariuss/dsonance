@@ -10,6 +10,8 @@ export const showErrorToast = (message: string, operation?: string) => {
   toast.error(title, {
     description: message,
     duration: 5000, // Show for 5 seconds
+    dismissible: true, // Enable dismiss button
+    closeButton: true, // Show explicit close button
   });
 };
 
@@ -23,6 +25,8 @@ export const showSuccessToast = (message: string, operation?: string) => {
   toast.success(title, {
     description: message,
     duration: 3000, // Show for 3 seconds
+    dismissible: true, // Enable dismiss button
+    closeButton: true, // Show explicit close button
   });
 };
 
