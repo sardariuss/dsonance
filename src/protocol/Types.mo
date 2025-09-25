@@ -104,6 +104,10 @@ module {
         amount: Nat;
     };
 
+    public type PutBallotPreview = PutBallotArgs and {
+        with_supply_apy_impact: Bool;
+    };
+
     public type FindBallotArgs = {
         vote_id: UUID;
         ballot_id: UUID;

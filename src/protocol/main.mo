@@ -65,7 +65,7 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
 
     // ⚠️ THIS IS INTENTIONALLY A QUERY FUNCTION
     // DO NOT CHANGE IT TO A SHARED FUNCTION OTHERWISE THE PREVIEW WILL PUT AN ACTUAL BALLOT
-    public query({caller}) func preview_ballot(args: Types.PutBallotArgs) : async Types.PutBallotResult {
+    public query({caller}) func preview_ballot(args: Types.PutBallotPreview) : async Types.PutBallotResult {
         getFacade().put_ballot_for_free({ args with caller; });
     };
 

@@ -40,7 +40,8 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
 
   const { computeDecay, info } = useProtocolContext();
   
-  const ballotPreview = useBallotPreview(vote.vote_id, ballot);
+  const ballotPreview = useBallotPreview(vote.vote_id, ballot, true);
+  const ballotPreviewWithoutImpact = useBallotPreview(vote.vote_id, ballot, false);
 
   // TODO: remove redundant code
   const { voteDetails, liveDetails } = useMemo(() => {
@@ -179,6 +180,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
               ballot={ballot}
               setBallot={setBallot}
               ballotPreview={ballotPreview?.new.YES_NO}
+              ballotPreviewWithoutImpact={ballotPreviewWithoutImpact?.new.YES_NO}
             />
           )}
         </div>
@@ -219,6 +221,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
               ballot={ballot}
               setBallot={setBallot}
               ballotPreview={ballotPreview?.new.YES_NO}
+              ballotPreviewWithoutImpact={ballotPreviewWithoutImpact?.new.YES_NO}
             />
             <VoteBallots voteId={vote.vote_id} />
           </div> : 
