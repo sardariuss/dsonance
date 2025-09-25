@@ -21,7 +21,6 @@ const DesktopHeader: React.FC = () => {
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full border-b border-gray-300 dark:border-gray-700">
       <nav className="flex flex-row bg-slate-100 dark:bg-slate-900 sticky top-0 z-30 flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 h-16 min-h-16 relative">
-        {/* Left-aligned Dsonance Link */}
         <Link to="/" className="flex flex-row items-baseline">
           <div className="h-10 pr-2">
             <img src={Tower} className="h-full w-full object-contain dark:invert"/>
@@ -115,7 +114,6 @@ const MobileHeader: React.FC = () => {
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full border-b border-gray-300 dark:border-gray-700">
       <nav className="flex flex-row bg-slate-100 dark:bg-slate-900 items-center sticky top-0 z-30 w-full h-20 min-h-20 relative">
-        {/* Centered Dsonance Link */}
         <Link className="flex flex-grow justify-center" to="/">
           <span className="flex flex-row items-baseline">
             <span className="h-12 pr-2">

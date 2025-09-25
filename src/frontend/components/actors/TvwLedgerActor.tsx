@@ -1,28 +1,28 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useActors } from '../common/ActorsContext';
 import { ActorMethod, ActorSubclass } from '@dfinity/agent';
-import { _SERVICE as DsnLedger } from "../../../declarations/dsn_ledger/dsn_ledger.did";
+import { _SERVICE as TvwLedger } from "../../../declarations/tvw_ledger/tvw_ledger.did";
 
 // Type utilities to extract function signatures from ActorMethod
-type DsnLedgerMethods = keyof DsnLedger;
+type TvwLedgerMethods = keyof TvwLedger;
 type ExtractArgs<T> = T extends ActorMethod<infer P, any> ? P : never;
 type ExtractReturn<T> = T extends ActorMethod<any, infer R> ? R : never;
 
-interface UseQueryCallOptions<T extends DsnLedgerMethods> {
+interface UseQueryCallOptions<T extends TvwLedgerMethods> {
   functionName: T;
-  args?: ExtractArgs<DsnLedger[T]>;
-  onSuccess?: (data: ExtractReturn<DsnLedger[T]>) => void;
+  args?: ExtractArgs<TvwLedger[T]>;
+  onSuccess?: (data: ExtractReturn<TvwLedger[T]>) => void;
   onError?: (error: any) => void;
 }
 
-const useQueryCall = <T extends DsnLedgerMethods>(options: UseQueryCallOptions<T>, actor: ActorSubclass<DsnLedger> | undefined) => {
+const useQueryCall = <T extends TvwLedgerMethods>(options: UseQueryCallOptions<T>, actor: ActorSubclass<TvwLedger> | undefined) => {
 
-  const [data, setData] = useState<ExtractReturn<DsnLedger[T]> | undefined>(undefined);
+  const [data, setData] = useState<ExtractReturn<TvwLedger[T]> | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
 
   const call = useCallback(
-    async (callArgs?: ExtractArgs<DsnLedger[T]>): Promise<ExtractReturn<DsnLedger[T]> | undefined> => {
+    async (callArgs?: ExtractArgs<TvwLedger[T]>): Promise<ExtractReturn<TvwLedger[T]> | undefined> => {
       if (!actor) return undefined;
 
       setLoading(true);
@@ -70,18 +70,18 @@ const useQueryCall = <T extends DsnLedgerMethods>(options: UseQueryCallOptions<T
   return { data, loading, error, call };
 };
 
-interface UseUpdateCallOptions<T extends DsnLedgerMethods> {
+interface UseUpdateCallOptions<T extends TvwLedgerMethods> {
   functionName: T;
-  onSuccess?: (data: ExtractReturn<DsnLedger[T]>) => void;
+  onSuccess?: (data: ExtractReturn<TvwLedger[T]>) => void;
   onError?: (error: any) => void;
 }
 
-const useUpdateCall = <T extends DsnLedgerMethods>(options: UseUpdateCallOptions<T>, actor: ActorSubclass<DsnLedger> | undefined) => {
+const useUpdateCall = <T extends TvwLedgerMethods>(options: UseUpdateCallOptions<T>, actor: ActorSubclass<TvwLedger> | undefined) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
 
   const call = useCallback(
-    async (args: ExtractArgs<DsnLedger[T]> = [] as any): Promise<ExtractReturn<DsnLedger[T]> | undefined> => {
+    async (args: ExtractArgs<TvwLedger[T]> = [] as any): Promise<ExtractReturn<TvwLedger[T]> | undefined> => {
 
       if (!actor) return undefined;
 
@@ -106,30 +106,30 @@ const useUpdateCall = <T extends DsnLedgerMethods>(options: UseUpdateCallOptions
   return { call, loading, error };
 };
 
-export type { DsnLedger };
+export type { TvwLedger };
 
-const useUnauthQueryCall = <T extends DsnLedgerMethods>(options: UseQueryCallOptions<T>) => {
+const useUnauthQueryCall = <T extends TvwLedgerMethods>(options: UseQueryCallOptions<T>) => {
   const { unauthenticated } = useActors();
-  return useQueryCall(options, unauthenticated?.dsnLedger as any);
+  return useQueryCall(options, unauthenticated?.twvLedger as any);
 }
 
-const useAuthQueryCall = <T extends DsnLedgerMethods>(options: UseQueryCallOptions<T>) => {
+const useAuthQueryCall = <T extends TvwLedgerMethods>(options: UseQueryCallOptions<T>) => {
   const { authenticated } = useActors();
-  return useQueryCall(options, authenticated?.dsnLedger as any);
+  return useQueryCall(options, authenticated?.twvLedger as any);
 }
 
-const useUnauthUpdateCall = <T extends DsnLedgerMethods>(options: UseUpdateCallOptions<T>) => {
+const useUnauthUpdateCall = <T extends TvwLedgerMethods>(options: UseUpdateCallOptions<T>) => {
   const { unauthenticated } = useActors();
-      return useUpdateCall(options, unauthenticated?.dsnLedger as any);
+      return useUpdateCall(options, unauthenticated?.twvLedger as any);
 }
 
-const useAuthUpdateCall = <T extends DsnLedgerMethods>(options: UseUpdateCallOptions<T>) => {
+const useAuthUpdateCall = <T extends TvwLedgerMethods>(options: UseUpdateCallOptions<T>) => {
   const { authenticated } = useActors();
-  return useUpdateCall(options, authenticated?.dsnLedger as any);
+  return useUpdateCall(options, authenticated?.twvLedger as any);
 }
 
-// Compatibility layer that mimics the ic-reactor dsnLedgerActor API with full type safety
-export const dsnLedgerActor = {
+// Compatibility layer that mimics the ic-reactor twvLedgerActor API with full type safety
+export const twvLedgerActor = {
   unauthenticated: {
     useQueryCall: useUnauthQueryCall,
     useUpdateCall: useUnauthUpdateCall

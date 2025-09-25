@@ -98,7 +98,7 @@ const Profile = () => {
     try {
       await withdrawMined([[]]); // null subaccount
     } catch (error) {
-      console.error("Failed to withdraw DSN:", error);
+      console.error("Failed to withdraw TWV:", error);
     }
   };
 
@@ -185,14 +185,14 @@ const Profile = () => {
         {tracker ? (
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-gray-700 dark:text-gray-300">DSN Received:</span>
+              <span className="text-gray-700 dark:text-gray-300">TWV Received:</span>
               <span className="font-medium text-gray-900 dark:text-white">
                 {formatAmount(tracker.received)}
               </span>
             </div>
 
             <div className="flex justify-between items-center">
-              <span className="text-gray-700 dark:text-gray-300">DSN Owed:</span>
+              <span className="text-gray-700 dark:text-gray-300">TWV Owed:</span>
               <span className="font-medium text-gray-900 dark:text-white">
                 {formatAmount(tracker.owed)}
               </span>
@@ -204,13 +204,13 @@ const Profile = () => {
                 disabled={withdrawLoading}
                 className="w-full mt-3 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md transition-colors"
               >
-                {withdrawLoading ? "Withdrawing..." : "Withdraw DSN"}
+                {withdrawLoading ? "Withdrawing..." : "Withdraw TWV"}
               </button>
             )}
 
             {tracker.owed === 0n && (
               <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-3">
-                No DSN available to withdraw
+                No TWV available to withdraw
               </p>
             )}
           </div>

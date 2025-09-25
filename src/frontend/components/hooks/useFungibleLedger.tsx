@@ -1,6 +1,6 @@
 import { ckBtcLedgerActor } from "../actors/CkBtcActor";
 import { ckUsdtLedgerActor } from "../actors/CkUsdtActor";
-import { dsnLedgerActor } from "../actors/DsnLedgerActor";
+import { twvLedgerActor } from "../actors/TvwLedgerActor";
 import { icpCoinsActor } from "../actors/IcpCoinsActor";
 import { faucetActor } from "../actors/FaucetActor";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
@@ -43,9 +43,9 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   const ledgerActorMap: Record<LedgerType, typeof ckUsdtLedgerActor> = {
     [LedgerType.SUPPLY]: ckUsdtLedgerActor,
     [LedgerType.COLLATERAL]: ckBtcLedgerActor,
-    [LedgerType.PARTICIPATION]: dsnLedgerActor,
+    [LedgerType.PARTICIPATION]: twvLedgerActor,
   };
-  const ledgerActor = ledgerActorMap[ledgerType] ?? dsnLedgerActor;
+  const ledgerActor = ledgerActorMap[ledgerType] ?? twvLedgerActor;
 
   const { user } = useAuth();
   const identity = useIdentity();
@@ -308,7 +308,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   }, [account]);
 
   const { call: mintToken, loading: mintLoading } = faucetActor.unauthenticated.useUpdateCall({
-    functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : ledgerType === LedgerType.COLLATERAL ? 'mint_btc' : 'mint_dsn',
+    functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : ledgerType === LedgerType.COLLATERAL ? 'mint_btc' : 'mint_twv',
   });
 
   const mint = async(amount: number) => {

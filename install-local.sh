@@ -3,13 +3,13 @@ set -ex
 
 dfx identity use default
 export DEFAULT_USER=$(dfx identity get-principal)
-export DSN_LOGO=$(base64 -w 0 ./src/frontend/assets/tower_coin.png)
+export TOWER_COIN=$(base64 -w 0 ./src/frontend/assets/tower_coin.png)
 
 # Create the canisters
 dfx canister create --all
 
 # Fetch canister IDs dynamically
-for canister in ckbtc_ledger ckusdt_ledger dsn_ledger kong_backend protocol faucet; do
+for canister in ckbtc_ledger ckusdt_ledger tvw_ledger kong_backend protocol faucet; do
   export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
 done
 
@@ -94,13 +94,13 @@ dfx deploy ckusdt_ledger --argument '(
     }
   }
 )' &
-dfx deploy dsn_ledger --argument '(
+dfx deploy tvw_ledger --argument '(
   variant {
     Init = record {
       decimals = opt (9 : nat8);
-      token_symbol = "DSN";
-      token_name = "DSN";
-      transfer_fee = 100 : nat;
+      token_symbol = "TVW";
+      token_name = "TowerView";
+      transfer_fee = 1000 : nat;
       max_memo_length = null;
       feature_flags = null;
       metadata = (
@@ -108,7 +108,7 @@ dfx deploy dsn_ledger --argument '(
           record {
             "icrc1:logo";
             variant {
-              Text = "data:image/png;base64,'${DSN_LOGO}'"
+              Text = "data:image/png;base64,'${TOWER_COIN}'"
             };
           };
           record { "icrc103:public_allowances"; variant { Text = "true" } };
@@ -139,7 +139,7 @@ dfx deploy faucet --argument '( record {
   canister_ids = record {
     ckbtc_ledger = principal "'${CKBTC_LEDGER_PRINCIPAL}'";
     ckusdt_ledger = principal "'${CKUSDT_LEDGER_PRINCIPAL}'";
-    dsn_ledger = principal "'${DSN_LEDGER_PRINCIPAL}'";
+    tvw_ledger = principal "'${TVW_LEDGER_PRINCIPAL}'";
   }; 
 })' &
 # Prices taken from the neutrinite canister on 2025-07-01
@@ -173,7 +173,7 @@ dfx deploy protocol --argument '( variant {
       supply_ledger = principal "'${CKUSDT_LEDGER_PRINCIPAL}'";
       collateral_ledger = principal "'${CKBTC_LEDGER_PRINCIPAL}'";
       kong_backend = principal "'${KONG_BACKEND_PRINCIPAL}'";
-      participation_ledger = principal "'${DSN_LEDGER_PRINCIPAL}'";
+      participation_ledger = principal "'${TVW_LEDGER_PRINCIPAL}'";
     };
     parameters = record {
       age_coefficient = 0.25;
@@ -223,8 +223,8 @@ dfx deps pull
 dfx deps init
 dfx deps deploy internet_identity
 
-# Transfer DSN tokens for the protocol to mint
-dfx canister call faucet mint_dsn '(
+# Transfer TWV tokens for the protocol to mint
+dfx canister call faucet mint_twv '(
   record {
     to = record {
       owner = principal "'${PROTOCOL_PRINCIPAL}'";
@@ -313,7 +313,7 @@ dfx canister call protocol init_facade
 
 dfx generate ckbtc_ledger &
 dfx generate ckusdt_ledger &
-dfx generate dsn_ledger &
+dfx generate tvw_ledger &
 dfx generate kong_backend &
 dfx generate backend & # Will generate protocol as well
 dfx generate internet_identity &

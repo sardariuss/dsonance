@@ -9,7 +9,7 @@ import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { useProtocolContext } from "../context/ProtocolContext";
 import { DASHBOARD_CONTAINER, STATS_OVERVIEW_CONTAINER, VERTICAL_DIVIDER, METRICS_WRAPPER, CONTENT_PANEL } from "../../utils/styles";
 
-interface DsnAccount {
+interface TwvAccount {
   owner: { toText(): string } | string;
   subaccount?: number[];
 }
@@ -19,7 +19,7 @@ interface ParticipationTracker {
   owed: bigint;
 }
 
-type ParticipationData = [DsnAccount, ParticipationTracker];
+type ParticipationData = [TwvAccount, ParticipationTracker];
 
 const ParticipationDashboard = () => {
   const { theme } = useContext(ThemeContext);
@@ -60,7 +60,7 @@ const ParticipationDashboard = () => {
         received: Number(received),
         owed: Number(owed),
       };
-    }).filter(item => item.value > 0); // Only show accounts with DSN
+    }).filter(item => item.value > 0); // Only show accounts with TWV
 
     let mintRemaining = undefined;
     if (parameters?.participation.emission_total_amount) {
@@ -75,7 +75,7 @@ const ParticipationDashboard = () => {
   }, [participationTrackers]);
 
   if (!participationTrackers) {
-    return <div className="text-center text-gray-500">Loading DSN stats...</div>;
+    return <div className="text-center text-gray-500">Loading TWV stats...</div>;
   }
 
   return (
@@ -83,7 +83,7 @@ const ParticipationDashboard = () => {
       <div className={STATS_OVERVIEW_CONTAINER}>
         <FullTokenLabel
           metadata={metadata}
-          canisterId={process.env.DSN_LEDGER_CANISTER_ID || ""} // @todo: should come from participationLedger
+          canisterId={process.env.TVW_LEDGER_CANISTER_ID || ""} // @todo: should come from participationLedger
         />
         <div className={VERTICAL_DIVIDER}></div>
         <div className={METRICS_WRAPPER}>
@@ -141,7 +141,7 @@ const ParticipationDashboard = () => {
                   tooltip={({ datum }) => (
                     <div className="bg-white dark:bg-gray-800 p-2 rounded shadow-lg border border-gray-200 dark:border-gray-700">
                       <div className="font-mono text-xs">{datum.data?.label || 'Unknown'}</div>
-                      <div className="text-sm font-semibold">{formatAmount(datum.value)} DSN</div>
+                      <div className="text-sm font-semibold">{formatAmount(datum.value)} TWV</div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">
                         {miningStats.totalMinted > 0n ? ((datum.value / Number(miningStats.totalMinted)) * 100).toFixed(2) : '0.00'}% of total
                       </div>
@@ -173,7 +173,7 @@ const ParticipationDashboard = () => {
                 <thead>
                   <tr className="border-b border-gray-300 dark:border-gray-700">
                     <th className="text-left p-2">Account</th>
-                    <th className="text-right p-2">Total DSN</th>
+                    <th className="text-right p-2">Total TWV</th>
                     <th className="text-right p-2">Distributed</th>
                     <th className="text-right p-2">Pending</th>
                     <th className="text-right p-2">% of Total</th>
