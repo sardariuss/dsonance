@@ -3,22 +3,15 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: 'Acelon';
-  src: url('/assets/fonts/Acelon.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Cafe';
-  src: url('/assets/fonts/Cafe.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
   font-family: 'Decoment';
   src: url('/assets/fonts/DecomentRegular-2vLDd.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Decondol';
+  src: url('/assets/fonts/DecondolRegular-YqgX4.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }

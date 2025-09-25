@@ -12,9 +12,8 @@ module.exports = {
                 'brand-white': '#ebfcf6',
             },
             fontFamily: {
-                'acelon': ['Acelon', 'sans-serif'],
-                'cafe': ['Cafe', 'sans-serif'],
                 'decoment': ['Decoment', 'sans-serif'],
+                'decondol': ['Decondol', 'sans-serif'],
             },
         },
     },

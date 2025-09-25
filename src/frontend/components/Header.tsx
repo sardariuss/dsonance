@@ -25,10 +25,10 @@ const DesktopHeader: React.FC = () => {
           <div className="h-10 pr-2">
             <img src={Tower} className="h-full w-full object-contain dark:invert"/>
           </div>
-          <span className="text-5xl font-decoment whitespace-nowrap drop-shadow-lg shadow-white font-bold">
+          <span className="text-5xl font-decondol whitespace-nowrap drop-shadow-lg shadow-white font-bold">
             TOWER
           </span>
-          <span className="text-5xl font-decoment whitespace-nowrap drop-shadow-lg shadow-white font-bold dark:text-green-500 text-red-500">
+          <span className="text-5xl font-decondol whitespace-nowrap drop-shadow-lg shadow-white font-bold dark:text-green-500 text-red-500">
             VIEW
           </span>
         </Link>
@@ -119,10 +119,10 @@ const MobileHeader: React.FC = () => {
             <span className="h-12 pr-2">
               <img src={Tower} className="h-full w-full object-contain dark:invert"/>
             </span>
-            <span className="text-[54px] font-decoment whitespace-nowrap drop-shadow-lg shadow-white font-bold leading-none flex items-center">
+            <span className="text-[54px] font-decondol whitespace-nowrap drop-shadow-lg shadow-white font-bold leading-none flex items-center">
               TOWER
             </span>
-            <span className="text-[54px] font-decoment whitespace-nowrap drop-shadow-lg shadow-white font-bold dark:text-green-500 text-red-500 h-12 leading-none flex items-center">
+            <span className="text-[54px] font-decondol whitespace-nowrap drop-shadow-lg shadow-white font-bold dark:text-green-500 text-red-500 h-12 leading-none flex items-center">
               VIEW
             </span>
           </span>
