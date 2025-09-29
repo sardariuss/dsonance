@@ -44,6 +44,7 @@ const Profile = () => {
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'locked' | 'lending' | 'mining'>('locked');
   const { participationLedger: { formatAmount, refreshUserBalance } } = useFungibleLedgerContext();
 
   // Fetch participation tracker data
@@ -64,6 +65,17 @@ const Profile = () => {
   const tracker = useMemo(() => {
     return fromNullableExt(participationTracker);
   }, [participationTracker]);
+
+  // Mock values for net worth components (replace with actual data later)
+  const mockValues = useMemo(() => ({
+    lockedViews: 125.50,
+    lending: 2000.75,
+    mining: 450.25
+  }), []);
+
+  const netWorth = useMemo(() => {
+    return mockValues.lockedViews + mockValues.lending + mockValues.mining;
+  }, [mockValues]);
 
   // Early return after all hooks are called
   if (connectedUser === undefined || connectedUser.principal.isAnonymous()) {
@@ -178,48 +190,107 @@ const Profile = () => {
         <ThemeToggle/>
       </div>
 
-      {/* Mining Section */}
+      {/* Net Worth Section */}
       <div className="w-full p-4 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
-        <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Mining</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Net Worth</h3>
 
-        {tracker ? (
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 dark:text-gray-300">TWV Received:</span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {formatAmount(tracker.received)}
-              </span>
+        {/* Total Net Worth */}
+        <div className="mb-6 p-4 bg-white dark:bg-gray-700 rounded-lg">
+          <div className="text-center">
+            <span className="text-sm text-gray-600 dark:text-gray-300">Total</span>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+              ${netWorth.toFixed(2)}
             </div>
+          </div>
+        </div>
 
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 dark:text-gray-300">TWV Owed:</span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {formatAmount(tracker.owed)}
-              </span>
-            </div>
+        {/* Tab Navigation */}
+        <div className="flex space-x-1 mb-4 bg-gray-100 dark:bg-gray-600 rounded-lg p-1">
+          {[
+            { key: 'locked', label: 'Locked Views', amount: mockValues.lockedViews },
+            { key: 'lending', label: 'Lending', amount: mockValues.lending },
+            { key: 'mining', label: 'Mining', amount: mockValues.mining }
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as 'locked' | 'lending' | 'mining')}
+              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
+                activeTab === tab.key
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <div className="text-center">
+                <div>{tab.label}</div>
+                <div className="text-xs font-normal">${tab.amount.toFixed(2)}</div>
+              </div>
+            </button>
+          ))}
+        </div>
 
-            {tracker.owed > 0n && (
-              <button
-                onClick={handleWithdraw}
-                disabled={withdrawLoading}
-                className="w-full mt-3 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md transition-colors"
-              >
-                {withdrawLoading ? "Withdrawing..." : "Withdraw TWV"}
-              </button>
-            )}
-
-            {tracker.owed === 0n && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-3">
-                No TWV available to withdraw
+        {/* Tab Content */}
+        <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
+          {activeTab === 'locked' && (
+            <div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Locked Views Details</h4>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
+                Details about locked views will be displayed here.
               </p>
-            )}
-          </div>
-        ) : (
-          <div className="text-center text-gray-500 dark:text-gray-400">
-            <p>No mining data available</p>
-          </div>
-        )}
+            </div>
+          )}
+          {activeTab === 'lending' && (
+            <div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Lending Details</h4>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
+                Details about lending positions will be displayed here.
+              </p>
+            </div>
+          )}
+          {activeTab === 'mining' && (
+            <div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-3">Mining Details</h4>
+              {tracker ? (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700 dark:text-gray-300">TWV Received:</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {formatAmount(tracker.received)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700 dark:text-gray-300">TWV Owed:</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {formatAmount(tracker.owed)}
+                    </span>
+                  </div>
+
+                  {tracker.owed > 0n && (
+                    <button
+                      onClick={handleWithdraw}
+                      disabled={withdrawLoading}
+                      className="w-full mt-3 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+                    >
+                      {withdrawLoading ? "Withdrawing..." : "Withdraw TWV"}
+                    </button>
+                  )}
+
+                  {tracker.owed === 0n && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-3">
+                      No TWV available to withdraw
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 dark:text-gray-400">
+                  <p>No mining data available</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
     </div>
   );
 }
