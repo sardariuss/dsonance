@@ -14,6 +14,7 @@ import { toAccount } from "@/frontend/utils/conversions/account";
 import { protocolActor } from "../actors/ProtocolActor";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { fromNullableExt } from "@/frontend/utils/conversions/nullable";
+import { LendingContent } from "../borrow/BorrowPage";
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -238,17 +239,9 @@ const Profile = () => {
               </p>
             </div>
           )}
-          {activeTab === 'lending' && (
-            <div>
-              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Lending Details</h4>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Details about lending positions will be displayed here.
-              </p>
-            </div>
-          )}
+          {activeTab === 'lending' && <LendingContent user={connectedUser} />}
           {activeTab === 'mining' && (
             <div>
-              <h4 className="font-medium text-gray-900 dark:text-white mb-3">Mining Details</h4>
               {tracker ? (
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">

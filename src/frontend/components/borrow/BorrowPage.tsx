@@ -34,10 +34,10 @@ const BorrowPage = () => {
     );
   }
 
-  return <BorrowPageContent user={user} />;
+  return <LendingContent user={user} />;
 };
 
-const BorrowPageContent = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
+export const LendingContent = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
 
   const account : Account= useMemo(() => ({
     owner: user.principal,
@@ -211,9 +211,9 @@ const BorrowPageContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
   }, [loanPosition, indexerState]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
-      <div className={DASHBOARD_CONTAINER}>
-        <div className="my-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="w-full">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex flex-row items-start items-center space-x-4">
             <DualLabel top="Net worth" bottom={formatAmountCompact(netWorth, 2)} />
             <DualLabel top="Net APY" bottom={`${netApy === undefined ? UNDEFINED_SCALAR : (netApy * 100).toFixed(2) + "%"}`} />
@@ -223,7 +223,7 @@ const BorrowPageContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
             </div>
           </div>
         </div>
-        <div className={CONTENT_PANEL}>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
           <div className="flex flex-col justify-center w-full space-y-6">
             <div className="flex flex-col justify-center w-full">
               <span className="text-xl font-semibold">Your supply</span>
@@ -237,7 +237,7 @@ const BorrowPageContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
             </div>
           </div>
         </div>
-        <div className={`${CONTENT_PANEL} space-y-6`}>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600 space-y-6">
           <div className="flex flex-col justify-center w-full">
             <span className="text-xl font-semibold">Your collateral</span>
             <div className="flex flex-col gap-4 mt-4">
