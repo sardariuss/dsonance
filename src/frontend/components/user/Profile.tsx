@@ -2,7 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { useMemo, useState } from "react";
 
 import { useMediaQuery } from "react-responsive";
-import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
+import { MOBILE_MAX_WIDTH_QUERY, UNDEFINED_SCALAR } from "../../../frontend/constants";
 import { Account } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
 import LogoutIcon from "../icons/LogoutIcon";
@@ -15,6 +15,8 @@ import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { fromNullableExt } from "@/frontend/utils/conversions/nullable";
 import { LendingContent } from "../borrow/BorrowPage";
 import { MiningContent } from "./MiningContent";
+import DualLabel from "../common/DualLabel";
+import { formatAmountCompact } from "@/frontend/utils/conversions/token";
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -71,7 +73,9 @@ const Profile = () => {
   const mockValues = useMemo(() => ({
     lockedViews: 125.50,
     lending: 2000.75,
-    mining: 450.25
+    mining: 450.25,
+    netApy: 0.0575, // 5.75%
+    miningRate: 12.34, // TVW/day
   }), []);
 
   const netWorth = useMemo(() => {
@@ -167,6 +171,11 @@ const Profile = () => {
             >
               {truncateAccount(accountToString(toAccount(connectedUser)))}
             </span>
+            {user?.joinedDate && (
+              <span className="text-xs text-gray-600 dark:text-gray-400 self-center">
+                Joined {new Date(Number(user.joinedDate) / 1_000_000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </span>
+            )}
           </div>
           { connectedUser.principal.toString() === principal && 
             <Link 
@@ -190,17 +199,14 @@ const Profile = () => {
 
       {/* Net Worth Section */}
       <div className="w-full p-4 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Net Worth</h3>
-
-        {/* Total Net Worth */}
-        <div className="mb-6 p-4 bg-white dark:bg-gray-700 rounded-lg">
-          <div className="text-center">
-            <span className="text-sm text-gray-600 dark:text-gray-300">Total</span>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
-              ${netWorth.toFixed(2)}
-            </div>
-          </div>
+        <div className="flex flex-row items-start items-center space-x-4">
+          <DualLabel top="Net worth" bottom={`$${formatAmountCompact(netWorth, 2)}`} />
+          <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
+          <DualLabel top="Lending APY" bottom={`${mockValues.netApy === undefined ? UNDEFINED_SCALAR : (mockValues.netApy * 100).toFixed(2) + "%"}`} />
+          <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
+          <DualLabel top="Mining rate" bottom={formatAmountCompact(mockValues.miningRate, 2) + " TVW/day"} />
         </div>
+        
 
         {/* Tab Navigation */}
         <div className="flex space-x-1 mb-4 bg-gray-100 dark:bg-gray-600 rounded-lg p-1">

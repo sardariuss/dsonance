@@ -3,7 +3,7 @@ interface MiningContentProps {
     received: bigint;
     owed: bigint;
   } | undefined;
-  formatAmount: (amount: bigint) => string;
+  formatAmount: (amount: bigint) => string | undefined;
   onWithdraw: () => void;
   withdrawLoading: boolean;
 }
