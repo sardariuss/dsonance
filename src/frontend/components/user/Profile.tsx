@@ -3,13 +3,10 @@ import { useMemo, useState } from "react";
 
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY, UNDEFINED_SCALAR } from "../../../frontend/constants";
-import { Account } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
-import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
 import LogoutIcon from "../icons/LogoutIcon";
 import Avatar from "boring-avatars";
 import { useUser } from "../hooks/useUser";
 import { useAuth } from "@nfid/identitykit/react";
-import { toAccount } from "@/frontend/utils/conversions/account";
 import { protocolActor } from "../actors/ProtocolActor";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { fromNullableExt } from "@/frontend/utils/conversions/nullable";
@@ -18,35 +15,14 @@ import { MiningContent } from "./MiningContent";
 import DualLabel from "../common/DualLabel";
 import { formatAmountCompact } from "@/frontend/utils/conversions/token";
 
-const accountToString = (account: Account | undefined) : string =>  {
-  let str = "";
-  if (account !== undefined) {
-    str = account.owner.toString();
-    let subaccount = fromNullable(account.subaccount);
-    if (subaccount !== undefined) {
-      str += " " + uint8ArrayToHexString(subaccount); 
-    }
-  }
-  return str;
-}
-
-const truncateAccount = (accountStr: string) => {
-  // Truncate to show first 5 and last 3 characters
-  if (accountStr.length > 10) {
-    return accountStr.substring(0, 5) + "..." + accountStr.substring(accountStr.length - 3);
-  }
-  return accountStr;
-}
-
 const Profile = () => {
 
   const { principal } = useParams();
-  const { user: connectedUser, connect, disconnect } = useAuth();
+  const { user: connectedUser, disconnect } = useAuth();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
-  const { user, updateNickname, loading } = useUser();
+  const { user, updateNickname } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
-  const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'locked' | 'lending' | 'mining'>('locked');
   const { participationLedger: { formatAmount, refreshUserBalance } } = useFungibleLedgerContext();
 
@@ -86,11 +62,6 @@ const Profile = () => {
   if (connectedUser === undefined || connectedUser.principal.isAnonymous()) {
     return <div>Invalid principal</div>;
   }
-  const handleCopy = () => {
-    navigator.clipboard.writeText(accountToString(toAccount(connectedUser)));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000); // Hide tooltip after 2 seconds
-  };
 
   const handleEditNickname = () => {
     setNicknameInput(user?.nickname || "");
@@ -124,8 +95,8 @@ const Profile = () => {
   }
 
   return (
-    <div className="flex flex-col gap-y-4 items-center bg-slate-50 dark:bg-slate-850 h-full sm:h-auto p-4 sm:my-4 sm:rounded-md w-full sm:w-4/5 md:w-3/4 lg:w-2/3">
-      <div className="relative group">
+    <div className="flex flex-col items-center h-full sm:h-auto w-full sm:py-4 sm:space-y-4 sm:w-4/5 md:w-3/4 lg:w-2/3">
+      <div className="flex flex-col w-full items-center space-y-4 border-0 sm:border border-gray-300 dark:border-gray-700 rounded-lg p-4 ">
         <div className="flex flex-row items-center space-x-2">
           <Avatar
             size={isMobile ? 40 : 60}
@@ -165,12 +136,6 @@ const Profile = () => {
                 {user?.nickname}
               </span>
             )}
-            <span
-              className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white bg-gray-300 dark:bg-gray-700 rounded-md px-2 py-1 font-medium self-center hover:cursor-pointer"
-              onClick={handleCopy}
-            >
-              {truncateAccount(accountToString(toAccount(connectedUser)))}
-            </span>
             {user?.joinedDate && (
               <span className="text-xs text-gray-600 dark:text-gray-400 self-center">
                 Joined {new Date(Number(user.joinedDate) / 1_000_000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -186,19 +151,6 @@ const Profile = () => {
             </Link>
           }
         </div>
-        { copied && (
-          <div
-            className={`absolute -top-6 left-1/2 z-50 transform -translate-x-1/2 bg-white text-black text-xs rounded px-2 py-1 transition-opacity duration-500 ${
-              copied ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            Copied!
-          </div>
-        )}
-      </div>
-
-      {/* Net Worth Section */}
-      <div className="w-full p-4 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
         <div className="flex flex-row items-start items-center space-x-4">
           <DualLabel top="Net worth" bottom={`$${formatAmountCompact(netWorth, 2)}`} />
           <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
@@ -206,6 +158,10 @@ const Profile = () => {
           <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
           <DualLabel top="Mining rate" bottom={formatAmountCompact(mockValues.miningRate, 2) + " TVW/day"} />
         </div>
+      </div>
+
+      {/* Net Worth Section */}
+      <div className="w-full p-4 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
         
 
         {/* Tab Navigation */}

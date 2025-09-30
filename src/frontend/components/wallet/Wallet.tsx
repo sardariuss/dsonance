@@ -2,6 +2,32 @@ import { useState, useEffect } from "react";
 import { MdClose, MdOutlineAccountBalanceWallet } from "react-icons/md";
 import { LedgerType } from "../hooks/useFungibleLedger";
 import WalletRow from "./WalletRow";
+import { useAuth } from "@nfid/identitykit/react";
+import { toAccount } from "@/frontend/utils/conversions/account";
+import { Account } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
+import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
+import { Link } from "react-router-dom";
+import LogoutIcon from "../icons/LogoutIcon";
+
+const accountToString = (account: Account | undefined): string => {
+  let str = "";
+  if (account !== undefined) {
+    str = account.owner.toString();
+    let subaccount = fromNullable(account.subaccount);
+    if (subaccount !== undefined) {
+      str += " " + uint8ArrayToHexString(subaccount);
+    }
+  }
+  return str;
+};
+
+const truncateAccount = (accountStr: string) => {
+  // Truncate to show first 5 and last 3 characters
+  if (accountStr.length > 10) {
+    return accountStr.substring(0, 5) + "..." + accountStr.substring(accountStr.length - 3);
+  }
+  return accountStr;
+};
 
 interface WalletProps {
   isOpen: boolean;
@@ -12,6 +38,8 @@ const Wallet = ({ isOpen, onClose }: WalletProps) => {
   const [activeCard, setActiveCard] = useState<LedgerType | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const { user, disconnect } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
@@ -38,6 +66,14 @@ const Wallet = ({ isOpen, onClose }: WalletProps) => {
     }
   };
 
+  const handleCopy = () => {
+    if (user) {
+      navigator.clipboard.writeText(accountToString(toAccount(user)));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   if (!shouldRender) return null;
 
   return (
@@ -53,17 +89,40 @@ const Wallet = ({ isOpen, onClose }: WalletProps) => {
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-rpw border-b border-gray-200 p-4 dark:border-gray-700 justify-between">
+          <div className="flex flex-row items-center gap-2">
             <MdOutlineAccountBalanceWallet size={24} className="text-black dark:text-white" />
             <h2 className="text-xl font-semibold text-black dark:text-white">Wallet</h2>
+            {user && (
+              <div className="relative">
+                <span
+                  className="text-gray-800 hover:text-black dark:text-gray-200 dark:hover:text-white bg-gray-200 dark:bg-gray-700 rounded-md px-3 py-1.5 text-sm font-medium hover:cursor-pointer inline-block"
+                  onClick={handleCopy}
+                >
+                  {truncateAccount(accountToString(toAccount(user)))}
+                </span>
+                {copied && (
+                  <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                    Copied!
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-full p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-          >
-            <MdClose size={24} />
-          </button>
+          <div className="flex flex-row items-center gap-2">
+            <Link 
+              className="rounded-full h-8 w-8 pr-1 flex flex-col items-center justify-center fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white hover:bg-gray-100 dark:hover:bg-gray-700 hover:cursor-pointer"
+              onClick={()=>{ disconnect(); }}
+              to="/">
+              <LogoutIcon />
+            </Link>
+            <button
+              onClick={onClose}
+              className="rounded-full h-8 w-8 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+            >
+              <MdClose size={24} />
+            </button>
+          </div>
         </div>
 
         {/* Content */}

@@ -67,16 +67,15 @@ const Header: React.FC = () => {
   return (
     <header className="sticky top-0 z-30 flex flex-col relative w-full border-b border-gray-300 dark:border-gray-700 bg-slate-100 dark:bg-slate-900">
       {/* First Row: Logo and User Controls */}
-      <nav className="flex flex-row items-center w-full xl:px-4 lg:px-3 md:px-2 px-2 h-14 min-h-14">
+      <nav className="flex flex-row items-center justify-between w-full xl:px-4 lg:px-3 md:px-2 px-2 h-14 min-h-14 relative">
         <img src={isDarkMode ? TowerHeaderDark : TowerHeader} className="h-12 w-auto object-contain hover:cursor-pointer" onClick={() => navigate("/")}/>
 
-        {/* Spacer */}
-        <div className="flex-grow"></div>
-
-        { !isMobile && <NavigationComponent location={location} /> }
-
-        {/* Spacer */}
-        <div className="flex-grow"></div>
+        {/* Centered Navigation Links */}
+        { !isMobile && (
+          <div className="absolute left-1/2 transform -translate-x-1/2">
+            <NavigationComponent location={location} />
+          </div>
+        )}
 
         {/* Right-aligned User Controls */}
         <div className="flex flex-row items-center space-x-2 sm:space-x-3">
