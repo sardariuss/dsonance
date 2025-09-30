@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        canvas {
+            border: 2px solid #333;
+            background: white;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        label {
+            margin-right: 10px;
+        }
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+        }
+        .theme-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>TowerView Logo Generator</h1>
+
+    <div class="theme-buttons">
+        <button onclick="generateLogo('light')">Generate Light Theme Logo</button>
+        <button onclick="generateLogo('dark')">Generate Dark Theme Logo</button>
+    </div>
+
+    <div class="controls">
+        <label>Scale Factor: <input type="number" id="scale" value="2" min="1" max="5" step="0.5"></label>
+        <label>Text Size: <input type="number" id="textSize" value="72" min="40" max="120" step="2"></label>
+        <label>Vertical Align: <input type="number" id="verticalAlign" value="0.35" min="0" max="0.6" step="0.01"></label>
+        <button onclick="regenerate()">Regenerate</button>
+    </div>
+
+    <canvas id="logoCanvas"></canvas>
+
+    <div>
+        <button onclick="downloadLogo('light')">Download Light Logo</button>
+        <button onclick="downloadLogo('dark')">Download Dark Logo</button>
+    </div>
+
+    <p>Instructions: Click "Generate" to create the logo, then "Download" to save it.</p>
+
+    <script>
+        let currentTheme = 'light';
+        const towerImagePath = './src/frontend/assets/tower.png';
+        const fontPath = './src/frontend/assets/fonts/DecondolRegular-YqgX4.ttf';
+
+        // Load the Decondol font
+        const decondolFont = new FontFace('Decondol', `url(${fontPath})`);
+
+        decondolFont.load().then(function(loadedFont) {
+            document.fonts.add(loadedFont);
+            console.log('Decondol font loaded successfully');
+        }).catch(function(error) {
+            console.error('Error loading Decondol font:', error);
+            alert('Could not load Decondol font. Make sure the font file exists at: ' + fontPath);
+        });
+
+        function generateLogo(theme) {
+            currentTheme = theme;
+            const canvas = document.getElementById('logoCanvas');
+            const ctx = canvas.getContext('2d');
+            const scale = parseFloat(document.getElementById('scale').value);
+
+            // Set canvas dimensions (base size multiplied by scale)
+            const baseWidth = 600;
+            const baseHeight = 120;
+            canvas.width = baseWidth * scale;
+            canvas.height = baseHeight * scale;
+
+            // Scale context for high DPI
+            ctx.scale(scale, scale);
+
+            // Clear canvas
+            ctx.clearRect(0, 0, baseWidth, baseHeight);
+
+            // Fill background
+            if (theme === 'dark') {
+                ctx.fillStyle = '#0f172a'; // slate-900
+            } else {
+                ctx.fillStyle = '#f1f5f9'; // slate-100
+            }
+            ctx.fillRect(0, 0, baseWidth, baseHeight);
+
+            // Load and draw the tower image
+            const img = new Image();
+            img.onload = function() {
+                const logoHeight = 80;
+                const logoWidth = (img.width / img.height) * logoHeight;
+                const startX = 20;
+                const centerY = baseHeight / 2;
+
+                // Draw tower image (inverted for dark theme)
+                if (theme === 'dark') {
+                    // Invert colors for dark theme
+                    ctx.filter = 'invert(1)';
+                    ctx.drawImage(img, startX, centerY - logoHeight/2, logoWidth, logoHeight);
+                    ctx.filter = 'none';
+                } else {
+                    ctx.drawImage(img, startX, centerY - logoHeight/2, logoWidth, logoHeight);
+                }
+
+                // Draw text
+                const textSize = parseInt(document.getElementById('textSize').value);
+                ctx.font = `bold ${textSize}px Decondol, Arial, sans-serif`;
+                ctx.textBaseline = 'alphabetic';
+
+                const textStartX = startX + logoWidth + 15;
+
+                // Calculate text position to align with logo bottom
+                // Position text so its baseline aligns near the bottom of the logo
+                const verticalAlign = parseFloat(document.getElementById('verticalAlign').value);
+                const textY = centerY + logoHeight * verticalAlign;
+
+                // Draw "TOWER" text
+                if (theme === 'dark') {
+                    ctx.fillStyle = '#ffffff';
+                } else {
+                    ctx.fillStyle = '#000000';
+                }
+                ctx.fillText('TOWER', textStartX, textY);
+
+                // Measure "TOWER" to position "VIEW"
+                const towerWidth = ctx.measureText('TOWER').width;
+
+                // Draw "VIEW" text
+                if (theme === 'dark') {
+                    ctx.fillStyle = '#22c55e'; // green-500
+                } else {
+                    ctx.fillStyle = '#ef4444'; // red-500
+                }
+                ctx.fillText('VIEW', textStartX + towerWidth, textY);
+            };
+
+            img.onerror = function() {
+                alert('Error loading tower.png. Make sure the image exists at: ' + towerImagePath);
+            };
+
+            img.src = towerImagePath;
+        }
+
+        function regenerate() {
+            generateLogo(currentTheme);
+        }
+
+        function downloadLogo(theme) {
+            // Generate with the specified theme first
+            generateLogo(theme);
+
+            // Wait a bit for the image to render
+            setTimeout(() => {
+                const canvas = document.getElementById('logoCanvas');
+                const link = document.createElement('a');
+                link.download = `towerview-logo-${theme}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }, 500);
+        }
+
+        // Generate light theme by default on load
+        window.onload = function() {
+            generateLogo('light');
+        };
+    </script>
+</body>
+</html>

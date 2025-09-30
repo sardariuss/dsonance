@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
-import ThemeToggle from "../ThemeToggle";
 import { Account } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
 import LogoutIcon from "../icons/LogoutIcon";
@@ -15,6 +14,7 @@ import { protocolActor } from "../actors/ProtocolActor";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { fromNullableExt } from "@/frontend/utils/conversions/nullable";
 import { LendingContent } from "../borrow/BorrowPage";
+import { MiningContent } from "./MiningContent";
 
 const accountToString = (account: Account | undefined) : string =>  {
   let str = "";
@@ -187,9 +187,6 @@ const Profile = () => {
           </div>
         )}
       </div>
-      <div className="flex flex-row justify-center w-full p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
-        <ThemeToggle/>
-      </div>
 
       {/* Net Worth Section */}
       <div className="w-full p-4 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
@@ -241,45 +238,12 @@ const Profile = () => {
           )}
           {activeTab === 'lending' && <LendingContent user={connectedUser} />}
           {activeTab === 'mining' && (
-            <div>
-              {tracker ? (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700 dark:text-gray-300">TWV Received:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {formatAmount(tracker.received)}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700 dark:text-gray-300">TWV Owed:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {formatAmount(tracker.owed)}
-                    </span>
-                  </div>
-
-                  {tracker.owed > 0n && (
-                    <button
-                      onClick={handleWithdraw}
-                      disabled={withdrawLoading}
-                      className="w-full mt-3 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md transition-colors"
-                    >
-                      {withdrawLoading ? "Withdrawing..." : "Withdraw TWV"}
-                    </button>
-                  )}
-
-                  {tracker.owed === 0n && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-3">
-                      No TWV available to withdraw
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 dark:text-gray-400">
-                  <p>No mining data available</p>
-                </div>
-              )}
-            </div>
+            <MiningContent
+              tracker={tracker}
+              formatAmount={formatAmount}
+              onWithdraw={handleWithdraw}
+              withdrawLoading={withdrawLoading}
+            />
           )}
         </div>
       </div>
