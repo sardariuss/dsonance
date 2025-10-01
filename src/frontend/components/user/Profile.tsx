@@ -164,8 +164,6 @@ const Profile = () => {
           }
         </div>
         <div className="flex flex-row items-start items-center space-x-4">
-          <DualLabel top="Net worth" bottom={`$${formatAmountCompact(netWorth, 2)}`} />
-          <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
           <DualLabel top="Net APY" bottom={`${netApy === undefined ? UNDEFINED_SCALAR : (netApy * 100).toFixed(2) + "%"}`} />
           <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
           <DualLabel top="Health factor" bottom={`${mockValues.healthFactor.toFixed(2)}`} />
@@ -176,26 +174,23 @@ const Profile = () => {
 
       {/* Net Worth Breakdown Summary */}
       <div className="w-full">
-        <h3 className="text-base font-semibold mb-3 text-gray-900 dark:text-white">Net Worth Breakdown</h3>
 
-        <div className="bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700">
-          {/* Header */}
-          <div className="grid grid-cols-[1fr_auto_auto] gap-8 mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">
-            <div className="text-sm font-semibold text-gray-600 dark:text-gray-400"></div>
-            <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 text-right">Worth</div>
-            <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 text-right min-w-[80px]">APY</div>
+        <div className="rounded-md border-0 sm:border border-gray-300 dark:border-gray-700 rounded-lg p-4">
+          {/* Total */}
+          <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-200 dark:border-gray-600">
+            <div className="text-base font-semibold text-gray-900 dark:text-white">Net Worth</div>
+            <div className="text-base font-bold text-gray-900 dark:text-white">
+              ${netWorth.toFixed(2)}
+            </div>
           </div>
 
           {/* Locked Section */}
           <div className="mb-3">
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Locked</div>
-            <div className="grid grid-cols-[1fr_auto_auto] gap-8 pl-4">
+            <div className="flex justify-between pl-4">
               <div className="text-sm text-gray-600 dark:text-gray-400">Views</div>
-              <div className="text-sm text-gray-900 dark:text-white text-right font-medium">
+              <div className="text-sm text-gray-900 dark:text-white font-medium">
                 ${mockValues.views.worth.toFixed(2)}
-              </div>
-              <div className="text-sm text-gray-900 dark:text-white text-right font-medium min-w-[80px]">
-                {mockValues.views.apy !== undefined ? `${(mockValues.views.apy * 100).toFixed(2)}%` : UNDEFINED_SCALAR}
               </div>
             </div>
           </div>
@@ -205,59 +200,36 @@ const Profile = () => {
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unlocked</div>
             <div className="space-y-1 pl-4">
               {/* Supply */}
-              <div className="grid grid-cols-[1fr_auto_auto] gap-8">
+              <div className="flex justify-between">
                 <div className="text-sm text-gray-600 dark:text-gray-400">Supply</div>
-                <div className="text-sm text-gray-900 dark:text-white text-right font-medium">
+                <div className="text-sm text-gray-900 dark:text-white font-medium">
                   ${mockValues.supply.worth.toFixed(2)}
-                </div>
-                <div className="text-sm text-gray-900 dark:text-white text-right font-medium min-w-[80px]">
-                  {mockValues.supply.apy !== undefined ? `${(mockValues.supply.apy * 100).toFixed(2)}%` : UNDEFINED_SCALAR}
                 </div>
               </div>
 
               {/* Borrow */}
-              <div className="grid grid-cols-[1fr_auto_auto] gap-8">
+              <div className="flex justify-between">
                 <div className="text-sm text-gray-600 dark:text-gray-400">Borrow</div>
-                <div className="text-sm text-red-600 dark:text-red-400 text-right font-medium">
+                <div className="text-sm text-red-600 dark:text-red-400 font-medium">
                   ${mockValues.borrow.worth.toFixed(2)}
-                </div>
-                <div className="text-sm text-red-600 dark:text-red-400 text-right font-medium min-w-[80px]">
-                  {mockValues.borrow.apy !== undefined ? `${(mockValues.borrow.apy * 100).toFixed(2)}%` : UNDEFINED_SCALAR}
                 </div>
               </div>
 
               {/* From Collateral (sub-item) */}
-              <div className="grid grid-cols-[1fr_auto_auto] gap-8 pl-4">
-                <div className="text-sm text-gray-600 dark:text-gray-400 italic">(from collateral)</div>
-                <div className="text-sm text-gray-900 dark:text-white text-right font-medium">
+              <div className="flex justify-between pl-4">
+                <div className="text-sm text-gray-600 dark:text-gray-400 italic">Collateral</div>
+                <div className="text-sm text-gray-900 dark:text-white font-medium">
                   ${mockValues.collateral.worth.toFixed(2)}
-                </div>
-                <div className="text-sm text-gray-900 dark:text-white text-right font-medium min-w-[80px]">
-                  {UNDEFINED_SCALAR}
                 </div>
               </div>
 
               {/* Mining */}
-              <div className="grid grid-cols-[1fr_auto_auto] gap-8">
+              <div className="flex justify-between">
                 <div className="text-sm text-gray-600 dark:text-gray-400">Mining</div>
-                <div className="text-sm text-gray-900 dark:text-white text-right font-medium">
+                <div className="text-sm text-gray-900 dark:text-white font-medium">
                   ${mockValues.mining.worth.toFixed(2)}
                 </div>
-                <div className="text-sm text-gray-900 dark:text-white text-right font-medium min-w-[80px]">
-                  {UNDEFINED_SCALAR}
-                </div>
               </div>
-            </div>
-          </div>
-
-          {/* Total */}
-          <div className="grid grid-cols-[1fr_auto_auto] gap-8 mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">Total</div>
-            <div className="text-sm font-bold text-gray-900 dark:text-white text-right">
-              ${netWorth.toFixed(2)}
-            </div>
-            <div className="text-sm font-bold text-gray-900 dark:text-white text-right min-w-[80px]">
-              {(netApy * 100).toFixed(2)}%
             </div>
           </div>
         </div>
