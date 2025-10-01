@@ -1,6 +1,5 @@
 import { Link, useParams } from "react-router-dom";
 import { useMemo, useState } from "react";
-
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY, UNDEFINED_SCALAR } from "../../../frontend/constants";
 import LogoutIcon from "../icons/LogoutIcon";
@@ -10,11 +9,13 @@ import { useAuth } from "@nfid/identitykit/react";
 import { protocolActor } from "../actors/ProtocolActor";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { fromNullableExt } from "@/frontend/utils/conversions/nullable";
-import { LendingContent } from "../borrow/BorrowPage";
+import { SupplyContent, BorrowContent } from "../borrow/BorrowPage";
 import { MiningContent } from "./MiningContent";
 import DualLabel from "../common/DualLabel";
 import { formatAmountCompact } from "@/frontend/utils/conversions/token";
 import { TabButton } from "../TabButton";
+import { useBorrowOperations } from "../hooks/useBorrowOperations";
+import { useLendingCalculations } from "../hooks/useLendingCalculations";
 
 const Profile = () => {
 
@@ -24,7 +25,7 @@ const Profile = () => {
   const { user, updateNickname } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
-  const [activeTab, setActiveTab] = useState<'lending' | 'mining'>('lending');
+  const [activeTab, setActiveTab] = useState<'views' | 'supply' | 'borrow' | 'mining'>('views');
   const { participationLedger: { formatAmount, refreshUserBalance } } = useFungibleLedgerContext();
 
   // Fetch participation tracker data
@@ -265,13 +266,15 @@ const Profile = () => {
       {/* Tab Navigation */}
       <ul className="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-2 mb-4 items-center">
         {[
-          { key: 'lending', label: 'Lending' },
+          { key: 'views', label: 'Views' },
+          { key: 'supply', label: 'Supply' },
+          { key: 'borrow', label: 'Borrow' },
           { key: 'mining', label: 'Mining' }
         ].map((tab) => (
           <li key={tab.key} className="min-w-max text-center">
             <TabButton
               label={tab.label}
-              setIsCurrent={() => setActiveTab(tab.key as 'lending' | 'mining')}
+              setIsCurrent={() => setActiveTab(tab.key as 'views' | 'supply' | 'borrow' | 'mining')}
               isCurrent={activeTab === tab.key}
             />
           </li>
@@ -280,7 +283,13 @@ const Profile = () => {
 
       {/* Tab Content */}
       <div className="bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700">
-        {activeTab === 'lending' && <LendingContent user={connectedUser} />}
+        {activeTab === 'views' && (
+          <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+            Views content coming soon
+          </div>
+        )}
+        {activeTab === 'supply' && <SupplyTab user={connectedUser} />}
+        {activeTab === 'borrow' && <BorrowTab user={connectedUser} />}
         {activeTab === 'mining' && (
           <MiningContent
             tracker={tracker}
@@ -293,5 +302,48 @@ const Profile = () => {
     </div>
   );
 }
+
+// Supply Tab Component
+const SupplyTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
+  const { supplyLedger } = useFungibleLedgerContext();
+  const { account } = useBorrowOperations(user);
+
+  const { data: userSupply } = protocolActor.unauthenticated.useQueryCall({
+    functionName: "get_user_supply",
+    args: [{ account }],
+  });
+
+  return <SupplyContent userSupply={userSupply} supplyLedger={supplyLedger} />;
+};
+
+// Borrow Tab Component
+const BorrowTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
+  const {
+    loanPosition,
+    previewOperation,
+    runOperation,
+    supplyLedger,
+    collateralLedger,
+  } = useBorrowOperations(user);
+
+  const { collateral, currentOwed, maxWithdrawable, maxBorrowable } = useLendingCalculations(
+    loanPosition,
+    collateralLedger,
+    supplyLedger
+  );
+
+  return (
+    <BorrowContent
+      collateral={collateral}
+      currentOwed={currentOwed}
+      maxWithdrawable={maxWithdrawable}
+      maxBorrowable={maxBorrowable}
+      collateralLedger={collateralLedger}
+      supplyLedger={supplyLedger}
+      previewOperation={previewOperation}
+      runOperation={runOperation}
+    />
+  );
+};
 
 export default Profile;
