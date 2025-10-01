@@ -48,15 +48,25 @@ const Profile = () => {
 
   // Mock values for net worth components (replace with actual data later)
   const mockValues = useMemo(() => ({
-    lending: 2000.75,
-    mining: 450.25,
-    netApy: 0.0575, // 5.75%
+    views: { worth: 125.50, apy: 0.0 },
+    supply: { worth: 2000.75, apy: 0.0425 }, // 4.25%
+    borrow: { worth: -1500.00, apy: -0.0625 }, // -6.25% (negative because it's a cost)
+    collateral: { worth: 2200.00, apy: undefined }, // from collateral, no APY
+    mining: { worth: 450.25, apy: undefined }, // no APY, just mining rate
     healthFactor: 1.85,
     miningRate: 12.34, // TVW/day
   }), []);
 
   const netWorth = useMemo(() => {
-    return mockValues.lending + mockValues.mining;
+    return mockValues.views.worth + mockValues.supply.worth + mockValues.borrow.worth + mockValues.collateral.worth + mockValues.mining.worth;
+  }, [mockValues]);
+
+  const netApy = useMemo(() => {
+    // Weighted average APY (only for supply and borrow)
+    const supplyContribution = mockValues.supply.worth * mockValues.supply.apy;
+    const borrowContribution = mockValues.borrow.worth * mockValues.borrow.apy;
+    const totalContributing = mockValues.supply.worth + Math.abs(mockValues.borrow.worth);
+    return totalContributing > 0 ? (supplyContribution + borrowContribution) / totalContributing : 0;
   }, [mockValues]);
 
   // Early return after all hooks are called
@@ -155,11 +165,100 @@ const Profile = () => {
         <div className="flex flex-row items-start items-center space-x-4">
           <DualLabel top="Net worth" bottom={`$${formatAmountCompact(netWorth, 2)}`} />
           <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
-          <DualLabel top="Lending APY" bottom={`${mockValues.netApy === undefined ? UNDEFINED_SCALAR : (mockValues.netApy * 100).toFixed(2) + "%"}`} />
+          <DualLabel top="Net APY" bottom={`${netApy === undefined ? UNDEFINED_SCALAR : (netApy * 100).toFixed(2) + "%"}`} />
           <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
           <DualLabel top="Health factor" bottom={`${mockValues.healthFactor.toFixed(2)}`} />
           <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
           <DualLabel top="Mining rate" bottom={formatAmountCompact(mockValues.miningRate, 2) + " TVW/day"} />
+        </div>
+      </div>
+
+      {/* Net Worth Breakdown Summary */}
+      <div className="w-full">
+        <h3 className="text-base font-semibold mb-3 text-gray-900 dark:text-white">Net Worth Breakdown</h3>
+
+        <div className="bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700">
+          {/* Header */}
+          <div className="grid grid-cols-[1fr_auto_auto] gap-8 mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">
+            <div className="text-sm font-semibold text-gray-600 dark:text-gray-400"></div>
+            <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 text-right">Worth</div>
+            <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 text-right min-w-[80px]">APY</div>
+          </div>
+
+          {/* Locked Section */}
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Locked</div>
+            <div className="grid grid-cols-[1fr_auto_auto] gap-8 pl-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Views</div>
+              <div className="text-sm text-gray-900 dark:text-white text-right font-medium">
+                ${mockValues.views.worth.toFixed(2)}
+              </div>
+              <div className="text-sm text-gray-900 dark:text-white text-right font-medium min-w-[80px]">
+                {mockValues.views.apy !== undefined ? `${(mockValues.views.apy * 100).toFixed(2)}%` : UNDEFINED_SCALAR}
+              </div>
+            </div>
+          </div>
+
+          {/* Unlocked Section */}
+          <div>
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unlocked</div>
+            <div className="space-y-1 pl-4">
+              {/* Supply */}
+              <div className="grid grid-cols-[1fr_auto_auto] gap-8">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Supply</div>
+                <div className="text-sm text-gray-900 dark:text-white text-right font-medium">
+                  ${mockValues.supply.worth.toFixed(2)}
+                </div>
+                <div className="text-sm text-gray-900 dark:text-white text-right font-medium min-w-[80px]">
+                  {mockValues.supply.apy !== undefined ? `${(mockValues.supply.apy * 100).toFixed(2)}%` : UNDEFINED_SCALAR}
+                </div>
+              </div>
+
+              {/* Borrow */}
+              <div className="grid grid-cols-[1fr_auto_auto] gap-8">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Borrow</div>
+                <div className="text-sm text-red-600 dark:text-red-400 text-right font-medium">
+                  ${mockValues.borrow.worth.toFixed(2)}
+                </div>
+                <div className="text-sm text-red-600 dark:text-red-400 text-right font-medium min-w-[80px]">
+                  {mockValues.borrow.apy !== undefined ? `${(mockValues.borrow.apy * 100).toFixed(2)}%` : UNDEFINED_SCALAR}
+                </div>
+              </div>
+
+              {/* From Collateral (sub-item) */}
+              <div className="grid grid-cols-[1fr_auto_auto] gap-8 pl-4">
+                <div className="text-sm text-gray-600 dark:text-gray-400 italic">(from collateral)</div>
+                <div className="text-sm text-gray-900 dark:text-white text-right font-medium">
+                  ${mockValues.collateral.worth.toFixed(2)}
+                </div>
+                <div className="text-sm text-gray-900 dark:text-white text-right font-medium min-w-[80px]">
+                  {UNDEFINED_SCALAR}
+                </div>
+              </div>
+
+              {/* Mining */}
+              <div className="grid grid-cols-[1fr_auto_auto] gap-8">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Mining</div>
+                <div className="text-sm text-gray-900 dark:text-white text-right font-medium">
+                  ${mockValues.mining.worth.toFixed(2)}
+                </div>
+                <div className="text-sm text-gray-900 dark:text-white text-right font-medium min-w-[80px]">
+                  {UNDEFINED_SCALAR}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Total */}
+          <div className="grid grid-cols-[1fr_auto_auto] gap-8 mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">Total</div>
+            <div className="text-sm font-bold text-gray-900 dark:text-white text-right">
+              ${netWorth.toFixed(2)}
+            </div>
+            <div className="text-sm font-bold text-gray-900 dark:text-white text-right min-w-[80px]">
+              {(netApy * 100).toFixed(2)}%
+            </div>
+          </div>
         </div>
       </div>
 
