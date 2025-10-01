@@ -74,7 +74,7 @@ const VoteList = () => {
   }, [votes]);
 
   return (
-    <div className="flex flex-col gap-y-1 w-full rounded-md">
+    <div className="flex flex-col gap-y-1 w-full rounded-md pb-3">
       {/* Vote Grid */}
       <InfiniteScroll
         dataLength={votes.length}

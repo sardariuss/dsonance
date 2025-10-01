@@ -21,7 +21,7 @@ interface ParticipationTracker {
 
 type ParticipationData = [TwvAccount, ParticipationTracker];
 
-const ParticipationDashboard = () => {
+const MiningDashboard = () => {
   const { theme } = useContext(ThemeContext);
   const { participationLedger : { formatAmount, totalSupply, metadata } } = useFungibleLedgerContext();
   const { parameters } = useProtocolContext();
@@ -208,4 +208,4 @@ const ParticipationDashboard = () => {
   );
 };
 
-export default ParticipationDashboard;
+export default MiningDashboard;

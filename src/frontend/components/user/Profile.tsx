@@ -14,6 +14,7 @@ import { LendingContent } from "../borrow/BorrowPage";
 import { MiningContent } from "./MiningContent";
 import DualLabel from "../common/DualLabel";
 import { formatAmountCompact } from "@/frontend/utils/conversions/token";
+import { TabButton } from "../TabButton";
 
 const Profile = () => {
 
@@ -23,7 +24,7 @@ const Profile = () => {
   const { user, updateNickname } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
-  const [activeTab, setActiveTab] = useState<'locked' | 'lending' | 'mining'>('locked');
+  const [activeTab, setActiveTab] = useState<'lending' | 'mining'>('lending');
   const { participationLedger: { formatAmount, refreshUserBalance } } = useFungibleLedgerContext();
 
   // Fetch participation tracker data
@@ -47,15 +48,15 @@ const Profile = () => {
 
   // Mock values for net worth components (replace with actual data later)
   const mockValues = useMemo(() => ({
-    lockedViews: 125.50,
     lending: 2000.75,
     mining: 450.25,
     netApy: 0.0575, // 5.75%
+    healthFactor: 1.85,
     miningRate: 12.34, // TVW/day
   }), []);
 
   const netWorth = useMemo(() => {
-    return mockValues.lockedViews + mockValues.lending + mockValues.mining;
+    return mockValues.lending + mockValues.mining;
   }, [mockValues]);
 
   // Early return after all hooks are called
@@ -95,8 +96,8 @@ const Profile = () => {
   }
 
   return (
-    <div className="flex flex-col items-center h-full sm:h-auto w-full sm:py-4 sm:space-y-4 sm:w-4/5 md:w-3/4 lg:w-2/3">
-      <div className="flex flex-col w-full items-center space-y-4 border-0 sm:border border-gray-300 dark:border-gray-700 rounded-lg p-4 ">
+    <div className="flex flex-col w-full sm:w-4/5 md:w-11/12 lg:w-5/6 xl:w-4/5 mx-auto px-3 space-y-4 my-4 sm:my-6">
+      <div className="flex flex-col w-full items-center space-y-4 border-0 sm:border border-gray-300 dark:border-gray-700 rounded-lg p-4">
         <div className="flex flex-row items-center space-x-2">
           <Avatar
             size={isMobile ? 40 : 60}
@@ -156,60 +157,40 @@ const Profile = () => {
           <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
           <DualLabel top="Lending APY" bottom={`${mockValues.netApy === undefined ? UNDEFINED_SCALAR : (mockValues.netApy * 100).toFixed(2) + "%"}`} />
           <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
+          <DualLabel top="Health factor" bottom={`${mockValues.healthFactor.toFixed(2)}`} />
+          <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
           <DualLabel top="Mining rate" bottom={formatAmountCompact(mockValues.miningRate, 2) + " TVW/day"} />
         </div>
       </div>
 
-      {/* Net Worth Section */}
-      <div className="w-full p-4 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 rounded-lg">
-        
-
-        {/* Tab Navigation */}
-        <div className="flex space-x-1 mb-4 bg-gray-100 dark:bg-gray-600 rounded-lg p-1">
-          {[
-            { key: 'locked', label: 'Locked Views', amount: mockValues.lockedViews },
-            { key: 'lending', label: 'Lending', amount: mockValues.lending },
-            { key: 'mining', label: 'Mining', amount: mockValues.mining }
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as 'locked' | 'lending' | 'mining')}
-              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
-                activeTab === tab.key
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              <div className="text-center">
-                <div>{tab.label}</div>
-                <div className="text-xs font-normal">${tab.amount.toFixed(2)}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content */}
-        <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
-          {activeTab === 'locked' && (
-            <div>
-              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Locked Views Details</h4>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Details about locked views will be displayed here.
-              </p>
-            </div>
-          )}
-          {activeTab === 'lending' && <LendingContent user={connectedUser} />}
-          {activeTab === 'mining' && (
-            <MiningContent
-              tracker={tracker}
-              formatAmount={formatAmount}
-              onWithdraw={handleWithdraw}
-              withdrawLoading={withdrawLoading}
+      {/* Tab Navigation */}
+      <ul className="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-2 mb-4 items-center">
+        {[
+          { key: 'lending', label: 'Lending' },
+          { key: 'mining', label: 'Mining' }
+        ].map((tab) => (
+          <li key={tab.key} className="min-w-max text-center">
+            <TabButton
+              label={tab.label}
+              setIsCurrent={() => setActiveTab(tab.key as 'lending' | 'mining')}
+              isCurrent={activeTab === tab.key}
             />
-          )}
-        </div>
-      </div>
+          </li>
+        ))}
+      </ul>
 
+      {/* Tab Content */}
+      <div className="bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700">
+        {activeTab === 'lending' && <LendingContent user={connectedUser} />}
+        {activeTab === 'mining' && (
+          <MiningContent
+            tracker={tracker}
+            formatAmount={formatAmount}
+            onWithdraw={handleWithdraw}
+            withdrawLoading={withdrawLoading}
+          />
+        )}
+      </div>
     </div>
   );
 }
