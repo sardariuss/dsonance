@@ -151,7 +151,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   const formatAmountUsd = (amount: bigint | number | undefined, notation: "standard" | "compact" = "compact") => {
     let usdValue = convertToUsd(amount);
     if (usdValue === undefined) {
-      return undefined;
+      return "N/A";
     }
     let formattedValue = new Intl.NumberFormat("en-US", {
       notation,

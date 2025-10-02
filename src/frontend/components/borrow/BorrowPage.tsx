@@ -11,7 +11,7 @@ export const SupplyContent = ({
   supplyLedger: any;
 }) => {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+    <div className="bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700">
       <div className="flex flex-col justify-center w-full space-y-6">
         <div className="flex flex-col justify-center w-full">
           <span className="text-xl font-semibold">Your supply</span>
@@ -48,73 +48,73 @@ export const BorrowContent = ({
   runOperation: (amount: bigint, kind: OperationKind) => Promise<Result_1 | undefined>;
 }) => {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600 space-y-6">
-      <div className="flex flex-col justify-center w-full">
-        <span className="text-xl font-semibold">Your collateral</span>
-        <div className="flex flex-col gap-4 mt-4">
-          <div className="flex flex-row items-center gap-4">
-            <TokenLabel metadata={collateralLedger.metadata}/>
-            <div className="flex flex-col">
-              <span className="text-lg font-bold"> { collateralLedger.formatAmount(collateral) } </span>
-              <span className="text-xs text-gray-400"> { collateralLedger.formatAmountUsd(collateral) } </span>
-            </div>
-          </div>
-          <div className="flex flex-row gap-2 w-full">
-            <div className="flex-1">
-              <BorrowButton
-                title="Supply"
-                ledger={collateralLedger}
-                previewOperation={(amount) => previewOperation(amount, { "PROVIDE_COLLATERAL" : null })}
-                runOperation={(amount) => runOperation(amount, { "PROVIDE_COLLATERAL" : null })}
-                maxLabel="Wallet balance"
-                maxAmount={collateralLedger.userBalance ?? 0n }
-              />
-            </div>
-            <div className="flex-1">
-              <BorrowButton
-                title="Withdraw"
-                ledger={collateralLedger}
-                previewOperation={(amount) => previewOperation(amount, { "WITHDRAW_COLLATERAL": null })}
-                runOperation={(amount) => runOperation(amount, { "WITHDRAW_COLLATERAL": null })}
-                maxLabel="Available"
-                maxAmount={maxWithdrawable}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="border-b border-gray-300 dark:border-gray-700 w-full"></div>
-      <div className="flex flex-col justify-center w-full">
-        <span className="text-xl font-semibold">Your borrow</span>
-        <div className="flex flex-col gap-4 mt-4">
-          <div className="flex flex-row items-center gap-4">
+    <div className="bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700 space-y-6">
+      <div className="flex flex-col lg:flex-row justify-between w-full gap-4">
+        <div className="flex flex-col">
+          <span className="text-xl font-semibold">Your borrow</span>
+          <div className="flex flex-row items-center gap-4 mt-4">
             <TokenLabel metadata={supplyLedger.metadata}/>
             <div className="flex flex-col">
               <span className="text-lg font-bold"> { supplyLedger.formatAmount(currentOwed) } </span>
               <span className="text-xs text-gray-400"> { supplyLedger.formatAmountUsd(currentOwed) } </span>
             </div>
           </div>
-          <div className="flex flex-row gap-2 w-full">
-            <div className="flex-1">
-              <BorrowButton
-                title="Borrow"
-                ledger={supplyLedger}
-                previewOperation={(amount) => previewOperation(amount, { "BORROW_SUPPLY": null })}
-                runOperation={(amount) => runOperation(amount, { "BORROW_SUPPLY": null })}
-                maxLabel="Available"
-                maxAmount={maxBorrowable}
-              />
+        </div>
+        <div className="flex flex-row gap-2 lg:w-auto w-full lg:min-w-[300px]">
+          <div className="flex-1">
+            <BorrowButton
+              title="Borrow"
+              ledger={supplyLedger}
+              previewOperation={(amount) => previewOperation(amount, { "BORROW_SUPPLY": null })}
+              runOperation={(amount) => runOperation(amount, { "BORROW_SUPPLY": null })}
+              maxLabel="Available"
+              maxAmount={maxBorrowable}
+            />
+          </div>
+          <div className="flex-1">
+            <BorrowButton
+              title="Repay"
+              ledger={supplyLedger}
+              previewOperation={(amount) => previewOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
+              runOperation={(amount) => runOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
+              maxLabel="Total owed"
+              maxAmount={currentOwed}
+            />
+          </div>
+        </div>
+      </div>
+      <div className="border-b border-gray-300 dark:border-gray-700 w-full"></div>
+      <div className="flex flex-col lg:flex-row justify-between w-full gap-4">
+        <div className="flex flex-col">
+          <span className="text-xl font-semibold">Your collateral</span>
+          <div className="flex flex-row items-center gap-4 mt-4">
+            <TokenLabel metadata={collateralLedger.metadata}/>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold"> { collateralLedger.formatAmount(collateral) } </span>
+              <span className="text-xs text-gray-400"> { collateralLedger.formatAmountUsd(collateral) } </span>
             </div>
-            <div className="flex-1">
-              <BorrowButton
-                title="Repay"
-                ledger={supplyLedger}
-                previewOperation={(amount) => previewOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
-                runOperation={(amount) => runOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
-                maxLabel="Total owed"
-                maxAmount={currentOwed}
-              />
-            </div>
+          </div>
+        </div>
+        <div className="flex flex-row gap-2 lg:w-auto w-full lg:min-w-[300px]">
+          <div className="flex-1">
+            <BorrowButton
+              title="Supply"
+              ledger={collateralLedger}
+              previewOperation={(amount) => previewOperation(amount, { "PROVIDE_COLLATERAL" : null })}
+              runOperation={(amount) => runOperation(amount, { "PROVIDE_COLLATERAL" : null })}
+              maxLabel="Wallet balance"
+              maxAmount={collateralLedger.userBalance ?? 0n }
+            />
+          </div>
+          <div className="flex-1">
+            <BorrowButton
+              title="Withdraw"
+              ledger={collateralLedger}
+              previewOperation={(amount) => previewOperation(amount, { "WITHDRAW_COLLATERAL": null })}
+              runOperation={(amount) => runOperation(amount, { "WITHDRAW_COLLATERAL": null })}
+              maxLabel="Available"
+              maxAmount={maxWithdrawable}
+            />
           </div>
         </div>
       </div>
