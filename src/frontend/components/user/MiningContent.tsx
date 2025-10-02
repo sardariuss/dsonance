@@ -1,4 +1,5 @@
 import { TokenLabel } from "../common/TokenLabel";
+import ActionButton from "../common/ActionButton";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 
 interface MiningContentProps {
@@ -40,16 +41,13 @@ export const MiningContent = ({ tracker, formatAmount, onWithdraw, withdrawLoadi
         </div>
         <div className="flex flex-row gap-2 lg:w-auto w-full lg:min-w-[300px]">
           <div className="flex-1">
-            {tracker.owed > 0n && (
-              <button
-                onClick={onWithdraw}
-                disabled={withdrawLoading}
-                className="w-full mt-4 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors shadow-sm"
-              >
-                {withdrawLoading ? "Withdrawing..." : "Withdraw"}
-              </button>
-            )}
-          </div>  
+            <ActionButton
+              title="Withdraw"
+              onClick={onWithdraw}
+              disabled={tracker.owed === 0n}
+              loading={withdrawLoading}
+            />
+          </div>
         </div>
       </div>
     </div>
