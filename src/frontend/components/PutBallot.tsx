@@ -87,7 +87,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
         refreshUserBalance();
         showSuccessToast("View locked successfully", "Put ballot");
         // Ballot successfully put, navigate to the ballot page
-        navigate(`/?tab=your_views\&ballotId=${result.ok.new.YES_NO.ballot_id}`);
+        navigate(`/ballot/${result.ok.new.YES_NO.ballot_id}`);
       });
     }).catch((error) => {
       console.error("Error during put ballot:", error);
