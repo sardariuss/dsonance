@@ -4,7 +4,6 @@ import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY, UNDEFINED_SCALAR } from "../../../frontend/constants";
 import LogoutIcon from "../icons/LogoutIcon";
 import Avatar from "boring-avatars";
-import { MdLock, MdLockOpen } from "react-icons/md";
 import { useUser } from "../hooks/useUser";
 import { useAuth } from "@nfid/identitykit/react";
 import { protocolActor } from "../actors/ProtocolActor";
@@ -12,6 +11,7 @@ import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { fromNullableExt } from "@/frontend/utils/conversions/nullable";
 import { SupplyContent, BorrowContent } from "../borrow/BorrowPage";
 import { MiningContent } from "./MiningContent";
+import { ViewsContent } from "./ViewsContent";
 import DualLabel from "../common/DualLabel";
 import { formatAmountCompact } from "@/frontend/utils/conversions/token";
 import { TabButton } from "../TabButton";
@@ -26,7 +26,7 @@ const Profile = () => {
   const { user, updateNickname } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
-  const [activeTab, setActiveTab] = useState<'views' | 'supply' | 'borrow' | 'mining'>('views');
+  const [activeTab, setActiveTab] = useState<'supply' | 'borrow' | 'mining'>('supply');
   const { participationLedger: { formatAmount, refreshUserBalance } } = useFungibleLedgerContext();
 
   // Fetch participation tracker data
@@ -185,57 +185,50 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Locked Section */}
+          {/* Supply Section */}
           <div className="mb-2">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">
-              <MdLock className="w-3.5 h-3.5" />
-              <span>Locked</span>
-            </div>
-            <div className="flex justify-between pl-3">
-              <div className="text-sm text-gray-600 dark:text-gray-400">Views</div>
-              <div className="text-sm text-gray-900 dark:text-white font-medium">
-                ${mockValues.views.worth.toFixed(2)}
-              </div>
-            </div>
-          </div>
-
-          {/* Unlocked Section */}
-          <div>
-            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">
-              <MdLockOpen className="w-3.5 h-3.5" />
-              <span>Unlocked</span>
-            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-0.5">Supply</div>
             <div className="space-y-0.5 pl-3">
-              {/* Supply */}
+              {/* Locked Positions */}
               <div className="flex justify-between">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Supply</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Locked positions</div>
+                <div className="text-sm text-gray-900 dark:text-white font-medium">
+                  ${mockValues.views.worth.toFixed(2)}
+                </div>
+              </div>
+              {/* Withdrawable */}
+              <div className="flex justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Withdrawable</div>
                 <div className="text-sm text-gray-900 dark:text-white font-medium">
                   ${mockValues.supply.worth.toFixed(2)}
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* Borrow */}
-              <div className="flex justify-between">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Borrow</div>
-                <div className="text-sm text-red-600 dark:text-red-400 font-medium">
-                  ${mockValues.borrow.worth.toFixed(2)}
-                </div>
+          {/* Other Items */}
+          <div className="space-y-0.5">
+            {/* Borrow */}
+            <div className="flex justify-between">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Borrow</div>
+              <div className="text-sm text-red-600 dark:text-red-400 font-medium">
+                ${mockValues.borrow.worth.toFixed(2)}
               </div>
+            </div>
 
-              {/* From Collateral (sub-item) */}
-              <div className="flex justify-between pl-3">
-                <div className="text-sm text-gray-600 dark:text-gray-400 italic">Collateral</div>
-                <div className="text-sm text-gray-900 dark:text-white font-medium">
-                  ${mockValues.collateral.worth.toFixed(2)}
-                </div>
+            {/* Collateral (sub-item) */}
+            <div className="flex justify-between">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Collateral</div>
+              <div className="text-sm text-gray-900 dark:text-white font-medium">
+                ${mockValues.collateral.worth.toFixed(2)}
               </div>
+            </div>
 
-              {/* Mining */}
-              <div className="flex justify-between">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Mining</div>
-                <div className="text-sm text-gray-900 dark:text-white font-medium">
-                  ${mockValues.mining.worth.toFixed(2)}
-                </div>
+            {/* Mining */}
+            <div className="flex justify-between">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Mining</div>
+              <div className="text-sm text-gray-900 dark:text-white font-medium">
+                ${mockValues.mining.worth.toFixed(2)}
               </div>
             </div>
           </div>
@@ -245,7 +238,6 @@ const Profile = () => {
       {/* Tab Navigation */}
       <ul className="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-2 mb-4 items-center">
         {[
-          { key: 'views', label: 'Views' },
           { key: 'supply', label: 'Supply' },
           { key: 'borrow', label: 'Borrow' },
           { key: 'mining', label: 'Mining' }
@@ -253,7 +245,7 @@ const Profile = () => {
           <li key={tab.key} className="min-w-max text-center">
             <TabButton
               label={tab.label}
-              setIsCurrent={() => setActiveTab(tab.key as 'views' | 'supply' | 'borrow' | 'mining')}
+              setIsCurrent={() => setActiveTab(tab.key as 'supply' | 'borrow' | 'mining')}
               isCurrent={activeTab === tab.key}
             />
           </li>
@@ -261,11 +253,6 @@ const Profile = () => {
       </ul>
 
     {/* Tab Content */}
-      {activeTab === 'views' && (
-        <div className="bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700">
-          Views content coming soon
-        </div>
-      )}
       {activeTab === 'supply' && <SupplyTab user={connectedUser} />}
       {activeTab === 'borrow' && <BorrowTab user={connectedUser} />}
       {activeTab === 'mining' && (
@@ -280,6 +267,19 @@ const Profile = () => {
   );
 }
 
+// Views Tab Component
+const ViewsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
+  const { supplyLedger } = useFungibleLedgerContext();
+  const { account } = useBorrowOperations(user);
+
+  const { data: userSupply } = protocolActor.unauthenticated.useQueryCall({
+    functionName: "get_user_supply",
+    args: [{ account }],
+  });
+
+  return <ViewsContent user={user} userSupply={userSupply} supplyLedger={supplyLedger} />;
+};
+
 // Supply Tab Component
 const SupplyTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
   const { supplyLedger } = useFungibleLedgerContext();
@@ -290,7 +290,7 @@ const SupplyTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["use
     args: [{ account }],
   });
 
-  return <SupplyContent userSupply={userSupply} supplyLedger={supplyLedger} />;
+  return <SupplyContent user={user} userSupply={userSupply} supplyLedger={supplyLedger} />;
 };
 
 // Borrow Tab Component

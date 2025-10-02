@@ -44,7 +44,7 @@ const BallotListLogin = ({ connect }: { connect: () => void }) => (
   </div>
 );
 
-const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
+export const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const ballotRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
   const [triggerScroll, setTriggerScroll] = useState(false);
@@ -145,7 +145,8 @@ const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
   
   return (
     <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 p-2 rounded w-full">
-      { ballotEntries.ballots.length > 0 && 
+      { /* TODO: remove deadcode or reactivate it */}
+      { ballotEntries.ballots.length > 0 && false &&
         <div className={`flex flex-col justify-between items-center w-full py-2 sm:py-6 w-full h-[300px] space-y-2`}>
           <LockChart
             ballots={ballotEntries.ballots.map(ballot => ballot.YES_NO)}
@@ -162,7 +163,8 @@ const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
           <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
         </div>
       }
-      { ballotEntries.ballots.length > 0 && 
+      { /* TODO: remove deadcode or reactivate it */}
+      { ballotEntries.ballots.length > 0 && false &&
         <label className="inline-flex items-center me-5 cursor-pointer justify-self-end pb-5">
           <span className="mr-2 text-gray-900 dark:text-gray-100 truncate">Show unlocked</span>
           <input type="checkbox" value={(!filterActive).toString()} className="sr-only peer" onChange={() => toggleFilterActive(!filterActive)}/>
