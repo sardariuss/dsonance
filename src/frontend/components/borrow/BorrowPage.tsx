@@ -16,12 +16,21 @@ export const SupplyContent = ({
 }) => {
   return (
     <div className="bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700 space-y-4">
+      {/* Beta Limitation Notice */}
+      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-lg">
+        <div className="flex items-center gap-3">
+          <span className="text-amber-600 dark:text-amber-400 text-xl mt-0.5">ℹ️</span>
+          <div className="flex-1">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              <span className="font-semibold">Beta limitation:</span> Resolved positions are currently sent straight to your wallet at resolution. In the future, they'll remain in the supply pool to keep accumulating the base supply APR and be withdrawable at any moment.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col w-full gap-4">
         <div className="flex flex-col gap-1">
           <span className="text-xl font-semibold">Withdrawable</span>
-          <span className="text-xs text-gray-500 dark:text-gray-400 italic">
-            Resolved positions are currently sent straight to your wallet. In the future, they’ll remain in the supply pool to keep earning the base APY.
-          </span>
         </div>
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center w-full">
           <div className="flex flex-row items-center gap-4">
@@ -42,9 +51,6 @@ export const SupplyContent = ({
         <div className="flex flex-col w-full gap-4">
           <div className="flex flex-col gap-1">
             <span className="text-xl font-semibold">Locked</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 italic">
-              Your positions unlock automatically at resolution and are transferred to your wallet.
-            </span>
           </div>
           <div className="flex flex-row items-center gap-4">
             <TokenLabel metadata={supplyLedger.metadata}/>

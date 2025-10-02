@@ -195,14 +195,14 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
         disabled={authenticated && (putBallotLoading || errorMsg !== undefined || ballot.amount === 0n)}
         onClick={() => { if (!authenticated) { connect() } else { showConfirmation() } }}
       >
-        <span>Lock view</span>
+        <span>Lock Position</span>
       </button>
 
       {/* Confirmation Modal */}
       <Modal
         isVisible={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
-        title="Confirm Lock"
+        title="Confirm Lock Position"
       >
         <div className="flex flex-col w-full text-black dark:text-white space-y-4">
           {/* Vote Information */}

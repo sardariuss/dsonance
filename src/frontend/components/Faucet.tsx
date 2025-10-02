@@ -28,16 +28,16 @@ const Faucet = ({ ledger }: FaucetProps) => {
     
     <div className="w-full flex flex-col rounded-lg p-3 shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800">
       { /* Mint Input & Button */}
-      <div className="flex flex-row items-center space-x-2 mt-3 justify-end">
+      <div className="flex flex-row items-center gap-2 mt-3 justify-end">
         <input
           type="number"
           min="0"
           value={mintAmount}
           onChange={e => setMintAmount(e.target.value)}
-          className="w-32 h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-blue-500 bg-gray-100 dark:bg-gray-900 text-right"
+          className="flex-1 min-w-0 sm:w-32 sm:flex-initial h-9 border dark:border-gray-300 border-gray-900 rounded px-2 appearance-none focus:outline outline-1 outline-blue-500 bg-gray-100 dark:bg-gray-900 text-right"
         />
         <button
-          className="px-10 button-simple h-10 justify-center items-center text-lg"
+          className="px-4 sm:px-10 button-simple h-10 justify-center items-center text-base sm:text-lg whitespace-nowrap"
           onClick={triggerMint}
           disabled={ledger.mintLoading}
         >

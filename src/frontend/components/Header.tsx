@@ -6,7 +6,7 @@ import TowerHeader from "../assets/tower_header.png";
 import TowerHeaderDark from "../assets/tower_header_dark.png";
 import Avatar from "boring-avatars";
 import { useUser } from "./hooks/useUser";
-import { MdOutlineAccountBalanceWallet } from "react-icons/md";
+import { MdOutlineAccountBalanceWallet, MdOutlineGroups } from "react-icons/md";
 import { RiDashboardLine, RiWaterFlashLine, RiStackLine } from "react-icons/ri";
 import Wallet from "./wallet/Wallet";
 import ThemeToggle from "./ThemeToggle";
@@ -15,10 +15,10 @@ import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
 
 const NavigationComponent: React.FC<{ location: ReturnType<typeof useLocation> }> = ({ location }) => {
   return (
-    <nav className={`flex flex-row items-center justify-center w-full h-12 min-h-12`}>
-      <div className="flex flex-row items-center space-x-4 sm:space-x-8">
+    <nav className={`flex flex-row items-center justify-center w-full h-12 min-h-12 sm:overflow-visible overflow-x-auto`}>
+      <div className="flex flex-row items-center space-x-0 sm:space-x-8 sm:px-0 px-2">
         <Link
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
             location.pathname === "/"
               ? "text-black dark:text-white font-semibold"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -29,7 +29,7 @@ const NavigationComponent: React.FC<{ location: ReturnType<typeof useLocation> }
           <span className="text-sm sm:text-base">Pools</span>
         </Link>
         <Link
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
             location.pathname === "/dashboard"
               ? "text-black dark:text-white font-semibold"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -40,7 +40,18 @@ const NavigationComponent: React.FC<{ location: ReturnType<typeof useLocation> }
           <span className="text-sm sm:text-base">Dashboard</span>
         </Link>
         <Link
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+            location.pathname === "/dao"
+              ? "text-black dark:text-white font-semibold"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          }`}
+          to={"/dao"}
+        >
+          <MdOutlineGroups size={18} />
+          <span className="text-sm sm:text-base">DAO</span>
+        </Link>
+        <Link
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
             location.pathname === "/faucet"
               ? "text-black dark:text-white font-semibold"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
