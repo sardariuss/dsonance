@@ -11,18 +11,18 @@ const Home = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tabs = [
-    { key: "all_markets", label: "All markets" },
+    { key: "pools", label: "Consensus pools" },
     { key: "your_views", label: "Your views" },
-    { key: "opened_markets", label: "Your opened markets" },
+    { key: "opened_pools", label: "Your opened pools" },
   ];
 
   // Get the current tab or default to "votes"
-  let selectedTab = searchParams.get("tab") || "all_markets";
+  let selectedTab = searchParams.get("tab") || "pools";
 
   // Ensure the tab is valid, otherwise reset to "votes"
   useEffect(() => {
     if (!tabs.some(tab => tab.key === selectedTab)) {
-      setSearchParams({ tab: "all_markets" }, { replace: true });
+      setSearchParams({ tab: "pools" }, { replace: true });
     }
   }, [selectedTab, setSearchParams]);
 
@@ -47,7 +47,7 @@ const Home = () => {
 
       {/* Content */}
       <div className="w-full">
-        {selectedTab === "all_markets" ? <VoteList /> : selectedTab === "your_views" ? <BallotList/> : <UserVotes/>}
+        {selectedTab === "pools" ? <VoteList /> : selectedTab === "your_views" ? <BallotList/> : <UserVotes/>}
       </div>
     </div>
   );

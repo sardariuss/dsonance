@@ -7,7 +7,7 @@ import TowerHeaderDark from "../assets/tower_header_dark.png";
 import Avatar from "boring-avatars";
 import { useUser } from "./hooks/useUser";
 import { MdOutlineAccountBalanceWallet } from "react-icons/md";
-import { RiStoreLine, RiDashboardLine, RiWaterFlashLine } from "react-icons/ri";
+import { RiDashboardLine, RiWaterFlashLine, RiStackLine } from "react-icons/ri";
 import Wallet from "./wallet/Wallet";
 import ThemeToggle from "./ThemeToggle";
 import { useMediaQuery } from "react-responsive";
@@ -25,8 +25,8 @@ const NavigationComponent: React.FC<{ location: ReturnType<typeof useLocation> }
           }`}
           to={"/"}
         >
-          <RiStoreLine size={18} />
-          <span className="text-sm sm:text-base">Markets</span>
+          <RiStackLine size={18} />
+          <span className="text-sm sm:text-base">Pools</span>
         </Link>
         <Link
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors ${

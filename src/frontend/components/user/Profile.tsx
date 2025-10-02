@@ -11,7 +11,6 @@ import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { fromNullableExt } from "@/frontend/utils/conversions/nullable";
 import { SupplyContent, BorrowContent } from "../borrow/BorrowPage";
 import { MiningContent } from "./MiningContent";
-import { ViewsContent } from "./ViewsContent";
 import DualLabel from "../common/DualLabel";
 import { formatAmountCompact } from "@/frontend/utils/conversions/token";
 import { TabButton } from "../TabButton";
@@ -52,7 +51,7 @@ const Profile = () => {
   const mockValues = useMemo(() => ({
     views: { worth: 125.50, apy: 0.0 },
     supply: { worth: 2000.75, apy: 0.0425 }, // 4.25%
-    borrow: { worth: -1500.00, apy: -0.0625 }, // -6.25% (negative because it's a cost)
+    borrow: { worth: 1500.00, apy: -0.0625 }, // -6.25% (negative because it's a cost)
     collateral: { worth: 2200.00, apy: undefined }, // from collateral, no APY
     mining: { worth: 450.25, apy: undefined }, // no APY, just mining rate
     healthFactor: 1.85,
@@ -60,7 +59,7 @@ const Profile = () => {
   }), []);
 
   const netWorth = useMemo(() => {
-    return mockValues.views.worth + mockValues.supply.worth + mockValues.borrow.worth + mockValues.collateral.worth + mockValues.mining.worth;
+    return mockValues.views.worth + mockValues.supply.worth - mockValues.borrow.worth + mockValues.collateral.worth + mockValues.mining.worth;
   }, [mockValues]);
 
   const netApy = useMemo(() => {
@@ -176,7 +175,7 @@ const Profile = () => {
         </div>
 
         {/* Net Worth Breakdown */}
-        <div className="w-full lg:w-1/2 rounded-md border-0 sm:border border-gray-300 dark:border-gray-700 rounded-lg p-4">
+        <div className="w-full lg:w-1/2 rounded-md border-0 sm:border border-gray-300 dark:border-gray-700 rounded-lg sm:p-4">
           {/* Total */}
           <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
             <div className="text-gray-500 dark:text-gray-400 text-sm">Net Worth</div>
@@ -189,13 +188,6 @@ const Profile = () => {
           <div className="mb-2">
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-0.5">Supply</div>
             <div className="space-y-0.5 pl-3">
-              {/* Locked Positions */}
-              <div className="flex justify-between">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Locked positions</div>
-                <div className="text-sm text-gray-900 dark:text-white font-medium">
-                  ${mockValues.views.worth.toFixed(2)}
-                </div>
-              </div>
               {/* Withdrawable */}
               <div className="flex justify-between">
                 <div className="text-sm text-gray-600 dark:text-gray-400">Withdrawable</div>
@@ -203,35 +195,43 @@ const Profile = () => {
                   ${mockValues.supply.worth.toFixed(2)}
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Other Items */}
-          <div className="space-y-0.5">
-            {/* Borrow */}
-            <div className="flex justify-between">
-              <div className="text-sm text-gray-600 dark:text-gray-400">Borrow</div>
-              <div className="text-sm text-red-600 dark:text-red-400 font-medium">
-                ${mockValues.borrow.worth.toFixed(2)}
-              </div>
-            </div>
-
-            {/* Collateral (sub-item) */}
-            <div className="flex justify-between">
-              <div className="text-sm text-gray-600 dark:text-gray-400">Collateral</div>
-              <div className="text-sm text-gray-900 dark:text-white font-medium">
-                ${mockValues.collateral.worth.toFixed(2)}
-              </div>
-            </div>
-
-            {/* Mining */}
-            <div className="flex justify-between">
-              <div className="text-sm text-gray-600 dark:text-gray-400">Mining</div>
-              <div className="text-sm text-gray-900 dark:text-white font-medium">
-                ${mockValues.mining.worth.toFixed(2)}
+              {/* Locked Positions */}
+              <div className="flex justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Locked</div>
+                <div className="text-sm text-gray-900 dark:text-white font-medium">
+                  ${mockValues.views.worth.toFixed(2)}
+                </div>
               </div>
             </div>
           </div>
+
+          <div className="mb-2">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-0.5">Borrow</div>
+            <div className="space-y-0.5 pl-3">
+              {/* Borrowed */}
+              <div className="flex justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Borrowed</div>
+                <div className="text-sm text-red-600 dark:text-red-400 font-medium">
+                  -${mockValues.borrow.worth.toFixed(2)}
+                </div>
+              </div>
+              {/* Collateral */}
+              <div className="flex justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Collateral</div>
+                <div className="text-sm text-gray-900 dark:text-white font-medium">
+                  ${mockValues.collateral.worth.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-2 flex flex-row justify-between">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-0.5">Mining</div>
+            <div className="text-sm text-gray-900 dark:text-white font-medium">
+              ${mockValues.mining.worth.toFixed(2)}
+            </div>
+          </div>
+          
         </div>
       </div>
 
@@ -266,19 +266,6 @@ const Profile = () => {
     </div>
   );
 }
-
-// Views Tab Component
-const ViewsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
-  const { supplyLedger } = useFungibleLedgerContext();
-  const { account } = useBorrowOperations(user);
-
-  const { data: userSupply } = protocolActor.unauthenticated.useQueryCall({
-    functionName: "get_user_supply",
-    args: [{ account }],
-  });
-
-  return <ViewsContent user={user} userSupply={userSupply} supplyLedger={supplyLedger} />;
-};
 
 // Supply Tab Component
 const SupplyTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {

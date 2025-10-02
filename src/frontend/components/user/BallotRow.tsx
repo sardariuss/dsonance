@@ -33,10 +33,10 @@ const VoteText = ({ vote }: VoteTextProps) => {
   }, [vote, computeDecay]);
 
   return (
-    <div className="flex items-center h-[4.5em] sm:h-[3em]">
+    <div className="flex items-center h-[3em]">
       { vote === undefined || voteDetails === undefined ? 
         <span className="w-full h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/> :
-        <span className="line-clamp-3 sm:line-clamp-2 overflow-hidden"> {vote.info.text} </span>
+        <span className="line-clamp-2 overflow-hidden"> {vote.info.text} </span>
       }
     </div>
   )
@@ -81,8 +81,8 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
 
   return (
     now === undefined ? <></> :
-    <div className={`rounded-lg p-2 shadow-sm bg-slate-200 dark:bg-gray-800 hover:cursor-pointer w-full ${ selected ? "border-2 dark:border-gray-500 border-gray-500" : "border dark:border-gray-700 border-gray-300"}`}>
-      <div className={`grid ${isMobile ? "grid-cols-[auto_minmax(100px,1fr)_repeat(1,minmax(60px,auto))]" : "grid-cols-[auto_minmax(100px,1fr)_repeat(4,minmax(60px,auto))]"} gap-2 gap-x-2 sm:gap-x-4 w-full items-center px-2 sm:px-3`}>
+    <div className={`rounded-lg py-2 shadow-sm bg-slate-200 dark:bg-gray-800 hover:cursor-pointer w-full ${ selected ? "border-2 dark:border-gray-500 border-gray-500" : "border dark:border-gray-700 border-gray-300"}`}>
+      <div className={`grid ${isMobile ? "grid-cols-[auto_minmax(100px,1fr)_repeat(2,minmax(50px,auto))]" : "grid-cols-[auto_minmax(100px,1fr)_repeat(4,minmax(60px,auto))]"} gap-2 gap-x-2 sm:gap-x-4 w-full items-center px-2 sm:px-3`}>
 
         {/* Thumbnail Image */}
         <img 
@@ -94,6 +94,11 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
         <VoteText vote={vote}/>
 
         { !isMobile && <div className="grid grid-rows-2 w-full justify-items-end">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Choice</span>
+          <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
+        </div> }
+
+        { !isMobile && <div className="grid grid-rows-2 w-full justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">Time left</span>
           <span>
             {releaseTimestamp <= now ? 
@@ -103,14 +108,9 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
           </span>
         </div> }
 
-        { !isMobile && <div className="grid grid-rows-2 w-full justify-items-end">
+        { <div className="grid grid-rows-2 w-full justify-items-end">
           <span className="text-sm text-gray-600 dark:text-gray-400">Amount</span>
           <span>{formatAmountUsd(ballot.YES_NO.amount)}</span>
-        </div> }
-
-        { !isMobile && <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Choice</span>
-          <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
         </div> }
 
         <div className="grid grid-rows-2 w-full justify-items-end">

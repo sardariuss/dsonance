@@ -144,7 +144,7 @@ export const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeo
   }, [triggerScroll, ballotEntries]);
   
   return (
-    <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 p-2 rounded w-full">
+    <div className="flex flex-col w-full">
       { /* TODO: remove deadcode or reactivate it */}
       { ballotEntries.ballots.length > 0 && false &&
         <div className={`flex flex-col justify-between items-center w-full py-2 sm:py-6 w-full h-[300px] space-y-2`}>
