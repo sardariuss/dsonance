@@ -110,9 +110,9 @@ const Wallet = ({ isOpen, onClose }: WalletProps) => {
             )}
           </div>
           <div className="flex flex-row items-center gap-2">
-            <Link 
+            <Link
               className="rounded-full h-8 w-8 pr-1 flex flex-col items-center justify-center fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white hover:bg-gray-100 dark:hover:bg-gray-700 hover:cursor-pointer"
-              onClick={()=>{ disconnect(); }}
+              onClick={()=>{ disconnect(); onClose(); }}
               to="/">
               <LogoutIcon />
             </Link>

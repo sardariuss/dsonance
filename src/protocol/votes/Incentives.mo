@@ -7,19 +7,19 @@ import Nat    "mo:base/Nat";
 module {
 
     type YesNoChoice = Types.YesNoChoice;
-    type AgeBonusParameters = Types.AgeBonusParameters;
+    type ForesightParameters = Types.ForesightParameters;
 
     public func compute_discernment({
         dissent: Float;
         consent: Float;
         lock_duration: Nat;
-        parameters: AgeBonusParameters;
+        parameters: ForesightParameters;
     }) : Float {
         dissent * consent * age_bonus(lock_duration, parameters);
     };
     
     public func compute_consent({
-        steepness: Float;
+        parameters: ForesightParameters;
         choice: YesNoChoice;
         total_yes: Float;
         total_no: Float;
@@ -32,13 +32,13 @@ module {
         Math.logistic_regression({
             x = same;
             mu = total * 0.5;
-            sigma = total * steepness;
+            sigma = total * parameters.consent_steepness;
         });
     };
 
     public func compute_dissent({
+        parameters: ForesightParameters;
         initial_addend: Float;
-        steepness: Float;
         choice: YesNoChoice;
         amount: Float;
         total_yes: Float; 
@@ -50,6 +50,7 @@ module {
             case(#NO) { { same = total_no; opposit = total_yes; }; };
         };
 
+        let steepness = parameters.dissent_steepness;
         let a = opposit + same;
         let b = a + amount;
         let c = opposit + initial_addend;
@@ -65,7 +66,7 @@ module {
         dissent / amount;
     };
 
-    func age_bonus(age: Nat, parameters: AgeBonusParameters) : Float {
+    func age_bonus(age: Nat, parameters: ForesightParameters) : Float {
         let { max_age; age_coefficient; } = parameters;
         1.0 + age_coefficient * Float.fromInt(Nat.min(age, max_age)) / Float.fromInt(max_age);
     };

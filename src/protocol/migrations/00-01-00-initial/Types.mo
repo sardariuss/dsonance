@@ -516,6 +516,13 @@ module {
         result: TransferResult;
     };
 
+    public type ForesightParameters = {
+        dissent_steepness: Float;
+        consent_steepness: Float;
+        max_age: Nat;
+        age_coefficient: Float;
+    };
+
     public type TransferResult = {
         #ok: TxIndex;
         #err: Text;
@@ -746,12 +753,9 @@ module {
     };
 
     public type Parameters = {
+        foresight: ForesightParameters;
         duration_scaler: DurationScalerParameters;
         minimum_ballot_amount: Nat;
-        dissent_steepness: Float;
-        consent_steepness: Float;
-        age_coefficient: Float;
-        max_age: Nat;
         participation: {
             emission_half_life_s: Float;
             emission_total_amount: Nat;
@@ -773,13 +777,15 @@ module {
     };
 
     public type InitParameters = {
-        age_coefficient: Float;
-        max_age: Duration;
         ballot_half_life: Duration;
         duration_scaler: DurationScalerParameters;
         minimum_ballot_amount: Nat;
-        dissent_steepness: Float;
-        consent_steepness: Float;
+        foresight: {
+            dissent_steepness: Float;
+            consent_steepness: Float;
+            max_age: Duration;
+            age_coefficient: Float;
+        };
         participation: ParticipationParameters;
         timer_interval_s: Nat; // Use duration instead
         clock: ClockInitArgs;

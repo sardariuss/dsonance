@@ -64,6 +64,7 @@ module {
     public type Index                    = Types.Current.Index;
     public type Utilization              = Types.Current.Utilization;
     public type LendingIndex             = Types.Current.LendingIndex;
+    public type ForesightParameters      = Types.Current.ForesightParameters;
 
     // CANISTER ARGS
 
@@ -196,12 +197,14 @@ module {
     };
 
     public type SParameters = {
-        age_coefficient: Float;
-        max_age: Duration;
+        foresight: {
+            dissent_steepness: Float;
+            consent_steepness: Float;
+            max_age: Duration;
+            age_coefficient: Float;
+        };
         duration_scaler: DurationScalerParameters;
         minimum_ballot_amount: Nat;
-        dissent_steepness: Float;
-        consent_steepness: Float;
         ballot_half_life: Duration;
         clock: SClockParameters;
         lending: LendingParameters;
@@ -217,11 +220,6 @@ module {
     };
 
     // CUSTOM TYPES
-
-    public type AgeBonusParameters = {
-        max_age: Nat;
-        age_coefficient: Float;
-    };
 
     public type ProtocolInfo = {
         current_time: Nat;

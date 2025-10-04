@@ -20,7 +20,7 @@ module {
     type Duration             = Types.Duration;
     type UUID                 = Types.UUID;
     type BallotRegister       = Types.BallotRegister;
-    type Parameters   = Types.Parameters;
+    type Parameters           = Types.Parameters;
     
     type Iter<T>              = Iter.Iter<T>;
 
@@ -49,7 +49,7 @@ module {
             compute_dissent = func({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Nat}) : Float {
                 Incentives.compute_dissent({
                     initial_addend = Float.fromInt(parameters.minimum_ballot_amount);
-                    steepness = parameters.dissent_steepness;
+                    parameters = parameters.foresight;
                     choice;
                     amount = Float.fromInt(amount);
                     total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
@@ -58,7 +58,7 @@ module {
             };
             compute_consent = func ({aggregate: YesNoAggregate; choice: YesNoChoice; time: Nat;}) : Float {
                 Incentives.compute_consent({ 
-                    steepness = parameters.consent_steepness;
+                    parameters = parameters.foresight;
                     choice;
                     total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
                     total_no = decay_model.unwrap_decayed(aggregate.current_no, time);

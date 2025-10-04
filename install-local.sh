@@ -176,13 +176,15 @@ dfx deploy protocol --argument '( variant {
       participation_ledger = principal "'${TVW_LEDGER_PRINCIPAL}'";
     };
     parameters = record {
-      age_coefficient = 0.25;
-      max_age = variant { YEARS = 4 };
+      foresight = {
+        age_coefficient = 0.25;
+        max_age = variant { YEARS = 4 };
+        dissent_steepness = 0.55;
+        consent_steepness = 0.1;
+      };
       ballot_half_life = variant { YEARS = 1 };
       duration_scaler = record { a = 72800000000.0; b = 3.25; };
       minimum_ballot_amount = 1_000_000;
-      dissent_steepness = 0.55;
-      consent_steepness = 0.1;
       timer_interval_s = 300;
       clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
       twap_config = record {
