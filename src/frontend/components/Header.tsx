@@ -2,8 +2,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { useAuth } from "@nfid/identitykit/react";
 import LoginIcon from "./icons/LoginIcon";
-import TowerHeader from "../assets/tower_header.png";
-import TowerHeaderDark from "../assets/tower_header_dark.png";
+import TowerLight from "../assets/towerview_light.png";
+import TowerDark from "../assets/towerview_dark.png";
 import Avatar from "boring-avatars";
 import { useUser } from "./hooks/useUser";
 import { MdOutlineAccountBalanceWallet, MdOutlineGroups } from "react-icons/md";
@@ -79,7 +79,7 @@ const Header: React.FC = () => {
     <header className="sticky top-0 z-30 flex flex-col relative w-full border-b border-gray-300 dark:border-gray-700 bg-slate-100 dark:bg-slate-900">
       {/* First Row: Logo and User Controls */}
       <nav className="flex flex-row items-center justify-between w-full xl:px-4 lg:px-3 md:px-2 px-2 h-14 min-h-14 relative">
-        <img src={isDarkMode ? TowerHeaderDark : TowerHeader} className="h-12 w-auto object-contain hover:cursor-pointer" onClick={() => navigate("/")}/>
+        <img src={isDarkMode ? TowerDark : TowerLight} className="h-12 w-auto object-contain hover:cursor-pointer" onClick={() => navigate("/")}/>
 
         {/* Centered Navigation Links */}
         { !isMobile && (

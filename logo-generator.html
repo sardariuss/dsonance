@@ -60,6 +60,7 @@
         <label>Scale Factor: <input type="number" id="scale" value="2" min="1" max="5" step="0.5"></label>
         <label>Text Size: <input type="number" id="textSize" value="72" min="40" max="120" step="2"></label>
         <label>Vertical Align: <input type="number" id="verticalAlign" value="0.35" min="0" max="0.6" step="0.01"></label>
+        <label>Horizontal Spacing: <input type="number" id="horizontalSpacing" value="15" min="-20" max="50" step="1"></label>
         <button onclick="regenerate()">Regenerate</button>
     </div>
 
@@ -74,7 +75,7 @@
 
     <script>
         let currentTheme = 'light';
-        const towerImagePath = './src/frontend/assets/tower.png';
+        const towerImagePath = './src/frontend/assets/tower_design_border_light.png';
         const fontPath = './src/frontend/assets/fonts/DecondolRegular-YqgX4.ttf';
 
         // Load the Decondol font
@@ -122,22 +123,15 @@
                 const startX = 20;
                 const centerY = baseHeight / 2;
 
-                // Draw tower image (inverted for dark theme)
-                if (theme === 'dark') {
-                    // Invert colors for dark theme
-                    ctx.filter = 'invert(1)';
-                    ctx.drawImage(img, startX, centerY - logoHeight/2, logoWidth, logoHeight);
-                    ctx.filter = 'none';
-                } else {
-                    ctx.drawImage(img, startX, centerY - logoHeight/2, logoWidth, logoHeight);
-                }
+                ctx.drawImage(img, startX, centerY - logoHeight/2, logoWidth, logoHeight);
 
                 // Draw text
                 const textSize = parseInt(document.getElementById('textSize').value);
                 ctx.font = `bold ${textSize}px Decondol, Arial, sans-serif`;
                 ctx.textBaseline = 'alphabetic';
 
-                const textStartX = startX + logoWidth + 15;
+                const horizontalSpacing = parseInt(document.getElementById('horizontalSpacing').value);
+                const textStartX = startX + logoWidth + horizontalSpacing;
 
                 // Calculate text position to align with logo bottom
                 // Position text so its baseline aligns near the bottom of the logo
