@@ -3,6 +3,7 @@ import { Duration } from "@/declarations/protocol/protocol.did";
 import { durationToNs } from "../utils/conversions/duration";
 import { formatDuration } from "../utils/conversions/durationUnit";
 import { DASHBOARD_CONTAINER, CONTENT_PANEL } from "../utils/styles";
+import LockDurationScalingChart from "./charts/LockDurationScalingChart";
 
 const formatDurationValue = (duration: Duration): string => {
   const ns = durationToNs(duration);
@@ -60,8 +61,13 @@ const ProtocolPage = () => {
     },
     {
       title: "Lock Duration Scaling",
-      description: "Parameters controlling how lock durations are calculated based on voting activity",
+      description: "Parameters controlling how lock durations are calculated based on consensus activity",
       items: [
+        {
+          label: "Formula",
+          value: "duration = a × hotness^(log₁₀(b))",
+          description: "Lock duration computed based on voting hotness (locked USDT amount)"
+        },
         {
           label: "Multiplier (a)",
           value: parameters.duration_scaler.a.toLocaleString(),
@@ -71,11 +77,6 @@ const ProtocolPage = () => {
           label: "Logarithmic Base (b)",
           value: parameters.duration_scaler.b.toFixed(2),
           description: "Controls the power law exponent (log₁₀(b)) in duration scaling"
-        },
-        {
-          label: "Formula",
-          value: "duration = a × hotness^(log₁₀(b))",
-          description: "Lock duration computed based on voting hotness (locked USDT amount)"
         },
       ]
     },
@@ -161,6 +162,11 @@ const ProtocolPage = () => {
                 </div>
               ))}
             </div>
+
+            {/* Add chart for Lock Duration Scaling section */}
+            {section.title === "Lock Duration Scaling" && (
+              <LockDurationScalingChart durationScaler={parameters.duration_scaler} />
+            )}
           </div>
         ))}
       </div>
