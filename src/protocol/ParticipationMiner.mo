@@ -7,7 +7,6 @@ import MapUtils "utils/Map";
 import Debug "mo:base/Debug";
 import Float "mo:base/Float";
 import Int "mo:base/Int";
-import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import Map "mo:map/Map";
 import Result "mo:base/Result";

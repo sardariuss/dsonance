@@ -7,7 +7,7 @@ import TowerDark from "../assets/towerview_dark.png";
 import Avatar from "boring-avatars";
 import { useUser } from "./hooks/useUser";
 import { MdOutlineAccountBalanceWallet, MdOutlineGroups } from "react-icons/md";
-import { RiDashboardLine, RiWaterFlashLine, RiStackLine } from "react-icons/ri";
+import { RiDashboardLine, RiWaterFlashLine, RiStackLine, RiSettings3Line } from "react-icons/ri";
 import Wallet from "./wallet/Wallet";
 import ThemeToggle from "./ThemeToggle";
 import { useMediaQuery } from "react-responsive";
@@ -49,6 +49,17 @@ const NavigationComponent: React.FC<{ location: ReturnType<typeof useLocation> }
         >
           <MdOutlineGroups size={18} />
           <span className="text-sm sm:text-base">DAO</span>
+        </Link>
+        <Link
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+            location.pathname === "/protocol"
+              ? "text-black dark:text-white font-semibold"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          }`}
+          to={"/protocol"}
+        >
+          <RiSettings3Line size={18} />
+          <span className="text-sm sm:text-base">Protocol</span>
         </Link>
         <Link
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${

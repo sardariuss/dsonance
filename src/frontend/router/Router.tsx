@@ -8,6 +8,7 @@ import NewVote from "../components/NewVote";
 import Ballot from "../components/user/Ballot";
 import FaucetPage from "../components/FaucetPage";
 import DaoPage from "../components/dao/DaoPage";
+import ProtocolPage from "../components/ProtocolPage";
 
 const Router = () => {
   
@@ -17,6 +18,7 @@ const Router = () => {
         <Route path={"/new"} element={<NewVote />} />
         <Route path={"/dashboard"} element={<Dashboard />} />
         <Route path={"/dao"} element={<DaoPage />} />
+        <Route path={"/protocol"} element={<ProtocolPage />} />
         <Route path={"/user/:principal"} element={<Profile />} />
         <Route path={"/vote/:id"} element={<Vote />} />
         <Route path={"/ballot/:id"} element={<Ballot />} />
