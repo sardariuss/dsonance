@@ -5,7 +5,7 @@ import { useProtocolContext } from "./context/ProtocolContext";
 import { formatDate, niceFormatDate, timeToDate } from "../utils/conversions/date";
 import InfoIcon from "./icons/InfoIcon";
 import { Link } from "react-router-dom";
-import { DOCS_EVP_URL, DOCS_TVL_URL, MOBILE_MAX_WIDTH_QUERY } from "../constants";
+import { DOCS_CDV_URL, DOCS_TVL_URL, MOBILE_MAX_WIDTH_QUERY } from "../constants";
 import ConsensusIndicator from "./ConsensusIndicator";
 import { useMediaQuery } from "react-responsive";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
@@ -51,8 +51,8 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, 
       </div>
       <div className="grid grid-rows-2 justify-items-end h-16 gap-y-1">
         <span className="self-center flex flex-row gap-x-1 items-center">
-          <span className="text-sm text-gray-600 dark:text-gray-400">EVP</span>
-          <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noopener">
+          <span className="text-sm text-gray-600 dark:text-gray-400">CDV</span>
+          <Link className="w-full hover:cursor-pointer" to={DOCS_CDV_URL} target="_blank" rel="noopener">
             <InfoIcon/>
           </Link>
         </span>
@@ -88,11 +88,11 @@ export const VoteFiguresSkeleton: React.FC = () => {
       <div className="w-20 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
     </div>
 
-    {/* EVP */}
+    {/* CDV */}
     <div className="grid grid-rows-2 justify-items-end">
       <span className="flex flex-row gap-x-1 items-center">
-        <span className="text-sm text-gray-600 dark:text-gray-400">EVP</span>
-        <Link className="w-full hover:cursor-pointer" to={DOCS_EVP_URL} target="_blank" rel="noopener">
+        <span className="text-sm text-gray-600 dark:text-gray-400">CDV</span>
+        <Link className="w-full hover:cursor-pointer" to={DOCS_CDV_URL} target="_blank" rel="noopener">
           <InfoIcon/>
         </Link>
       </span>

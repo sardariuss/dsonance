@@ -115,13 +115,13 @@ const computePriceLevels = (min: number, max: number) : number[] => {
   return levels;
 }
 
-interface EvpChartrops {
+interface CdvChartrops {
   vote: SYesNoVote;
   ballot: BallotInfo;
   durationWindow: DurationUnit | undefined;
 }
 
-const EvpChart: React.FC<EvpChartrops> = ({ vote, ballot, durationWindow }) => {
+const CdvChart: React.FC<CdvChartrops> = ({ vote, ballot, durationWindow }) => {
 
   const { theme } = useContext(ThemeContext);
   
@@ -285,4 +285,4 @@ const EvpChart: React.FC<EvpChartrops> = ({ vote, ballot, durationWindow }) => {
   );
 }
 
-export default EvpChart;
+export default CdvChart;

@@ -3,7 +3,7 @@ import PutBallot from "./PutBallot";
 import VoteBallots from "./VoteBallots";
 import { useEffect, useMemo, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
-import EvpChart from "./charts/EvpChart";
+import CdvChart from "./charts/CdvChart";
 import { BallotInfo } from "./types";
 import { add_ballot, compute_vote_details } from "../utils/conversions/votedetails";
 import { useProtocolContext } from "./context/ProtocolContext";
@@ -31,7 +31,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
   const [duration, setDuration] = useState<DurationUnit | undefined>(DurationUnit.MONTH);
-  const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.EVP);
+  const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.CDV);
 
   const { data: voteBallots } = protocolActor.unauthenticated.useQueryCall({
     functionName: "get_vote_ballots",
@@ -144,8 +144,8 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
               {voteBallots && voteBallots.length > 0 &&
                 <div className="w-full flex flex-col items-center justify-between space-y-2">
                   <div className="w-full h-[250px]">
-                    {selectedChart === ChartType.EVP ?
-                      (voteDetails.total > 0 && <EvpChart vote={vote} ballot={ballot} durationWindow={duration} />)
+                    {selectedChart === ChartType.CDV ?
+                      (voteDetails.total > 0 && <CdvChart vote={vote} ballot={ballot} durationWindow={duration} />)
                       : selectedChart === ChartType.Consensus ?
                       (consensusTimeline !== undefined && liveDetails?.cursor !== undefined &&
                         <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} durationWindow={duration}/> 
@@ -194,8 +194,8 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
             {voteBallots && voteBallots.length > 0 &&
               <div className="w-full flex flex-col items-center justify-between space-y-2">
                 <div className="w-full h-[200px]">
-                  {selectedChart === ChartType.EVP ?
-                    (voteDetails.total > 0 && <EvpChart vote={vote} ballot={ballot} durationWindow={duration} />)
+                  {selectedChart === ChartType.CDV ?
+                    (voteDetails.total > 0 && <CdvChart vote={vote} ballot={ballot} durationWindow={duration} />)
                     : selectedChart === ChartType.Consensus ?
                     (consensusTimeline !== undefined && liveDetails?.cursor !== undefined &&
                       <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} durationWindow={duration}/> 

@@ -1,6 +1,6 @@
 
 export enum ChartType {
-    EVP = "EVP",
+    CDV = "CDV",
     TVL = "TVL",
     Consensus = "Consensus",
 };
@@ -14,7 +14,7 @@ const ChartToggle: React.FC<ChartToggleProps> = ({ selected, setSelected }) => {
 
     return (
         <div className="flex flex-row space-x-0 sm:space-x-1 rounded ">
-        {[ChartType.EVP, ChartType.TVL, ChartType.Consensus].map((chartType) => (
+        {[ChartType.CDV, ChartType.TVL, ChartType.Consensus].map((chartType) => (
             <button
                 className={`text-base h-8 px-2 justify-center items-center button-discrete
                     ${selected === chartType ? "dark:bg-slate-700 bg-slate-300" : ""}`}
