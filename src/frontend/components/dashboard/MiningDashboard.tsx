@@ -83,7 +83,7 @@ const MiningDashboard = () => {
       <div className={STATS_OVERVIEW_CONTAINER}>
         <FullTokenLabel
           metadata={metadata}
-          canisterId={process.env.TVW_LEDGER_CANISTER_ID || ""} // @todo: should come from participationLedger
+          canisterId={process.env.TWV_LEDGER_CANISTER_ID || ""} // @todo: should come from participationLedger
         />
         <div className={VERTICAL_DIVIDER}></div>
         <div className={METRICS_WRAPPER}>

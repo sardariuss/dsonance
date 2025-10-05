@@ -55,7 +55,7 @@ const Profile = () => {
     collateral: { worth: 2200.00, apy: undefined }, // from collateral, no APY
     mining: { worth: 450.25, apy: undefined }, // no APY, just mining rate
     healthFactor: 1.85,
-    miningRate: 12.34, // TVW/day
+    miningRate: 12.34, // TWV/day
   }), []);
 
   const netWorth = useMemo(() => {
@@ -170,7 +170,7 @@ const Profile = () => {
             <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
             <DualLabel top="Health factor" bottom={`${mockValues.healthFactor.toFixed(2)}`} />
             <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
-            <DualLabel top="Mining rate" bottom={formatAmountCompact(mockValues.miningRate, 2) + " TVW/day"} />
+            <DualLabel top="Mining rate" bottom={formatAmountCompact(mockValues.miningRate, 2) + " TWV/day"} />
           </div>
         </div>
 

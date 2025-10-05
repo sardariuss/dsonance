@@ -28,22 +28,22 @@ const ProtocolPage = () => {
       items: [
         {
           label: "Dissent Steepness",
-          value: parameters.dissent_steepness.toFixed(2),
+          value: parameters.foresight.dissent_steepness.toFixed(2),
           description: "Controls how dissent affects resolution APY in foresight calculations."
         },
         {
           label: "Consent Steepness",
-          value: parameters.consent_steepness.toFixed(2),
+          value: parameters.foresight.consent_steepness.toFixed(2),
           description: "Controls how consent affects resolution APY in foresight calculations"
         },
         {
           label: "Age Coefficient",
-          value: parameters.age_coefficient.toFixed(2),
+          value: parameters.foresight.age_coefficient.toFixed(2),
           description: "Controls how age affects resolution APY in foresight calculations"
         },
         {
           label: "Max Age",
-          value: formatDurationValue(parameters.max_age),
+          value: formatDurationValue(parameters.foresight.max_age),
           description: "Maximum age considered in foresight calculations"
         }
       ]

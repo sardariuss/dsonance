@@ -9,7 +9,7 @@ export TOWER_COIN=$(base64 -w 0 ./src/frontend/assets/tower_coin.png)
 dfx canister create --all
 
 # Fetch canister IDs dynamically
-for canister in ckbtc_ledger ckusdt_ledger tvw_ledger kong_backend protocol faucet; do
+for canister in ckbtc_ledger ckusdt_ledger twv_ledger kong_backend protocol faucet; do
   export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
 done
 
@@ -94,11 +94,11 @@ dfx deploy ckusdt_ledger --argument '(
     }
   }
 )' &
-dfx deploy tvw_ledger --argument '(
+dfx deploy twv_ledger --argument '(
   variant {
     Init = record {
       decimals = opt (9 : nat8);
-      token_symbol = "TVW";
+      token_symbol = "TWV";
       token_name = "TowerView";
       transfer_fee = 1000 : nat;
       max_memo_length = null;
@@ -139,7 +139,7 @@ dfx deploy faucet --argument '( record {
   canister_ids = record {
     ckbtc_ledger = principal "'${CKBTC_LEDGER_PRINCIPAL}'";
     ckusdt_ledger = principal "'${CKUSDT_LEDGER_PRINCIPAL}'";
-    tvw_ledger = principal "'${TVW_LEDGER_PRINCIPAL}'";
+    twv_ledger = principal "'${TWV_LEDGER_PRINCIPAL}'";
   }; 
 })' &
 # Prices taken from the neutrinite canister on 2025-07-01
@@ -173,10 +173,10 @@ dfx deploy protocol --argument '( variant {
       supply_ledger = principal "'${CKUSDT_LEDGER_PRINCIPAL}'";
       collateral_ledger = principal "'${CKBTC_LEDGER_PRINCIPAL}'";
       kong_backend = principal "'${KONG_BACKEND_PRINCIPAL}'";
-      participation_ledger = principal "'${TVW_LEDGER_PRINCIPAL}'";
+      participation_ledger = principal "'${TWV_LEDGER_PRINCIPAL}'";
     };
     parameters = record {
-      foresight = {
+      foresight = record {
         age_coefficient = 0.25;
         max_age = variant { YEARS = 4 };
         dissent_steepness = 0.55;
@@ -210,7 +210,7 @@ dfx deploy protocol --argument '( variant {
       };
       participation = record {
         emission_half_life = variant { YEARS = 2 };
-        emission_total_amount = 550_000_000_000_000;
+        emission_total_amount = 6_700_000_000_000_000;
         borrowers_share = 0.75;
       };
     };
@@ -315,7 +315,7 @@ dfx canister call protocol init_facade
 
 dfx generate ckbtc_ledger &
 dfx generate ckusdt_ledger &
-dfx generate tvw_ledger &
+dfx generate twv_ledger &
 dfx generate kong_backend &
 dfx generate backend & # Will generate protocol as well
 dfx generate internet_identity &

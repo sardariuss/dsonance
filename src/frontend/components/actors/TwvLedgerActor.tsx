@@ -1,28 +1,28 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useActors } from '../common/ActorsContext';
 import { ActorMethod, ActorSubclass } from '@dfinity/agent';
-import { _SERVICE as TvwLedger } from "../../../declarations/tvw_ledger/tvw_ledger.did";
+import { _SERVICE as TwvLedger } from "../../../declarations/twv_ledger/twv_ledger.did";
 
 // Type utilities to extract function signatures from ActorMethod
-type TvwLedgerMethods = keyof TvwLedger;
+type TwvLedgerMethods = keyof TwvLedger;
 type ExtractArgs<T> = T extends ActorMethod<infer P, any> ? P : never;
 type ExtractReturn<T> = T extends ActorMethod<any, infer R> ? R : never;
 
-interface UseQueryCallOptions<T extends TvwLedgerMethods> {
+interface UseQueryCallOptions<T extends TwvLedgerMethods> {
   functionName: T;
-  args?: ExtractArgs<TvwLedger[T]>;
-  onSuccess?: (data: ExtractReturn<TvwLedger[T]>) => void;
+  args?: ExtractArgs<TwvLedger[T]>;
+  onSuccess?: (data: ExtractReturn<TwvLedger[T]>) => void;
   onError?: (error: any) => void;
 }
 
-const useQueryCall = <T extends TvwLedgerMethods>(options: UseQueryCallOptions<T>, actor: ActorSubclass<TvwLedger> | undefined) => {
+const useQueryCall = <T extends TwvLedgerMethods>(options: UseQueryCallOptions<T>, actor: ActorSubclass<TwvLedger> | undefined) => {
 
-  const [data, setData] = useState<ExtractReturn<TvwLedger[T]> | undefined>(undefined);
+  const [data, setData] = useState<ExtractReturn<TwvLedger[T]> | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
 
   const call = useCallback(
-    async (callArgs?: ExtractArgs<TvwLedger[T]>): Promise<ExtractReturn<TvwLedger[T]> | undefined> => {
+    async (callArgs?: ExtractArgs<TwvLedger[T]>): Promise<ExtractReturn<TwvLedger[T]> | undefined> => {
       if (!actor) return undefined;
 
       setLoading(true);
@@ -70,18 +70,18 @@ const useQueryCall = <T extends TvwLedgerMethods>(options: UseQueryCallOptions<T
   return { data, loading, error, call };
 };
 
-interface UseUpdateCallOptions<T extends TvwLedgerMethods> {
+interface UseUpdateCallOptions<T extends TwvLedgerMethods> {
   functionName: T;
-  onSuccess?: (data: ExtractReturn<TvwLedger[T]>) => void;
+  onSuccess?: (data: ExtractReturn<TwvLedger[T]>) => void;
   onError?: (error: any) => void;
 }
 
-const useUpdateCall = <T extends TvwLedgerMethods>(options: UseUpdateCallOptions<T>, actor: ActorSubclass<TvwLedger> | undefined) => {
+const useUpdateCall = <T extends TwvLedgerMethods>(options: UseUpdateCallOptions<T>, actor: ActorSubclass<TwvLedger> | undefined) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
 
   const call = useCallback(
-    async (args: ExtractArgs<TvwLedger[T]> = [] as any): Promise<ExtractReturn<TvwLedger[T]> | undefined> => {
+    async (args: ExtractArgs<TwvLedger[T]> = [] as any): Promise<ExtractReturn<TwvLedger[T]> | undefined> => {
 
       if (!actor) return undefined;
 
@@ -106,24 +106,24 @@ const useUpdateCall = <T extends TvwLedgerMethods>(options: UseUpdateCallOptions
   return { call, loading, error };
 };
 
-export type { TvwLedger };
+export type { TwvLedger };
 
-const useUnauthQueryCall = <T extends TvwLedgerMethods>(options: UseQueryCallOptions<T>) => {
+const useUnauthQueryCall = <T extends TwvLedgerMethods>(options: UseQueryCallOptions<T>) => {
   const { unauthenticated } = useActors();
   return useQueryCall(options, unauthenticated?.twvLedger as any);
 }
 
-const useAuthQueryCall = <T extends TvwLedgerMethods>(options: UseQueryCallOptions<T>) => {
+const useAuthQueryCall = <T extends TwvLedgerMethods>(options: UseQueryCallOptions<T>) => {
   const { authenticated } = useActors();
   return useQueryCall(options, authenticated?.twvLedger as any);
 }
 
-const useUnauthUpdateCall = <T extends TvwLedgerMethods>(options: UseUpdateCallOptions<T>) => {
+const useUnauthUpdateCall = <T extends TwvLedgerMethods>(options: UseUpdateCallOptions<T>) => {
   const { unauthenticated } = useActors();
       return useUpdateCall(options, unauthenticated?.twvLedger as any);
 }
 
-const useAuthUpdateCall = <T extends TvwLedgerMethods>(options: UseUpdateCallOptions<T>) => {
+const useAuthUpdateCall = <T extends TwvLedgerMethods>(options: UseUpdateCallOptions<T>) => {
   const { authenticated } = useActors();
   return useUpdateCall(options, authenticated?.twvLedger as any);
 }

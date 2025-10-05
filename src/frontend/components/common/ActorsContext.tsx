@@ -6,14 +6,14 @@ import { idlFactory as backendIdlFactory,      canisterId as backendId      } fr
 import { idlFactory as protocolIdlFactory,     canisterId as protocolId     } from "../../../declarations/protocol/index";
 import { idlFactory as ckBtcLedgerIdlFactory,  canisterId as ckBtcLedgerId  } from "../../../declarations/ckbtc_ledger/index";
 import { idlFactory as ckUsdtLedgerIdlFactory, canisterId as ckUsdtLedgerId } from "../../../declarations/ckusdt_ledger/index";
-import { idlFactory as twvLedgerIdlFactory,    canisterId as twvLedgerId    } from "../../../declarations/tvw_ledger/index";
+import { idlFactory as twvLedgerIdlFactory,    canisterId as twvLedgerId    } from "../../../declarations/twv_ledger/index";
 import { idlFactory as faucetIdlFactory,       canisterId as faucetId       } from "../../../declarations/faucet/index";
 import { idlFactory as icpCoinsIdlFactory,     canisterId as icpCoinsId     } from "../../../declarations/icp_coins/index";
 import { _SERVICE as BackendService      } from "../../../declarations/backend/backend.did";
 import { _SERVICE as ProtocolService     } from "../../../declarations/protocol/protocol.did";
 import { _SERVICE as CkBtcLedgerService  } from "../../../declarations/ckbtc_ledger/ckbtc_ledger.did";
 import { _SERVICE as CkUsdtLedgerService } from "../../../declarations/ckusdt_ledger/ckusdt_ledger.did";
-import { _SERVICE as TvwLedgerService    } from "../../../declarations/tvw_ledger/tvw_ledger.did";
+import { _SERVICE as TwvLedgerService    } from "../../../declarations/twv_ledger/twv_ledger.did";
 import { _SERVICE as FaucetService       } from "../../../declarations/faucet/faucet.did";
 import { _SERVICE as IcpCoinsService     } from "../../../declarations/icp_coins/icp_coins.did";
 
@@ -45,8 +45,8 @@ const createCkUsdtLedgerActor = (agent: any) => {
   });
 }
 
-const createTvwLedgerActor = (agent: any) => {
-  return Actor.createActor<TvwLedgerService>(twvLedgerIdlFactory, {
+const createTwvLedgerActor = (agent: any) => {
+  return Actor.createActor<TwvLedgerService>(twvLedgerIdlFactory, {
     agent: agent as Agent,
     canisterId: twvLedgerId,
   });
@@ -72,7 +72,7 @@ interface ActorsContextType {
     protocol: ActorSubclass<ProtocolService>;
     ckBtcLedger: ActorSubclass<CkBtcLedgerService>;
     ckUsdtLedger: ActorSubclass<CkUsdtLedgerService>;
-    twvLedger: ActorSubclass<TvwLedgerService>;
+    twvLedger: ActorSubclass<TwvLedgerService>;
     faucet: ActorSubclass<FaucetService>;
     icpCoins: ActorSubclass<IcpCoinsService>;
   };
@@ -81,7 +81,7 @@ interface ActorsContextType {
     protocol: ActorSubclass<ProtocolService>;
     ckBtcLedger: ActorSubclass<CkBtcLedgerService>;
     ckUsdtLedger: ActorSubclass<CkUsdtLedgerService>;
-    twvLedger: ActorSubclass<TvwLedgerService>;
+    twvLedger: ActorSubclass<TwvLedgerService>;
     faucet: ActorSubclass<FaucetService>;
     icpCoins: ActorSubclass<IcpCoinsService>;
   };
@@ -139,7 +139,7 @@ export const ActorsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           protocol: createProtocolActor(unauthenticatedAgent),
           ckBtcLedger: createCkBtcLedgerActor(unauthenticatedAgent),
           ckUsdtLedger: createCkUsdtLedgerActor(unauthenticatedAgent),
-          twvLedger: createTvwLedgerActor(unauthenticatedAgent),
+          twvLedger: createTwvLedgerActor(unauthenticatedAgent),
           faucet: createFaucetActor(unauthenticatedAgent),
           icpCoins: createIcpCoinsActor(unauthenticatedAgent),
         }
@@ -151,7 +151,7 @@ export const ActorsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           protocol: createProtocolActor(authenticatedAgent),
           ckBtcLedger: createCkBtcLedgerActor(authenticatedAgent),
           ckUsdtLedger: createCkUsdtLedgerActor(authenticatedAgent),
-          twvLedger: createTvwLedgerActor(authenticatedAgent),
+          twvLedger: createTwvLedgerActor(authenticatedAgent),
           faucet: createFaucetActor(authenticatedAgent),
           icpCoins: createIcpCoinsActor(authenticatedAgent),
         }

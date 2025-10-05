@@ -1,6 +1,6 @@
 import { ckBtcLedgerActor } from "../actors/CkBtcActor";
 import { ckUsdtLedgerActor } from "../actors/CkUsdtActor";
-import { twvLedgerActor } from "../actors/TvwLedgerActor";
+import { twvLedgerActor } from "../actors/TwvLedgerActor";
 import { icpCoinsActor } from "../actors/IcpCoinsActor";
 import { faucetActor } from "../actors/FaucetActor";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";

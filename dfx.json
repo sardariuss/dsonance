@@ -22,7 +22,7 @@
         }
       ]
     },
-    "tvw_ledger": {
+    "twv_ledger": {
       "type": "custom",
       "candid": "https://github.com/dfinity/ic/releases/download/ledger-suite-icrc-2025-04-14/ledger.did",
       "wasm": "https://github.com/dfinity/ic/releases/download/ledger-suite-icrc-2025-04-14/ic-icrc1-ledger.wasm.gz",
