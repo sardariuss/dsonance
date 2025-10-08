@@ -59,7 +59,7 @@ const TokenAmountInput: React.FC<TokenAmountInputProps> = ({
           disabled={disabled}
           className={
             className ||
-            "w-full rounded-lg border border-gray-300 px-3 py-2 pr-16 text-black focus:border-primary focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-primary disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800"
+            "w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 pr-16 text-black focus:border-primary focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-primary disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800"
           }
         />
         {tokenSymbol && (

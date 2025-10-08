@@ -24,6 +24,7 @@ import Int                     "mo:base/Int";
 import Float                   "mo:base/Float";
 import Debug                   "mo:base/Debug";
 import Result                  "mo:base/Result";
+import Principal               "mo:base/Principal";
 
 module {
 
@@ -82,6 +83,12 @@ module {
         amount: Nat;
     };
 
+    public type PutBallotPreviewArgs = PutBallotArgs and {
+        // If true, the preview will take into account the impact of the ballot on the supply APY
+        // If false, the preview will not take into account this impact
+        with_supply_apy_impact: Bool;
+    };
+
     public class Controller({
         genesis_time: Nat;
         clock: Clock.Clock;
@@ -130,7 +137,7 @@ module {
 
         // This function is made to allow the frontend to preview the result of put_ballot
         // TODO: ideally one should have a true preview function that does not mutate the state
-        public func put_ballot_for_free(args: PutBallotArgs) : PutBallotResult {
+        public func put_ballot_for_free(args: PutBallotPreviewArgs) : PutBallotResult {
 
             let timestamp = clock.get_time();
 
@@ -139,16 +146,16 @@ module {
                 case(#ok(input)) { input; };
             };
 
-            // TODO: this preview is somehow required to trigger the update of the foresight
-            // Why? Because currently the foresight updater is filtering out the items based on the timestamp,
-            // adding a position, even with a supplied amount of 0, will update the indexer's timestamp.
+            // If with_supply_apy_impact is true, the preview will take into account
+            // the impact of the ballot on the supply APY
+            let supplied = do {
+                if (args.with_supply_apy_impact) args.amount else 0;
+            };
+
             let preview_result = supply_registry.add_position_without_transfer({
                 id = ballot_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
-                // TODO: the supplied amount is set to 0 to not impact the supply APY in the preview, because
-                // it can lead to a miscomprehension of the ballot APY preview. Ideally, one should have a way
-                // to preview with our without the impact on the supply APY.
-                supplied = 0;
+                supplied;
             }, timestamp);
 
             let tx_id = switch(preview_result){
@@ -166,6 +173,10 @@ module {
         };
 
         public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
+
+            if (Principal.isAnonymous(args.caller)) {
+                return #err("Anonymous caller cannot put a ballot");
+            };
 
             let timestamp = clock.get_time();
 
@@ -370,6 +381,8 @@ module {
                     BallotUtils.unwrap_lock
                 )
             );
+            // Need to update the foresights after adding the new lock
+            foresight_updater.update_foresights();
 
             MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
 

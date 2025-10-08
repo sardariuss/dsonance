@@ -59,7 +59,6 @@ const useQueryCall = <T extends ProtocolMethods>(options: UseQueryCallOptions<T>
 
   // Auto-call if args are provided
   useEffect(() => {
-    console.log("ProtocolActor useEffect triggered with args:", options.args);
     if (options.args !== undefined) {
       call();
     } else {

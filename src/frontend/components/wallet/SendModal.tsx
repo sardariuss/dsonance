@@ -130,7 +130,7 @@ const SendModal: React.FC<SendModalProps> = ({ isOpen, onClose, tokenSymbol, led
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Enter recipient principal"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-black focus:border-primary focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-primary"
+              className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-black focus:border-primary focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-primary"
             />
           </div>
 
@@ -159,7 +159,7 @@ const SendModal: React.FC<SendModalProps> = ({ isOpen, onClose, tokenSymbol, led
           <button
             onClick={handleReviewSend}
             disabled={!address || !amount || parseFloat(amount) <= 0 || !isValidAddress(address)}
-            className="w-full rounded-lg bg-purple-700 px-4 py-3 text-white hover:bg-purple-700/90 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:hover:bg-gray-400"
+            className="w-full rounded-lg bg-blue-700 px-4 py-3 text-white hover:bg-blue-700/90 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:hover:bg-gray-400"
           >
             Review Send
           </button>
@@ -225,7 +225,7 @@ const SendModal: React.FC<SendModalProps> = ({ isOpen, onClose, tokenSymbol, led
             <button
               onClick={handleConfirmSend}
               disabled={isLoading || transactionStatus === 'success'}
-              className="flex-1 rounded-lg bg-purple-700 px-4 py-3 text-white hover:bg-purple-700/90 disabled:cursor-not-allowed disabled:bg-gray-400"
+              className="flex-1 rounded-lg bg-blue-700 px-4 py-3 text-white hover:bg-blue-700/90 disabled:cursor-not-allowed disabled:bg-gray-400"
             >
               {isLoading ? 'Sending...' : transactionStatus === 'success' ? 'Sent!' : 'Confirm Send'}
             </button>

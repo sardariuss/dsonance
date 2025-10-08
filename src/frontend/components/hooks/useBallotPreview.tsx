@@ -3,22 +3,22 @@ import { useEffect, useMemo, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { toCandid } from "../../utils/conversions/yesnochoice";
 import { BallotInfo } from "../types";
-import { PutBallotArgs } from "@/declarations/protocol/protocol.did";
+import { PutBallotPreview } from "@/declarations/protocol/protocol.did";
 
-export const useBallotPreview = (vote_id: string, ballot: BallotInfo) => {
+export const useBallotPreview = (vote_id: string, ballot: BallotInfo, with_supply_apy_impact: boolean) => {
   const [debouncedBallot, setDebouncedBallot] = useState(ballot);
 
-  const args = useMemo(() : PutBallotArgs => {
+  const args : PutBallotPreview = useMemo(() => {
     return {
       id: uuidv4(),
       vote_id,
       from_subaccount: [],
       amount: debouncedBallot.amount,
       choice_type: { YES_NO: toCandid(debouncedBallot.choice) },
+      with_supply_apy_impact
     };
-  }, [debouncedBallot, vote_id]);
+  }, [debouncedBallot, vote_id, with_supply_apy_impact]);
 
-  // @todo: why is return APY always 0 ?
   const { data: preview } = protocolActor.unauthenticated.useQueryCall({
     functionName: "preview_ballot",
     args: [ args ],

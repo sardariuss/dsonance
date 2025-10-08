@@ -3,7 +3,7 @@ import { useContext, useMemo } from 'react';
 import { create_serie } from './utils';
 import { useMediaQuery } from 'react-responsive';
 import { ThemeContext } from '../App';
-import { MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from '../../constants';
+import { BRAND_BASE_COLOR, BRAND_TRUE_COLOR, MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from '../../constants';
 import { STimeline } from '@/declarations/protocol/protocol.did';
 import { nsToMs } from '../../utils/conversions/date';
 import { format } from 'date-fns';
@@ -44,12 +44,12 @@ const ConsensusChart = ({ timeline, format_value, durationWindow }: ConsensusCha
           <svg className="h-6 w-6" style={{ overflow: 'visible' }}>
             <circle
               r={4}
-              fill={theme === "dark" ? "#ddd" : "#222"}
+              fill={BRAND_BASE_COLOR}
               className="animate-ping"
             />
             <circle
               r={4}
-              fill={theme === "dark" ? "#ddd" : "#222"}
+              fill={BRAND_BASE_COLOR}
             />
           </svg>
         );
@@ -121,7 +121,7 @@ const ConsensusChart = ({ timeline, format_value, durationWindow }: ConsensusCha
           enableGridX={false}
           gridXValues={chartProperties.gridX.ticks.map((tick) => new Date(tick))}
           legends={[]}
-          colors={[theme === "dark" ? "#ddd" : "#222"]}
+          colors={[BRAND_BASE_COLOR]}
           theme={chartTheme(theme)}
           axisBottom={{
             tickSize: 5,

@@ -39,6 +39,7 @@ if (protocolId) {
 const signerClientOptions = {
   targets,
   derivationOrigin: isLocal ? undefined: `https://${frontendId}.icp0.io`,
+  maxTimeToLive: BigInt(7) * BigInt(24) * BigInt(3_600_000_000_000), // 1 week in nanoseconds
 };
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(

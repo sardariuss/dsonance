@@ -175,14 +175,14 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
 
           let className = "";
           if (selectable !== undefined) {
-            className = "fill-purple-700 hover:cursor-pointer";
+            className = "fill-blue-700 hover:cursor-pointer";
             if (selectable.selected === id) {
-              className += " stroke-2 stroke-purple-900 dark:stroke-purple-400";
+              className += " stroke-2 stroke-blue-900 dark:stroke-blue-400";
             } else {
-              className += " stroke-1 stroke-purple-800 dark:stroke-purple-500";
+              className += " stroke-1 stroke-blue-800 dark:stroke-blue-500";
             }
           } else if (choice === EYesNoChoice.Yes) {
-            className = "fill-brand-true stroke-2 stroke-brand-true";
+            className = "fill-brand-true dark:fill-brand-true-dark stroke-2 stroke-brand-true dark:stroke-brand-true-dark";
           }
           else if (choice === EYesNoChoice.No) {
             className = "fill-brand-false stroke-2 stroke-brand-false";

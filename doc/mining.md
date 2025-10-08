@@ -1,23 +1,23 @@
 ---
-cover: .gitbook/assets/logo.png
+cover: .gitbook/assets/towerviewers.webp
 coverY: 0
 ---
 
-# DSN Mining
+# TWV Mining
 
-Dsonance includes a sophisticated mining mechanism that distributes DSN tokens to protocol participants. This system rewards both suppliers and borrowers who contribute to the lending protocol's.
+Towerview includes a sophisticated mining mechanism that distributes TWV tokens to protocol participants. This system rewards both suppliers and borrowers who contribute to the lending protocol's.
 
 ## Overview
 
-DSN mining operates on a continuous emission schedule with exponential decay, similar to Bitcoin's halving mechanism but with smooth mathematical curves. The system automatically distributes newly minted DSN tokens to active protocol participants based on their proportional contribution to the protocol's total supply and borrow amounts.
+TWV mining operates on a continuous emission schedule with exponential decay, similar to Bitcoin's halving mechanism but with smooth mathematical curves. The system automatically distributes newly minted TWV tokens to active protocol participants based on their proportional contribution to the protocol's total supply and borrow amounts.
 
 ## Emission Mechanics
 
 ### Mathematical Model
 
-The DSN emission follows an exponential decay model based on three key parameters:
+The TWV emission follows an exponential decay model based on three key parameters:
 
-- **`emission_total_amount`**: The total maximum DSN tokens that will ever be minted
+- **`emission_total_amount`**: The total maximum TWV tokens that will ever be minted
 - **`emission_half_life_s`**: The half-life period in seconds for the emission curve
 - **`borrowers_share`**: The percentage of emissions allocated to borrowers (remainder goes to suppliers)
 
@@ -76,7 +76,7 @@ let participation_amount = total_amount * share;
 
 ## Economic Implications
 
-The DSN mining system creates several important economic dynamics:
+The TWV mining system creates several important economic dynamics:
 
 1. **Early Participation Incentive**: Higher emission rates early in the protocol's life encourage early adoption
 2. **Sustained Engagement**: Continuous emissions reward ongoing protocol participation

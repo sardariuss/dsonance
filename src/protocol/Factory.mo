@@ -99,7 +99,7 @@ module {
             initial_supply_info = to_supply_info(indexer.get_index(clock.get_time()));
             get_items = func() : Iter<ForesightUpdater.ForesightItem> {
                 // Map the ballots to foresight items
-                get_foresight_items(Map.keys(lock_scheduler_state.map), ballot_register.ballots, parameters);
+                get_foresight_items(Map.keys(lock_scheduler_state.map), ballot_register.ballots, parameters.foresight);
             };
         });
 
@@ -187,7 +187,7 @@ module {
         };
     };
 
-    func get_foresight_items(locked_ballots: Iter<Text>, ballots: Map<UUID, BallotType>, parameters: Types.AgeBonusParameters) : Iter<ForesightUpdater.ForesightItem> {
+    func get_foresight_items(locked_ballots: Iter<Text>, ballots: Map<UUID, BallotType>, parameters: Types.ForesightParameters) : Iter<ForesightUpdater.ForesightItem> {
         IterUtils.map(locked_ballots, func(ballot_id: Text) : ForesightUpdater.ForesightItem {
             let ballot_type = MapUtils.getOrTrap(ballots, Map.thash, ballot_id);
             switch(ballot_type){

@@ -120,44 +120,108 @@ function NewVote() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 bg-slate-50 dark:bg-slate-850 p-6 sm:my-6 sm:rounded-md shadow-md w-full sm:w-4/5 md:w-3/4 lg:w-2/3 h-full sm:h-auto justify-between">
-
-      <div className="w-full grid grid-cols-3 space-x-1 mb-3 items-center">
-        <div className="hover:cursor-pointer justify-self-start" onClick={() => navigate(-1)}>
-          <BackArrowIcon/>
+    <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
+      {/* Limited Access Notice */}
+      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-lg">
+        <div className="flex items-center gap-3">
+          <span className="text-amber-600 dark:text-amber-400 text-xl mt-0.5">ℹ️</span>
+          <div className="flex-1">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              <span className="font-semibold">Beta limitation:</span> Only the owner of the platform can currently open new pools. Soon, any DAO member will be able to suggest new pools to vote on.
+            </p>
+          </div>
         </div>
-        <span className="text-xl font-semibold items-baseline justify-self-center truncate">New market</span>
-        <span className="grow">{/* spacer */}</span>
       </div>
 
-      <div className="flex flex-col gap-y-2">
-        <div className="bg-slate-200 dark:bg-gray-800 p-4 rounded-md">
-          <ul className="mt-2 text-md leading-relaxed">
-            <li>✅ Be precise and measurable.</li>
-            <li>✅ Ensure your statement is time-bound.</li>
-            <li>❌ Avoid absolute moral or ideological claims.</li>
-            <li>❌ No personal or defamatory statements.</li>
-          </ul>
-          <Link to={DOCS_URL} className="text-blue-500 mt-2 inline-block text-md hover:underline" target="_blank" rel="noopener">
-            Read the full guidelines →
-          </Link>
+      {/* Guidelines Card */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Pool Suggestion Guidelines</h3>
+        <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+          <li className="flex items-start gap-2">
+            <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+            <span>Be precise and measurable</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+            <span>Ensure your statement is time-bound</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-red-600 dark:text-red-400 mt-0.5">✗</span>
+            <span>Avoid absolute moral or ideological claims</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-red-600 dark:text-red-400 mt-0.5">✗</span>
+            <span>No personal or defamatory statements</span>
+          </li>
+        </ul>
+        <Link to={DOCS_URL} className="text-blue-600 dark:text-blue-400 mt-3 inline-flex items-center text-sm hover:underline font-medium" target="_blank" rel="noopener">
+          Read full guidelines →
+        </Link>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left: Text Input */}
+        <div className="flex-1 flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Pool Statement
+          </label>
+          <div
+            id={INPUT_BOX_ID}
+            className={`input-box break-words min-h-40 w-full text-base p-4 rounded-lg border-2 transition-all duration-200
+              bg-white dark:bg-gray-900
+              border-gray-300 dark:border-gray-600
+              hover:border-gray-400 dark:hover:border-gray-500
+              focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30
+              ${text.length > 0 ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-500"}`}
+            data-placeholder={NEW_VOTE_PLACEHOLDER}
+            contentEditable="true"
+          />
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {text.length > 0 ? `${text.length} / ${VOTE_MAX_CHARACTERS} characters` : ''}
+            </span>
+            {text.length > VOTE_MAX_CHARACTERS && (
+              <span className="text-xs text-red-600 dark:text-red-400">
+                Character limit exceeded
+              </span>
+            )}
+          </div>
         </div>
-        <div 
-          id={INPUT_BOX_ID} 
-          className={`input-box break-words min-h-24 w-full text-sm p-3 rounded-lg border transition-all duration-200 bg-slate-200 dark:bg-gray-800 border-gray-300 dark:border-slate-700 focus:ring-2 focus:ring-purple-500
-            ${text.length > 0 ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}`}
-          data-placeholder={NEW_VOTE_PLACEHOLDER}
-          contentEditable="true"
-        />
-        <div className="flex flex-col gap-y-2">
-          <label htmlFor="thumbnail-upload" className="text-sm text-gray-600 dark:text-gray-400">
-            Upload Thumbnail:
+
+        {/* Right: Thumbnail Upload */}
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Thumbnail Image
           </label>
           <label
             htmlFor="thumbnail-upload"
-            className={`button-simple text-lg text-center cursor-pointer inline-block px-4 py-2 w-40`}
+            className={`relative w-10 h-10 rounded-lg border-2 border-dashed transition-all cursor-pointer overflow-hidden
+              ${thumbnailPreview
+                ? 'border-gray-300 dark:border-gray-600'
+                : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10'
+              }`}
           >
-            Choose File
+            {thumbnailPreview ? (
+              <div className="relative w-full h-full group">
+                <img
+                  src={thumbnailPreview}
+                  alt="Thumbnail Preview"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                  <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity font-medium">
+                    Change Image
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+            )}
           </label>
           <input
             id="thumbnail-upload"
@@ -166,26 +230,21 @@ function NewVote() {
             onChange={handleFileChange}
             className="hidden"
           />
-          {thumbnailPreview && (
-            <div className="mt-4">
-              <img
-                className="w-20 h-20 bg-contain bg-no-repeat bg-center rounded-md"
-                src={thumbnailPreview}
-                alt="Thumbnail Preview"
-              />
-            </div>
-          )}
         </div>
       </div>
 
-      <span className="grow">{/* spacer */}</span>
-
-      <div className="flex flex-row gap-x-2 w-full items-center sm:items-center justify-end">
-
-        <button className={`button-simple text-lg`} 
-                onClick={openVote}
-                disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS || thumbnail === null}>
-          Open new market
+      {/* Action Button */}
+      <div className="flex justify-end">
+        <button
+          className={`px-6 py-3 rounded-lg font-medium transition-all
+            ${loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS || thumbnail === null
+              ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
+            }`}
+          onClick={openVote}
+          disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS || thumbnail === null}
+        >
+          {loading ? 'Submitting...' : 'Suggest Pool'}
         </button>
       </div>
     </div>

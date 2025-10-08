@@ -1,7 +1,6 @@
 import Types          "Types";
 import MigrationTypes "../Types";
 import Duration       "../../duration/Duration";
-import Timeline       "../../utils/Timeline";
 import Clock          "../../utils/Clock";
 
 import Map            "mo:map/Map";
@@ -74,11 +73,14 @@ module {
                 map = Map.new<Text, Lock>();
             };
             parameters = { parameters with 
+                foresight = {
+                    parameters.foresight with
+                    max_age = Duration.toTime(parameters.foresight.max_age);
+                };
                 twap_config = {
                     window_duration_ns = Duration.toTime(parameters.twap_config.window_duration);
                     max_observations = parameters.twap_config.max_observations;
                 };
-                max_age = Duration.toTime(parameters.max_age);
                 participation = { parameters.participation with
                     emission_half_life_s = Duration.toSeconds(parameters.participation.emission_half_life);
                 };
@@ -163,11 +165,14 @@ module {
         };
 
         let protocol_parameters = { parameters with
+            foresight = {
+                parameters.foresight with
+                max_age = Duration.toTime(parameters.foresight.max_age);
+            };
             twap_config = {
                 window_duration_ns = Duration.toTime(parameters.twap_config.window_duration);
                 max_observations = parameters.twap_config.max_observations;
             };
-            max_age = Duration.toTime(parameters.max_age);
             ballot_half_life_ns = Duration.toTime(parameters.ballot_half_life);
             participation = { parameters.participation with
                 emission_half_life_s = Duration.toSeconds(parameters.participation.emission_half_life);

@@ -1,6 +1,6 @@
 import { ckBtcLedgerActor } from "../actors/CkBtcActor";
 import { ckUsdtLedgerActor } from "../actors/CkUsdtActor";
-import { dsnLedgerActor } from "../actors/DsnLedgerActor";
+import { twvLedgerActor } from "../actors/TwvLedgerActor";
 import { icpCoinsActor } from "../actors/IcpCoinsActor";
 import { faucetActor } from "../actors/FaucetActor";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
@@ -43,9 +43,9 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   const ledgerActorMap: Record<LedgerType, typeof ckUsdtLedgerActor> = {
     [LedgerType.SUPPLY]: ckUsdtLedgerActor,
     [LedgerType.COLLATERAL]: ckBtcLedgerActor,
-    [LedgerType.PARTICIPATION]: dsnLedgerActor,
+    [LedgerType.PARTICIPATION]: twvLedgerActor,
   };
-  const ledgerActor = ledgerActorMap[ledgerType] ?? dsnLedgerActor;
+  const ledgerActor = ledgerActorMap[ledgerType] ?? twvLedgerActor;
 
   const { user } = useAuth();
   const identity = useIdentity();
@@ -151,7 +151,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   const formatAmountUsd = (amount: bigint | number | undefined, notation: "standard" | "compact" = "compact") => {
     let usdValue = convertToUsd(amount);
     if (usdValue === undefined) {
-      return undefined;
+      return "N/A";
     }
     let formattedValue = new Intl.NumberFormat("en-US", {
       notation,
@@ -241,7 +241,6 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
       throw new Error(`Failed to fetch allowance`);
     }
     const currentAllowance: bigint = allowanceResult.allowance;
-    console.log(`Current allowance for ${account.owner.toText()} is ${currentAllowance}, requested amount is ${amount}`);
     if (currentAllowance >= amount) {
       return { tokenFee, approveCalled: false }; // No need to call approve
     }
@@ -260,7 +259,6 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
         },
       },
     ]);
-    console.log(`Approve result:`, approveResult);
     if (approveResult === undefined) {
       throw new Error(`Failed to approve ${amount}: icrc2_approve returned an undefined result`);
     } 
@@ -293,10 +291,8 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   const [userBalance, setUserBalance] = useState<bigint | undefined>(undefined);
 
   const refreshUserBalance = () => {
-    console.log("Refreshing user balance for account:", account);
     if (account) {
       icrc1BalanceOf([account]).then(balance => {
-        console.log("Fetched user balance:", balance);
         setUserBalance(balance);
       }).catch(error => {
         console.error("Error fetching user balance:", error);
@@ -312,7 +308,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   }, [account]);
 
   const { call: mintToken, loading: mintLoading } = faucetActor.unauthenticated.useUpdateCall({
-    functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : ledgerType === LedgerType.COLLATERAL ? 'mint_btc' : 'mint_dsn',
+    functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : ledgerType === LedgerType.COLLATERAL ? 'mint_btc' : 'mint_twv',
   });
 
   const mint = async(amount: number) => {

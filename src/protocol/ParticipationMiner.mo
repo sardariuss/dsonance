@@ -7,7 +7,6 @@ import MapUtils "utils/Map";
 import Debug "mo:base/Debug";
 import Float "mo:base/Float";
 import Int "mo:base/Int";
-import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import Map "mo:map/Map";
 import Result "mo:base/Result";
@@ -74,7 +73,7 @@ module {
 
             Debug.print("ParticipationMiner: k = " # debug_show(k));
             Debug.print("ParticipationMiner: Half-life = " # debug_show(parameters.emission_half_life_s) # " seconds");
-            Debug.print("ParticipationMiner: Amount to mint = " # debug_show(amount_to_mint) # " DSN tokens");
+            Debug.print("ParticipationMiner: Amount to mint = " # debug_show(amount_to_mint) # " TWV tokens");
 
             if (amount_to_mint < 0) {
                 return #err("Logic error: amount to mint cannot be negative");
@@ -122,7 +121,7 @@ module {
                 return null;
             };
             
-            Debug.print("ParticipationMiner: Attempting to claim " # debug_show(tracker.owed) # " DSN owed to " # debug_show(account));
+            Debug.print("ParticipationMiner: Attempting to claim " # debug_show(tracker.owed) # " TWV owed to " # debug_show(account));
             
             let transfer_result = await* minting_account.transfer({
                 amount = tracker.owed;
@@ -144,7 +143,7 @@ module {
                 owed = 0;
             };
             Map.set(register.tracking, MapUtils.acchash, account, updated_tracker);
-            Debug.print("ParticipationMiner: Successfully claimed " # debug_show(tracker.owed) # " DSN for " # debug_show(account) # " - TX: " # debug_show(tx_id));
+            Debug.print("ParticipationMiner: Successfully claimed " # debug_show(tracker.owed) # " TWV for " # debug_show(account) # " - TX: " # debug_show(tx_id));
             ?tracker.owed;
         };
 

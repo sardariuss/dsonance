@@ -52,7 +52,7 @@ The frontend should be available on localhost:3000
 
 ## Credits
 
-* Acelon font: https://www.fontspace.com/acelon-blur-font-f115699
+* Decondol: https://www.fontspace.com/decondol-font-f127750
 
 ## TODO
 

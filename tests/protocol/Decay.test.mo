@@ -78,8 +78,8 @@ suite("Decay", func(){
         };
     });
 
-    test("EVP calculation example from glossary", func(){
-        // Test scenario from glossary.md to verify expected EVP behavior
+    test("CDV calculation example from glossary", func(){
+        // Test scenario from glossary.md to verify expected CDV behavior
         let genesis_time = 1000000000000000000; // Fixed reference time
         let half_life_ns = Duration.toTime(#HOURS(1)); // 1 hour half-life
         let decay_model = Decay.DecayModel({ half_life_ns; genesis_time; });
@@ -89,22 +89,22 @@ suite("Decay", func(){
         let alice_amount = 100.0;
         let alice_ballot = decay_model.create_decayed(alice_amount, t0);
 
-        // At t0, EVP should be $100
+        // At t0, CDV should be $100
         let evp_at_t0 = decay_model.unwrap_decayed(alice_ballot, genesis_time);
         verify<Float>(evp_at_t0, 100.0, Testify.float.equalEpsilon6);
 
-        // At t1 (some time later), EVP should decrease due to decay
+        // At t1 (some time later), CDV should decrease due to decay
         // Let's say t1 is 10 minutes later
         let t1 = genesis_time + Duration.toTime(#MINUTES(10));
         let evp_at_t1 = decay_model.unwrap_decayed(alice_ballot, t1);
         
-        // EVP should be less than 100 since decay increases over time
+        // CDV should be less than 100 since decay increases over time
         // but the unwrap_decayed divides by a larger decay value
-        // This means EVP decreases over time as expected
-        Debug.print("EVP at t0: " # Float.toText(evp_at_t0));
-        Debug.print("EVP at t1: " # Float.toText(evp_at_t1));
+        // This means CDV decreases over time as expected
+        Debug.print("CDV at t0: " # Float.toText(evp_at_t0));
+        Debug.print("CDV at t1: " # Float.toText(evp_at_t1));
         
-        // EVP should decrease over time
+        // CDV should decrease over time
         let is_decreasing = evp_at_t1 < evp_at_t0;
         verify<Bool>(is_decreasing, true, Testify.bool.equal);
     });
@@ -134,7 +134,7 @@ suite("Decay", func(){
         };
     });
 
-    test("Debug realistic EVP scenario - simplified", func(){
+    test("Debug realistic CDV scenario - simplified", func(){
         // Simple test for production parameters 
         let genesis_time = 1700000000000000000;
         let production_half_life_ns = Duration.toTime(#YEARS(1));
@@ -146,9 +146,9 @@ suite("Decay", func(){
         let two_weeks_later = genesis_time + Duration.toTime(#DAYS(14));
         let evp_after_2_weeks = decay_model.unwrap_decayed(ballot, two_weeks_later);
         
-        // After 2 weeks with 1-year half-life, EVP should be very close to original
+        // After 2 weeks with 1-year half-life, CDV should be very close to original
         // If it's showing 0.1 USD instead of ~89k USD, there's a major bug
-        Debug.print("EVP after 2 weeks with 1-year half-life:");
+        Debug.print("CDV after 2 weeks with 1-year half-life:");
         Debug.print("Original: " # Float.toText(ballot_amount));
         Debug.print("After 2 weeks: " # Float.toText(evp_after_2_weeks));
         Debug.print("Ratio: " # Float.toText(evp_after_2_weeks / ballot_amount));

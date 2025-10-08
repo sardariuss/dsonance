@@ -55,7 +55,7 @@ const VoteSlider: React.FC<VoteSliderProps> = ({
       <div className="flex w-full rounded-sm z-0" style={{ height: CURSOR_HEIGHT, position: 'relative' }}>  
         {cursor > MIN_CURSOR && (
           <div 
-            className={`bg-brand-true h-full rounded-l ${ballot.choice === EYesNoChoice.Yes ? "" : "opacity-70"}`}  
+            className={`bg-brand-true dark:bg-brand-true-dark h-full rounded-l ${ballot.choice === EYesNoChoice.Yes ? "" : "opacity-70"}`}  
             style={{ width: `${cursor * 100}%` }}
           />
         )}

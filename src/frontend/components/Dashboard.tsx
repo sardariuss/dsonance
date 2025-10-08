@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import SupplyDashboard from "./dashboard/SupplyDashboard";
 import { TabButton } from "./TabButton";
-import ParticipationDashboard from "./dashboard/ParticipationDashboard";
+import MiningDashboard from "./dashboard/MiningDashboard";
 import CollateralDashboard from "./dashboard/CollateralDashboard";
 
 // @todo: perfect layout for mobile
@@ -26,9 +26,9 @@ const Dashboard = () => {
   }, [selectedTab, setSearchParams]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
+    <div className="w-full sm:w-4/5 md:w-11/12 lg:w-5/6 xl:w-4/5 mx-auto px-3 pb-3">
       { /* Tabs */}
-      <ul className="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-2 my-4 sm:my-6 items-center justify-center">
+      <ul className="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-2 my-4 sm:my-6">
         {tabs.map((tab) => (
           <li key={tab.key} className="min-w-max text-center">
             <TabButton
@@ -41,7 +41,7 @@ const Dashboard = () => {
       </ul>
       {/* Content */}
       <div className="w-full min-h-[600px]">
-        {selectedTab === "supply" ? <SupplyDashboard/> : selectedTab === "collateral" ? <CollateralDashboard/> : <ParticipationDashboard/>}
+        {selectedTab === "supply" ? <SupplyDashboard/> : selectedTab === "collateral" ? <CollateralDashboard/> : <MiningDashboard/>}
       </div>
     </div>
   );

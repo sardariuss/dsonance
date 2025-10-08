@@ -92,7 +92,7 @@ const WalletRow: React.FC<WalletRowProps> = ({
               e.stopPropagation();
               setShowSendModal(true);
             }}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-purple-700 px-4 py-2 text-white hover:bg-purple-700/90 transition-colors"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-700/90 transition-colors"
           >
             <MdArrowUpward size={18} />
             Send

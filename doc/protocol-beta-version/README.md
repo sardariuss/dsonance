@@ -1,11 +1,11 @@
 ---
-cover: ../.gitbook/assets/logo.png
+cover: ../.gitbook/assets/towerviewers.webp
 coverY: 0
 ---
 
 # Proof-of-Foresight
 
-The Proof-of-Foresight defines the voting rules and reward mechanisms, incentivizing voters to act sincerely and prioritize the establishment of lasting truth.
+The Proof-of-Foresight defines the position rules and reward mechanisms, incentivizing participants to act sincerely and prioritize the establishment of lasting truth.
 
 
 

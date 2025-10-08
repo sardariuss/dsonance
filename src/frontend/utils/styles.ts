@@ -6,17 +6,17 @@
  * Content panel style with border, shadow, and responsive padding
  * Used for dashboard panels, forms, cards, and other primary content areas
  */
-export const CONTENT_PANEL = "bg-white dark:bg-slate-800 shadow-md rounded p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700";
+export const CONTENT_PANEL = "bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700";
 
 /**
  * Dashboard outer container with consistent spacing and layout
  */
-export const DASHBOARD_CONTAINER = "flex flex-col space-y-4 px-2 py-4 sm:p-4 md:p-6";
+export const DASHBOARD_CONTAINER = "flex flex-col space-y-4";
 
 /**
  * Stats overview section with token placement and metrics
  */
-export const STATS_OVERVIEW_CONTAINER = "flex flex-col sm:flex-row text-center text-gray-800 dark:text-gray-200 px-3 sm:px-6 gap-4 lg:gap-8 items-center";
+export const STATS_OVERVIEW_CONTAINER = "flex flex-col sm:flex-row text-center text-gray-800 dark:text-gray-200 px-3 sm:px-6 gap-4 lg:gap-8 items-center self-center";
 
 /**
  * Vertical divider for separating sections (hidden on smaller screens)

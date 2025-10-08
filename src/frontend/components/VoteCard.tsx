@@ -40,9 +40,9 @@ const VoteCard: React.FC<VoteCardProps> = ({ tvl, voteDetails, text, thumbnail }
         )}
       </div>
 
-      {/* Bottom Row: EVP and TVL */}
+      {/* Bottom Row: CDV and TVL */}
       <div className="mt-auto flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 pt-4">
-        <span>EVP: {supplyLedger.formatAmountUsd(voteDetails.total)}</span>
+        <span>CDV: {supplyLedger.formatAmountUsd(voteDetails.total)}</span>
         <span>TVL: {supplyLedger.formatAmountUsd(tvl)}</span>
       </div>
     </div>
@@ -60,7 +60,7 @@ export const VoteCardSkeleton: React.FC = () => {
         <div className="flex-grow h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
       </div>
 
-      {/* Bottom Row: EVP and TVL */}
+      {/* Bottom Row: CDV and TVL */}
       <div className="mt-auto flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 pt-4">
         <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
         <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>

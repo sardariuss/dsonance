@@ -5,6 +5,7 @@ import Debug              "mo:base/Debug";
 import Float              "mo:base/Float";
 import Option             "mo:base/Option";
 import Int                "mo:base/Int";
+import Principal          "mo:base/Principal";
 
 import Types              "../Types";
 import MapUtils           "../utils/Map";
@@ -74,6 +75,10 @@ module {
         public func run_operation(time: Nat, args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {
 
             let { account; } = args;
+
+            if (Principal.isAnonymous(account.owner)) {
+                return #err("Anonymous account cannot perform borrow operations");
+            };
 
             let { to_transfer; protocol_fees; finalize; } = switch(prepare_operation(time, args)){
                 case(#err(err)) { return #err(err); };

@@ -1,15 +1,15 @@
 import { useMemo, useContext } from "react";
 import { ResponsivePie } from '@nivo/pie';
 import { protocolActor } from "../actors/ProtocolActor";
-import { formatAmountCompact } from "../../utils/conversions/token";
 import DualLabel from "../common/DualLabel";
 import { ThemeContext } from "../App";
 import { FullTokenLabel } from "../common/TokenLabel";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { useProtocolContext } from "../context/ProtocolContext";
 import { DASHBOARD_CONTAINER, STATS_OVERVIEW_CONTAINER, VERTICAL_DIVIDER, METRICS_WRAPPER, CONTENT_PANEL } from "../../utils/styles";
+import EmissionCurveChart from "../charts/EmissionCurveChart";
 
-interface DsnAccount {
+interface TwvAccount {
   owner: { toText(): string } | string;
   subaccount?: number[];
 }
@@ -19,12 +19,12 @@ interface ParticipationTracker {
   owed: bigint;
 }
 
-type ParticipationData = [DsnAccount, ParticipationTracker];
+type ParticipationData = [TwvAccount, ParticipationTracker];
 
-const ParticipationDashboard = () => {
+const MiningDashboard = () => {
   const { theme } = useContext(ThemeContext);
   const { participationLedger : { formatAmount, totalSupply, metadata } } = useFungibleLedgerContext();
-  const { parameters } = useProtocolContext();
+  const { parameters, info } = useProtocolContext();
   const { data: participationTrackers } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_participation_trackers',
     args: [],
@@ -60,7 +60,7 @@ const ParticipationDashboard = () => {
         received: Number(received),
         owed: Number(owed),
       };
-    }).filter(item => item.value > 0); // Only show accounts with DSN
+    }).filter(item => item.value > 0); // Only show accounts with TWV
 
     let mintRemaining = undefined;
     if (parameters?.participation.emission_total_amount) {
@@ -75,7 +75,7 @@ const ParticipationDashboard = () => {
   }, [participationTrackers]);
 
   if (!participationTrackers) {
-    return <div className="text-center text-gray-500">Loading DSN stats...</div>;
+    return <div className="text-center text-gray-500">Loading TWV stats...</div>;
   }
 
   return (
@@ -83,7 +83,7 @@ const ParticipationDashboard = () => {
       <div className={STATS_OVERVIEW_CONTAINER}>
         <FullTokenLabel
           metadata={metadata}
-          canisterId={process.env.DSN_LEDGER_CANISTER_ID || ""} // @todo: should come from participationLedger
+          canisterId={process.env.TWV_LEDGER_CANISTER_ID || ""} // @todo: should come from participationLedger
         />
         <div className={VERTICAL_DIVIDER}></div>
         <div className={METRICS_WRAPPER}>
@@ -101,6 +101,26 @@ const ParticipationDashboard = () => {
           />
         </div>
       </div>
+
+      {/* Emission Curve */}
+      {parameters && info && (
+        <div className={CONTENT_PANEL}>
+          <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
+            Emission Curve
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Cumulative TWV minted over time (left axis) and daily emission rate (right axis)
+          </p>
+          <EmissionCurveChart
+            genesisTime={info.genesis_time}
+            currentTime={info.current_time}
+            emissionTotalAmount={parameters.participation.emission_total_amount}
+            emissionHalfLifeS={parameters.participation.emission_half_life_s}
+            totalMinted={miningStats.totalMinted}
+            formatAmount={(amount) => formatAmount(amount) || '0'}
+          />
+        </div>
+      )}
 
       {/* Distribution Chart */}
       {miningStats.distributionData.length > 0 && miningStats.totalMinted > 0n && (
@@ -141,7 +161,7 @@ const ParticipationDashboard = () => {
                   tooltip={({ datum }) => (
                     <div className="bg-white dark:bg-gray-800 p-2 rounded shadow-lg border border-gray-200 dark:border-gray-700">
                       <div className="font-mono text-xs">{datum.data?.label || 'Unknown'}</div>
-                      <div className="text-sm font-semibold">{formatAmount(datum.value)} DSN</div>
+                      <div className="text-sm font-semibold">{formatAmount(datum.value)} TWV</div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">
                         {miningStats.totalMinted > 0n ? ((datum.value / Number(miningStats.totalMinted)) * 100).toFixed(2) : '0.00'}% of total
                       </div>
@@ -173,9 +193,7 @@ const ParticipationDashboard = () => {
                 <thead>
                   <tr className="border-b border-gray-300 dark:border-gray-700">
                     <th className="text-left p-2">Account</th>
-                    <th className="text-right p-2">Total DSN</th>
-                    <th className="text-right p-2">Distributed</th>
-                    <th className="text-right p-2">Pending</th>
+                    <th className="text-right p-2">Mined TWV</th>
                     <th className="text-right p-2">% of Total</th>
                   </tr>
                 </thead>
@@ -184,16 +202,14 @@ const ParticipationDashboard = () => {
                     .sort((a, b) => b.value - a.value)
                     .slice(0, 10) // Show top 10 accounts
                     .map((item) => {
-                      const percentage = miningStats.totalMinted > 0n 
+                      const percentage = miningStats.totalMinted > 0n
                         ? (item.value / Number(miningStats.totalMinted) * 100).toFixed(2)
                         : "0.00";
-                        
+
                       return (
                         <tr key={item.id} className="border-b border-gray-200 dark:border-gray-700">
                           <td className="p-2 font-mono text-xs">{item.label}</td>
                           <td className="text-right p-2">{formatAmount(item.value)}</td>
-                          <td className="text-right p-2">{formatAmount(item.received)}</td>
-                          <td className="text-right p-2">{formatAmount(item.owed)}</td>
                           <td className="text-right p-2">{percentage}%</td>
                         </tr>
                       );
@@ -208,4 +224,4 @@ const ParticipationDashboard = () => {
   );
 };
 
-export default ParticipationDashboard;
+export default MiningDashboard;

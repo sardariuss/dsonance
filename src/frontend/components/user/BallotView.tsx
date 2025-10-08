@@ -18,6 +18,7 @@ import { toEnum } from "../../utils/conversions/yesnochoice";
 import ChoiceView from "../ChoiceView";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { createThumbnailUrl } from "../../utils/thumbnail";
+import { useAuth } from "@nfid/identitykit/react";
 
 enum CHART_TOGGLE {
     DURATION,
@@ -148,6 +149,7 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { supplyLedger: { formatAmountUsd } } = useFungibleLedgerContext();
 
   const { data: vote, call: refreshVote } = backendActor.unauthenticated.useQueryCall({
@@ -183,13 +185,10 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
           alt="Vote Thumbnail"
         />
         {/* Vote Text */}
-        { actualVote ? 
-          <div 
-            className="flex-grow text-gray-800 dark:text-gray-200 font-medium text-lg"
-            onClick={(e) => navigate(`/vote/${ballot.YES_NO.vote_id}`)}
-          >
+        { actualVote ?
+          <div className="flex-grow text-gray-800 dark:text-gray-200 font-medium text-lg">
             { actualVote.info.text }
-          </div> : 
+          </div> :
           <div className="flex-grow h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
         }
       </div>
@@ -212,6 +211,24 @@ const BallotView : React.FC<BallotViewProps> = ({ ballot, now }) => {
         </div>
       </div>
       <BallotDetails ballot={ballot} now={now} /*contribution={actualDebtInfo?.amount}*/ isMobile={isMobile}/>
+
+      {/* Navigation Links */}
+      <div className="flex flex-col sm:flex-row gap-3 w-full mt-6">
+        <button
+          className="flex-1 px-4 py-2 border-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors font-medium"
+          onClick={() => navigate(`/vote/${ballot.YES_NO.vote_id}`)}
+        >
+          View Pool
+        </button>
+        {user && (
+          <button
+            className="flex-1 px-4 py-2 border-2 border-gray-400 dark:border-gray-500 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium"
+            onClick={() => navigate(`/user/${user.principal}`)}
+          >
+            Go to Profile
+          </button>
+        )}
+      </div>
     </div>
     );
 }

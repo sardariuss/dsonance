@@ -77,7 +77,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
 
   return (
     <>
-      <button className="button-blue text-base" onClick={() => { setInputValue(""); setAmount(0n); setIsVisible(true) }}>
+      <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md transition-colors shadow-sm" onClick={() => { setInputValue(""); setAmount(0n); setIsVisible(true) }}>
         {title}
       </button>
       <Modal

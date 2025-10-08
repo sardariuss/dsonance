@@ -39,12 +39,12 @@ const BallotListLogin = ({ connect }: { connect: () => void }) => (
       onClick={() => connect()}
     >
       <LoginIcon />
-      <span>Login to see your foresights</span>
+      <span>Login to see your views</span>
     </button>
   </div>
 );
 
-const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
+export const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const ballotRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
   const [triggerScroll, setTriggerScroll] = useState(false);
@@ -62,6 +62,12 @@ const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
 
   const { call: getBallots } = protocolActor.unauthenticated.useQueryCall({
     functionName: "get_ballots",
+    onError: (error) => {
+      console.error("Error fetching ballots:", error);
+    },
+    onSuccess: (data) => {
+      console.log("Fetched ballots:", data);
+    }
   });
 
   const toggleBallot = useCallback((ballotId: string) => {
@@ -87,6 +93,8 @@ const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
   }, [setSearchParams]);
 
   const fetchBallots = async (account: Account, entries: BallotEntries, filter_active: boolean) : Promise<BallotEntries> => {
+
+    console.log("Account owner:", account.owner.toText());
 
     const fetchedBallots = await getBallots([{
       account,
@@ -136,8 +144,9 @@ const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
   }, [triggerScroll, ballotEntries]);
   
   return (
-    <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 p-2 rounded w-full">
-      { ballotEntries.ballots.length > 0 && 
+    <div className="flex flex-col w-full">
+      { /* TODO: remove deadcode or reactivate it */}
+      { ballotEntries.ballots.length > 0 && false &&
         <div className={`flex flex-col justify-between items-center w-full py-2 sm:py-6 w-full h-[300px] space-y-2`}>
           <LockChart
             ballots={ballotEntries.ballots.map(ballot => ballot.YES_NO)}
@@ -154,11 +163,12 @@ const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAu
           <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
         </div>
       }
-      { ballotEntries.ballots.length > 0 && 
+      { /* TODO: remove deadcode or reactivate it */}
+      { ballotEntries.ballots.length > 0 && false &&
         <label className="inline-flex items-center me-5 cursor-pointer justify-self-end pb-5">
           <span className="mr-2 text-gray-900 dark:text-gray-100 truncate">Show unlocked</span>
           <input type="checkbox" value={(!filterActive).toString()} className="sr-only peer" onChange={() => toggleFilterActive(!filterActive)}/>
-          <div className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-focus:ring-2 peer-focus:ring-purple-900 dark:peer-focus:ring-purple-900 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-900 dark:peer-checked:bg-purple-700"></div>
+          <div className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-focus:ring-2 peer-focus:ring-blue-900 dark:peer-focus:ring-blue-900 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-900 dark:peer-checked:bg-blue-700"></div>
         </label>
       }
       <AdaptiveInfiniteScroll

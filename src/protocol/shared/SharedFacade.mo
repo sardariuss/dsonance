@@ -15,6 +15,7 @@ module {
     type PutBallotResult = Types.PutBallotResult;
     type NewVoteArgs = Types.NewVoteArgs;
     type PutBallotArgs = Types.PutBallotArgs;
+    type PutBallotPreview = Types.PutBallotPreview;
     type GetBallotArgs = Types.GetBallotArgs;
     type Account = Types.Account;
     type SBallotType = Types.SBallotType;
@@ -49,7 +50,7 @@ module {
             await* controller.new_vote(args);
         };
 
-        public func put_ballot_for_free(args: PutBallotArgs and { caller: Principal; }) : PutBallotResult {
+        public func put_ballot_for_free(args: PutBallotPreview and { caller: Principal; }) : PutBallotResult {
             controller.put_ballot_for_free(args);
         };
 

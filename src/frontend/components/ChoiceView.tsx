@@ -8,7 +8,7 @@ interface ChoiceViewProps {
 
 const ChoiceView = ({ choice }: ChoiceViewProps) => {
 
-    return <span className={`${choice === EYesNoChoice.Yes ? " text-brand-true" : " text-brand-false"}`}>{choice}</span>
+    return <span className={`${choice === EYesNoChoice.Yes ? " text-brand-true dark:text-brand-true-dark" : " text-brand-false"}`}>{choice}</span>
 }
 
 export default ChoiceView;

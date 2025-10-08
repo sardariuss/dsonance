@@ -26,18 +26,10 @@ const FaucetPage = () => {
 
   return (
     <div className="flex flex-col justify-center my-4 p-4 md:p-6 space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
-          Token Faucet
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Mint ckUSDT and ckBTC tokens for testing purposes
-        </p>
-      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
         {/* ckUSDT Faucet */}
-        <div className="bg-slate-50 dark:bg-slate-850 rounded-lg p-6">
+        <div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6 border border-slate-300 dark:border-slate-700">
           <div className="flex items-center justify-center mb-4">
             <FullTokenLabel
               metadata={supplyLedger.metadata}
@@ -54,7 +46,7 @@ const FaucetPage = () => {
         </div>
 
         {/* ckBTC Faucet */}
-        <div className="bg-slate-50 dark:bg-slate-850 rounded-lg p-6">
+        <div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6 border border-slate-300 dark:border-slate-700">
           <div className="flex items-center justify-center mb-4">
             <FullTokenLabel
               metadata={collateralLedger.metadata}

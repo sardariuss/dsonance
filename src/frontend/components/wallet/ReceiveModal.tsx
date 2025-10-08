@@ -69,7 +69,7 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ isOpen, onClose, tokenSymbo
                 type="text"
                 value={userPrincipal}
                 readOnly
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-12 text-sm text-black dark:border-gray-600 dark:bg-gray-700 dark:text-white truncate"
+                className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 pr-12 text-sm text-black dark:border-gray-600 dark:bg-gray-700 dark:text-white truncate"
                 title={userPrincipal} // Show full principal on hover
               />
               <button

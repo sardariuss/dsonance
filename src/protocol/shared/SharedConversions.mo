@@ -94,8 +94,11 @@ module {
                 window_duration = Duration.fromTime(parameters.twap_config.window_duration_ns);
                 max_observations = parameters.twap_config.max_observations;
             };
-            max_age = Duration.fromTime(parameters.max_age);
             ballot_half_life = Duration.fromTime(parameters.ballot_half_life_ns);
+            foresight = {
+                parameters.foresight with
+                max_age = Duration.fromTime(parameters.foresight.max_age);
+            };
         };
     };
 
