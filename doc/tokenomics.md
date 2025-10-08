@@ -9,7 +9,7 @@ Towerview operates with three tokens:
 
 * **ckUSDT**: The supply token, used for opening positions and earning yield.
 * **ckBTC**: The collateral token, used to secure the lending system.
-* **TWV**: The native utility and governance token of Towerview.
+* **TWV**: The native governance token of Towerview.
 
 ### **USDT/BTC Lending Mechanism**
 
@@ -19,10 +19,9 @@ While the users's borrow APY depends solely on the utilization rate, his supply 
 
 ### **TWV Token**
 
-The TWV token serves as a utility and governance token for the Towerview platform:
+The TWV token serves as governance token for the Towerview platform:
 
-* **Rewards** – Distributed to pool authors, participants, borrowers, and liquidity providers.
-* **Burn Mechanism** – Required to open new pools.
+* **Rewards** – Distributed to borrowers and liquidity providers.
 * **Governance** – Locked in neurons, enabling participation in decisions shaping the future of Towerview.
 
 The minting of TWV rewards follows an **exponential decay model** with a **4-year half-life**. Early users earn more, while emissions gradually decrease, ensuring long-term scarcity and sustainability.
