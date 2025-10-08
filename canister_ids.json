@@ -8,7 +8,7 @@
   "frontend": {
     "ic": "hrr6s-tyaaa-aaaap-anxha-cai"
   },
-  "minter": {
+  "faucet": {
     "ic": "h7tt2-iiaaa-aaaap-anxga-cai"
   },
   "protocol": {

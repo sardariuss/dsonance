@@ -4,8 +4,8 @@ import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 
 interface MiningContentProps {
   tracker: {
-    received: bigint;
-    owed: bigint;
+    claimed: bigint;
+    allocated: bigint;
   } | undefined;
   formatAmount: (amount: bigint) => string | undefined;
   onWithdraw: () => void;
@@ -32,8 +32,8 @@ export const MiningContent = ({ tracker, formatAmount, onWithdraw, withdrawLoadi
           <div className="flex flex-row items-center gap-4">
             <TokenLabel metadata={participationLedger.metadata}/>
             <div className="flex flex-col">
-              <span className="text-lg font-bold"> { participationLedger.formatAmount(tracker.owed) } </span>
-              <span className="text-xs text-gray-400"> { participationLedger.formatAmountUsd(tracker.owed) } </span>
+              <span className="text-lg font-bold"> { participationLedger.formatAmount(tracker.allocated) } </span>
+              <span className="text-xs text-gray-400"> { participationLedger.formatAmountUsd(tracker.allocated) } </span>
             </div>
           </div>
           <div className="flex flex-row gap-2 lg:w-auto w-full">
@@ -41,7 +41,7 @@ export const MiningContent = ({ tracker, formatAmount, onWithdraw, withdrawLoadi
               <ActionButton
                 title="Withdraw"
                 onClick={onWithdraw}
-                disabled={tracker.owed === 0n}
+                disabled={tracker.allocated === 0n}
                 loading={withdrawLoading}
               />
             </div>

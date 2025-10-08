@@ -1,0 +1,133 @@
+name: Towerview
+
+description: >
+    Towerview combines prediction markets, arbitration, and DeFi lending into 
+    the first Real-Time Consensus Engine. Its innovative proof-of-foresight 
+    mechanism incentivizes participants to act genuinely by validating opinions 
+    that withstand time.
+
+logo: logo.png
+
+url: https://towerview.xyz
+
+NnsProposal:
+    title: "NNS Proposal to create an SNS named 'Towerview'"
+    url: "https://forum.dfinity.org/todo"
+    summary: >
+        Proposal to create an SNS for the project Towerview.
+        The SNS will be initialized with the following parameters:
+        - Total TWV supply: 1_000_000_000
+        - 180_000_000 Public Sale, 120_000_000 Dev Neuron, 700_000_000 treasury
+        - ICP to raise min: 10_000 ICP
+        - ICP to raise max: 100_000 ICP
+        - Min number of tokens per contributor: 1 ICP
+        - Max number of tokens per contributor: 10_000 ICP
+        - Min number of participants: 20
+        - Neuron fund participation: False
+
+        Learn more:
+        - https://www.towerview.xyz
+        - https://sardarius-corp.gitbook.io/dsonance
+        - https://github.com/sardariuss/dsonance
+
+fallback_controller_principals:
+    - h23d5-ol2s3-ja723-sdma3-2kmwd-r4rmi-nj2vh-prmu3-ldekj-3vhgf-pae
+
+dapp_canisters:
+    - hkucx-jaaaa-aaaap-anxfq-cai # protocol
+    - hysvo-fqaaa-aaaap-anxgq-cai # backend
+    - h7tt2-iiaaa-aaaap-anxga-cai # faucet
+    - hrr6s-tyaaa-aaaap-anxha-cai # frontend
+
+Token:
+    name: Towerview
+    symbol: TWV
+    transaction_fee: 10_000 e8s
+    logo: tower_coin.png
+
+Proposals:
+    rejection_fee: 1 token
+    initial_voting_period: 4 days
+    maximum_wait_for_quiet_deadline_extension: 1 day
+
+Neurons:
+    minimum_creation_stake: 1 token
+
+Voting:
+    minimum_dissolve_delay: 3 months
+    MaximumVotingPowerBonuses:
+        DissolveDelay:
+            duration: 2 years
+            bonus: 100%
+        Age:
+            duration: 12 months
+            bonus: 25%
+    RewardRate:
+        initial: 5%
+        final: 2.5%
+        transition_duration: 5 years
+
+Distribution:
+    Neurons:
+        - principal: mxw3v-r4nzv-5sflf-yi5bz-mp726-ucqpl-jsny5-7xm7e-g4fsj-fji75-tae
+          stake: 150_000 tokens
+          memo: 0
+          dissolve_delay: 6 months
+          vesting_period: 12 months
+        - principal: e4mex-sii3l-bkcvt-5kkhf-ol44c-3r724-2ce7e-m4pqc-s5my6-kpdof-eqe
+          stake: 150_000 tokens
+          memo: 1
+          dissolve_delay: 6 months
+          vesting_period: 12 months
+        - principal: mxw3v-r4nzv-5sflf-yi5bz-mp726-ucqpl-jsny5-7xm7e-g4fsj-fji75-tae
+          stake: 150_000 tokens
+          memo: 2
+          dissolve_delay: 12 months
+          vesting_period: 24 months
+        - principal: e4mex-sii3l-bkcvt-5kkhf-ol44c-3r724-2ce7e-m4pqc-s5my6-kpdof-eqe
+          stake: 150_000 tokens
+          memo: 3
+          dissolve_delay: 12 months
+          vesting_period: 24 months
+
+    InitialBalances:
+        swap: 900_000 tokens
+        treasury: 8_500_000 tokens
+
+    total: 10_000_000 tokens
+
+Swap:
+    minimum_participants: 20
+    minimum_direct_participation_icp: 10_000 tokens
+    maximum_direct_participation_icp: 100_000 tokens
+    minimum_participant_icp: 1 token
+    maximum_participant_icp: 10_000 tokens
+    restricted_countries:
+        - AF
+        - AL
+        - BY
+        - CD
+        - CF
+        - CU
+        - ET
+        - HK
+        - IR
+        - IQ
+        - KP
+        - LB
+        - LY
+        - ML
+        - MM
+        - NI
+        - RU
+        - SD
+        - SO
+        - SS
+        - SY
+        - VE
+        - YE
+    VestingSchedule:
+        events: 8
+        interval: 3 month
+    duration: 15 days
+    neurons_fund_participation: false

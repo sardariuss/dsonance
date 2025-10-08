@@ -1,6 +1,6 @@
 import Types                   "Types";
 import LockScheduler           "LockScheduler";
-import ParticipationMiner      "ParticipationMiner";
+import Miner      "Miner";
 import MapUtils                "utils/Map";
 import Timeline                "utils/Timeline";
 import Clock                   "utils/Clock";
@@ -42,6 +42,7 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type Parameters = Types.Parameters;
     type Timeline<T> = Types.Timeline<T>;
+    type RollingTimeline<T> = Types.RollingTimeline<T>;
     type ProtocolInfo = Types.ProtocolInfo;
     type YesNoBallot = Types.YesNoBallot;
     type YesNoVote = Types.YesNoVote;
@@ -55,7 +56,7 @@ module {
     type BorrowOperationArgs = LendingTypes.BorrowOperationArgs;
     type TransferResult = LendingTypes.TransferResult;
     type IPriceTracker = LedgerTypes.IPriceTracker;
-    type ParticipationTracker = Types.ParticipationTracker;
+    type MiningTracker = Types.MiningTracker;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -101,7 +102,7 @@ module {
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         collateral_price_tracker: IPriceTracker;
-        participation_miner: ParticipationMiner.ParticipationMiner;
+        miner: Miner.Miner;
         parameters: Parameters;
         foresight_updater: ForesightUpdater.ForesightUpdater;
     }){
@@ -295,23 +296,32 @@ module {
                 case(#ok(_)) {};
             };
 
-            // 6. Mint participation tokens
-            switch(participation_miner.mine(time)){
-                case(#err(error)) { Debug.print("Failed to distribute participation: " # error); };
+            // 6. Mint mining tokens
+            switch(miner.mine(time)){
+                case(#err(error)) { Debug.print("Failed to distribute mining rewards: " # error); };
                 case(#ok(_)) {};
             };
         };
 
-        public func withdraw_mined(account: Account) : async* ?Nat {
-            await* participation_miner.withdraw(account);
+        public func claim_mining_rewards(account: Account) : async* ?Nat {
+            let now = clock.get_time();
+            await* miner.withdraw(account, now);
         };
 
-        public func get_participation_trackers() : [(Account, ParticipationTracker)] {
-            participation_miner.get_trackers();
+        public func get_mining_trackers() : [(Account, MiningTracker)] {
+            miner.get_trackers();
         };
 
-        public func get_participation_tracker(account: Account) : ?ParticipationTracker {
-            participation_miner.get_tracker(account);
+        public func get_mining_tracker(account: Account) : ?MiningTracker {
+            miner.get_tracker(account);
+        };
+
+        public func get_mining_total_allocated() : RollingTimeline<Nat> {
+            miner.get_total_allocated();
+        };
+
+        public func get_mining_total_claimed() : RollingTimeline<Nat> {
+            miner.get_total_claimed();
         };
 
         public func get_clock() : Clock.Clock {

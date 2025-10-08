@@ -208,7 +208,7 @@ dfx deploy protocol --argument '( variant {
           record { utilization = 1.0; rate = 1.00; };
         };
       };
-      participation = record {
+      mining = record {
         emission_half_life = variant { YEARS = 2 };
         emission_total_amount = 6_700_000_000_000_000;
         borrowers_share = 0.75;

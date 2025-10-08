@@ -43,7 +43,8 @@ module {
     };
 
     // If within the batching window, overwrite current
-    if (timestamp - timeline.current.timestamp < timeline.minInterval) {
+    let window : Int = timestamp - timeline.current.timestamp;
+    if (window < timeline.minInterval) {
       timeline.current := { timestamp; data };
       return;
     };

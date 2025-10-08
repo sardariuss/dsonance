@@ -74,7 +74,7 @@ const LockDurationScalingChart: React.FC<LockDurationScalingChartProps> = ({ dur
           yScale={{ type: 'log', base: 10, min: 'auto', max: 'auto' }}
           curve="monotoneX"
           axisBottom={{
-            legend: 'CDV (USDT)',
+            legend: 'CDV (in ckUSDT)',
             legendOffset: 45,
             legendPosition: 'middle',
             format: (value) => formatUSDTAxis(value),

@@ -28,15 +28,15 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState<'supply' | 'borrow' | 'mining'>('supply');
   const { participationLedger: { formatAmount, refreshUserBalance } } = useFungibleLedgerContext();
 
-  // Fetch participation tracker data
-  const { data: participationTracker, call: refetchTracker } = protocolActor.authenticated.useQueryCall({
-    functionName: 'get_participation_tracker',
+  // Fetch mining tracker data
+  const { data: miningTracker, call: refetchTracker } = protocolActor.authenticated.useQueryCall({
+    functionName: 'get_mining_tracker',
     args: [[]],
   });
 
   // Withdraw functionality
   const { call: withdrawMined, loading: withdrawLoading } = protocolActor.authenticated.useUpdateCall({
-    functionName: 'withdraw_mined',
+    functionName: 'claim_mining_rewards',
     onSuccess: () => {
       refetchTracker(); // Refresh data after successful withdrawal
       refreshUserBalance(); // Refresh user balance after successful withdrawal
@@ -44,8 +44,8 @@ const Profile = () => {
   });
 
   const tracker = useMemo(() => {
-    return fromNullableExt(participationTracker);
-  }, [participationTracker]);
+    return fromNullableExt(miningTracker);
+  }, [miningTracker]);
 
   // Mock values for net worth components (replace with actual data later)
   const mockValues = useMemo(() => ({

@@ -2,6 +2,7 @@ import Types          "Types";
 import MigrationTypes "../Types";
 import Duration       "../../duration/Duration";
 import Clock          "../../utils/Clock";
+import RollingTimeline "../../utils/RollingTimeline";
 
 import Map            "mo:map/Map";
 import Set            "mo:map/Set";
@@ -20,7 +21,7 @@ module {
     type Account        = Types.Account;
     type ICRC1          = Types.ICRC1;
     type ICRC2          = Types.ICRC2;
-    type ParticipationTracker  = Types.ParticipationTracker;
+    type MiningTracker  = Types.MiningTracker;
     type InitArgs       = Types.InitArgs;
     type UpgradeArgs    = Types.UpgradeArgs;
     type DowngradeArgs  = Types.DowngradeArgs;
@@ -81,8 +82,8 @@ module {
                     window_duration_ns = Duration.toTime(parameters.twap_config.window_duration);
                     max_observations = parameters.twap_config.max_observations;
                 };
-                participation = { parameters.participation with
-                    emission_half_life_s = Duration.toSeconds(parameters.participation.emission_half_life);
+                mining = { parameters.mining with
+                    emission_half_life_s = Duration.toSeconds(parameters.mining.emission_half_life);
                 };
                 ballot_half_life_ns = Duration.toTime(parameters.ballot_half_life);
                 clock : Types.ClockParameters = switch(parameters.clock) {
@@ -140,9 +141,11 @@ module {
                     withdraw_queue = Set.new<Text>();
                 };
             };
-            participation = {
+            mining = {
                 var last_mint_timestamp = now;
-                tracking = Map.new<Account, ParticipationTracker>();
+                tracking = Map.new<Account, MiningTracker>();
+                total_allocated = RollingTimeline.make1h4y<Nat>(now, 0);
+                total_claimed = RollingTimeline.make1h4y<Nat>(now, 0);
             };
         });
     };
@@ -174,8 +177,8 @@ module {
                 max_observations = parameters.twap_config.max_observations;
             };
             ballot_half_life_ns = Duration.toTime(parameters.ballot_half_life);
-            participation = { parameters.participation with
-                emission_half_life_s = Duration.toSeconds(parameters.participation.emission_half_life);
+            mining = { parameters.mining with
+                emission_half_life_s = Duration.toSeconds(parameters.mining.emission_half_life);
             };
             clock : Types.ClockParameters = switch(parameters.clock) {
                 case(#REAL) { #REAL; };

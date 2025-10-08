@@ -18,7 +18,7 @@ import LedgerFungible         "ledger/LedgerFungible";
 import LedgerAccount          "ledger/LedgerAccount";
 import Dex                    "ledger/Dex";
 import PriceTracker           "ledger/PriceTracker";
-import ParticipationMiner     "ParticipationMiner";
+import Miner     "Miner";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
@@ -56,7 +56,7 @@ module {
         admin: Principal;
     }) : BuildOutput {
 
-        let { genesis_time; vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; participation; } = state;
+        let { genesis_time; vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; mining; } = state;
         let { duration_scaler; twap_config; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
@@ -117,11 +117,11 @@ module {
             b = duration_scaler.b;
         });
 
-        let participation_miner = ParticipationMiner.ParticipationMiner({
+        let miner = Miner.Miner({
             genesis_time;
-            parameters = parameters.participation;
+            parameters = parameters.mining;
             minting_account = participation_account;
-            register = participation;
+            register = mining;
             supply_positions = lending.register.supply_positions;
             borrow_positions = lending.register.borrow_positions;
             lending_index = lending.index;
@@ -150,7 +150,7 @@ module {
             borrow_registry;
             withdrawal_queue;
             collateral_price_tracker;
-            participation_miner;
+            miner;
             parameters;
             foresight_updater;
         });

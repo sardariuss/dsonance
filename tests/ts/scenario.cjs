@@ -334,10 +334,10 @@ async function callCanisterMethod() {
         tick++;
     }
 
-    // Mine participation
+    // Claim mining rewards for each user
     for (let [_, actors] of userActors) {
-        actors.protocol.withdraw_mined([]).then((mined) => {
-            console.log('Mined participation:', mined);
+        actors.protocol.claim_mining_rewards([]).then((mined) => {
+            console.log('Claimed mining rewards:', mined);
         });
     }
 

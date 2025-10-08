@@ -80,16 +80,24 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         await* getFacade().run();
     };
 
-    public shared({caller}) func withdraw_mined(subaccount: ?Blob) : async ?Nat {
-        await* getFacade().withdraw_mined({ owner = caller; subaccount; });
+    public shared({caller}) func claim_mining_rewards(subaccount: ?Blob) : async ?Nat {
+        await* getFacade().claim_mining_rewards({ owner = caller; subaccount; });
     };
 
-    public query func get_participation_trackers() : async [(Types.Account, Types.ParticipationTracker)] {
-        getFacade().get_participation_trackers();
+    public query func get_mining_trackers() : async [(Types.Account, Types.MiningTracker)] {
+        getFacade().get_mining_trackers();
     };
 
-    public query({caller}) func get_participation_tracker(subaccount: ?Blob) : async ?Types.ParticipationTracker {
-        getFacade().get_participation_tracker({ owner = caller; subaccount; });
+    public query({caller}) func get_mining_tracker(subaccount: ?Blob) : async ?Types.MiningTracker {
+        getFacade().get_mining_tracker({ owner = caller; subaccount; });
+    };
+
+    public query func get_mining_total_allocated() : async Types.SRollingTimeline<Nat> {
+        getFacade().get_mining_total_allocated();
+    };
+
+    public query func get_mining_total_claimed() : async Types.SRollingTimeline<Nat> {
+        getFacade().get_mining_total_claimed();
     };
 
     // Get the ballots of the given account

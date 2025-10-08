@@ -14,24 +14,44 @@ interface TwvAccount {
   subaccount?: number[];
 }
 
-interface ParticipationTracker {
-  received: bigint;
-  owed: bigint;
+interface MiningTracker {
+  claimed: bigint;
+  allocated: bigint;
 }
 
-type ParticipationData = [TwvAccount, ParticipationTracker];
+type MiningData = [TwvAccount, MiningTracker];
+
+interface TimedData<T> {
+  timestamp: bigint;
+  data: T;
+}
+
+interface RollingTimeline<T> {
+  current: TimedData<T>;
+  history: TimedData<T>[];
+  maxSize: bigint;
+  minInterval: bigint;
+}
 
 const MiningDashboard = () => {
   const { theme } = useContext(ThemeContext);
   const { participationLedger : { formatAmount, totalSupply, metadata } } = useFungibleLedgerContext();
   const { parameters, info } = useProtocolContext();
-  const { data: participationTrackers } = protocolActor.unauthenticated.useQueryCall({
-    functionName: 'get_participation_trackers',
+  const { data: miningTrackers } = protocolActor.unauthenticated.useQueryCall({
+    functionName: 'get_mining_trackers',
+    args: [],
+  });
+  const { data: totalAllocatedTimeline } = protocolActor.unauthenticated.useQueryCall({
+    functionName: 'get_mining_total_allocated',
+    args: [],
+  });
+  const { data: totalClaimedTimeline } = protocolActor.unauthenticated.useQueryCall({
+    functionName: 'get_mining_total_claimed',
     args: [],
   });
 
   const miningStats = useMemo(() => {
-    if (!participationTrackers) {
+    if (!miningTrackers) {
       return {
         totalMinted: 0n,
         mintRemaining: undefined,
@@ -39,32 +59,32 @@ const MiningDashboard = () => {
       };
     }
 
-    const data = participationTrackers as ParticipationData[];
+    const data = miningTrackers as MiningData[];
     let totalMinted = 0n;
-    
+
     const distributionData = data.map(([account, tracker]) => {
-      const received = tracker.received;
-      const owed = tracker.owed;
-      const total = received + owed;
-      
+      const claimed = tracker.claimed;
+      const allocated = tracker.allocated;
+      const total = claimed + allocated;
+
       totalMinted += total;
-      
-      const ownerText = typeof account.owner === 'string' 
-        ? account.owner 
+
+      const ownerText = typeof account.owner === 'string'
+        ? account.owner
         : account.owner.toText();
-        
+
       return {
         id: ownerText,
         label: `${ownerText.slice(0, 8)}...${ownerText.slice(-4)}`,
         value: Number(total),
-        received: Number(received),
-        owed: Number(owed),
+        claimed: Number(claimed),
+        allocated: Number(allocated),
       };
     }).filter(item => item.value > 0); // Only show accounts with TWV
 
     let mintRemaining = undefined;
-    if (parameters?.participation.emission_total_amount) {
-      mintRemaining = parameters.participation.emission_total_amount - totalMinted;
+    if (parameters?.mining.emission_total_amount) {
+      mintRemaining = parameters.mining.emission_total_amount - totalMinted;
     }
 
     return {
@@ -72,9 +92,9 @@ const MiningDashboard = () => {
       mintRemaining,
       distributionData,
     };
-  }, [participationTrackers]);
+  }, [miningTrackers, parameters]);
 
-  if (!participationTrackers) {
+  if (!miningTrackers) {
     return <div className="text-center text-gray-500">Loading TWV stats...</div>;
   }
 
@@ -103,20 +123,21 @@ const MiningDashboard = () => {
       </div>
 
       {/* Emission Curve */}
-      {parameters && info && (
+      {parameters && info && totalAllocatedTimeline && totalClaimedTimeline && (
         <div className={CONTENT_PANEL}>
           <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
-            Emission Curve
+            Mining Overview
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Cumulative TWV minted over time (left axis) and daily emission rate (right axis)
+            Historical total mined TWV (left axis) and theoretical emission rate curve (right axis)
           </p>
           <EmissionCurveChart
             genesisTime={info.genesis_time}
             currentTime={info.current_time}
-            emissionTotalAmount={parameters.participation.emission_total_amount}
-            emissionHalfLifeS={parameters.participation.emission_half_life_s}
-            totalMinted={miningStats.totalMinted}
+            emissionTotalAmount={parameters.mining.emission_total_amount}
+            emissionHalfLifeS={parameters.mining.emission_half_life_s}
+            totalAllocatedTimeline={totalAllocatedTimeline as RollingTimeline<bigint>}
+            totalClaimedTimeline={totalClaimedTimeline as RollingTimeline<bigint>}
             formatAmount={(amount) => formatAmount(amount) || '0'}
           />
         </div>

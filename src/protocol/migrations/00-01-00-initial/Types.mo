@@ -3,6 +3,7 @@ import Error "mo:base/Error";
 import Map   "mo:map/Map";
 import Set   "mo:map/Set";
 import BTree "mo:stableheapbtreemap/BTree";
+import RollingTimeline "../../utils/RollingTimeline";
 
 // please do not import any types from your project outside migrations folder here
 // it can lead to bugs when you change those types later, because migration types should not be changed
@@ -13,6 +14,7 @@ module {
     type Map<K, V> = Map.Map<K, V>;
     type Set<K> = Set.Set<K>;
     type BTree<K, V> = BTree.BTree<K, V>;
+    type RollingTimelineType<T> = RollingTimeline.RollingTimeline<T>;
 
     // From ICRC1    
 
@@ -418,6 +420,8 @@ module {
         data: T;
     };
 
+    public type RollingTimeline<T> = RollingTimelineType<T>;
+
     public type VoteRegister = {
         votes: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
@@ -589,15 +593,15 @@ module {
         amount_minted: Timeline<Float>;
     };
 
-    public type ParticipationParameters = {
+    public type MiningParameters = {
         emission_half_life: Duration;
         emission_total_amount: Nat;
         borrowers_share: Float;
     };
 
-    public type ParticipationTracker = {
-        received: Nat;
-        owed: Nat;
+    public type MiningTracker = {
+        claimed: Nat;
+        allocated: Nat;
     };
 
      type Var<V> = {
@@ -756,7 +760,7 @@ module {
         foresight: ForesightParameters;
         duration_scaler: DurationScalerParameters;
         minimum_ballot_amount: Nat;
-        participation: {
+        mining: {
             emission_half_life_s: Float;
             emission_total_amount: Nat;
             borrowers_share: Float;
@@ -786,7 +790,7 @@ module {
             max_age: Duration;
             age_coefficient: Float;
         };
-        participation: ParticipationParameters;
+        mining: MiningParameters;
         timer_interval_s: Nat; // Use duration instead
         clock: ClockInitArgs;
         lending: LendingParameters;
@@ -831,9 +835,11 @@ module {
             index: { var value: LendingIndex; };
             register: LendingRegister;
         };
-        participation: {
+        mining: {
             var last_mint_timestamp: Nat;
-            tracking: Map<Account, ParticipationTracker>;
+            tracking: Map<Account, MiningTracker>;
+            total_allocated: RollingTimeline<Nat>;
+            total_claimed: RollingTimeline<Nat>;
         };
     };
   

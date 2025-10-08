@@ -22,7 +22,7 @@ module {
         };
     };
 
-    // TODO: think about factoring that model out with the one in ParticipationMiner
+    // TODO: think about factoring that model out with the one in Miner
     public class DecayModel({half_life_ns: Nat; genesis_time: Time}){
 
         // @todo: find out how small can the half-life be before the decay becomes too small or too big to be represented by a float64!

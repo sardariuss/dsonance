@@ -3,6 +3,7 @@ import LendingTypes "lending/Types";
 import LedgerTypes "ledger/Types";
 import Duration "duration/Duration";
 import MapUtils "utils/Map";
+import RollingTimeline "utils/RollingTimeline";
 
 import Debug "mo:base/Debug";
 import Float "mo:base/Float";
@@ -21,27 +22,28 @@ module {
     type Borrow = LendingTypes.Borrow;
     type ILedgerAccount = LedgerTypes.ILedgerAccount;
     type Transfer = LedgerTypes.Transfer;
-    type ParticipationTracker = Types.ParticipationTracker;
+    type MiningTracker = Types.MiningTracker;
     type Buffer<T> = Buffer.Buffer<T>;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
-    
-    type ParticipationParameters = {
+
+    type MiningParameters = {
         emission_half_life_s: Float;
         emission_total_amount: Nat;
         borrowers_share: Float;
     };
 
-
-    public class ParticipationMiner({
+    public class Miner({
         genesis_time: Nat;
-        parameters: ParticipationParameters;
+        parameters: MiningParameters;
         minting_account: ILedgerAccount;
         supply_positions: Map.Map<Text, SupplyPosition>;
         borrow_positions: Map.Map<Account, BorrowPosition>;
         lending_index: { var value: LendingIndex; };
         register: {
             var last_mint_timestamp: Nat;
-            tracking: Map.Map<Account, ParticipationTracker>;
+            tracking: Map.Map<Account, MiningTracker>;
+            total_allocated: RollingTimeline.RollingTimeline<Nat>;
+            total_claimed: RollingTimeline.RollingTimeline<Nat>;
         };
     }) {
 
@@ -71,9 +73,9 @@ module {
             let unminted_at_now = e0 * Float.exp(-k * Float.fromInt(now - genesis_time) / Float.fromInt(Duration.NS_IN_SECOND));
             let amount_to_mint = unminted_at_last - unminted_at_now;
 
-            Debug.print("ParticipationMiner: k = " # debug_show(k));
-            Debug.print("ParticipationMiner: Half-life = " # debug_show(parameters.emission_half_life_s) # " seconds");
-            Debug.print("ParticipationMiner: Amount to mint = " # debug_show(amount_to_mint) # " TWV tokens");
+            Debug.print("Miner: k = " # debug_show(k));
+            Debug.print("Miner: Half-life = " # debug_show(parameters.emission_half_life_s) # " seconds");
+            Debug.print("Miner: Amount to mint = " # debug_show(amount_to_mint) # " TWV tokens");
 
             if (amount_to_mint < 0) {
                 return #err("Logic error: amount to mint cannot be negative");
@@ -88,8 +90,8 @@ module {
             let borrowers_amount = amount_to_mint * parameters.borrowers_share;
             let suppliers_amount = amount_to_mint * (1.0 - parameters.borrowers_share);
             
-            Debug.print("ParticipationMiner: Suppliers amount = " # debug_show(suppliers_amount));
-            Debug.print("ParticipationMiner: Borrowers amount = " # debug_show(borrowers_amount));
+            Debug.print("Miner: Suppliers amount = " # debug_show(suppliers_amount));
+            Debug.print("Miner: Borrowers amount = " # debug_show(borrowers_amount));
 
             // Get current lending index
             let { raw_supplied; raw_borrowed; } = lending_index.value.utilization;
@@ -107,52 +109,67 @@ module {
             #ok;
         };
 
-        public func withdraw(account: Account) : async* ?Nat {
+        public func withdraw(account: Account, now: Nat) : async* ?Nat {
             let tracker = switch (Map.get(register.tracking, MapUtils.acchash, account)) {
-                case (null) { 
-                    Debug.print("ParticipationMiner: No participations found for account " # debug_show(account));
-                    return null; 
+                case (null) {
+                    Debug.print("Miner: No mining rewards found for account " # debug_show(account));
+                    return null;
                 };
                 case (?t) { t; };
             };
-            
-            if (tracker.owed == 0) {
-                Debug.print("ParticipationMiner: No participations owed for account " # debug_show(account));
+
+            if (tracker.allocated == 0) {
+                Debug.print("Miner: No mining rewards allocated for account " # debug_show(account));
                 return null;
             };
-            
-            Debug.print("ParticipationMiner: Attempting to claim " # debug_show(tracker.owed) # " TWV owed to " # debug_show(account));
-            
+
+            Debug.print("Miner: Attempting to claim " # debug_show(tracker.allocated) # " TWV allocated to " # debug_show(account));
+
             let transfer_result = await* minting_account.transfer({
-                amount = tracker.owed;
+                amount = tracker.allocated;
                 to = account;
             });
-            
+
             let tx_id = switch (transfer_result.result) {
                 case (#err(error)) {
-                    Debug.print("ParticipationMiner: Failed to claim participations for " # debug_show(account) # " - Error: " # debug_show(error));
+                    Debug.print("Miner: Failed to claim mining rewards for " # debug_show(account) # " - Error: " # debug_show(error));
                     return null;
                 };
                 case (#ok(id)) { id; };
             };
-            
-            // Transfer successful - move from owed to received
+
+            // Transfer successful - move from allocated to claimed
             // TODO: add tx_id here
+            let withdrawn_amount = tracker.allocated;
             let updated_tracker = {
-                received = tracker.received + tracker.owed;
-                owed = 0;
+                claimed = tracker.claimed + withdrawn_amount;
+                allocated = 0;
             };
             Map.set(register.tracking, MapUtils.acchash, account, updated_tracker);
-            Debug.print("ParticipationMiner: Successfully claimed " # debug_show(tracker.owed) # " TWV for " # debug_show(account) # " - TX: " # debug_show(tx_id));
-            ?tracker.owed;
+
+            // Update total_claimed timeline
+            let current_total_claimed = RollingTimeline.current(register.total_claimed);
+            let new_total_claimed = current_total_claimed + withdrawn_amount;
+            RollingTimeline.insert(register.total_claimed, now, new_total_claimed);
+
+            Debug.print("Miner: Successfully withdrawn " # debug_show(withdrawn_amount) # " TWV for " # debug_show(account) # " - TX: " # debug_show(tx_id));
+            ?withdrawn_amount;
         };
 
-        public func get_trackers() : [(Account, ParticipationTracker)] {
+        public func get_trackers() : [(Account, MiningTracker)] {
             Map.toArray(register.tracking);
         };
 
-        public func get_tracker(account: Account) : ?ParticipationTracker {
+        public func get_tracker(account: Account) : ?MiningTracker {
             Map.get(register.tracking, MapUtils.acchash, account);
+        };
+
+        public func get_total_allocated() : RollingTimeline.RollingTimeline<Nat> {
+            register.total_allocated;
+        };
+
+        public func get_total_claimed() : RollingTimeline.RollingTimeline<Nat> {
+            register.total_claimed;
         };
 
         func accumulate_supplier_owed(total_amount: Float, raw_supplied: Float) {
@@ -192,16 +209,22 @@ module {
 
         func add_owed(account: Account, amount: Nat) {
             let current_tracker = switch (Map.get(register.tracking, MapUtils.acchash, account)) {
-                case (null) { { received = 0; owed = 0; }; };
+                case (null) { { claimed = 0; allocated = 0; }; };
                 case (?tracker) { tracker; };
             };
-            
+
             let updated_tracker = {
-                current_tracker with owed = current_tracker.owed + amount;
+                current_tracker with allocated = current_tracker.allocated + amount;
             };
-            
+
             Map.set(register.tracking, MapUtils.acchash, account, updated_tracker);
-            Debug.print("ParticipationMiner: Updated tracker for " # debug_show(account) # " - Received: " # debug_show(updated_tracker.received) # ", Owed: " # debug_show(updated_tracker.owed));
+
+            // Update total_allocated timeline
+            let current_total_allocated = RollingTimeline.current(register.total_allocated);
+            let new_total_allocated = current_total_allocated + amount;
+            RollingTimeline.insert(register.total_allocated, register.last_mint_timestamp, new_total_allocated);
+
+            Debug.print("Miner: Updated tracker for " # debug_show(account) # " - Claimed: " # debug_show(updated_tracker.claimed) # ", Allocated: " # debug_show(updated_tracker.allocated));
         };
 
 

@@ -35,6 +35,7 @@ module {
     public type YesNoChoice              = Types.Current.YesNoChoice;
     public type Timeline<T>              = Types.Current.Timeline<T>;
     public type TimedData<T>             = Types.Current.TimedData<T>;
+    public type RollingTimeline<T>       = Types.Current.RollingTimeline<T>;
     public type Vote<A, B>               = Types.Current.Vote<A, B>;
     public type LockInfo                 = Types.Current.LockInfo;
     public type Ballot<B>                = Types.Current.Ballot<B>;
@@ -56,8 +57,8 @@ module {
     public type DebtRegister             = Types.Current.DebtRegister;
     public type DebtRecord               = Types.Current.DebtRecord;
     public type MinterParameters         = Types.Current.MinterParameters;
-    public type ParticipationParameters  = Types.Current.ParticipationParameters;
-    public type ParticipationTracker     = Types.Current.ParticipationTracker;
+    public type MiningParameters         = Types.Current.MiningParameters;
+    public type MiningTracker            = Types.Current.MiningTracker;
     public type LockSchedulerState       = Types.Current.LockSchedulerState;
     public type YieldState               = Types.Current.YieldState;
     public type TransferError            = Types.Current.TransferError;
@@ -151,6 +152,13 @@ module {
         history: [TimedData<T>];
     };
 
+    public type SRollingTimeline<T> = {
+        current: TimedData<T>;
+        history: [TimedData<T>];
+        maxSize: Nat;
+        minInterval: Nat;
+    };
+
     public type SBallot<B> = {
         ballot_id: UUID;
         vote_id: UUID;
@@ -208,7 +216,7 @@ module {
         ballot_half_life: Duration;
         clock: SClockParameters;
         lending: LendingParameters;
-        participation: {
+        mining: {
             emission_half_life_s: Float;
             emission_total_amount: Nat;
             borrowers_share: Float;
