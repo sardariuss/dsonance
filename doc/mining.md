@@ -1,11 +1,11 @@
 ---
-cover: .gitbook/assets/logo.png
+cover: .gitbook/assets/towerviewers.webp
 coverY: 0
 ---
 
 # TWV Mining
 
-Dsonance includes a sophisticated mining mechanism that distributes TWV tokens to protocol participants. This system rewards both suppliers and borrowers who contribute to the lending protocol's.
+Towerview includes a sophisticated mining mechanism that distributes TWV tokens to protocol participants. This system rewards both suppliers and borrowers who contribute to the lending protocol's.
 
 ## Overview
 

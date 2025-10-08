@@ -1,5 +1,5 @@
 ---
-cover: .gitbook/assets/logo.png
+cover: .gitbook/assets/towerviewers.webp
 coverY: 0
 ---
 
