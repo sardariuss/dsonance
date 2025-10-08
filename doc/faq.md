@@ -16,19 +16,19 @@ coverY: 0
 ***
 
 **Q: What happens to my locked tokens after the lock duration?**\
-**A:** Once the lock duration ends, your original tokens are always fully returned (minus 0.02 USDT as transfer fee). You also get extra USDT on top, based on that position APY.
+**A:** Once the lock duration ends, your original tokens are always fully returned (minus 0.02 USDT as transfer fee). You also get extra USDT on top, based on that position's resolution APY.
 
 ***
 
-**Q: How is my position APY computed?**\
-**A:** The position APY depends on several factors. The first factor, which is independant to the position, is the borrowing utilization rate (how much is borrowed compared to how much is supplied in the protocol). The other factors are the position dissent (fixed at time of opening), position consent at the moment the position is unlocked, and the duration lock of the position. It is explained in details in the [Position rewards](protocol-beta-version/lock-rewards.md) chapter.
+**Q: How is the resolution APY computed?**\
+**A:** The position's resolution APY depends on several factors. The first factor, which is independant to the position, is the borrowing utilization rate (how much is borrowed compared to how much is supplied in the protocol). The other factors are the position dissent (fixed at time of opening), position consent at the moment the position is unlocked, and the duration lock of the position. It is explained in details in the [Position rewards](protocol-beta-version/lock-rewards.md) chapter.
 
 ***
 
 **Q: I didn’t plan for my lock duration to increase so much. Is there anything I can do to unlock it?**\
-**A:** Unfortunately, once a lock is placed, its duration cannot be manually reduced or undone. The increasing duration is a key part of the protocol’s design, ensuring that sufficient time is allowed for the truth to emerge on important topics.
+**A:** Unfortunately, once a position is placed, its lock duration cannot be manually reduced or undone. The increasing duration is a key part of the protocol’s design, ensuring that sufficient time is allowed for the truth to emerge on important topics.
 
 ***
 
-**Q: I am sure most consensuses do not reflect the actual opinion. Can I contact a moderator to change them?**\
-**A:** Each consensus is determined by the collective positions of the participants and evolves over time based on the active input of the community. Since the platform is decentralized, there is no moderator who can alter the consensus. However, you are always welcomed to participate and open your position to help shape the consensus in line with your perspective.
+**Q: I am sure the current consensus do not reflect the actual opinion. Can I contact a moderator to change them?**\
+**A:** Each pool's consensus is determined by the collective positions of the participants and evolves over time based on the active input of the community. Since the platform is decentralized, there is no moderator who can alter the consensus. However, you are always welcomed to participate and open your position to help shape the consensus in line with your perspective.
