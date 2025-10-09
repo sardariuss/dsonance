@@ -2,13 +2,18 @@ import React, { useMemo, useState } from "react";
 import Modal from "../common/Modal";
 import { TokenLabel } from "../common/TokenLabel";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
-import { getTokenName } from "../../utils/metadata"; 
+import { getTokenName, getTokenLogo } from "../../utils/metadata";
 import { Result_1 } from "@/declarations/protocol/protocol.did";
 import Spinner from "../Spinner";
 import useBorrowOperationPreview from "../hooks/useBorrowOperationPreview";
 import { FungibleLedger } from "../hooks/useFungibleLedger";
 import HealthFactor from "./HealthFactor";
 import { showErrorToast, showSuccessToast, extractErrorMessage } from "../../utils/toasts";
+import { useMiningRates } from "../hooks/useMiningRates";
+import { useProtocolContext } from "../context/ProtocolContext";
+import { protocolActor } from "../actors/ProtocolActor";
+import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
+import { HiMiniTrophy } from "react-icons/hi2";
 
 interface BorrowButtonProps {
   ledger: FungibleLedger;
@@ -37,6 +42,37 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
   const fullTitle = useMemo(
     () => `${title} ${getTokenName(ledger.metadata) ?? ""}`,
   [title, ledger.metadata]);
+
+  // Mining rates calculation (only for borrow operations)
+  const { parameters, info } = useProtocolContext();
+  const { participationLedger } = useFungibleLedgerContext();
+  const { data: lendingIndex } = protocolActor.unauthenticated.useQueryCall({
+    functionName: 'get_lending_index',
+    args: [],
+  });
+
+  const miningRates = useMiningRates(
+    info?.genesis_time,
+    info?.current_time,
+    parameters?.mining,
+    lendingIndex
+  );
+
+  const twvLogo = useMemo(() => {
+    return getTokenLogo(participationLedger.metadata);
+  }, [participationLedger.metadata]);
+
+  // Calculate mining rewards per day if this is a borrow operation
+  const isBorrowOperation = title === "Borrow";
+  const miningRewardsPerDay = useMemo(() => {
+    if (!isBorrowOperation || !miningRates || amount === 0n) {
+      return 0;
+    }
+
+    return miningRates.calculatePreviewRates({
+      additionalBorrow: amount
+    }).previewBorrowRatePerToken * Number(amount);
+  }, [isBorrowOperation, miningRates, amount]);
 
   const onClick = () => {
     
@@ -163,12 +199,34 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
           </div>
           <div className="flex flex-col w-full space-y-1">
             <span className="text-gray-600 dark:text-gray-400 text-sm">Transaction overview</span>
-            <div className="grid grid-cols-[auto_auto] border border-gray-300 dark:border-gray-700 rounded-md p-2">
-              <span className="text-base">Health factor</span>
-              <div className="flex flex-col items-end justify-self-end">
-                { loadingPreview ? <Spinner size={"25px"}/> : <HealthFactor loanPosition={loanPositionPreview}/> }
-                <span className="text-xs text-gray-400 dark:text-gray-500">Liquidation at &lt;1.0</span>
+            <div className="flex flex-col border border-gray-300 dark:border-gray-700 rounded-md p-2 gap-2">
+              <div className="grid grid-cols-[auto_auto]">
+                <span className="text-base">Health factor</span>
+                <div className="flex flex-col items-end justify-self-end">
+                  { loadingPreview ? <Spinner size={"25px"}/> : <HealthFactor loanPosition={loanPositionPreview}/> }
+                  <span className="text-xs text-gray-400 dark:text-gray-500">Liquidation at &lt;1.0</span>
+                </div>
               </div>
+              {isBorrowOperation && miningRates && amount > 0n && (
+                <>
+                  <div className="border-t border-gray-300 dark:border-gray-700"></div>
+                  <div className="grid grid-cols-[auto_auto]">
+                    <div className="flex items-center gap-2">
+                      {twvLogo ? (
+                        <img src={twvLogo} alt="TWV" className="w-5 h-5" />
+                      ) : (
+                        <HiMiniTrophy className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      )}
+                      <span className="text-base">Mining rewards</span>
+                    </div>
+                    <div className="flex flex-col items-end justify-self-end">
+                      <span className="text-base font-semibold">
+                        {participationLedger.formatAmount(miningRewardsPerDay)} TWV/day
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <button 
