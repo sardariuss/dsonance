@@ -595,7 +595,7 @@ module {
 
     public type MiningParameters = {
         emission_half_life: Duration;
-        emission_total_amount: Nat;
+        emission_total_amount_e8s: Nat;
         borrowers_share: Float;
     };
 
@@ -762,7 +762,7 @@ module {
         minimum_ballot_amount: Nat;
         mining: {
             emission_half_life_s: Float;
-            emission_total_amount: Nat;
+            emission_total_amount_e8s: Nat;
             borrowers_share: Float;
         };
         timer_interval_s: Nat;

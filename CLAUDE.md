@@ -56,7 +56,7 @@ The project uses multiple canisters (smart contracts):
 - `ck_btc` - ckBTC ledger (src/ledger/main.mo)
 - `ck_usdt` - ckUSDT ledger (src/ledger/main.mo)
 - `dex` - DEX functionality (src/dex/main.mo)
-- `minter` - Token minting
+- `faucet` - Faucet
 - `icp_coins` - Price oracle
 - `internet_identity` - Authentication
 

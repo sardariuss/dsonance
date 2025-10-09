@@ -8,6 +8,7 @@ import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { useProtocolContext } from "../context/ProtocolContext";
 import { DASHBOARD_CONTAINER, STATS_OVERVIEW_CONTAINER, VERTICAL_DIVIDER, METRICS_WRAPPER, CONTENT_PANEL } from "../../utils/styles";
 import EmissionCurveChart from "../charts/EmissionCurveChart";
+import { useMiningRates } from "../hooks/useMiningRates";
 
 interface TwvAccount {
   owner: { toText(): string } | string;
@@ -49,12 +50,23 @@ const MiningDashboard = () => {
     functionName: 'get_mining_total_claimed',
     args: [],
   });
+  const { data: lendingIndex } = protocolActor.unauthenticated.useQueryCall({
+    functionName: 'get_lending_index',
+    args: [],
+  });
+
+  const miningRates = useMiningRates(
+    info?.genesis_time,
+    info?.current_time,
+    parameters?.mining,
+    lendingIndex
+  );
 
   const miningStats = useMemo(() => {
     if (!miningTrackers) {
       return {
         totalMinted: 0n,
-        mintRemaining: undefined,
+        miningRemaining: undefined,
         distributionData: [],
       };
     }
@@ -82,14 +94,14 @@ const MiningDashboard = () => {
       };
     }).filter(item => item.value > 0); // Only show accounts with TWV
 
-    let mintRemaining = undefined;
-    if (parameters?.mining.emission_total_amount) {
-      mintRemaining = parameters.mining.emission_total_amount - totalMinted;
+    let miningRemaining = undefined;
+    if (parameters?.mining.emission_total_amount_e8s) {
+      miningRemaining = parameters.mining.emission_total_amount_e8s - totalMinted;
     }
 
     return {
       totalMinted,
-      mintRemaining,
+      miningRemaining,
       distributionData,
     };
   }, [miningTrackers, parameters]);
@@ -112,15 +124,51 @@ const MiningDashboard = () => {
             bottom={formatAmount(totalSupply)}
           />
           <DualLabel
-            top="Total minted"
+            top="Total mined"
             bottom={formatAmount(miningStats.totalMinted)}
           />
           <DualLabel
-            top="Mint remaining"
-            bottom={formatAmount(miningStats.mintRemaining)}
+            top="Mining remaining"
+            bottom={formatAmount(miningStats.miningRemaining)}
+          />
+          <DualLabel
+            top="Current emission rate"
+            bottom={miningRates ? `${formatAmount(miningRates.totalEmissionRate)} TWV/day` : '—'}
           />
         </div>
       </div>
+
+      {/* Mining Parameters */}
+      {parameters && (
+        <div className={CONTENT_PANEL}>
+          <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
+            Mining Parameters
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Emission</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                {formatAmount(parameters.mining.emission_total_amount_e8s)} TWV
+              </div>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Emission Half-Life</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                {(parameters.mining.emission_half_life_s / (24 * 60 * 60)).toFixed(2)} days
+              </div>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Borrowers Share</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                {(parameters.mining.borrowers_share * 100).toFixed(1)}%
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                Suppliers: {((1 - parameters.mining.borrowers_share) * 100).toFixed(1)}%
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Emission Curve */}
       {parameters && info && totalAllocatedTimeline && totalClaimedTimeline && (
@@ -134,7 +182,7 @@ const MiningDashboard = () => {
           <EmissionCurveChart
             genesisTime={info.genesis_time}
             currentTime={info.current_time}
-            emissionTotalAmount={parameters.mining.emission_total_amount}
+            emissionTotalAmountE8s={parameters.mining.emission_total_amount_e8s}
             emissionHalfLifeS={parameters.mining.emission_half_life_s}
             totalAllocatedTimeline={totalAllocatedTimeline as RollingTimeline<bigint>}
             totalClaimedTimeline={totalClaimedTimeline as RollingTimeline<bigint>}

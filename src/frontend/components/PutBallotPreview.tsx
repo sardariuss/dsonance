@@ -3,8 +3,13 @@ import { get_current } from "../utils/timeline";
 import { unwrapLock } from "../utils/conversions/ballot";
 import { SBallot } from "@/declarations/protocol/protocol.did";
 import { aprToApy } from "../utils/lending";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { HiMiniArrowTrendingUp, HiMiniTrophy, HiOutlineArrowTrendingUp, HiOutlineClock, HiTrophy } from "react-icons/hi2";
+import { useMiningRates } from "./hooks/useMiningRates";
+import { useProtocolContext } from "./context/ProtocolContext";
+import { protocolActor } from "./actors/ProtocolActor";
+import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
+import { getTokenLogo, getTokenDecimals } from "../utils/metadata";
 
 interface PutBallotPreviewProps {
   ballotPreview: SBallot | undefined;
@@ -20,7 +25,25 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const [useSupplyImpact, setUseSupplyImpact] = useState(true);
 
+  const { parameters, info } = useProtocolContext();
+  const { participationLedger, supplyLedger } = useFungibleLedgerContext();
+  const { data: lendingIndex } = protocolActor.unauthenticated.useQueryCall({
+    functionName: 'get_lending_index',
+    args: [],
+  });
+
+  const miningRates = useMiningRates(
+    info?.genesis_time,
+    info?.current_time,
+    parameters?.mining,
+    lendingIndex
+  );
+
   const displayedPreview = useSupplyImpact ? ballotPreview : ballotPreviewWithoutImpact;
+
+  const twvLogo = useMemo(() => {
+    return getTokenLogo(participationLedger.metadata);
+  }, [participationLedger.metadata]);
 
   // Return null if no preview is available
   if (!displayedPreview) {
@@ -32,6 +55,12 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
     onToggleSupplyImpact?.(enabled);
   };
 
+  const miningRewardsPerDay = miningRates && displayedPreview.amount > 0n
+    ? miningRates.calculatePreviewRates({
+        additionalSupply: displayedPreview.amount
+      }).previewSupplyRatePerToken * Number(displayedPreview.amount)
+    : 0;
+
   const basicFields = [
     {
       label: "Min duration",
@@ -42,6 +71,11 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
       label: "Max APY",
       icon: <HiMiniArrowTrendingUp className="w-5 h-5" />,
       value: (aprToApy(displayedPreview.foresight.apr.potential) * 100).toFixed(2) + "%",
+    },
+    {
+      label: "Mining rewards",
+      icon: twvLogo ? <img src={twvLogo} alt="TWV" className="w-5 h-5" /> : <HiMiniTrophy className="w-5 h-5" />,
+      value: miningRates ? `${participationLedger.formatAmount(miningRewardsPerDay)} TWV/day` : "—",
     },
   ];
 

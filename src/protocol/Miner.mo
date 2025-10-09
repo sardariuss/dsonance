@@ -28,7 +28,7 @@ module {
 
     type MiningParameters = {
         emission_half_life_s: Float;
-        emission_total_amount: Nat;
+        emission_total_amount_e8s: Nat;
         borrowers_share: Float;
     };
 
@@ -66,7 +66,7 @@ module {
             // Calculate k = ln(2) / T_h where T_h is half_life in seconds
             let k = Float.log(2.0) / parameters.emission_half_life_s;
 
-            let e0 = Float.fromInt(parameters.emission_total_amount);
+            let e0 = Float.fromInt(parameters.emission_total_amount_e8s);
             
             // Calculate emission using formula: E_0 * (1 - e^(-kt))
             let unminted_at_last = e0 * Float.exp(-k * Float.fromInt(last_time - genesis_time) / Float.fromInt(Duration.NS_IN_SECOND));

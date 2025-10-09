@@ -116,7 +116,17 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
 
     const value = fromFixedPoint(amount, tokenDecimals);
 
-    // Calculate significant digits formatting
+    if (notation === "compact") {
+      // For compact notation, use significant digits to get proper formatting
+      // e.g., 6,654,323 -> 6.65M instead of 7M
+      return new Intl.NumberFormat("en-US", {
+        notation: "compact",
+        minimumSignificantDigits: 1,
+        maximumSignificantDigits: 3,
+      }).format(value);
+    }
+
+    // Calculate significant digits formatting for standard notation
     const getSignificantDigitsFormatting = (num: number, significantDigits: number = 5) => {
       if (num === 0) {
         return { minimumFractionDigits: 0, maximumFractionDigits: 0 };
@@ -153,6 +163,18 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     if (usdValue === undefined) {
       return "N/A";
     }
+
+    if (notation === "compact") {
+      // For compact notation, use significant digits
+      let formattedValue = new Intl.NumberFormat("en-US", {
+        notation: "compact",
+        minimumSignificantDigits: 1,
+        maximumSignificantDigits: 3,
+      }).format(usdValue);
+      return `$${formattedValue}`;
+    }
+
+    // For standard notation, use 2 decimal places
     let formattedValue = new Intl.NumberFormat("en-US", {
       notation,
       minimumFractionDigits: 0,

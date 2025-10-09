@@ -1,6 +1,7 @@
 import { ResponsiveLine } from '@nivo/line';
 import { useContext } from "react";
 import { ThemeContext } from "../App";
+import { calculateEmissionRatePerSecond } from '../hooks/useMiningRates';
 
 interface TimedData<T> {
   timestamp: bigint;
@@ -17,7 +18,7 @@ interface RollingTimeline<T> {
 interface EmissionCurveChartProps {
   genesisTime: bigint;
   currentTime: bigint;
-  emissionTotalAmount: bigint;
+  emissionTotalAmountE8s: bigint;
   emissionHalfLifeS: number;
   totalAllocatedTimeline: RollingTimeline<bigint>;
   totalClaimedTimeline: RollingTimeline<bigint>;
@@ -27,7 +28,7 @@ interface EmissionCurveChartProps {
 const EmissionCurveChart: React.FC<EmissionCurveChartProps> = ({
   genesisTime,
   currentTime,
-  emissionTotalAmount,
+  emissionTotalAmountE8s,
   emissionHalfLifeS,
   totalAllocatedTimeline,
   totalClaimedTimeline,
@@ -42,7 +43,7 @@ const EmissionCurveChart: React.FC<EmissionCurveChartProps> = ({
   // Process timeline data and generate emission rate curve
   const generateChartData = () => {
     const k = Math.log(2) / emissionHalfLifeS;
-    const E0 = Number(emissionTotalAmount);
+    const E0 = Number(emissionTotalAmountE8s);
 
     const genesisTimeNum = Number(genesisTime);
     const currentTimeNum = Number(currentTime);
@@ -99,13 +100,13 @@ const EmissionCurveChart: React.FC<EmissionCurveChartProps> = ({
       const days = (projectionDays * i) / numPoints;
       const timeInSeconds = days * 24 * 60 * 60;
 
-      // Calculate emission rate at this time: dE/dt = E_0 * k * e^(-kt) in TWV/second
-      const emissionRatePerSecond = E0 * k * Math.exp(-k * timeInSeconds);
-      const emissionRatePerDay = emissionRatePerSecond * 24 * 60 * 60;
+      // Calculate emission rate at this time using the shared utility
+      const emissionRateE8sPerSecond = calculateEmissionRatePerSecond(E0, k, timeInSeconds);
+      const emissionRateE8sPerDay = emissionRateE8sPerSecond * 24 * 60 * 60;
 
       emissionRateCurve.push({
         x: days,
-        y: emissionRatePerDay
+        y: emissionRateE8sPerDay
       });
     }
 

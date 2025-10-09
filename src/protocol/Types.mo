@@ -218,7 +218,7 @@ module {
         lending: LendingParameters;
         mining: {
             emission_half_life_s: Float;
-            emission_total_amount: Nat;
+            emission_total_amount_e8s: Nat;
             borrowers_share: Float;
         };
         twap_config: {

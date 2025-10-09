@@ -17,7 +17,7 @@ TWV mining operates on a continuous emission schedule with exponential decay, si
 
 The TWV emission follows an exponential decay model based on three key parameters:
 
-- **`emission_total_amount`**: The total maximum TWV tokens that will ever be minted
+- **`emission_total_amount_e8s`**: The total maximum TWV tokens that will ever be minted
 - **`emission_half_life_s`**: The half-life period in seconds for the emission curve
 - **`borrowers_share`**: The percentage of emissions allocated to borrowers (remainder goes to suppliers)
 

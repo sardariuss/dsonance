@@ -97,7 +97,7 @@ dfx deploy ckusdt_ledger --argument '(
 dfx deploy twv_ledger --argument '(
   variant {
     Init = record {
-      decimals = opt (9 : nat8);
+      decimals = opt (8 : nat8);
       token_symbol = "TWV";
       token_name = "TowerView";
       transfer_fee = 1000 : nat;
@@ -210,7 +210,7 @@ dfx deploy protocol --argument '( variant {
       };
       mining = record {
         emission_half_life = variant { YEARS = 2 };
-        emission_total_amount = 6_700_000_000_000_000;
+        emission_total_amount_e8s = 6_700_000_000_000_000;
         borrowers_share = 0.75;
       };
     };
