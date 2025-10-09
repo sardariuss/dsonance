@@ -4,6 +4,13 @@ import ActionButton from "../common/ActionButton";
 import { OperationKind, Result_1 } from "../../../declarations/protocol/protocol.did";
 import { REPAY_SLIPPAGE_RATIO } from "../../constants";
 import { BallotListContent } from "../user/BallotList";
+import { useMiningRates } from "../hooks/useMiningRates";
+import { useProtocolContext } from "../context/ProtocolContext";
+import { protocolActor } from "../actors/ProtocolActor";
+import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
+import { getTokenLogo } from "../../utils/metadata";
+import { useMemo } from "react";
+import { HiMiniTrophy } from "react-icons/hi2";
 
 export const SupplyContent = ({
   user,
@@ -85,10 +92,46 @@ export const BorrowContent = ({
   previewOperation: (amount: bigint, kind: OperationKind) => Promise<Result_1 | undefined>;
   runOperation: (amount: bigint, kind: OperationKind) => Promise<Result_1 | undefined>;
 }) => {
+  // Mining rates calculation
+  const { parameters, info } = useProtocolContext();
+  const { participationLedger } = useFungibleLedgerContext();
+  const { data: lendingIndex } = protocolActor.unauthenticated.useQueryCall({
+    functionName: 'get_lending_index',
+    args: [],
+  });
+
+  const miningRates = useMiningRates(
+    info?.genesis_time,
+    info?.current_time,
+    parameters?.mining,
+    lendingIndex
+  );
+
+  const twvLogo = useMemo(() => {
+    return getTokenLogo(participationLedger.metadata);
+  }, [participationLedger.metadata]);
+
+  const currentBorrowRatePerToken = miningRates?.currentBorrowRatePerToken || 0;
+
   return (
     <div className="bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700 space-y-6">
       <div className="flex flex-col w-full gap-4">
-        <span className="text-xl font-semibold">Your borrow</span>
+        <div className="flex flex-col gap-2">
+          <span className="text-xl font-semibold">Your borrow</span>
+          {miningRates && currentBorrowRatePerToken > 0 && (
+            <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-lg">
+              {twvLogo ? (
+                <img src={twvLogo} alt="TWV" className="w-5 h-5 flex-shrink-0" />
+              ) : (
+                <HiMiniTrophy className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+              )}
+              <span className="text-sm text-blue-900 dark:text-blue-100">
+                { /* TODO: find a way to not use hard-coded conversion here */ }
+                Get up to <span className="font-semibold">{participationLedger.formatAmount(currentBorrowRatePerToken * 10 ** 6)} TWV/day</span> per ckUSDT borrowed!
+              </span>
+            </div>
+          )}
+        </div>
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center w-full gap-4">
           <div className="flex flex-row items-center gap-4">
             <TokenLabel metadata={supplyLedger.metadata}/>
