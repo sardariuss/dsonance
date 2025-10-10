@@ -38,7 +38,6 @@ const CollateralDashboard = () => {
       </div>
       <div className={CONTENT_PANEL}>
         <div className="text-center text-gray-600 dark:text-gray-400">
-          <h3 className="text-lg font-semibold mb-2">Collateral Overview</h3>
           <p className="text-sm">
             ckBTC serves as collateral in the lending protocol. Users can deposit ckBTC to borrow against it.
           </p>
