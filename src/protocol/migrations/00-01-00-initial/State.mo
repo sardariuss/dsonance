@@ -3,6 +3,7 @@ import MigrationTypes "../Types";
 import Duration       "../../duration/Duration";
 import Clock          "../../utils/Clock";
 import RollingTimeline "../../utils/RollingTimeline";
+import Timeline       "../../utils/Timeline";
 
 import Map            "mo:map/Map";
 import Set            "mo:map/Set";
@@ -16,30 +17,31 @@ import Text           "mo:base/Text";
 
 module {
 
-    type Time           = Int;
-    type State          = MigrationTypes.State;
-    type Account        = Types.Account;
-    type ICRC1          = Types.ICRC1;
-    type ICRC2          = Types.ICRC2;
-    type MiningTracker  = Types.MiningTracker;
-    type InitArgs       = Types.InitArgs;
-    type UpgradeArgs    = Types.UpgradeArgs;
-    type DowngradeArgs  = Types.DowngradeArgs;
-    type UUID           = Types.UUID;
-    type Lock           = Types.Lock;
-    type DebtInfo       = Types.DebtInfo;
-    type Ballot<B>      = Types.Ballot<B>;
-    type YesNoChoice    = Types.YesNoChoice;
-    type VoteType       = Types.VoteType;
-    type BallotType     = Types.BallotType;
-    type BorrowPosition = Types.BorrowPosition;
-    type SupplyPosition = Types.SupplyPosition;
-    type Withdrawal     = Types.Withdrawal;
+    type Time             = Int;
+    type State            = MigrationTypes.State;
+    type Account          = Types.Account;
+    type ICRC1            = Types.ICRC1;
+    type ICRC2            = Types.ICRC2;
+    type MiningTracker    = Types.MiningTracker;
+    type InitArgs         = Types.InitArgs;
+    type UpgradeArgs      = Types.UpgradeArgs;
+    type DowngradeArgs    = Types.DowngradeArgs;
+    type UUID             = Types.UUID;
+    type Lock             = Types.Lock;
+    type DebtInfo         = Types.DebtInfo;
+    type Ballot<B>        = Types.Ballot<B>;
+    type YesNoChoice      = Types.YesNoChoice;
+    type VoteType         = Types.VoteType;
+    type BallotType       = Types.BallotType;
+    type BorrowPosition   = Types.BorrowPosition;
+    type SupplyPosition   = Types.SupplyPosition;
+    type Withdrawal       = Types.Withdrawal;
     type KongBackendActor = Types.KongBackendActor;
-    type TrackedPrice   = Types.TrackedPrice;
-    type Parameters     = Types.Parameters;
-    type InitParameters = Types.InitParameters;
-    type Set<K>         = Set.Set<K>;
+    type TrackedPrice     = Types.TrackedPrice;
+    type Parameters       = Types.Parameters;
+    type InitParameters   = Types.InitParameters;
+    type LendingIndex     = Types.LendingIndex;
+    type Set<K>           = Set.Set<K>;
 
     let BTREE_ORDER = 8;
 
@@ -110,30 +112,28 @@ module {
                 };
             };
             lending = {
-                index = {
-                    var value = {
-                        utilization = {
-                            raw_supplied = 0.0;
-                            raw_borrowed = 0.0;
-                            ratio = 0.0;
-                        };
-                        borrow_rate = 0.0;
-                        supply_rate = 0.0;
-                        accrued_interests = {
-                            supply = 0.0;
-                            borrow = 0.0;
-                        };
-                        borrow_index = {
-                            value = 1.0;
-                            timestamp = now;
-                        };
-                        supply_index =  {
-                            value = 1.0;
-                            timestamp = now;
-                        };
+                index = Timeline.make1h<Types.LendingIndex>(now, {
+                    utilization = {
+                        raw_supplied = 0.0;
+                        raw_borrowed = 0.0;
+                        ratio = 0.0;
+                    };
+                    borrow_rate = 0.0;
+                    supply_rate = 0.0;
+                    accrued_interests = {
+                        supply = 0.0;
+                        borrow = 0.0;
+                    };
+                    borrow_index = {
+                        value = 1.0;
                         timestamp = now;
                     };
-                };
+                    supply_index =  {
+                        value = 1.0;
+                        timestamp = now;
+                    };
+                    timestamp = now;
+                });
                 register = {
                     borrow_positions = Map.new<Account, BorrowPosition>();
                     supply_positions = Map.new<Text, SupplyPosition>();

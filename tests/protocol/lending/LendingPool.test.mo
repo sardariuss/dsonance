@@ -8,6 +8,7 @@ import PriceTracker "../../../src/protocol/ledger/PriceTracker";
 import ClockMock "../../mocks/ClockMock";
 import DexMock "../../mocks/DexMock";
 import DexFake "../../fake/DexFake";
+import Timeline "../../../src/protocol/utils/Timeline";
 
 import { test; suite; } "mo:test/async";
 
@@ -68,30 +69,29 @@ await suite("LendingPool", func(): async() {
         // Set time to Day 1
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
-        let index = { 
-            var value = {
-                borrow_rate = 0.0;
-                supply_rate = 0.0;
-                accrued_interests = {
-                    supply = 0.0;
-                    borrow = 0.0;
-                };
-                borrow_index = {
-                    value = 1.0; 
-                    timestamp = clock.get_time();
-                };
-                supply_index = {
-                    value = 1.0; 
-                    timestamp = clock.get_time();
-                };
-                timestamp = clock.get_time();  // Day 1
-                utilization = {
-                    raw_supplied = 0.0;
-                    raw_borrowed = 0.0;
-                    ratio = 0.0;
-                };
+        let now = clock.get_time();
+        let index = Timeline.make1h<LendingTypes.LendingIndex>(now, {
+            borrow_rate = 0.0;
+            supply_rate = 0.0;
+            accrued_interests = {
+                supply = 0.0;
+                borrow = 0.0;
             };
-        };
+            borrow_index = {
+                value = 1.0;
+                timestamp = now;
+            };
+            supply_index = {
+                value = 1.0;
+                timestamp = now;
+            };
+            timestamp = now;  // Day 1
+            utilization = {
+                raw_supplied = 0.0;
+                raw_borrowed = 0.0;
+                ratio = 0.0;
+            };
+        });
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();
@@ -214,7 +214,7 @@ await suite("LendingPool", func(): async() {
         // No fee accrued before repayment
         verify(supply.get_unclaimed_fees(), 0, Testify.nat.equal);
         Debug.print("Unclaimed fees: " # debug_show(protocol_info.supply.unclaimed_fees.value));
-        Debug.print("Accrued interests: " # debug_show(index.value.accrued_interests));
+        Debug.print("Accrued interests: " # debug_show(Timeline.current(index).accrued_interests));
 
         // Borrower repays full amount, got to 201 tokens to account for accrued interest
         let { current_owed } = unwrap(borrow_registry.get_loan_position(clock.get_time(), borrower).loan);
@@ -227,7 +227,7 @@ await suite("LendingPool", func(): async() {
 
         verify(supply_accounting.balances(), [ (protocol, 1_004), (lender, 0), (borrower, 996) ], equal_balances);
         Debug.print("Unclaimed fees: " # debug_show(protocol_info.supply.unclaimed_fees.value));
-        Debug.print("Accrued interests: " # debug_show(index.value.accrued_interests));
+        Debug.print("Accrued interests: " # debug_show(Timeline.current(index).accrued_interests));
         verify(supply.get_unclaimed_fees(), 1, Testify.nat.equal);
 
         // Utilization should return to 0
@@ -236,7 +236,7 @@ await suite("LendingPool", func(): async() {
 
         // === Lender Withdrawal ===
 
-        let interest_amount = Int.abs(Float.toInt(index.value.accrued_interests.supply));
+        let interest_amount = Int.abs(Float.toInt(Timeline.current(index).accrued_interests.supply));
         let withdraw_result = supply_registry.remove_position({
             id = "supply1";
             interest_amount;
@@ -244,7 +244,7 @@ await suite("LendingPool", func(): async() {
         });
         verify(withdraw_result, #ok(supplied + interest_amount), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
-        Debug.print("Accrued interests: " # debug_show(index.value.accrued_interests));
+        Debug.print("Accrued interests: " # debug_show(Timeline.current(index).accrued_interests));
         
         ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time());
         verify(supply_accounting.balances(), [ (protocol, 2), (lender, supplied + interest_amount), (borrower, 996) ], equal_balances);
@@ -275,30 +275,29 @@ await suite("LendingPool", func(): async() {
         let clock = ClockMock.ClockMock();
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
-        let index = { 
-            var value = {
-                borrow_rate = 0.0;
-                supply_rate = 0.0;
-                accrued_interests = {
-                    supply = 0.0;
-                    borrow = 0.0;
-                };
-                borrow_index = {
-                    value = 1.0; 
-                    timestamp = clock.get_time();
-                };
-                supply_index = {
-                    value = 1.0; 
-                    timestamp = clock.get_time();
-                };
-                timestamp = clock.get_time();  // Day 1
-                utilization = {
-                    raw_supplied = 0.0;
-                    raw_borrowed = 0.0;
-                    ratio = 0.0;
-                };
+        let now = clock.get_time();
+        let index = Timeline.make1h<LendingTypes.LendingIndex>(now, {
+            borrow_rate = 0.0;
+            supply_rate = 0.0;
+            accrued_interests = {
+                supply = 0.0;
+                borrow = 0.0;
             };
-        };
+            borrow_index = {
+                value = 1.0;
+                timestamp = now;
+            };
+            supply_index = {
+                value = 1.0;
+                timestamp = now;
+            };
+            timestamp = now;  // Day 1
+            utilization = {
+                raw_supplied = 0.0;
+                raw_borrowed = 0.0;
+                ratio = 0.0;
+            };
+        });
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();
@@ -440,30 +439,29 @@ await suite("LendingPool", func(): async() {
         let clock = ClockMock.ClockMock();
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
-        let index = { 
-            var value = {
-                borrow_rate = 0.0;
-                supply_rate = 0.0;
-                accrued_interests = {
-                    supply = 0.0;
-                    borrow = 0.0;
-                };
-                borrow_index = {
-                    value = 1.0; 
-                    timestamp = clock.get_time();
-                };
-                supply_index = {
-                    value = 1.0; 
-                    timestamp = clock.get_time();
-                };
-                timestamp = clock.get_time();  // Day 1
-                utilization = {
-                    raw_supplied = 0.0;
-                    raw_borrowed = 0.0;
-                    ratio = 0.0;
-                };
+        let now = clock.get_time();
+        let index = Timeline.make1h<LendingTypes.LendingIndex>(now, {
+            borrow_rate = 0.0;
+            supply_rate = 0.0;
+            accrued_interests = {
+                supply = 0.0;
+                borrow = 0.0;
             };
-        };
+            borrow_index = {
+                value = 1.0;
+                timestamp = now;
+            };
+            supply_index = {
+                value = 1.0;
+                timestamp = now;
+            };
+            timestamp = now;  // Day 1
+            utilization = {
+                raw_supplied = 0.0;
+                raw_borrowed = 0.0;
+                ratio = 0.0;
+            };
+        });
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();
@@ -597,30 +595,29 @@ await suite("LendingPool", func(): async() {
         let clock = ClockMock.ClockMock();
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(1)))), #repeatedly);
 
-        let index = { 
-            var value = {
-                borrow_rate = 0.0;
-                supply_rate = 0.0;
-                accrued_interests = {
-                    supply = 0.0;
-                    borrow = 0.0;
-                };
-                borrow_index = {
-                    value = 1.0; 
-                    timestamp = clock.get_time();
-                };
-                supply_index = {
-                    value = 1.0; 
-                    timestamp = clock.get_time();
-                };
-                timestamp = clock.get_time();  // Day 1
-                utilization = {
-                    raw_supplied = 0.0;
-                    raw_borrowed = 0.0;
-                    ratio = 0.0;
-                };
+        let now = clock.get_time();
+        let index = Timeline.make1h<LendingTypes.LendingIndex>(now, {
+            borrow_rate = 0.0;
+            supply_rate = 0.0;
+            accrued_interests = {
+                supply = 0.0;
+                borrow = 0.0;
             };
-        };
+            borrow_index = {
+                value = 1.0;
+                timestamp = now;
+            };
+            supply_index = {
+                value = 1.0;
+                timestamp = now;
+            };
+            timestamp = now;  // Day 1
+            utilization = {
+                raw_supplied = 0.0;
+                raw_borrowed = 0.0;
+                ratio = 0.0;
+            };
+        });
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();

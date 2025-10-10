@@ -8,6 +8,7 @@ import Indexer            "Indexer";
 import SupplyAccount      "SupplyAccount";
 import LedgerTypes        "../ledger/Types";
 import LedgerAccount      "../ledger/LedgerAccount";
+import Timeline           "../utils/Timeline";
 
 import Result             "mo:base/Result";
 
@@ -27,7 +28,7 @@ module {
 
     public func build({
         parameters: LendingParameters;
-        index: { var value: LendingIndex; };
+        index: Timeline.Timeline<LendingIndex>;
         register: LendingRegister;
         admin: Principal;
         protocol_info: ProtocolInfo;

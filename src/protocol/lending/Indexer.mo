@@ -10,6 +10,7 @@ import UtilizationUpdater "UtilizationUpdater";
 import InterestRateCurve  "InterestRateCurve";
 import Types              "../Types";
 import Duration           "../duration/Duration";
+import Timeline           "../utils/Timeline";
 
 module {
 
@@ -24,7 +25,7 @@ module {
     type Observer = (LendingIndex) -> ();
 
     public class Indexer({
-        index: { var value: LendingIndex; };
+        index: Timeline.Timeline<LendingIndex>;
         parameters: IndexerParameters;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
     }){
@@ -41,21 +42,24 @@ module {
 
         public func get_index(time: Nat) : LendingIndex {
             update(null, time);
-            index.value;
+            Timeline.current(index);
         };
 
         public func add_raw_supplied({ amount: Nat; time: Nat; }) {
-            let utilization = UtilizationUpdater.add_raw_supplied(index.value.utilization, amount);
+            let current_index = Timeline.current(index);
+            let utilization = UtilizationUpdater.add_raw_supplied(current_index.utilization, amount);
             update(?utilization, time);
         };
 
         public func remove_raw_supplied({ amount: Float; time: Nat; }) {
-            let utilization = UtilizationUpdater.remove_raw_supplied(index.value.utilization, amount);
+            let current_index = Timeline.current(index);
+            let utilization = UtilizationUpdater.remove_raw_supplied(current_index.utilization, amount);
             update(?utilization, time);
         };
 
         public func add_raw_borrow({ amount: Nat; time: Nat; }) {
-            let utilization = switch(UtilizationUpdater.add_raw_borrow(index.value.utilization, amount)){
+            let current_index = Timeline.current(index);
+            let utilization = switch(UtilizationUpdater.add_raw_borrow(current_index.utilization, amount)){
                 case(#err(err)) { Debug.trap(err); };
                 case(#ok(u)){ u; };
             };
@@ -63,52 +67,62 @@ module {
         };
 
         public func remove_raw_borrow({ amount: Float; time: Nat; }) {
-            let utilization = UtilizationUpdater.remove_raw_borrow(index.value.utilization, amount);
+            let current_index = Timeline.current(index);
+            let utilization = UtilizationUpdater.remove_raw_borrow(current_index.utilization, amount);
             update(?utilization, time);
         };
 
         public func take_borrow_interests({ amount: Float; time: Nat }) {
             update(null, time);
-            let accrued_interests = index.value.accrued_interests;
+            let current_index = Timeline.current(index);
+            let accrued_interests = current_index.accrued_interests;
             let clamped_amount = Float.min(amount, accrued_interests.borrow);
             // Remove the interests from the borrow
-            index.value := { index.value with
+            let new_index = { current_index with
                 accrued_interests = { accrued_interests with
                     borrow = accrued_interests.borrow - clamped_amount;
                 };
             };
+            Timeline.insert(index, time, new_index);
         };
 
         public func take_supply_interests({ amount: Float; time: Nat; }) : Result<(), Text> {
             update(null, time);
-            let accrued_interests = index.value.accrued_interests;
+            let current_index = Timeline.current(index);
+            let accrued_interests = current_index.accrued_interests;
             // Make sure the amount is not greater than available supply interests
             if (amount > accrued_interests.supply) {
                 return #err("Amount " # debug_show(amount) # " is greater than available supply interests " # debug_show(accrued_interests.supply));
             };
             // Remove the interests from the supply
-            index.value := { index.value with
+            let new_index = { current_index with
                 accrued_interests = { accrued_interests with
                     supply = accrued_interests.supply - amount;
                 };
             };
+            Timeline.insert(index, time, new_index);
             #ok;
         };
 
         public func update(new_utilization: ?Utilization, time: Nat) {
-            
+
+            let current_index = Timeline.current(index);
+
             // Update the state with the new utilization and interest rates
-            index.value := update_index({
-                state = index.value;
+            let new_index = update_index({
+                state = current_index;
                 parameters;
                 interest_rate_curve;
                 time;
                 new_utilization;
             });
-            
+
+            // Insert the new index into the timeline
+            Timeline.insert(index, time, new_index);
+
             // Notify observers of the new state
             for (observer in observers.vals()) {
-                observer(index.value);
+                observer(new_index);
             };
         };
 

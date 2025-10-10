@@ -4,6 +4,7 @@ import LedgerTypes "ledger/Types";
 import Duration "duration/Duration";
 import MapUtils "utils/Map";
 import RollingTimeline "utils/RollingTimeline";
+import Timeline "utils/Timeline";
 
 import Debug "mo:base/Debug";
 import Float "mo:base/Float";
@@ -38,7 +39,7 @@ module {
         minting_account: ILedgerAccount;
         supply_positions: Map.Map<Text, SupplyPosition>;
         borrow_positions: Map.Map<Account, BorrowPosition>;
-        lending_index: { var value: LendingIndex; };
+        lending_index: Timeline.Timeline<LendingIndex>;
         register: {
             var last_mint_timestamp: Nat;
             tracking: Map.Map<Account, MiningTracker>;
@@ -94,7 +95,8 @@ module {
             Debug.print("Miner: Borrowers amount = " # debug_show(borrowers_amount));
 
             // Get current lending index
-            let { raw_supplied; raw_borrowed; } = lending_index.value.utilization;
+            let current_index = Timeline.current(lending_index);
+            let { raw_supplied; raw_borrowed; } = current_index.utilization;
             
             // Add supplier owed amounts
             if (suppliers_amount > 0.0 and raw_supplied > 0.0) {

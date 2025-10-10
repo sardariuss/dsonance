@@ -3,6 +3,7 @@ import MapUtils    "utils/Map";
 import Clock       "utils/Clock";
 import BallotUtils "votes/BallotUtils";
 import SharedConversions "shared/SharedConversions";
+import Timeline    "utils/Timeline";
 
 import Map         "mo:map/Map";
 import Set         "mo:map/Set";
@@ -166,7 +167,7 @@ module {
         };
 
         public func get_lending_index() : Types.LendingIndex {
-            state.lending.index.value;
+            Timeline.current(state.lending.index);
         };
 
     };

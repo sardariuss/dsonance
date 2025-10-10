@@ -413,6 +413,12 @@ module {
         data: T;
     };
 
+    public type Timeline<T> = {
+        var current: TimedData<T>;
+        var history: [TimedData<T>];
+        minIntervalNs: Nat;
+    };
+
     public type RollingTimeline<T> = {
         var current: TimedData<T>;
         history: [var ?TimedData<T>];
@@ -830,7 +836,7 @@ module {
         lock_scheduler_state: LockSchedulerState;
         accounts: ProtocolAccounts;
         lending: {
-            index: { var value: LendingIndex; };
+            index: Timeline<LendingIndex>;
             register: LendingRegister;
         };
         mining: {
