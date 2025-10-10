@@ -3,7 +3,6 @@ import Error "mo:base/Error";
 import Map   "mo:map/Map";
 import Set   "mo:map/Set";
 import BTree "mo:stableheapbtreemap/BTree";
-import RollingTimeline "../../utils/RollingTimeline";
 
 // please do not import any types from your project outside migrations folder here
 // it can lead to bugs when you change those types later, because migration types should not be changed
@@ -14,7 +13,6 @@ module {
     type Map<K, V> = Map.Map<K, V>;
     type Set<K> = Set.Set<K>;
     type BTree<K, V> = BTree.BTree<K, V>;
-    type RollingTimelineType<T> = RollingTimeline.RollingTimeline<T>;
 
     // From ICRC1    
 
@@ -410,17 +408,18 @@ module {
         map: Map.Map<Nat, T>;
     };
 
-    public type Timeline<T> = {
-        var current: TimedData<T>;
-        var history: [TimedData<T>];
-    };
-
     public type TimedData<T> = {
         timestamp: Nat;
         data: T;
     };
 
-    public type RollingTimeline<T> = RollingTimelineType<T>;
+    public type RollingTimeline<T> = {
+        var current: TimedData<T>;
+        history: [var ?TimedData<T>];
+        var index: Nat;
+        maxSize: Nat;
+        minIntervalNs: Nat;
+    };
 
     public type VoteRegister = {
         votes: Map<UUID, VoteType>;
@@ -462,7 +461,7 @@ module {
         tx_id: Nat;
         date: Nat;
         origin: Principal;
-        aggregate: Timeline<A>;
+        aggregate: RollingTimeline<A>;
         ballots: Set<UUID>;
         author: Account;
         var tvl: Int;
@@ -476,7 +475,7 @@ module {
     public type DebtInfo = {
         id: UUID;
         account: Account;
-        amount: Timeline<DebtRecord>;
+        amount: RollingTimeline<DebtRecord>;
         var transferred: Nat;
         var transfers: [Transfer];
     };
@@ -501,7 +500,7 @@ module {
         choice: B;
         amount: Nat;
         dissent: Float;
-        consent: Timeline<Float>;
+        consent: RollingTimeline<Float>;
         tx_id: Nat;
         from: Account;
         decay: Float;
@@ -511,7 +510,7 @@ module {
     };
 
     public type LockInfo = {
-        duration_ns: Timeline<Nat>;
+        duration_ns: RollingTimeline<Nat>;
         var release_date: Nat;
     };
 
@@ -590,7 +589,6 @@ module {
         var contribution_per_day: Nat;
         var author_share: Float;
         var time_last_mint: Nat;
-        amount_minted: Timeline<Float>;
     };
 
     public type MiningParameters = {

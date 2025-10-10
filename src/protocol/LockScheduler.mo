@@ -1,5 +1,5 @@
 import Types "Types";
-import Timeline "utils/Timeline";
+import RollingTimeline "utils/RollingTimeline";
 
 import BTree "mo:stableheapbtreemap/BTree";
 import Map "mo:map/Map";
@@ -21,7 +21,7 @@ module {
     type BTree<K, V> = BTree.BTree<K, V>;
     type Order = Order.Order;
     type Iter<T> = Map.Iter<T>;
-    type Timeline<T> = Types.Timeline<T>;
+    type RollingTimeline<T> = Types.RollingTimeline<T>;
     type LockEvent = Types.LockEvent;
     type LockSchedulerState = Types.LockSchedulerState;
 

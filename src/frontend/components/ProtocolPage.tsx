@@ -61,12 +61,12 @@ const ProtocolPage = () => {
     },
     {
       title: "Lock Duration Scaling",
-      description: "Parameters controlling how lock durations are calculated based on consensus activity",
+      description: "Parameters controlling how Lock Duration is calculated based on the Consensus Decayed Value (CDV).",
       items: [
         {
           label: "Formula",
           value: "duration = a × hotness^(log₁₀(b))",
-          description: "Lock duration computed based on voting hotness (locked USDT amount)"
+          description: "Lock duration computed based on CDV hotness"
         },
         {
           label: "Multiplier (a)",

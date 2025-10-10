@@ -1,6 +1,6 @@
 import Types "../Types";
 import HotMap "HotMap";
-import Timeline "../utils/Timeline";
+import RollingTimeline "../utils/RollingTimeline";
 
 import DurationScaler "../duration/DurationScaler";
 
@@ -34,7 +34,7 @@ module {
             let duration_ns = duration_scaler.compute_duration_ns(new.hotness);
             let release_date = new.timestamp + duration_ns;
             new.lock := ?{
-                duration_ns = Timeline.initialize(time, duration_ns);
+                duration_ns = RollingTimeline.make1h4y(time, duration_ns);
                 var release_date = release_date;
             };
 
@@ -57,7 +57,7 @@ module {
 
                 // Update the lock info only if it has changed
                 if (release_date != lock.release_date) {
-                    Timeline.insert(lock.duration_ns, time, duration_ns);
+                    RollingTimeline.insert(lock.duration_ns, time, duration_ns);
                     lock.release_date := release_date;
                 };
             };

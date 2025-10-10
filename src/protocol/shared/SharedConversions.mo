@@ -13,8 +13,6 @@ module {
     type SVote<A, B> = Types.SVote<A, B>;
     type Ballot<B> = Types.Ballot<B>;
     type SBallot<B> = Types.SBallot<B>;
-    type Timeline<T> = Types.Timeline<T>;
-    type STimeline<T> = Types.STimeline<T>;
     type RollingTimeline<T> = Types.RollingTimeline<T>;
     type SRollingTimeline<T> = Types.SRollingTimeline<T>;
     type UUID = Types.UUID;
@@ -54,7 +52,7 @@ module {
             choice = ballot.choice;
             amount = ballot.amount;
             dissent = ballot.dissent;
-            consent = shareTimeline(ballot.consent);
+            consent = shareRollingTimeline(ballot.consent);
             foresight = ballot.foresight;
             tx_id = ballot.tx_id;
             from = ballot.from;
@@ -62,15 +60,11 @@ module {
             decay = ballot.decay;
             lock = Option.map(ballot.lock, func(lock: LockInfo) : SLockInfo {
                 {
-                    duration_ns = shareTimeline(lock.duration_ns);
+                    duration_ns = shareRollingTimeline(lock.duration_ns);
                     release_date = lock.release_date;
                 }
             });
         };
-    };
-
-    public func shareTimeline<T>(history: Timeline<T>) : STimeline<T> {
-        { current = history.current; history = history.history; };
     };
 
     public func shareRollingTimeline<T>(timeline: RollingTimeline<T>) : SRollingTimeline<T> {
@@ -78,7 +72,7 @@ module {
             current = timeline.current;
             history = RollingTimeline.history(timeline);
             maxSize = timeline.maxSize;
-            minInterval = timeline.minInterval;
+            minIntervalNs = timeline.minIntervalNs;
         };
     };
 
@@ -94,7 +88,6 @@ module {
             contribution_per_day = minter_parameters.contribution_per_day;
             author_share = minter_parameters.author_share;
             time_last_mint = minter_parameters.time_last_mint;
-            amount_minted = shareTimeline(minter_parameters.amount_minted);
         };
     };
 
@@ -118,7 +111,7 @@ module {
         {
             id = debt_info.id;
             account = debt_info.account;
-            amount = shareTimeline(debt_info.amount);
+            amount = shareRollingTimeline(debt_info.amount);
             transferred = debt_info.transferred;
             transfers = debt_info.transfers;
         };
@@ -136,7 +129,7 @@ module {
             case(#YES_NO(v)) { 
                 #YES_NO({
                     v with 
-                    aggregate = shareTimeline(v.aggregate);
+                    aggregate = shareRollingTimeline(v.aggregate);
                     tvl = v.tvl;
                 });
             };

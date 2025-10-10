@@ -1,5 +1,5 @@
 import Types  "../Types";
-import Timeline "../utils/Timeline";
+import RollingTimeline "../utils/RollingTimeline";
 
 import Debug "mo:base/Debug";
 
@@ -8,8 +8,6 @@ module {
     type VoteType             = Types.VoteType;
     type Account              = Types.Account;
     type BallotType           = Types.BallotType;
-    type Timeline<T>          = Types.Timeline<T>;
-    type TimedData<T>         = Types.TimedData<T>;
     type DebtInfo             = Types.DebtInfo;
     type YesNoBallot          = Types.YesNoBallot;
     type LockInfo             = Types.LockInfo;
@@ -51,7 +49,7 @@ module {
 
     public func get_consent(ballot: BallotType): Float {
         switch(ballot){
-            case(#YES_NO(b)) { Timeline.current(b.consent); };
+            case(#YES_NO(b)) { RollingTimeline.current(b.consent); };
         };
     };
 

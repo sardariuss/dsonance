@@ -1,8 +1,8 @@
 import Types                   "Types";
 import LockScheduler           "LockScheduler";
-import Miner      "Miner";
+import Miner                   "Miner";
 import MapUtils                "utils/Map";
-import Timeline                "utils/Timeline";
+import RollingTimeline         "utils/RollingTimeline";
 import Clock                   "utils/Clock";
 import SharedConversions       "shared/SharedConversions";
 import BallotUtils             "votes/BallotUtils";
@@ -35,13 +35,11 @@ module {
     type PutBallotResult = Types.PutBallotResult;
     type ChoiceType = Types.ChoiceType;
     type Account = Types.Account;
-    type TimedData<T> = Timeline.TimedData<T>;
     type UUID = Types.UUID;
     type SNewVoteResult = Types.SNewVoteResult;
     type BallotRegister = Types.BallotRegister;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type Parameters = Types.Parameters;
-    type Timeline<T> = Types.Timeline<T>;
     type RollingTimeline<T> = Types.RollingTimeline<T>;
     type ProtocolInfo = Types.ProtocolInfo;
     type YesNoBallot = Types.YesNoBallot;

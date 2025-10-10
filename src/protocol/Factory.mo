@@ -8,7 +8,7 @@ import VoteTypeController     "votes/VoteTypeController";
 import LockInfoUpdater        "locks/LockInfoUpdater";
 import LockScheduler          "LockScheduler";
 import Clock                  "utils/Clock";
-import Timeline               "utils/Timeline"; 
+import RollingTimeline        "utils/RollingTimeline"; 
 import IterUtils              "utils/Iter";
 import MapUtils               "utils/Map";
 import ForesightUpdater       "ForesightUpdater";
@@ -198,7 +198,7 @@ module {
                     };
                     let discernment = Incentives.compute_discernment({
                         dissent = b.dissent;
-                        consent = Timeline.current(b.consent);
+                        consent = RollingTimeline.current(b.consent);
                         lock_duration = release_date - b.timestamp;
                         parameters;
                     });
@@ -207,7 +207,7 @@ module {
                         amount = b.amount;
                         release_date;
                         discernment;
-                        consent = Timeline.current(b.consent);
+                        consent = RollingTimeline.current(b.consent);
                         update_foresight = func(foresight: Types.Foresight) { 
                             b.foresight := foresight;
                         };

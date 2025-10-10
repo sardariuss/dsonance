@@ -1,5 +1,5 @@
 import Types "Types";
-import Timeline "utils/Timeline";
+import RollingTimeline "utils/RollingTimeline";
 import LedgerAccount "ledger/LedgerAccount";
 
 import Array "mo:base/Array";
@@ -16,7 +16,7 @@ import Set "mo:map/Set";
 
 module {
 
-    type Timeline<T> = Types.Timeline<T>;
+    type RollingTimeline<T> = Types.RollingTimeline<T>;
     type Account = Types.Account;
     type DebtInfo = Types.DebtInfo;
     type TxIndex = Types.TxIndex;
@@ -57,7 +57,7 @@ module {
                             };
                         };
                         case(#greater){
-                            Timeline.insert(debt_info.amount, time, { 
+                            RollingTimeline.insert(debt_info.amount, time, { 
                                 earned = current_debt.data.earned + amount;
                                 pending; // Reset pending
                             });
@@ -67,7 +67,7 @@ module {
                 case(null) { 
                     let debt_info : DebtInfo = {
                         id;
-                        amount = Timeline.initialize<DebtRecord>(time, { earned = amount; pending; });
+                        amount = RollingTimeline.make1h4y<DebtRecord>(time, { earned = amount; pending; });
                         account;
                         var transferred = 0;
                         var transfers = [];
@@ -113,7 +113,7 @@ module {
 
         func transfer(debt_info: DebtInfo) : async* () {
 
-            let difference = Int.abs(Float.toInt(Timeline.current(debt_info.amount).earned)) - debt_info.transferred;
+            let difference = Int.abs(Float.toInt(RollingTimeline.current(debt_info.amount).earned)) - debt_info.transferred;
 
             // Remove the debt from the set, it will be added back if the transfer fails
             Set.delete(register.pending_transfer, Set.thash, debt_info.id);

@@ -31,7 +31,7 @@ interface RollingTimeline<T> {
   current: TimedData<T>;
   history: TimedData<T>[];
   maxSize: bigint;
-  minInterval: bigint;
+  minIntervalNs: bigint;
 }
 
 const MiningDashboard = () => {

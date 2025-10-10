@@ -33,7 +33,6 @@ module {
     public type YesNoAggregate           = Types.Current.YesNoAggregate;
     public type Decayed                  = Types.Current.Decayed;
     public type YesNoChoice              = Types.Current.YesNoChoice;
-    public type Timeline<T>              = Types.Current.Timeline<T>;
     public type TimedData<T>             = Types.Current.TimedData<T>;
     public type RollingTimeline<T>       = Types.Current.RollingTimeline<T>;
     public type Vote<A, B>               = Types.Current.Vote<A, B>;
@@ -142,21 +141,16 @@ module {
     public type SDebtInfo = {
         id: UUID;
         account: Account;
-        amount: STimeline<DebtRecord>;
+        amount: SRollingTimeline<DebtRecord>;
         transferred: Nat;
         transfers: [Transfer];
-    };
-
-    public type STimeline<T> = {
-        current: TimedData<T>;
-        history: [TimedData<T>];
     };
 
     public type SRollingTimeline<T> = {
         current: TimedData<T>;
         history: [TimedData<T>];
         maxSize: Nat;
-        minInterval: Nat;
+        minIntervalNs: Nat;
     };
 
     public type SBallot<B> = {
@@ -166,7 +160,7 @@ module {
         choice: B;
         amount: Nat;
         dissent: Float;
-        consent: STimeline<Float>;
+        consent: SRollingTimeline<Float>;
         tx_id: Nat;
         from: Account;
         decay: Float;
@@ -176,7 +170,7 @@ module {
     };
 
     public type SLockInfo = {
-        duration_ns: STimeline<Nat>;
+        duration_ns: SRollingTimeline<Nat>;
         release_date: Nat;
     };
 
@@ -184,7 +178,7 @@ module {
         vote_id: UUID;
         date: Nat;
         origin: Principal;
-        aggregate: STimeline<A>;
+        aggregate: SRollingTimeline<A>;
         tvl: Int;
     };
 
@@ -201,7 +195,6 @@ module {
         contribution_per_day: Nat;
         author_share: Float;
         time_last_mint: Nat;
-        amount_minted: STimeline<Float>;
     };
 
     public type SParameters = {

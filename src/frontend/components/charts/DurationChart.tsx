@@ -1,7 +1,5 @@
-
-import { STimeline } from "@/declarations/protocol/protocol.did";
 import { ResponsiveLine, Serie } from '@nivo/line';
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useMemo } from "react";
 import { format } from "date-fns";
 import { ThemeContext } from "../App";
 import { useMediaQuery } from "react-responsive";
@@ -9,6 +7,7 @@ import { MOBILE_MAX_WIDTH_QUERY } from "../../../frontend/constants";
 import { create_serie } from "./utils";
 import { chartTheme } from ".";
 import { useContainerSize } from "../hooks/useContainerSize";
+import { TimeLine } from "@/frontend/utils/timeline";
 
 export enum CHART_COLORS {
   BLUE = "rgb(59 130 246)",
@@ -27,7 +26,7 @@ interface DurationChartProps {
 };
 
 export type SerieInput = {
-  timeline: STimeline;
+  timeline: TimeLine<number>;
   color: CHART_COLORS;
 };
   

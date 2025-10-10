@@ -1,8 +1,8 @@
-import Types     "../Types";
-import Timeline  "../utils/Timeline";
+import Types            "../Types";
+import RollingTimeline  "../utils/RollingTimeline";
 
-import Float     "mo:base/Float";
-import Int       "mo:base/Int";
+import Float            "mo:base/Float";
+import Int              "mo:base/Int";
 
 module {
 
@@ -51,13 +51,13 @@ module {
             switch(input.lock) {
                 case(null) { 
                     input.lock := ?{
-                        duration_ns = Timeline.initialize(time, new_duration_ns);
+                        duration_ns = RollingTimeline.make1h4y(time, new_duration_ns);
                         var release_date = release_date;
                     };
                 };
                 case(?lock) {
                     if (release_date != lock.release_date) {
-                        Timeline.insert(lock.duration_ns, time, new_duration_ns);
+                        RollingTimeline.insert(lock.duration_ns, time, new_duration_ns);
                         lock.release_date := release_date;
                     };
                 };

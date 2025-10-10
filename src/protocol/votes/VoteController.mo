@@ -1,6 +1,6 @@
 import BallotAggregator   "BallotAggregator";
 import Types              "../Types";
-import Timeline           "../utils/Timeline";
+import RollingTimeline    "../utils/RollingTimeline";
 import LockInfoUpdater    "../locks/LockInfoUpdater";
 import Decay              "../duration/Decay";
 import IterUtils          "../utils/Iter";
@@ -56,7 +56,7 @@ module {
                 tx_id;
                 date;
                 origin;
-                aggregate = Timeline.initialize(date, empty_aggregate);
+                aggregate = RollingTimeline.make1h4y(date, empty_aggregate);
                 ballots = Set.new<UUID>();
                 author;
                 var tvl = 0;
@@ -78,11 +78,11 @@ module {
             let { dissent; consent } = outcome.ballot;
 
             // Update the vote aggregate
-            Timeline.insert(vote.aggregate, timestamp, aggregate);
+            RollingTimeline.insert(vote.aggregate, timestamp, aggregate);
 
             // Update the ballot consents because of the new aggregate
             for (ballot in vote_ballots(vote)) {
-                Timeline.insert(ballot.consent, timestamp, ballot_aggregator.get_consent({ aggregate; choice = ballot.choice; time; }));
+                RollingTimeline.insert(ballot.consent, timestamp, ballot_aggregator.get_consent({ aggregate; choice = ballot.choice; time; }));
             };
 
             // Init the new ballot
@@ -146,7 +146,7 @@ module {
                 vote_id;
                 choice;
                 dissent;
-                consent = Timeline.initialize<Float>(timestamp, consent);
+                consent = RollingTimeline.make1h4y<Float>(timestamp, consent);
                 decay = decay_model.compute_decay(timestamp);
                 var foresight : Foresight = { reward = 0; apr = { current = 0.0; potential = 0.0; }; };
                 var hotness = 0.0;

@@ -23,7 +23,6 @@ module {
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type SNewVoteResult = Types.SNewVoteResult;
     type NewVoteError = Types.NewVoteError;
-    type STimeline<T> = Types.STimeline<T>;
     type SRollingTimeline<T> = Types.SRollingTimeline<T>;
     type Parameters = Types.Parameters;
     type SParameters = Types.SParameters;

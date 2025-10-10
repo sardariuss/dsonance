@@ -17,17 +17,17 @@ module {
     history: [var ?TimedData<T>];
     var index: Nat;
     maxSize: Nat;
-    minInterval: Nat; // in nanoseconds, e.g. 5 min = 300_000_000_000
+    minIntervalNs: Nat; // in nanoseconds, e.g. 5 min = 300_000_000_000
   };
 
   /// Create a new timeline with given window and max history size.
-  public func make<T>(timestamp: Nat, data: T, minInterval: Nat, maxSize: Nat): RollingTimeline<T> {
+  public func make<T>(timestamp: Nat, data: T, minIntervalNs: Nat, maxSize: Nat): RollingTimeline<T> {
     {
       var current = { timestamp; data };
       history = Array.init<?TimedData<T>>(maxSize, null);
       var index = 0;
       maxSize;
-      minInterval;
+      minIntervalNs;
     };
   };
 
@@ -44,7 +44,7 @@ module {
 
     // If within the batching window, overwrite current
     let window : Int = timestamp - timeline.current.timestamp;
-    if (window < timeline.minInterval) {
+    if (window < timeline.minIntervalNs) {
       timeline.current := { timestamp; data };
       return;
     };

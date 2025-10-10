@@ -3,14 +3,14 @@ import { useContext, useMemo } from 'react';
 import { create_serie } from './utils';
 import { useMediaQuery } from 'react-responsive';
 import { ThemeContext } from '../App';
-import { BRAND_BASE_COLOR, BRAND_TRUE_COLOR, MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from '../../constants';
-import { STimeline } from '@/declarations/protocol/protocol.did';
+import { BRAND_BASE_COLOR, MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from '../../constants';
 import { nsToMs } from '../../utils/conversions/date';
 import { format } from 'date-fns';
 import { chartTheme, computeAdaptiveTicks } from '.';
 import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
 import { useContainerSize } from '../hooks/useContainerSize';
 import { useProtocolContext } from '../context/ProtocolContext';
+import { TimeLine } from '@/frontend/utils/timeline';
 
 type ChartProperties = {
   series : Serie[],
@@ -18,7 +18,7 @@ type ChartProperties = {
 }
 
 interface ConsensusChartProps {
-  timeline: STimeline;
+  timeline: TimeLine<number>;
   format_value: (value: number) => string;
   durationWindow: DurationUnit | undefined;
 };
