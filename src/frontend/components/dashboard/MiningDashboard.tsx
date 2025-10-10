@@ -195,7 +195,7 @@ const MiningDashboard = () => {
       {miningStats.distributionData.length > 0 && miningStats.totalMinted > 0n && (
         <div className={CONTENT_PANEL}>
           <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
-            Distribution by Account
+            Top miners
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Pie Chart */}

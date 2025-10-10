@@ -86,6 +86,8 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
       if (result !== undefined && "ok" in result) {
         setIsVisible(false);
         showSuccessToast("Operation completed successfully", title);
+        // Refresh user balance after successful operation
+        ledger.refreshUserBalance();
       } else {
         const errorMsg = result?.err || "Unknown error";
         console.error("Borrow failed:", errorMsg);
@@ -209,7 +211,6 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
               </div>
               {isBorrowOperation && miningRates && amount > 0n && (
                 <>
-                  <div className="border-t border-gray-300 dark:border-gray-700"></div>
                   <div className="grid grid-cols-[auto_auto]">
                     <div className="flex items-center gap-2">
                       {twvLogo ? (
@@ -229,10 +230,10 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
               )}
             </div>
           </div>
-          <button 
+          <button
             className={`button-blue text-base w-full`}
             onClick={() => onClick()}
-            disabled={loading || amount === 0n || amount > maxAmount} // Disable if loading or no amount
+            disabled={loading || amount === 0n || amount > maxAmount || maxAmount === 0n}
           >
             <div className="flex items-center justify-center space-x-2">
               { loading ? <Spinner size={"25px"}/> : <span>{fullTitle}</span> }

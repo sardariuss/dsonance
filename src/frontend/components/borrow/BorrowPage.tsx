@@ -118,6 +118,18 @@ export const BorrowContent = ({
       <div className="flex flex-col w-full gap-4">
         <div className="flex flex-col gap-2">
           <span className="text-xl font-semibold">Your borrow</span>
+          {collateral === 0n && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-blue-600 dark:text-blue-400 text-xl">ℹ️</span>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="font-semibold">No collateral supplied.</span> You need to supply ckBTC collateral below before you can borrow ckUSDT.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           {miningRates && currentBorrowRatePerToken > 0 && (
             <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-lg">
               {twvLogo ? (
