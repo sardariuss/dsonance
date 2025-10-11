@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { LendingIndex } from '@/declarations/protocol/protocol.did';
+import { useProtocolContext } from '../context/ProtocolContext';
 
 interface MiningParameters {
   emission_total_amount_e8s: bigint;
@@ -7,7 +8,7 @@ interface MiningParameters {
   borrowers_share: number;
 }
 
-interface MiningRates {
+export interface MiningRates {
   // Current rates in TWV/day
   currentSupplyRate: number;
   currentBorrowRate: number;
@@ -62,18 +63,22 @@ export const calculateEmissionRatePerSecond = (
  *
  * The emission rate follows an exponential decay: dE/dt = E0 * k * e^(-kt)
  * where k = ln(2) / half_life_s
+ *
+ * Now uses ProtocolContext internally instead of requiring parameters.
  */
-export const useMiningRates = (
-  genesisTime: bigint | undefined,
-  currentTime: bigint | undefined,
-  miningParams: MiningParameters | undefined,
-  lendingIndex: LendingIndex | undefined
-): MiningRates | null => {
+export const useMiningRates = (): MiningRates | null => {
+  const { info, parameters, lendingIndexTimeline } = useProtocolContext();
+
   return useMemo(() => {
     // Return null if any required data is missing
-    if (!genesisTime || !currentTime || !miningParams || !lendingIndex) {
+    if (!info || !parameters || !lendingIndexTimeline) {
       return null;
     }
+
+    const genesisTime = info.genesis_time;
+    const currentTime = info.current_time;
+    const miningParams = parameters.mining;
+    const lendingIndex = lendingIndexTimeline.current.data;
 
     const { emission_total_amount_e8s, emission_half_life_s, borrowers_share } = miningParams;
     const { raw_supplied, raw_borrowed } = lendingIndex.utilization;
@@ -148,5 +153,5 @@ export const useMiningRates = (
       getEmissionRateAtTime,
       calculatePreviewRates,
     };
-  }, [genesisTime, currentTime, miningParams, lendingIndex]);
+  }, [info, parameters, lendingIndexTimeline]);
 };

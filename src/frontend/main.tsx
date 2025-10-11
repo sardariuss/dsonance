@@ -6,6 +6,7 @@ import ReactDOM                         from 'react-dom/client';
 import { StrictMode }                   from 'react';
 import IcLogo                           from './assets/ic-logo.svg';
 import { ProtocolProvider }             from './components/context/ProtocolContext';
+import { MiningRatesProvider }          from './components/context/MiningRatesContext';
 import { FungibleLedgerProvider }       from './components/context/FungibleLedgerContext';
 import { IdentityKitProvider } from "@nfid/identitykit/react";
 import { IdentityKitAuthType, IdentityKitTransportType, InternetIdentity, NFIDW } from "@nfid/identitykit";
@@ -51,9 +52,11 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     >
       <ActorsProvider>
         <ProtocolProvider>
-          <FungibleLedgerProvider>
-            <App/>
-          </FungibleLedgerProvider>
+          <MiningRatesProvider>
+            <FungibleLedgerProvider>
+              <App/>
+            </FungibleLedgerProvider>
+          </MiningRatesProvider>
         </ProtocolProvider>
       </ActorsProvider>
     </IdentityKitProvider>

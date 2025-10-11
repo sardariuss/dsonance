@@ -12,12 +12,12 @@ import { fromNullableExt } from "@/frontend/utils/conversions/nullable";
 import { SupplyContent, BorrowContent } from "../borrow/BorrowPage";
 import { MiningContent } from "./MiningContent";
 import DualLabel from "../common/DualLabel";
-import { formatAmountCompact } from "@/frontend/utils/conversions/token";
 import { TabButton } from "../TabButton";
 import { useBorrowOperations } from "../hooks/useBorrowOperations";
 import { useLendingCalculations } from "../hooks/useLendingCalculations";
 import { useProtocolContext } from "../context/ProtocolContext";
 import HealthFactor from "../borrow/HealthFactor";
+import { useMiningRatesContext } from "../context/MiningRatesContext";
 
 const Profile = () => {
 
@@ -31,6 +31,7 @@ const Profile = () => {
   
   const { participationLedger, supplyLedger, collateralLedger } = useFungibleLedgerContext();
   const { lendingIndexTimeline } = useProtocolContext();
+  const { miningRates } = useMiningRatesContext();
 
   // Fetch loan position data
   const { data: loanPosition } = protocolActor.unauthenticated.useQueryCall({
@@ -101,16 +102,13 @@ const Profile = () => {
     };
   }, [userBallots, lendingIndexTimeline]);
 
-  // Mock values for net worth components (replace remaining with actual data later)
-  const mockValues = useMemo(() => ({
-    miningRate: 12.34, // TWV/day
-  }), []);
-
   const netWorth = useMemo(() => {
+    
     const supplyWorth = supplyLedger.convertToUsd(lockedSupplyWorth);
     const borrowWorth = supplyLedger.convertToUsd(loanPosition?.loan[0]?.current_owed || 0n);
     const collateralWorth = collateralLedger.convertToUsd(loanPosition?.collateral || 0n);
     const miningWorth = participationLedger.convertToUsd(tracker?.allocated || 0n);
+    
     return (supplyWorth || 0) + (collateralWorth || 0) + (miningWorth || 0) - (borrowWorth || 0);
   }, [lockedSupplyWorth, loanPosition, tracker, supplyLedger, collateralLedger, participationLedger]);
 
@@ -123,8 +121,19 @@ const Profile = () => {
       return undefined;
     }
 
-    return 100 * (lockedSupplyWorth - borrowWorth) / (lockedSupplyAmount + borrowAmount);
+    return 1 - (lockedSupplyWorth - borrowWorth) / (lockedSupplyAmount + borrowAmount);
   }, [lockedSupplyWorth, lockedSupplyAmount, loanPosition]);
+
+  const netMiningRate = useMemo(() => {
+    if (!miningRates) {
+      return undefined;
+    }
+
+    let { currentSupplyRatePerToken, currentBorrowRatePerToken } = miningRates;
+
+    // TODO: remove hardcoded 10^6 factor
+    return (lockedSupplyAmount * currentSupplyRatePerToken + Number(loanPosition?.loan[0]?.raw_borrowed || 0n) * currentBorrowRatePerToken) * 10 ** 6; // Convert to TWV/day
+  }, [miningRates]);
 
   // Early return after all hooks are called
   if (connectedUser === undefined || connectedUser.principal.isAnonymous()) {
@@ -229,7 +238,7 @@ const Profile = () => {
               <HealthFactor loanPosition={loanPosition} />
             </div>
             <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
-            <DualLabel top="Mining rate" bottom={formatAmountCompact(mockValues.miningRate, 2) + " TWV/day"} />
+            <DualLabel top="Mining rate" bottom={participationLedger.formatAmount(netMiningRate) + " TWV/day"} />
           </div>
         </div>
 
@@ -348,7 +357,7 @@ const BorrowTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["use
     collateralLedger,
   } = useBorrowOperations(user);
 
-  const { collateral, currentOwed, healthFactor, maxWithdrawable, maxBorrowable } = useLendingCalculations(
+  const { collateral, currentOwed, maxWithdrawable, maxBorrowable } = useLendingCalculations(
     loanPosition,
     collateralLedger,
     supplyLedger

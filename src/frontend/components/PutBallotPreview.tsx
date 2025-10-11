@@ -5,8 +5,7 @@ import { SBallot } from "@/declarations/protocol/protocol.did";
 import { aprToApy } from "../utils/lending";
 import { useMemo, useState } from "react";
 import { HiMiniArrowTrendingUp, HiMiniTrophy, HiOutlineArrowTrendingUp, HiOutlineClock, HiTrophy } from "react-icons/hi2";
-import { useMiningRates } from "./hooks/useMiningRates";
-import { useProtocolContext } from "./context/ProtocolContext";
+import { useMiningRatesContext } from "./context/MiningRatesContext";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import { getTokenLogo, getTokenDecimals } from "../utils/metadata";
 
@@ -24,15 +23,8 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const [useSupplyImpact, setUseSupplyImpact] = useState(true);
 
-  const { parameters, info, lendingIndexTimeline } = useProtocolContext();
-  const { participationLedger, supplyLedger } = useFungibleLedgerContext();
-
-  const miningRates = useMiningRates(
-    info?.genesis_time,
-    info?.current_time,
-    parameters?.mining,
-    lendingIndexTimeline?.current.data
-  );
+  const { participationLedger } = useFungibleLedgerContext();
+  const { miningRates } = useMiningRatesContext();
 
   const displayedPreview = useSupplyImpact ? ballotPreview : ballotPreviewWithoutImpact;
 

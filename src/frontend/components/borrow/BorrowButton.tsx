@@ -9,8 +9,7 @@ import useBorrowOperationPreview from "../hooks/useBorrowOperationPreview";
 import { FungibleLedger } from "../hooks/useFungibleLedger";
 import HealthFactor from "./HealthFactor";
 import { showErrorToast, showSuccessToast, extractErrorMessage } from "../../utils/toasts";
-import { useMiningRates } from "../hooks/useMiningRates";
-import { useProtocolContext } from "../context/ProtocolContext";
+import { useMiningRatesContext } from "../context/MiningRatesContext";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { HiMiniTrophy } from "react-icons/hi2";
 
@@ -43,15 +42,8 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
   [title, ledger.metadata]);
 
   // Mining rates calculation (only for borrow operations)
-  const { parameters, info, lendingIndexTimeline } = useProtocolContext();
   const { participationLedger } = useFungibleLedgerContext();
-
-  const miningRates = useMiningRates(
-    info?.genesis_time,
-    info?.current_time,
-    parameters?.mining,
-    lendingIndexTimeline?.current.data
-  );
+  const { miningRates } = useMiningRatesContext();
 
   const twvLogo = useMemo(() => {
     return getTokenLogo(participationLedger.metadata);

@@ -8,7 +8,7 @@ import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { useProtocolContext } from "../context/ProtocolContext";
 import { DASHBOARD_CONTAINER, STATS_OVERVIEW_CONTAINER, VERTICAL_DIVIDER, METRICS_WRAPPER, CONTENT_PANEL } from "../../utils/styles";
 import EmissionCurveChart from "../charts/EmissionCurveChart";
-import { useMiningRates } from "../hooks/useMiningRates";
+import { useMiningRatesContext } from "../context/MiningRatesContext";
 
 interface TwvAccount {
   owner: { toText(): string } | string;
@@ -51,12 +51,7 @@ const MiningDashboard = () => {
     args: [],
   });
 
-  const miningRates = useMiningRates(
-    info?.genesis_time,
-    info?.current_time,
-    parameters?.mining,
-    lendingIndexTimeline?.current.data
-  );
+  const { miningRates } = useMiningRatesContext();
 
   const miningStats = useMemo(() => {
     if (!miningTrackers) {
