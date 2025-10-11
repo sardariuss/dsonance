@@ -135,7 +135,7 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         getFacade().get_parameters();
     };
 
-    public query func get_lending_index() : async Types.LendingIndex {
+    public query func get_lending_index() : async Types.STimeline<Types.LendingIndex> {
         getFacade().get_lending_index();
     };
 

@@ -3,7 +3,6 @@ import MapUtils    "utils/Map";
 import Clock       "utils/Clock";
 import BallotUtils "votes/BallotUtils";
 import SharedConversions "shared/SharedConversions";
-import Timeline    "utils/Timeline";
 
 import Map         "mo:map/Map";
 import Set         "mo:map/Set";
@@ -34,6 +33,8 @@ module {
     type State = Types.State;
     type Parameters = Types.Parameters;
     type UserSupply = Types.UserSupply;
+    type STimeline<T> = Types.STimeline<T>;
+    type LendingIndex = Types.LendingIndex;
 
     public class Queries({
         clock: Clock.Clock;
@@ -166,8 +167,8 @@ module {
             state.parameters;
         };
 
-        public func get_lending_index() : Types.LendingIndex {
-            Timeline.current(state.lending.index);
+        public func get_lending_index() : STimeline<LendingIndex> {
+            SharedConversions.shareTimeline(state.lending.index);
         };
 
     };

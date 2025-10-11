@@ -42,7 +42,7 @@ const InterestRateModel: React.FC<InterestRateModelProps> = ({
 
   if (!chartData) {
     return (
-      <div className="flex flex-col px-6 max-w-3xl w-full space-y-6">
+      <div className="flex flex-col w-full space-y-6">
         <div className="text-sm text-gray-500 dark:text-gray-400">Loading...</div>
       </div>
     );
@@ -78,7 +78,7 @@ const InterestRateModel: React.FC<InterestRateModelProps> = ({
   const xTicks = [0, 0.25, 0.5, 0.75, 1.0];
 
   return (
-    <div className="flex flex-col px-6 max-w-3xl w-full space-y-4">
+    <div className="flex flex-col w-full space-y-4">
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-center">
           <div className="flex flex-col">
@@ -90,20 +90,19 @@ const InterestRateModel: React.FC<InterestRateModelProps> = ({
 
       <div className="flex items-center gap-4 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-0.5 bg-blue-500"></div>
+          <div className="w-4 h-0.5 bg-green-500"></div>
           <span className="text-gray-600 dark:text-gray-400">Borrow APR, variable</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-0.5 bg-blue-500 bg-amber-500"></div>
+          <div className="w-4 h-0.5 bg-purple-500"></div>
           <span className="text-gray-600 dark:text-gray-400">Utilization rate</span>
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto">
+      <div className="w-full overflow-x-auto h-80">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full max-w-2xl mx-auto"
-          style={{ maxHeight: '300px' }}
+          className="w-full h-full"
         >
           {/* Grid lines */}
           {yTicks.map((tick) => (
@@ -159,7 +158,7 @@ const InterestRateModel: React.FC<InterestRateModelProps> = ({
             fill="none"
             stroke="currentColor"
             strokeWidth="3"
-            className="text-blue-500"
+            className="text-green-500"
           />
 
           {/* Current position indicator */}
@@ -170,7 +169,7 @@ const InterestRateModel: React.FC<InterestRateModelProps> = ({
             y2={height - padding.bottom}
             stroke="currentColor"
             strokeWidth="2"
-            className="text-amber-500"
+            className="text-purple-500"
             strokeDasharray="4 4"
           />
 

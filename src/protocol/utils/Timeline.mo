@@ -31,12 +31,15 @@ module {
 
   // Insert a new entry
   public func insert<T>(timeline: Timeline<T>, timestamp: Nat, data: T) {
-    if (timestamp < timeline.current.timestamp) {
-      Debug.trap("The timestamp must be greater than or equal to the current timestamp");
+
+    let window : Int = timestamp - timeline.current.timestamp;
+
+    // TODO: return an error or trap?
+    if (window < 0) {
+      Debug.print("WARNING: Timeline insert: timestamp is " # debug_show(window) # " ns older than current timestamp");
     };
 
     // If within the current window, overwrite current
-    let window : Int = timestamp - timeline.current.timestamp;
     if (window < timeline.minIntervalNs) {
       timeline.current := { timestamp; data };
       return;

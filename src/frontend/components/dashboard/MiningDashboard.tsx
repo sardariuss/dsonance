@@ -37,7 +37,7 @@ interface RollingTimeline<T> {
 const MiningDashboard = () => {
   const { theme } = useContext(ThemeContext);
   const { participationLedger : { formatAmount, totalSupply, metadata } } = useFungibleLedgerContext();
-  const { parameters, info } = useProtocolContext();
+  const { parameters, info, lendingIndexTimeline } = useProtocolContext();
   const { data: miningTrackers } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_mining_trackers',
     args: [],
@@ -50,16 +50,12 @@ const MiningDashboard = () => {
     functionName: 'get_mining_total_claimed',
     args: [],
   });
-  const { data: lendingIndex } = protocolActor.unauthenticated.useQueryCall({
-    functionName: 'get_lending_index',
-    args: [],
-  });
 
   const miningRates = useMiningRates(
     info?.genesis_time,
     info?.current_time,
     parameters?.mining,
-    lendingIndex
+    lendingIndexTimeline?.current.data
   );
 
   const miningStats = useMemo(() => {

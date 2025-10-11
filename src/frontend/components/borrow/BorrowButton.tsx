@@ -11,7 +11,6 @@ import HealthFactor from "./HealthFactor";
 import { showErrorToast, showSuccessToast, extractErrorMessage } from "../../utils/toasts";
 import { useMiningRates } from "../hooks/useMiningRates";
 import { useProtocolContext } from "../context/ProtocolContext";
-import { protocolActor } from "../actors/ProtocolActor";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { HiMiniTrophy } from "react-icons/hi2";
 
@@ -44,18 +43,14 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
   [title, ledger.metadata]);
 
   // Mining rates calculation (only for borrow operations)
-  const { parameters, info } = useProtocolContext();
+  const { parameters, info, lendingIndexTimeline } = useProtocolContext();
   const { participationLedger } = useFungibleLedgerContext();
-  const { data: lendingIndex } = protocolActor.unauthenticated.useQueryCall({
-    functionName: 'get_lending_index',
-    args: [],
-  });
 
   const miningRates = useMiningRates(
     info?.genesis_time,
     info?.current_time,
     parameters?.mining,
-    lendingIndex
+    lendingIndexTimeline?.current.data
   );
 
   const twvLogo = useMemo(() => {

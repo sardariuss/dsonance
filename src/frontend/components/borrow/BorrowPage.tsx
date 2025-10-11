@@ -6,7 +6,6 @@ import { REPAY_SLIPPAGE_RATIO } from "../../constants";
 import { BallotListContent } from "../user/BallotList";
 import { useMiningRates } from "../hooks/useMiningRates";
 import { useProtocolContext } from "../context/ProtocolContext";
-import { protocolActor } from "../actors/ProtocolActor";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { getTokenLogo } from "../../utils/metadata";
 import { useMemo } from "react";
@@ -93,18 +92,14 @@ export const BorrowContent = ({
   runOperation: (amount: bigint, kind: OperationKind) => Promise<Result_1 | undefined>;
 }) => {
   // Mining rates calculation
-  const { parameters, info } = useProtocolContext();
+  const { parameters, info, lendingIndexTimeline } = useProtocolContext();
   const { participationLedger } = useFungibleLedgerContext();
-  const { data: lendingIndex } = protocolActor.unauthenticated.useQueryCall({
-    functionName: 'get_lending_index',
-    args: [],
-  });
 
   const miningRates = useMiningRates(
     info?.genesis_time,
     info?.current_time,
     parameters?.mining,
-    lendingIndex
+    lendingIndexTimeline?.current.data
   );
 
   const twvLogo = useMemo(() => {

@@ -7,7 +7,6 @@ import { useMemo, useState } from "react";
 import { HiMiniArrowTrendingUp, HiMiniTrophy, HiOutlineArrowTrendingUp, HiOutlineClock, HiTrophy } from "react-icons/hi2";
 import { useMiningRates } from "./hooks/useMiningRates";
 import { useProtocolContext } from "./context/ProtocolContext";
-import { protocolActor } from "./actors/ProtocolActor";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import { getTokenLogo, getTokenDecimals } from "../utils/metadata";
 
@@ -25,18 +24,14 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const [useSupplyImpact, setUseSupplyImpact] = useState(true);
 
-  const { parameters, info } = useProtocolContext();
+  const { parameters, info, lendingIndexTimeline } = useProtocolContext();
   const { participationLedger, supplyLedger } = useFungibleLedgerContext();
-  const { data: lendingIndex } = protocolActor.unauthenticated.useQueryCall({
-    functionName: 'get_lending_index',
-    args: [],
-  });
 
   const miningRates = useMiningRates(
     info?.genesis_time,
     info?.current_time,
     parameters?.mining,
-    lendingIndex
+    lendingIndexTimeline?.current.data
   );
 
   const displayedPreview = useSupplyImpact ? ballotPreview : ballotPreviewWithoutImpact;

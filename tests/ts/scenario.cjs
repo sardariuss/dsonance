@@ -281,7 +281,7 @@ async function callCanisterMethod() {
 
         // Borrow
         const { principal, actors } = getRandomUser(userActors);
-        const utilization = (await actors.protocol.get_lending_index()).utilization;
+        const utilization = (await actors.protocol.get_lending_index()).current.data.utilization;
         const price_btc = await icpCoinsActor.get_latest().then((latest) => {
             return Number(latest.at(0)[2]); // @todo: remove this hardcoded index
         });

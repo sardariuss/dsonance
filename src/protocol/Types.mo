@@ -35,6 +35,7 @@ module {
     public type YesNoChoice              = Types.Current.YesNoChoice;
     public type TimedData<T>             = Types.Current.TimedData<T>;
     public type RollingTimeline<T>       = Types.Current.RollingTimeline<T>;
+    public type Timeline<T>              = Types.Current.Timeline<T>;
     public type Vote<A, B>               = Types.Current.Vote<A, B>;
     public type LockInfo                 = Types.Current.LockInfo;
     public type Ballot<B>                = Types.Current.Ballot<B>;
@@ -150,6 +151,12 @@ module {
         current: TimedData<T>;
         history: [TimedData<T>];
         maxSize: Nat;
+        minIntervalNs: Nat;
+    };
+
+    public type STimeline<T> = {
+        current: TimedData<T>;
+        history: [TimedData<T>];
         minIntervalNs: Nat;
     };
 

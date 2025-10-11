@@ -1,6 +1,7 @@
 import Types "../Types";
 import Duration "../duration/Duration";
 import RollingTimeline "../utils/RollingTimeline";
+import Timeline "../utils/Timeline";
 
 import Option "mo:base/Option";
 import Array "mo:base/Array";
@@ -15,6 +16,8 @@ module {
     type SBallot<B> = Types.SBallot<B>;
     type RollingTimeline<T> = Types.RollingTimeline<T>;
     type SRollingTimeline<T> = Types.SRollingTimeline<T>;
+    type Timeline<T> = Types.Timeline<T>;
+    type STimeline<T> = Types.STimeline<T>;
     type UUID = Types.UUID;
     type DebtInfo = Types.DebtInfo;
     type SDebtInfo = Types.SDebtInfo;
@@ -72,6 +75,14 @@ module {
             current = timeline.current;
             history = RollingTimeline.history(timeline);
             maxSize = timeline.maxSize;
+            minIntervalNs = timeline.minIntervalNs;
+        };
+    };
+
+    public func shareTimeline<T>(timeline: Timeline<T>) : STimeline<T> {
+        {
+            current = timeline.current;
+            history = timeline.history;
             minIntervalNs = timeline.minIntervalNs;
         };
     };

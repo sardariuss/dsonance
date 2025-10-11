@@ -38,12 +38,15 @@ module {
 
   /// Insert a new entry, respecting batching and ring size
   public func insert<T>(timeline: RollingTimeline<T>, timestamp: Nat, data: T) {
-    if (timestamp < timeline.current.timestamp) {
-      Debug.trap("Timestamp must be >= current timestamp");
+    
+    let window : Int = timestamp - timeline.current.timestamp;
+    
+    // TODO: return an error or trap?
+    if (window < 0) {
+      Debug.print("WARNING: RollingTimeline insert: timestamp is " # debug_show(window) # " ns older than current timestamp");
     };
 
-    // If within the batching window, overwrite current
-    let window : Int = timestamp - timeline.current.timestamp;
+    // If within the current window, overwrite current
     if (window < timeline.minIntervalNs) {
       timeline.current := { timestamp; data };
       return;

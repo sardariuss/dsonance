@@ -24,6 +24,7 @@ module {
     type SNewVoteResult = Types.SNewVoteResult;
     type NewVoteError = Types.NewVoteError;
     type SRollingTimeline<T> = Types.SRollingTimeline<T>;
+    type STimeline<T> = Types.STimeline<T>;
     type Parameters = Types.Parameters;
     type SParameters = Types.SParameters;
     type SVoteType = Types.SVoteType;
@@ -40,6 +41,7 @@ module {
     type TransferResult = Types.TransferResult;
     type ProtocolInfo = Types.ProtocolInfo;
     type MiningTracker = Types.MiningTracker;
+    type LendingIndex = Types.LendingIndex;
 
     public class SharedFacade({
         controller: Controller.Controller;
@@ -126,7 +128,7 @@ module {
             queries.find_ballot(ballot_id);
         };
 
-        public func get_lending_index() : Types.LendingIndex {
+        public func get_lending_index() : STimeline<LendingIndex> {
             queries.get_lending_index();
         };
 

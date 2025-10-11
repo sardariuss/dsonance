@@ -4,6 +4,7 @@ import { Account } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import { OperationKind, Result_1 } from "@/declarations/protocol/protocol.did";
 import { protocolActor } from "../actors/ProtocolActor";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
+import { useProtocolContext } from "../context/ProtocolContext";
 import { showErrorToast, extractErrorMessage } from "../../utils/toasts";
 
 export const useBorrowOperations = (user: NonNullable<ReturnType<typeof useAuth>["user"]>) => {
@@ -13,11 +14,9 @@ export const useBorrowOperations = (user: NonNullable<ReturnType<typeof useAuth>
   }), [user]);
 
   const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
+  const { lendingIndexTimeline, refreshLendingIndex: refreshIndexerState } = useProtocolContext();
 
-  const { data: indexerState, call: refreshIndexerState } = protocolActor.unauthenticated.useQueryCall({
-    functionName: 'get_lending_index',
-    args: [],
-  });
+  const indexerState = lendingIndexTimeline?.current.data;
 
   const { data: loanPosition, call: refreshLoanPosition } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_loan_position',

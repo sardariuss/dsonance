@@ -177,23 +177,27 @@ module {
                 return #err("Anonymous caller cannot put a ballot");
             };
 
-            let timestamp = clock.get_time();
-
             let { ballot_id; vote_type; } = switch(process_ballot_input(args)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(input)) { input; };
             };
 
+            // Capture timestamp before the transfer for the indexer
+            let timestamp_before_transfer = clock.get_time();
+
             let transfer = await* supply_registry.add_position({
                 id = ballot_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
                 supplied = args.amount;
-            }, timestamp);
+            }, timestamp_before_transfer);
 
             let tx_id = switch(transfer){
                 case(#err(err)) { return #err(err); };
                 case(#ok(tx_id)) { tx_id; };
             };
+
+            // Recapture timestamp after the async operation for the ballot
+            let timestamp = clock.get_time();
 
             perform_put_ballot({
                 args;
