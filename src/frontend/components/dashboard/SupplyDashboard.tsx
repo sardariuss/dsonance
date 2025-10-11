@@ -9,8 +9,6 @@ import { aprToApy } from "../../utils/lending";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { useProtocolContext } from "../context/ProtocolContext";
 import { DASHBOARD_CONTAINER, STATS_OVERVIEW_CONTAINER, VERTICAL_DIVIDER, METRICS_WRAPPER, CONTENT_PANEL } from "../../utils/styles";
-import SupplyAprChart from "../charts/SupplyAprChart";
-import BorrowAprChart from "../charts/BorrowAprChart";
 
 // @todo: perfect layout for mobile
 const SupplyDashboard = () => {
@@ -66,44 +64,28 @@ const SupplyDashboard = () => {
         <span className="text-base font-semibold self-start">
           Supply info
         </span>
-        <div>
-          <SupplyInfoPanel
-            supplyCap={Number(parameters.lending.supply_cap)}
-            totalSupplied={indexerState.utilization.raw_supplied}
-            apy={aprToApy(indexerState.supply_rate)}
-            maxLtv={parameters.lending.max_ltv}
-            liquidationThreshold={parameters.lending.liquidation_threshold}
-            liquidationPenalty={parameters.lending.liquidation_penalty}
-            ledger={supplyLedger}
-          />
-          {lendingIndexTimeline && info && (
-            <div className="mt-6">
-              <SupplyAprChart
-                lendingIndexTimeline={lendingIndexTimeline}
-                genesisTime={info.genesis_time}
-              />
-            </div>
-          )}
-        </div>
+        <SupplyInfoPanel
+          supplyCap={Number(parameters.lending.supply_cap)}
+          totalSupplied={indexerState.utilization.raw_supplied}
+          apy={aprToApy(indexerState.supply_rate)}
+          maxLtv={parameters.lending.max_ltv}
+          liquidationThreshold={parameters.lending.liquidation_threshold}
+          liquidationPenalty={parameters.lending.liquidation_penalty}
+          ledger={supplyLedger}
+          lendingIndexTimeline={lendingIndexTimeline}
+          genesisTime={info?.genesis_time}
+        />
         <div className="border-b border-slate-300 dark:border-slate-700 w-full col-span-1 md:col-span-2"></div>
         <span className="text-base font-semibold self-start">Borrow info</span>
-        <div>
-          <BorrowInfoPanel
-            borrowCap={Number(parameters.lending.borrow_cap)}
-            totalBorrowed={indexerState.utilization.raw_borrowed}
-            apy={aprToApy(indexerState.borrow_rate)}
-            reserveFactor={parameters.lending.lending_fee_ratio}
-            ledger={supplyLedger}
-          />
-          {lendingIndexTimeline && info && (
-            <div className="mt-6">
-              <BorrowAprChart
-                lendingIndexTimeline={lendingIndexTimeline}
-                genesisTime={info.genesis_time}
-              />
-            </div>
-          )}
-        </div>
+        <BorrowInfoPanel
+          borrowCap={Number(parameters.lending.borrow_cap)}
+          totalBorrowed={indexerState.utilization.raw_borrowed}
+          apy={aprToApy(indexerState.borrow_rate)}
+          reserveFactor={parameters.lending.lending_fee_ratio}
+          ledger={supplyLedger}
+          lendingIndexTimeline={lendingIndexTimeline}
+          genesisTime={info?.genesis_time}
+        />
         <div className="border-b border-slate-300 dark:border-slate-700 w-full col-span-1 md:col-span-2"></div>
         <span className="text-base font-semibold self-start">Interest rate model</span>
         <InterestRateModel

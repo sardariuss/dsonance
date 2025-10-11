@@ -1,6 +1,19 @@
 import React from "react";
 import { FungibleLedger } from "../hooks/useFungibleLedger";
 import ProgressCircle from "../ui/ProgressCircle";
+import SupplyAprChart from "../charts/SupplyAprChart";
+import { LendingIndex } from "@/declarations/protocol/protocol.did";
+
+interface TimedData<T> {
+  timestamp: bigint;
+  data: T;
+}
+
+interface STimeline<T> {
+  current: TimedData<T>;
+  history: TimedData<T>[];
+  minIntervalNs: bigint;
+}
 
 interface SupplyInfoProps {
   ledger: FungibleLedger;
@@ -10,6 +23,8 @@ interface SupplyInfoProps {
   maxLtv: number;
   liquidationThreshold: number;
   liquidationPenalty: number;
+  lendingIndexTimeline?: STimeline<LendingIndex>;
+  genesisTime?: bigint;
 }
 
 const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
@@ -20,14 +35,16 @@ const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
   maxLtv,
   liquidationThreshold,
   liquidationPenalty,
+  lendingIndexTimeline,
+  genesisTime,
 }) => {
 
   const usagePercent = (totalSupplied / supplyCap) * 100;
 
   return (
-    <div className="flex flex-col px-2 sm:px-6 max-w-3xl w-full space-y-4">
+    <div className="flex flex-col px-2 sm:px-6 w-full space-y-4">
       <div className="flex flex-wrap items-start sm:items-center justify-start gap-4 sm:gap-6">
-        
+
         <ProgressCircle percentage={usagePercent} />
 
         <div className="grid grid-rows-3 gap-1 h-full">
@@ -49,6 +66,16 @@ const SupplyInfoPanel: React.FC<SupplyInfoProps> = ({
           <span></span>
         </div>
       </div>
+
+      {/* Supply APR Chart */}
+      {lendingIndexTimeline && genesisTime && (
+        <div>
+          <SupplyAprChart
+            lendingIndexTimeline={lendingIndexTimeline}
+            genesisTime={genesisTime}
+          />
+        </div>
+      )}
 
       {/* Risk parameters */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">

@@ -98,7 +98,7 @@ const BorrowAprChart: React.FC<BorrowAprChartProps> = ({
   };
 
   return (
-    <div className="h-80">
+    <div className="h-60">
       <ResponsiveLine
         data={data}
         margin={{ top: 20, right: 40, bottom: 60, left: 60 }}
@@ -125,19 +125,10 @@ const BorrowAprChart: React.FC<BorrowAprChartProps> = ({
         useMesh={true}
         markers={[
           {
-            axis: 'x',
-            value: currentHours,
-            lineStyle: { stroke: theme === 'dark' ? '#9ca3af' : '#6b7280', strokeWidth: 2, strokeDasharray: '6 6' },
-            legend: 'Now',
-            legendOrientation: 'vertical',
-            legendPosition: 'top-left',
-            textStyle: { fill: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: 12 }
-          },
-          {
             axis: 'y',
             value: meanApr,
             lineStyle: { stroke: theme === 'dark' ? '#f59e0b' : '#f97316', strokeWidth: 2, strokeDasharray: '6 6', opacity: 0.6 },
-            legend: `Mean: ${meanApr.toFixed(2)}%`,
+            legend: `Average: ${meanApr.toFixed(2)}%`,
             legendOrientation: 'horizontal',
             legendPosition: 'top-right',
             textStyle: { fill: theme === 'dark' ? '#f59e0b' : '#f97316', fontSize: 12 }
