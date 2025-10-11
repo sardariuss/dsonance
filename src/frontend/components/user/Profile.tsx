@@ -17,6 +17,7 @@ import { TabButton } from "../TabButton";
 import { useBorrowOperations } from "../hooks/useBorrowOperations";
 import { useLendingCalculations } from "../hooks/useLendingCalculations";
 import { useProtocolContext } from "../context/ProtocolContext";
+import HealthFactor from "../borrow/HealthFactor";
 
 const Profile = () => {
 
@@ -68,51 +69,62 @@ const Profile = () => {
     return fromNullableExt(miningTracker);
   }, [miningTracker]);
 
-  // Calculate locked supply from user's active ballots
-  const lockedSupplyWorth = useMemo(() => {
-    if (!userBallots || !lendingIndexTimeline) return 0;
+  // Calculate locked supply from user's active ballots and weighted average APR
+  const { lockedSupplyWorth, lockedSupplyAmount } = useMemo(() => {
+    if (!userBallots || !lendingIndexTimeline) {
+      return { lockedSupplyWorth: 0, lockedSupplyAmount: 0 };
+    }
 
     const currentSupplyIndex = lendingIndexTimeline.current.data.supply_index.value;
+    let totalWorth = 0;
+    let totalAmount = 0;
 
-    // Sum up the worth of all active ballots
-    const totalWorth = userBallots.reduce((sum, ballot) => {
+    // Sum up the worth and weighted APR of all active ballots
+    userBallots.forEach(ballot => {
       // Extract ballot data based on type (YES_NO)
       if ('YES_NO' in ballot) {
         const yesNoBallot = ballot.YES_NO as any; // Using any because supply_index might not be in .did yet
         const amount = Number(yesNoBallot.amount);
-        const ballotSupplyIndex = yesNoBallot.supply_index as number;
 
+        totalAmount += amount;
+
+        const ballotSupplyIndex = yesNoBallot.supply_index as number;
         // Calculate worth: amount * current_supply_index / ballot_supply_index
         const worth = (amount * currentSupplyIndex) / ballotSupplyIndex;
-        return sum + worth;
+        totalWorth += worth;
       }
-      return sum;
-    }, 0);
+    });
 
-    return totalWorth;
+    return {
+      lockedSupplyWorth: totalWorth,
+      lockedSupplyAmount: totalAmount,
+    };
   }, [userBallots, lendingIndexTimeline]);
 
   // Mock values for net worth components (replace remaining with actual data later)
   const mockValues = useMemo(() => ({
-    views: { worth: 125.50, apy: 0.0 },
-    supply: { worth: 2000.75, apy: 0.0425 }, // 4.25%
-    mining: { worth: 450.25, apy: undefined }, // no APY, just mining rate
-    healthFactor: 1.85,
     miningRate: 12.34, // TWV/day
   }), []);
 
   const netWorth = useMemo(() => {
-    // @todo: use real values when available
-    return mockValues.views.worth + mockValues.supply.worth + mockValues.mining.worth;
-  }, [mockValues]);
+    const supplyWorth = supplyLedger.convertToUsd(lockedSupplyWorth);
+    const borrowWorth = supplyLedger.convertToUsd(loanPosition?.loan[0]?.current_owed || 0n);
+    const collateralWorth = collateralLedger.convertToUsd(loanPosition?.collateral || 0n);
+    const miningWorth = participationLedger.convertToUsd(tracker?.allocated || 0n);
+    return (supplyWorth || 0) + (collateralWorth || 0) + (miningWorth || 0) - (borrowWorth || 0);
+  }, [lockedSupplyWorth, loanPosition, tracker, supplyLedger, collateralLedger, participationLedger]);
 
   const netApy = useMemo(() => {
-    // Weighted average APY (only for supply and borrow)
-    const supplyContribution = mockValues.supply.worth * mockValues.supply.apy;
-    const borrowContribution = 0; // mockValues.borrow.worth * mockValues.borrow.apy;
-    const totalContributing = 0; // mockValues.supply.worth + Math.abs(mockValues.borrow.worth);
-    return totalContributing > 0 ? (supplyContribution + borrowContribution) / totalContributing : 0;
-  }, [mockValues]);
+
+    const borrowWorth = loanPosition?.loan[0]?.current_owed || 0;
+    const borrowAmount = Number(loanPosition?.loan[0]?.raw_borrowed || 0);
+
+    if (lockedSupplyAmount === 0 || borrowAmount === 0) {
+      return undefined;
+    }
+
+    return 100 * (lockedSupplyWorth - borrowWorth) / (lockedSupplyAmount + borrowAmount);
+  }, [lockedSupplyWorth, lockedSupplyAmount, loanPosition]);
 
   // Early return after all hooks are called
   if (connectedUser === undefined || connectedUser.principal.isAnonymous()) {
@@ -212,7 +224,10 @@ const Profile = () => {
           <div className="flex flex-row space-x-4">
             <DualLabel top="Net APY" bottom={`${netApy === undefined ? UNDEFINED_SCALAR : (netApy * 100).toFixed(2) + "%"}`} />
             <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
-            <DualLabel top="Health factor" bottom={`${mockValues.healthFactor.toFixed(2)}`} />
+            <div className={`grid grid-rows-[2fr_3fr] place-items-start`}>
+              <span className={`text-gray-500 dark:text-gray-400 text-sm`}>Health factor</span>
+              <HealthFactor loanPosition={loanPosition} />
+            </div>
             <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
             <DualLabel top="Mining rate" bottom={formatAmountCompact(mockValues.miningRate, 2) + " TWV/day"} />
           </div>
@@ -333,7 +348,7 @@ const BorrowTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["use
     collateralLedger,
   } = useBorrowOperations(user);
 
-  const { collateral, currentOwed, maxWithdrawable, maxBorrowable } = useLendingCalculations(
+  const { collateral, currentOwed, healthFactor, maxWithdrawable, maxBorrowable } = useLendingCalculations(
     loanPosition,
     collateralLedger,
     supplyLedger
