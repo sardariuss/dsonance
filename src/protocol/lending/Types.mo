@@ -258,4 +258,12 @@ module {
         rate: Float; // Annual Percentage Rate (APR) at this utilization (e.g., 0.05 for 5%)
     };
 
+    public type AddSupplyPositionResult = {
+        #ok: { 
+            supply_index: Float;
+            tx_id: TxIndex;
+        };
+        #err: Text;
+    };
+
 };

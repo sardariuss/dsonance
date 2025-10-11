@@ -157,9 +157,9 @@ module {
                 supplied;
             }, timestamp);
 
-            let tx_id = switch(preview_result){
+            let { tx_id; supply_index; } = switch(preview_result){
                 case(#err(err)) { return #err(err); };
-                case(#ok(tx_id)) { tx_id; };
+                case(#ok(ok)) { ok; };
             };
 
             perform_put_ballot({
@@ -168,6 +168,7 @@ module {
                 vote_type;
                 ballot_id;
                 tx_id;
+                supply_index;
             });
         };
 
@@ -191,9 +192,9 @@ module {
                 supplied = args.amount;
             }, timestamp_before_transfer);
 
-            let tx_id = switch(transfer){
+            let { tx_id; supply_index; } = switch(transfer){
                 case(#err(err)) { return #err(err); };
-                case(#ok(tx_id)) { tx_id; };
+                case(#ok(ok)) { ok; };
             };
 
             // Recapture timestamp after the async operation for the ballot
@@ -205,6 +206,7 @@ module {
                 vote_type;
                 ballot_id;
                 tx_id;
+                supply_index;
             });
         };
 
@@ -374,6 +376,7 @@ module {
             vote_type: VoteType;
             ballot_id: Text;
             tx_id: Nat;
+            supply_index: Float;
         }): PutBallotResult {
             
             let from = { owner = args.caller; subaccount = args.from_subaccount };
@@ -381,7 +384,7 @@ module {
             let put_ballot = vote_type_controller.put_ballot({
                 vote_type;
                 choice_type = args.choice_type;
-                args = { args with ballot_id; tx_id; timestamp; from };
+                args = { args with ballot_id; tx_id; supply_index; timestamp; from };
             });
 
             ignore lock_scheduler.try_unlock(timestamp);

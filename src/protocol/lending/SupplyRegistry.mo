@@ -19,11 +19,12 @@ module {
     type TransferError = Types.TransferError;
     type TxIndex = Types.TxIndex;
 
-    type SupplyInput      = LendingTypes.SupplyInput;
-    type SupplyPosition   = LendingTypes.SupplyPosition;
-    type Withdrawal       = LendingTypes.Withdrawal;
-    type SupplyRegister   = LendingTypes.SupplyRegister;
-    type SupplyParameters = LendingTypes.SupplyParameters;
+    type SupplyInput             = LendingTypes.SupplyInput;
+    type SupplyPosition          = LendingTypes.SupplyPosition;
+    type Withdrawal              = LendingTypes.Withdrawal;
+    type SupplyRegister          = LendingTypes.SupplyRegister;
+    type SupplyParameters        = LendingTypes.SupplyParameters;
+    type AddSupplyPositionResult = LendingTypes.AddSupplyPositionResult;
 
     // @todo: need functions to retry if transfer failed.
     // @todo: need queries to retrieve the transfers and withdrawals (union of the two maps)
@@ -45,7 +46,7 @@ module {
         // No check are done to ensure that the supply cap is not reached.
         // It is required to do the add_raw_supplied to update the indexer in order to notify the
         // foresight updater which is an observer of the indexer.
-        public func add_position_without_transfer(input: SupplyInput, time: Nat) : Result<Nat, Text> {
+        public func add_position_without_transfer(input: SupplyInput, time: Nat) : AddSupplyPositionResult {
 
             let { id; supplied; } = input;
 
@@ -54,10 +55,12 @@ module {
             Map.set(register.supply_positions, Map.thash, id, { input with tx; });
             indexer.add_raw_supplied({ amount = supplied; time; });
 
-            #ok(tx);
+            let supply_index = indexer.get_index(time).supply_index.value;
+
+            #ok({ supply_index; tx_id = tx; });
         };
 
-        public func add_position(input: SupplyInput, time: Nat) : async* Result<Nat, Text> {
+        public func add_position(input: SupplyInput, time: Nat) : async* AddSupplyPositionResult {
 
             let { id; account; supplied; } = input;
 
@@ -65,7 +68,9 @@ module {
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
-            if (indexer.get_index(time).utilization.raw_supplied + Float.fromInt(supplied) > Float.fromInt(parameters.supply_cap)){
+            let lending_index = indexer.get_index(time);
+
+            if (lending_index.utilization.raw_supplied + Float.fromInt(supplied) > Float.fromInt(parameters.supply_cap)){
                 return #err("Cannot add position, the supply cap of " # debug_show(parameters.supply_cap) # " is reached");
             };
 
@@ -80,7 +85,7 @@ module {
             Map.set(register.supply_positions, Map.thash, id, { input with tx; });
             indexer.add_raw_supplied({ amount = supplied; time; });
 
-            #ok(tx);
+            #ok({ supply_index = lending_index.supply_index.value; tx_id = tx; });
         };
 
         // Remove a position from the supply registry.

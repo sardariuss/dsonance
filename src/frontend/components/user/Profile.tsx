@@ -16,6 +16,7 @@ import { formatAmountCompact } from "@/frontend/utils/conversions/token";
 import { TabButton } from "../TabButton";
 import { useBorrowOperations } from "../hooks/useBorrowOperations";
 import { useLendingCalculations } from "../hooks/useLendingCalculations";
+import { useProtocolContext } from "../context/ProtocolContext";
 
 const Profile = () => {
 
@@ -26,7 +27,27 @@ const Profile = () => {
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
   const [activeTab, setActiveTab] = useState<'supply' | 'borrow' | 'mining'>('supply');
-  const { participationLedger: { formatAmount, refreshUserBalance } } = useFungibleLedgerContext();
+  
+  const { participationLedger, supplyLedger, collateralLedger } = useFungibleLedgerContext();
+  const { lendingIndexTimeline } = useProtocolContext();
+
+  // Fetch loan position data
+  const { data: loanPosition } = protocolActor.unauthenticated.useQueryCall({
+    functionName: 'get_loan_position',
+    args: connectedUser ? [{ owner: connectedUser.principal, subaccount: [] }] : undefined,
+  });
+
+  // TODO: create query in backend to get whole supply worth
+  // Fetch user's active ballots to calculate locked supply
+  const { data: userBallots } = protocolActor.unauthenticated.useQueryCall({
+    functionName: 'get_ballots',
+    args: connectedUser ? [{
+      account: { owner: connectedUser.principal, subaccount: [] },
+      previous: [],
+      limit: 100n,
+      filter_active: true
+    }] : undefined,
+  });
 
   // Fetch mining tracker data
   const { data: miningTracker, call: refetchTracker } = protocolActor.authenticated.useQueryCall({
@@ -39,7 +60,7 @@ const Profile = () => {
     functionName: 'claim_mining_rewards',
     onSuccess: () => {
       refetchTracker(); // Refresh data after successful withdrawal
-      refreshUserBalance(); // Refresh user balance after successful withdrawal
+      participationLedger.refreshUserBalance(); // Refresh user balance after successful withdrawal
     },
   });
 
@@ -47,26 +68,49 @@ const Profile = () => {
     return fromNullableExt(miningTracker);
   }, [miningTracker]);
 
-  // Mock values for net worth components (replace with actual data later)
+  // Calculate locked supply from user's active ballots
+  const lockedSupplyWorth = useMemo(() => {
+    if (!userBallots || !lendingIndexTimeline) return 0;
+
+    const currentSupplyIndex = lendingIndexTimeline.current.data.supply_index.value;
+
+    // Sum up the worth of all active ballots
+    const totalWorth = userBallots.reduce((sum, ballot) => {
+      // Extract ballot data based on type (YES_NO)
+      if ('YES_NO' in ballot) {
+        const yesNoBallot = ballot.YES_NO as any; // Using any because supply_index might not be in .did yet
+        const amount = Number(yesNoBallot.amount);
+        const ballotSupplyIndex = yesNoBallot.supply_index as number;
+
+        // Calculate worth: amount * current_supply_index / ballot_supply_index
+        const worth = (amount * currentSupplyIndex) / ballotSupplyIndex;
+        return sum + worth;
+      }
+      return sum;
+    }, 0);
+
+    return totalWorth;
+  }, [userBallots, lendingIndexTimeline]);
+
+  // Mock values for net worth components (replace remaining with actual data later)
   const mockValues = useMemo(() => ({
     views: { worth: 125.50, apy: 0.0 },
     supply: { worth: 2000.75, apy: 0.0425 }, // 4.25%
-    borrow: { worth: 1500.00, apy: -0.0625 }, // -6.25% (negative because it's a cost)
-    collateral: { worth: 2200.00, apy: undefined }, // from collateral, no APY
     mining: { worth: 450.25, apy: undefined }, // no APY, just mining rate
     healthFactor: 1.85,
     miningRate: 12.34, // TWV/day
   }), []);
 
   const netWorth = useMemo(() => {
-    return mockValues.views.worth + mockValues.supply.worth - mockValues.borrow.worth + mockValues.collateral.worth + mockValues.mining.worth;
+    // @todo: use real values when available
+    return mockValues.views.worth + mockValues.supply.worth + mockValues.mining.worth;
   }, [mockValues]);
 
   const netApy = useMemo(() => {
     // Weighted average APY (only for supply and borrow)
     const supplyContribution = mockValues.supply.worth * mockValues.supply.apy;
-    const borrowContribution = mockValues.borrow.worth * mockValues.borrow.apy;
-    const totalContributing = mockValues.supply.worth + Math.abs(mockValues.borrow.worth);
+    const borrowContribution = 0; // mockValues.borrow.worth * mockValues.borrow.apy;
+    const totalContributing = 0; // mockValues.supply.worth + Math.abs(mockValues.borrow.worth);
     return totalContributing > 0 ? (supplyContribution + borrowContribution) / totalContributing : 0;
   }, [mockValues]);
 
@@ -192,14 +236,14 @@ const Profile = () => {
               <div className="flex justify-between">
                 <div className="text-sm text-gray-600 dark:text-gray-400">Withdrawable</div>
                 <div className="text-sm text-gray-900 dark:text-white font-medium">
-                  ${mockValues.supply.worth.toFixed(2)}
+                  {supplyLedger.formatAmountUsd(0n)} { /* TODO: use real value when implemented */ }
                 </div>
               </div>
               {/* Locked Positions */}
               <div className="flex justify-between">
                 <div className="text-sm text-gray-600 dark:text-gray-400">Locked</div>
                 <div className="text-sm text-gray-900 dark:text-white font-medium">
-                  ${mockValues.views.worth.toFixed(2)}
+                  {supplyLedger.formatAmountUsd(lockedSupplyWorth)}
                 </div>
               </div>
             </div>
@@ -212,14 +256,14 @@ const Profile = () => {
               <div className="flex justify-between">
                 <div className="text-sm text-gray-600 dark:text-gray-400">Borrowed</div>
                 <div className="text-sm text-red-600 dark:text-red-400 font-medium">
-                  -${mockValues.borrow.worth.toFixed(2)}
+                  -{supplyLedger.formatAmountUsd(loanPosition?.loan[0]?.current_owed || 0n)}
                 </div>
               </div>
               {/* Collateral */}
               <div className="flex justify-between">
                 <div className="text-sm text-gray-600 dark:text-gray-400">Collateral</div>
                 <div className="text-sm text-gray-900 dark:text-white font-medium">
-                  ${mockValues.collateral.worth.toFixed(2)}
+                  {collateralLedger.formatAmountUsd(loanPosition?.collateral || 0n)}
                 </div>
               </div>
             </div>
@@ -228,7 +272,7 @@ const Profile = () => {
           <div className="mb-2 flex flex-row justify-between">
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-0.5">Mining</div>
             <div className="text-sm text-gray-900 dark:text-white font-medium">
-              ${mockValues.mining.worth.toFixed(2)}
+              {participationLedger.formatAmountUsd(tracker?.allocated || 0n)}
             </div>
           </div>
           
@@ -258,7 +302,6 @@ const Profile = () => {
       {activeTab === 'mining' && (
         <MiningContent
           tracker={tracker}
-          formatAmount={formatAmount}
           onWithdraw={handleWithdraw}
           withdrawLoading={withdrawLoading}
         />

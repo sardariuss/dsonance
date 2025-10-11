@@ -27,6 +27,7 @@ module {
         timestamp: Nat;
         amount: Nat;
         tx_id: Nat;
+        supply_index: Float;
         from: Account;
     };
 
@@ -122,6 +123,7 @@ module {
                     dissent = ballot.dissent;
                     consent = ballot.consent;
                     tx_id = ballot.tx_id;
+                    supply_index = ballot.supply_index;
                     from = ballot.from;
                     decay = ballot.decay;
                     var foresight = ballot.foresight;

@@ -510,6 +510,7 @@ module {
         tx_id: Nat;
         from: Account;
         decay: Float;
+        supply_index: Float;
         var foresight: Foresight;
         var hotness: Float;
         var lock: ?LockInfo;

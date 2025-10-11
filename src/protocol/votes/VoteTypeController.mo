@@ -8,18 +8,17 @@ import Map            "mo:map/Map";
 
 module {
 
-    type VoteType       = Types.VoteType;
-    type ChoiceType     = Types.ChoiceType;
-    type VoteTypeEnum   = Types.VoteTypeEnum;
-    type YesNoAggregate = Types.YesNoAggregate;
-    type YesNoChoice    = Types.YesNoChoice;
-    type YesNoBallot    = Types.YesNoBallot;
-    type UUID           = Types.UUID;
-    type BallotType     = Types.BallotType;
-    type Account        = Types.Account;
+    type VoteType          = Types.VoteType;
+    type ChoiceType        = Types.ChoiceType;
+    type VoteTypeEnum      = Types.VoteTypeEnum;
+    type YesNoAggregate    = Types.YesNoAggregate;
+    type YesNoChoice       = Types.YesNoChoice;
+    type YesNoBallot       = Types.YesNoBallot;
+    type UUID              = Types.UUID;
+    type BallotType        = Types.BallotType;
+    type Account           = Types.Account;
     type PutBallotSuccess  = Types.PutBallotSuccess;
-    
-    type Iter<T>        = Map.Iter<T>;
+    type Iter<T>           = Map.Iter<T>;
 
     // TODO: put in Types.mo
     public type PutBallotArgs = VoteController.PutBallotArgs;
