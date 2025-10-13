@@ -18,6 +18,7 @@ import { useLendingCalculations } from "../hooks/useLendingCalculations";
 import { useProtocolContext } from "../context/ProtocolContext";
 import HealthFactor from "../borrow/HealthFactor";
 import { useMiningRatesContext } from "../context/MiningRatesContext";
+import { aprToApy } from "@/frontend/utils/lending";
 
 const Profile = () => {
 
@@ -30,7 +31,7 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState<'supply' | 'borrow' | 'mining'>('supply');
   
   const { participationLedger, supplyLedger, collateralLedger } = useFungibleLedgerContext();
-  const { lendingIndexTimeline } = useProtocolContext();
+  const { lendingIndexTimeline, info } = useProtocolContext();
   const { miningRates } = useMiningRatesContext();
 
   // Fetch loan position data
@@ -72,7 +73,7 @@ const Profile = () => {
 
   // Calculate locked supply from user's active ballots and weighted average APR
   const { lockedSupplyWorth, lockedSupplyAmount } = useMemo(() => {
-    if (!userBallots || !lendingIndexTimeline) {
+    if (!userBallots || !lendingIndexTimeline || !info) {
       return { lockedSupplyWorth: 0, lockedSupplyAmount: 0 };
     }
 
@@ -84,45 +85,52 @@ const Profile = () => {
     userBallots.forEach(ballot => {
       // Extract ballot data based on type (YES_NO)
       if ('YES_NO' in ballot) {
-        const yesNoBallot = ballot.YES_NO as any; // Using any because supply_index might not be in .did yet
+        const yesNoBallot = ballot.YES_NO;
         const amount = Number(yesNoBallot.amount);
 
         totalAmount += amount;
 
-        const ballotSupplyIndex = yesNoBallot.supply_index as number;
-        // Calculate worth: amount * current_supply_index / ballot_supply_index
-        const worth = (amount * currentSupplyIndex) / ballotSupplyIndex;
-        totalWorth += worth;
+        const ballotSupplyIndex = yesNoBallot.supply_index;
+        totalWorth += amount * (currentSupplyIndex / ballotSupplyIndex);
       }
     });
 
     return {
       lockedSupplyWorth: totalWorth,
-      lockedSupplyAmount: totalAmount,
+      lockedSupplyAmount: totalAmount
     };
   }, [userBallots, lendingIndexTimeline]);
 
-  const netWorth = useMemo(() => {
-    
-    const supplyWorth = supplyLedger.convertToUsd(lockedSupplyWorth);
-    const borrowWorth = supplyLedger.convertToUsd(loanPosition?.loan[0]?.current_owed || 0n);
-    const collateralWorth = collateralLedger.convertToUsd(loanPosition?.collateral || 0n);
-    const miningWorth = participationLedger.convertToUsd(tracker?.allocated || 0n);
-    
-    return (supplyWorth || 0) + (collateralWorth || 0) + (miningWorth || 0) - (borrowWorth || 0);
-  }, [lockedSupplyWorth, loanPosition, tracker, supplyLedger, collateralLedger, participationLedger]);
+  const { netWorth, instantNetApy } = useMemo(() => {
 
-  const netApy = useMemo(() => {
+    let netWorth = undefined;
+    let instantNetApy = undefined;
 
-    const borrowWorth = loanPosition?.loan[0]?.current_owed || 0;
-    const borrowAmount = Number(loanPosition?.loan[0]?.raw_borrowed || 0);
-
-    if (lockedSupplyAmount === 0 || borrowAmount === 0) {
-      return undefined;
+    if (!lendingIndexTimeline) {
+      return { netWorth, instantNetApy };
     }
 
-    return 1 - (lockedSupplyWorth - borrowWorth) / (lockedSupplyAmount + borrowAmount);
-  }, [lockedSupplyWorth, lockedSupplyAmount, loanPosition]);
+    // Get current APYs
+    const supplyApy = aprToApy(lendingIndexTimeline.current.data.supply_rate);
+    const borrowApy = aprToApy(lendingIndexTimeline.current.data.borrow_rate);
+    
+    // Calculate net worth components in USD
+    const supplyWorth = supplyLedger.convertToUsd(lockedSupplyWorth) || 0;
+    const borrowWorth = supplyLedger.convertToUsd(loanPosition?.loan[0]?.current_owed || 0n) || 0;
+    const collateralWorth = collateralLedger.convertToUsd(loanPosition?.collateral || 0n) || 0;
+    const miningWorth = participationLedger.convertToUsd(tracker?.allocated || 0n) || 0;
+
+    // Sum up for total net worth
+    netWorth = supplyWorth + collateralWorth - borrowWorth + miningWorth;
+
+    // Calculate instant net APY
+    const equity = supplyWorth + collateralWorth - borrowWorth;
+    if (equity > 0) {
+      instantNetApy = (supplyWorth * supplyApy - borrowWorth * borrowApy) / equity;
+    }
+
+    return { netWorth, instantNetApy };
+  }, [lendingIndexTimeline, loanPosition, lockedSupplyWorth, supplyLedger, collateralLedger, participationLedger, tracker]);
 
   const netMiningRate = useMemo(() => {
     if (!miningRates) {
@@ -131,9 +139,8 @@ const Profile = () => {
 
     let { currentSupplyRatePerToken, currentBorrowRatePerToken } = miningRates;
 
-    // TODO: remove hardcoded 10^6 factor
-    return (lockedSupplyAmount * currentSupplyRatePerToken + Number(loanPosition?.loan[0]?.raw_borrowed || 0n) * currentBorrowRatePerToken) * 10 ** 6; // Convert to TWV/day
-  }, [miningRates]);
+    return (lockedSupplyAmount * currentSupplyRatePerToken + Number(loanPosition?.loan[0]?.raw_borrowed || 0n) * currentBorrowRatePerToken);
+  }, [miningRates, lockedSupplyAmount, loanPosition]);
 
   // Early return after all hooks are called
   if (connectedUser === undefined || connectedUser.principal.isAnonymous()) {
@@ -231,7 +238,7 @@ const Profile = () => {
             }
           </div>
           <div className="flex flex-row space-x-4">
-            <DualLabel top="Net APY" bottom={`${netApy === undefined ? UNDEFINED_SCALAR : (netApy * 100).toFixed(2) + "%"}`} />
+            <DualLabel top="Net APY" bottom={`${instantNetApy === undefined ? UNDEFINED_SCALAR : (instantNetApy * 100).toFixed(2) + "%"}`} />
             <div className="h-10 border-l border-gray-300 dark:border-gray-700" />
             <div className={`grid grid-rows-[2fr_3fr] place-items-start`}>
               <span className={`text-gray-500 dark:text-gray-400 text-sm`}>Health factor</span>
@@ -248,7 +255,7 @@ const Profile = () => {
           <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
             <div className="text-gray-500 dark:text-gray-400 text-sm">Net Worth</div>
             <div className="text-gray-700 dark:text-white text-lg font-semibold">
-              ${netWorth.toFixed(2)}
+              ${netWorth?.toFixed(2)}
             </div>
           </div>
 

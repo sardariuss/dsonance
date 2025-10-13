@@ -34,11 +34,11 @@ const DaoPage = () => {
           <div className="flex flex-col space-y-6">
             <div>
               <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-200">
-                TWV Token Distribution
+                TWV Initial Token Distribution
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                The TWV token serves as the governance token for Towerview. The total supply is 10 million tokens, distributed across five categories.
-                TWV holders can lock their tokens in neurons to participate in DAO governance and shape the future of the platform.
+                The TWV token serves as the governance token for Towerview. The total initial supply is 10 million tokens.
+                TWV holders can lock their tokens in neurons to participate in DAO governance.
               </p>
             </div>
             <TokenDistributionChart />

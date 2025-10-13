@@ -55,7 +55,7 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
       value: formatDuration(get_current(unwrapLock(displayedPreview).duration_ns).data),
     },
     {
-      label: "Max APY",
+      label: "Win APY",
       icon: <HiMiniArrowTrendingUp className="w-5 h-5" />,
       value: (aprToApy(displayedPreview.foresight.apr.potential) * 100).toFixed(2) + "%",
     },

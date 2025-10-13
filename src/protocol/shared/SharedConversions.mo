@@ -58,6 +58,7 @@ module {
             consent = shareRollingTimeline(ballot.consent);
             foresight = ballot.foresight;
             tx_id = ballot.tx_id;
+            supply_index = ballot.supply_index;
             from = ballot.from;
             hotness = ballot.hotness;
             decay = ballot.decay;

@@ -35,7 +35,7 @@ export const SupplyContent = ({
 
       <div className="flex flex-col w-full gap-4">
         <div className="flex flex-col gap-1">
-          <span className="text-xl font-semibold">Withdrawable</span>
+          <span className="text-xl font-semibold">Your withdrawable supply</span>
         </div>
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center w-full">
           <div className="flex flex-row items-center gap-4">
@@ -55,7 +55,7 @@ export const SupplyContent = ({
       <div className="flex flex-col lg:flex-row justify-between w-full">
         <div className="flex flex-col w-full gap-4">
           <div className="flex flex-col gap-1">
-            <span className="text-xl font-semibold">Locked</span>
+            <span className="text-xl font-semibold">Your locked supply</span>
           </div>
           <div className="flex flex-row items-center gap-4">
             <TokenLabel metadata={supplyLedger.metadata}/>
@@ -124,10 +124,9 @@ export const BorrowContent = ({
               ) : (
                 <HiMiniTrophy className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
               )}
-              <span className="text-sm text-blue-900 dark:text-blue-100">
-                { /* TODO: find a way to not use hard-coded conversion here */ }
-                Get up to <span className="font-semibold">{participationLedger.formatAmount(currentBorrowRatePerToken * 10 ** 6)} TWV/day</span> per ckUSDT borrowed!
-              </span>
+              { supplyLedger.tokenDecimals && <span className="text-sm text-blue-900 dark:text-blue-100">
+                Mine up to <span className="font-semibold">{participationLedger.formatAmount(currentBorrowRatePerToken * 10 ** supplyLedger.tokenDecimals)} TWV/day</span> per ckUSDT borrowed!
+              </span> }
             </div>
           )}
         </div>

@@ -7,8 +7,7 @@ import { useProtocolContext } from './context/ProtocolContext';
 import PutBallotPreview from './PutBallotPreview';
 import { protocolActor } from "./actors/ProtocolActor";
 import { useNavigate } from 'react-router-dom';
-import ResetIcon from './icons/ResetIcon';
-import { SBallot } from '@/declarations/protocol/protocol.did';
+import { PutBallotPreview as PreviewArgs, SBallot } from '@/declarations/protocol/protocol.did';
 import { useFungibleLedgerContext } from './context/FungibleLedgerContext';
 import { getTokenLogo, getTokenSymbol } from '../utils/metadata';
 import { showErrorToast, showSuccessToast, extractErrorMessage } from '../utils/toasts';
@@ -34,13 +33,39 @@ type Props = {
 
 const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutImpact, vote}: Props) => {
 
-  const { supplyLedger: { formatAmount, formatAmountUsd, metadata, convertToFixedPoint, approveIfNeeded, userBalance, refreshUserBalance } } = useFungibleLedgerContext();
+  const { supplyLedger: { formatAmount, formatAmountUsd, metadata, 
+    convertToFixedPoint, approveIfNeeded, userBalance, refreshUserBalance, tokenDecimals } } = useFungibleLedgerContext();
   const { user, connect } = useAuth();
   const authenticated = !!user;
   const { parameters } = useProtocolContext();
   const [putBallotLoading, setPutBallotLoading] = useState(false);
   const [selectedPredefined, setSelectedPredefined] = useState<number | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const yesArgs : PreviewArgs = useMemo(() => ({
+    id: uuidv4(),
+    vote_id: id,
+    from_subaccount: [],
+    amount: 1_000_000n,
+    choice_type: { YES_NO: toCandid(EYesNoChoice.Yes) },
+    with_supply_apy_impact: false
+  }), [id]);
+  const { data: yesBallotPreview } = protocolActor.unauthenticated.useQueryCall({
+    functionName: "preview_ballot",
+    args: [ yesArgs ]
+  });
+  const noArgs : PreviewArgs = useMemo(() => ({
+    id: uuidv4(),
+    vote_id: id,
+    from_subaccount: [],
+    amount: 1_000_000n,
+    choice_type: { YES_NO: toCandid(EYesNoChoice.No) },
+    with_supply_apy_impact: false
+  }), [id]);
+  const { data: noBallotPreview } = protocolActor.unauthenticated.useQueryCall({
+    functionName: "preview_ballot",
+    args: [ noArgs ]
+  });
   const navigate = useNavigate();
 
   const thumbnail = useMemo(() => createThumbnailUrl(vote.info.thumbnail), [vote]);
@@ -86,13 +111,13 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
         }
         refreshUserBalance();
         showSuccessToast("View locked successfully", "Put ballot");
+        setPutBallotLoading(false);
         // Ballot successfully put, navigate to the ballot page
         navigate(`/ballot/${result.ok.new.YES_NO.ballot_id}`);
       });
     }).catch((error) => {
       console.error("Error during put ballot:", error);
       showErrorToast(extractErrorMessage(error), "Put ballot");
-    }).finally(() => {
       setPutBallotLoading(false);
     });
   };
@@ -102,7 +127,8 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
     if (customRef.current && !isCustomActive) {
       let amount = formatAmount(ballot.amount, "standard");
       if (amount !== undefined) {
-        customRef.current.value = amount;
+        // If amount is 0, clear the input to show placeholder
+        customRef.current.value = ballot.amount === 0n ? "" : amount;
       }
     }
   },
@@ -131,36 +157,57 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
 	return (
     <div className="flex flex-col items-center w-full gap-y-2 rounded-lg shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 p-4">
       <div className="flex flex-row w-full justify-between space-x-2">
-        <button className={`w-1/2 h-10 text-lg rounded-lg ${ballot.choice === EYesNoChoice.Yes ? "bg-brand-true dark:bg-brand-true-dark text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.Yes })}>True</button>
-        <button className={`w-1/2 h-10 text-lg rounded-lg ${ballot.choice === EYesNoChoice.No ? "bg-brand-false text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.No })}>False</button>
+        <button className={`w-1/2 h-10 text-lg rounded-lg 
+          ${ballot.choice === EYesNoChoice.Yes ? 
+            "bg-brand-true dark:bg-brand-true-dark text-white" : 
+            "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`
+          } onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.Yes })}
+        >
+          {`True ${(yesBallotPreview && "ok" in yesBallotPreview) ? `${(aprToApy(yesBallotPreview.ok.new.YES_NO.foresight.apr.potential) * 100).toFixed(1)}%` : ''}`}
+        </button>
+        <button className={`w-1/2 h-10 text-lg rounded-lg 
+          ${ballot.choice === EYesNoChoice.No ? 
+            "bg-brand-false text-white" : 
+            "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`
+          } onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.No })}
+        >
+          {`False ${(noBallotPreview && "ok" in noBallotPreview) ? `${(aprToApy(noBallotPreview.ok.new.YES_NO.foresight.apr.potential) * 100).toFixed(1)}%` : ''}`}
+        </button>
       </div>
       <div className={`flex flex-col items-center w-full space-y-2`}>
-        <div className="grid grid-cols-[auto_1fr_auto_auto] items-center space-x-1 w-full">
-          <span className="">Amount</span>
-          <input
-            ref={customRef}
-            type="text"
-            onFocus={() => setIsCustomActive(true)}
-            onBlur={() => setIsCustomActive(false)}
-            className="w-full flex-grow h-9 rounded appearance-none bg-transparent text-right text-3xl px-1 outline-none focus:outline-none"
-            onChange={(e) => {
-              if (isCustomActive) {
-                setBallot({
-                  choice: ballot.choice,
-                  amount: convertToFixedPoint(Number(e.target.value)) ?? 0n,
-                });
-                setSelectedPredefined(null);
-              }
-            }}
-          />
-          <img src={getTokenLogo(metadata)} alt="Logo" className="size-[24px]" />
-          <div className="pl-2" onClick={() => setBallot({ amount: 0n, choice: ballot.choice })}>
-            <div className="w-5 h-5 hover:cursor-pointer fill-black dark:fill-white">
-              <ResetIcon />
-            </div>
+        <div className="flex flex-col w-full">
+          <div className="grid grid-cols-[auto_auto_1fr] items-center space-x-1 w-full">
+            <img src={getTokenLogo(metadata)} alt="Logo" className="size-[24px] pr-1" />
+            <span className="">Amount</span>
+            <input
+              ref={customRef}
+              type="text"
+              placeholder="0"
+              onFocus={() => setIsCustomActive(true)}
+              onBlur={() => setIsCustomActive(false)}
+              className="w-full flex-grow h-9 rounded appearance-none bg-transparent text-right text-3xl outline-none focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              onChange={(e) => {
+                if (isCustomActive) {
+                  // Remove commas from input value before converting
+                  const rawValue = e.target.value.replace(/,/g, '');
+                  const amount = convertToFixedPoint(Number(rawValue)) ?? 0n;
+                  setBallot({
+                    choice: ballot.choice,
+                    amount: amount,
+                  });
+                  setSelectedPredefined(null);
+                  // Format the value with commas and update the input
+                  if (customRef.current) {
+                    const formattedValue = formatAmount(amount, "standard");
+                    if (formattedValue !== undefined && amount !== 0n) {
+                      customRef.current.value = formattedValue;
+                    }
+                  }
+                }
+              }}
+            />
           </div>
-          <span/>
-          <div className="text-gray-500 text-sm text-right">
+          <div className="text-gray-500 text-sm text-right self-end">
             {formatAmountUsd(ballot.amount)}
           </div>
         </div>
@@ -261,7 +308,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
                 <div className="flex justify-between items-center">
                   <div className="flex flex-row items-center space-x-2">
                     
-                    <span className="text-gray-700 dark:text-gray-300">Max APY</span>
+                    <span className="text-gray-700 dark:text-gray-300">Win APY</span>
                     <HiMiniArrowTrendingUp className="w-5 h-5" />
                   </div>
                   <span className="font-medium text-green-600 dark:text-green-400">
@@ -287,7 +334,8 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
               Cancel
             </button>
             <button
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors
+              disabled:bg-gray-500 disabled:dark:bg-gray-700 disabled:bg-none"
               onClick={executeVote}
               disabled={putBallotLoading}
             >

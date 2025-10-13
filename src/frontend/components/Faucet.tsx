@@ -5,12 +5,20 @@ import { showErrorToast, showSuccessToast } from "../utils/toasts";
 
 interface FaucetProps {
   ledger: FungibleLedger;
+  onLogin: () => void;
+  isLoggedIn: boolean;
 }
 
-const Faucet = ({ ledger }: FaucetProps) => {
+const Faucet = ({ ledger, onLogin, isLoggedIn }: FaucetProps) => {
   const [mintAmount, setMintAmount] = useState<string>("");
 
   const triggerMint = () => {
+    // If not logged in, redirect to login
+    if (!isLoggedIn) {
+      onLogin();
+      return;
+    }
+
     const amount = Number(mintAmount);
     if (isNaN(amount) || amount <= 0) {
       showErrorToast("Please enter a valid amount to mint.", "Mint");

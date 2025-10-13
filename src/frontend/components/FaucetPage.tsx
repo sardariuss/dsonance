@@ -1,7 +1,6 @@
 import { useAuth } from "@nfid/identitykit/react";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import Faucet from "./Faucet";
-import LoginIcon from "./icons/LoginIcon";
 import { FullTokenLabel } from "./common/TokenLabel";
 import { canisterId as ckUsdtCanisterId } from "@/declarations/ckusdt_ledger";
 import { canisterId as ckBtcCanisterId } from "@/declarations/ckbtc_ledger";
@@ -10,23 +9,11 @@ const FaucetPage = () => {
   const { user, connect } = useAuth();
   const { supplyLedger, collateralLedger } = useFungibleLedgerContext();
 
-  if (!user || user.principal.isAnonymous()) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <button
-          className="button-simple flex items-center space-x-2 px-6 py-3"
-          onClick={() => connect()}
-        >
-          <LoginIcon />
-          <span>Login to access the faucet</span>
-        </button>
-      </div>
-    );
-  }
+  const isLoggedIn = !!(user && !user.principal.isAnonymous());
 
   return (
     <div className="flex flex-col justify-center my-4 p-4 md:p-6 space-y-6">
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
         {/* ckUSDT Faucet */}
         <div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6 border border-slate-300 dark:border-slate-700">
@@ -38,11 +25,11 @@ const FaucetPage = () => {
           </div>
           <div className="mb-4">
             <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-              <p>Balance: {supplyLedger.formatAmount(supplyLedger.userBalance)}</p>
-              <p>USD Value: {supplyLedger.formatAmountUsd(supplyLedger.userBalance)}</p>
+              <p>Balance: {isLoggedIn ? supplyLedger.formatAmount(supplyLedger.userBalance) : '—'}</p>
+              <p>USD Value: {isLoggedIn ? supplyLedger.formatAmountUsd(supplyLedger.userBalance) : '—'}</p>
             </div>
           </div>
-          <Faucet ledger={supplyLedger} />
+          <Faucet ledger={supplyLedger} onLogin={connect} isLoggedIn={isLoggedIn} />
         </div>
 
         {/* ckBTC Faucet */}
@@ -55,11 +42,11 @@ const FaucetPage = () => {
           </div>
           <div className="mb-4">
             <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-              <p>Balance: {collateralLedger.formatAmount(collateralLedger.userBalance)}</p>
-              <p>USD Value: {collateralLedger.formatAmountUsd(collateralLedger.userBalance)}</p>
+              <p>Balance: {isLoggedIn ? collateralLedger.formatAmount(collateralLedger.userBalance) : '—'}</p>
+              <p>USD Value: {isLoggedIn ? collateralLedger.formatAmountUsd(collateralLedger.userBalance) : '—'}</p>
             </div>
           </div>
-          <Faucet ledger={collateralLedger} />
+          <Faucet ledger={collateralLedger} onLogin={connect} isLoggedIn={isLoggedIn} />
         </div>
       </div>
     </div>

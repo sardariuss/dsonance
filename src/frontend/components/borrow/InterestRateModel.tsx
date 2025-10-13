@@ -78,7 +78,7 @@ const InterestRateModel: React.FC<InterestRateModelProps> = ({
   const xTicks = [0, 0.25, 0.5, 0.75, 1.0];
 
   return (
-    <div className="flex flex-col w-full space-y-4">
+    <div className="flex flex-col px-2 sm:px-6 w-full space-y-4">
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-center">
           <div className="flex flex-col">
@@ -99,7 +99,7 @@ const InterestRateModel: React.FC<InterestRateModelProps> = ({
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto h-80">
+      <div className="w-full overflow-x-auto h-60">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="w-full h-full"

@@ -169,6 +169,7 @@ module {
         dissent: Float;
         consent: SRollingTimeline<Float>;
         tx_id: Nat;
+        supply_index: Float;
         from: Account;
         decay: Float;
         foresight: Foresight;

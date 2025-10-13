@@ -22,6 +22,12 @@ export const useBallotPreview = (vote_id: string, ballot: BallotInfo, with_suppl
   const { data: preview } = protocolActor.unauthenticated.useQueryCall({
     functionName: "preview_ballot",
     args: [ args ],
+    onError: (error) => {
+      console.error("Error fetching use ballot preview:", error);
+    },
+    onSuccess: (data) => {
+      console.log("Successfully fetched use ballot preview:", data);
+    }
   });
 
   useEffect(() => {
