@@ -33,10 +33,10 @@ const VoteText = ({ vote }: VoteTextProps) => {
   }, [vote, computeDecay]);
 
   return (
-    <div className="flex items-center h-[3em]">
+    <div className="flex items-center">
       { vote === undefined || voteDetails === undefined ? 
-        <span className="w-full h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/> :
-        <span className="line-clamp-2 overflow-hidden"> {vote.info.text} </span>
+        <span className="w-full h-2 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/> :
+        <span className="line-clamp-1 overflow-hidden"> {vote.info.text} </span>
       }
     </div>
   )
@@ -53,10 +53,11 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
   const { supplyLedger: { formatAmountUsd } } = useFungibleLedgerContext();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  const { releaseTimestamp, foresightAPR } = useMemo(() => {
+  const { releaseTimestamp, reward, currentApy } = useMemo(() => {
 
       return {
-        foresightAPR: ballot.YES_NO.foresight.apr.current,
+        currentApy: aprToApy(ballot.YES_NO.foresight.apr.current),
+        reward: ballot.YES_NO.foresight.reward,
         releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot.YES_NO).duration_ns.current.data 
       }
     },
@@ -82,41 +83,39 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
   return (
     now === undefined ? <></> :
     <div className={`rounded-lg py-2 shadow-sm bg-slate-200 dark:bg-gray-800 hover:cursor-pointer w-full ${ selected ? "border-2 dark:border-gray-500 border-gray-500" : "border dark:border-gray-700 border-gray-300"}`}>
-      <div className={`grid ${isMobile ? "grid-cols-[auto_minmax(100px,1fr)_repeat(2,minmax(50px,auto))]" : "grid-cols-[auto_minmax(100px,1fr)_repeat(4,minmax(60px,auto))]"} gap-2 gap-x-2 sm:gap-x-4 w-full items-center px-2 sm:px-3`}>
+      <div className={`grid ${isMobile ? "grid-cols-[auto_minmax(100px,1fr)_minmax(80px,auto)]" : "grid-cols-[auto_minmax(100px,1fr)_minmax(60px,auto)_minmax(80px,auto)_minmax(100px,auto)]"} gap-2 gap-x-2 sm:gap-x-4 w-full items-center px-2 sm:px-3`}>
 
         {/* Thumbnail Image */}
-        <img 
-          className="w-10 h-10 min-w-10 min-h-10 bg-contain bg-no-repeat bg-center rounded-md" 
+        <img
+          className="w-10 h-10 min-w-10 min-h-10 bg-contain bg-no-repeat bg-center rounded-md"
           src={thumbnailUrl}
           alt="Vote Thumbnail"
         />
 
-        <VoteText vote={vote}/>
+        <div className="flex flex-col space-y-1">
+          <VoteText vote={vote}/>
+          <div className="flex">
+            <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
+          </div>
+        </div>
 
-        { !isMobile && <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Choice</span>
-          <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
+        { !isMobile && <div className="w-full text-right">
+          <span>{ballot.YES_NO.dissent.toFixed(2)}</span>
         </div> }
 
-        { !isMobile && <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Time left</span>
+        { !isMobile && <div className="w-full text-right">
           <span>
-            {releaseTimestamp <= now ? 
-              `expired` : 
+            {releaseTimestamp <= now ?
+              `expired` :
               `${timeDifference(timeToDate(releaseTimestamp), timeToDate(now))}`
             }
           </span>
         </div> }
 
-        { <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Amount</span>
-          <span>{formatAmountUsd(ballot.YES_NO.amount)}</span>
-        </div> }
-
-        <div className="grid grid-rows-2 w-full justify-items-end">
-          <span className="text-sm text-gray-600 dark:text-gray-400">APY</span>
-          <span className="font-semibold">
-            {`${(aprToApy(foresightAPR) * 100).toFixed(2)}%`}
+        <div className="w-full flex flex-col items-end text-right">
+          <span className="font-semibold">{formatAmountUsd(ballot.YES_NO.amount + reward)}</span>
+          <span className="text-sm text-green-500">
+            {(currentApy * 100).toFixed(2)}% APY
           </span>
         </div>
 

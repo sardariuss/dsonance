@@ -179,14 +179,23 @@ export const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeo
         className="w-full flex flex-col min-h-full overflow-auto"
         style={{ height: "auto", overflow: "visible" }}
       >
+        {ballotEntries.ballots.length > 0 && (
+          <div className={`grid ${isMobile ? "grid-cols-[auto_minmax(100px,1fr)_minmax(80px,auto)]" : "grid-cols-[auto_minmax(100px,1fr)_minmax(60px,auto)_minmax(80px,auto)_minmax(100px,auto)]"} gap-2 gap-x-2 sm:gap-x-4 w-full items-center px-2 sm:px-3 pb-2`}>
+            <div></div>
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Pool</span>
+            {!isMobile && <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">Dissent</span>}
+            {!isMobile && <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">Time left</span>}
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">Value</span>
+          </div>
+        )}
         <ul className="w-full flex flex-col gap-y-2">
           {
             /* Size of the header is 26 on mobile and 22 on desktop */
             ballotEntries.ballots.map((ballot, index) => (
-              <li key={index} ref={(el) => {ballotRefs.current.set(ballot.YES_NO.ballot_id, el)}} 
-                className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]" 
+              <li key={index} ref={(el) => {ballotRefs.current.set(ballot.YES_NO.ballot_id, el)}}
+                className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]"
                 onClick={() => { selectBallot(ballot.YES_NO.ballot_id); navigate(`/ballot/${ballot.YES_NO.ballot_id}`); }}>
-                <BallotRow 
+                <BallotRow
                   ballot={ballot}
                   now={info?.current_time}
                   selected={selectedBallotId === ballot.YES_NO.ballot_id}

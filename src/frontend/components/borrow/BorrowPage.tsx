@@ -55,7 +55,7 @@ export const SupplyContent = ({
       <div className="flex flex-col lg:flex-row justify-between w-full">
         <div className="flex flex-col w-full gap-4">
           <div className="flex flex-col gap-1">
-            <span className="text-xl font-semibold">Your locked supply</span>
+            <span className="text-xl font-semibold">Your positions</span>
           </div>
           <div className="flex flex-row items-center gap-4">
             <TokenLabel metadata={supplyLedger.metadata}/>

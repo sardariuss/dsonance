@@ -121,6 +121,8 @@ const Profile = () => {
     const miningWorth = participationLedger.convertToUsd(tracker?.allocated || 0n) || 0;
 
     // Sum up for total net worth
+    // TODO: it is confusing if the mining worth is included in net worth,
+    // the user might think the net APY applies to the mining worth as well
     netWorth = supplyWorth + collateralWorth - borrowWorth + miningWorth;
 
     // Calculate instant net APY
