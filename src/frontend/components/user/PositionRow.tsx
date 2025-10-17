@@ -30,12 +30,12 @@ const PositionRow = ({ ballot, now }: PositionRowProps) => {
     <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center py-2 h-[60px] sm:h-[68px]">
       {/* Dissent */}
       <div className="w-full text-right flex items-center justify-end">
-        <span className="text-sm">{ballot.YES_NO.dissent.toFixed(2)}</span>
+        <span className="font-semibold text-sm">{ballot.YES_NO.dissent.toFixed(2)}</span>
       </div>
 
       {/* Time Left */}
       <div className={`w-full ${durationAdded ? "flex flex-col" : ""} text-right flex justify-end`}>
-        <span className="text-sm">
+        <span className="font-semibold text-sm">
           {releaseTimestamp <= now
             ? `${formatDate(timeToDate(releaseTimestamp))}`
             : `${timeDifference(timeToDate(releaseTimestamp), timeToDate(now))}`}

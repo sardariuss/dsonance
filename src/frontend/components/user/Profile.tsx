@@ -18,6 +18,7 @@ import HealthFactor from "../borrow/HealthFactor";
 import { useMiningRatesContext } from "../context/MiningRatesContext";
 import { aprToApy } from "@/frontend/utils/lending";
 import PositionsTab from "./PositionsTab";
+import { unwrapLock } from "@/frontend/utils/conversions/ballot";
 
 const Profile = () => {
 
@@ -71,14 +72,30 @@ const Profile = () => {
   }, [miningTracker]);
 
   // Calculate locked supply from user's active ballots and weighted average APR
-  const { lockedSupplyWorth, lockedSupplyAmount } = useMemo(() => {
+  const { lockedSupplyWorth, lockedSupplyAmount, positionsInfo } = useMemo(() => {
     if (!userBallots || !lendingIndexTimeline || !info) {
-      return { lockedSupplyWorth: 0, lockedSupplyAmount: 0 };
+      return { lockedSupplyWorth: 0, lockedSupplyAmount: 0, positionsInfo: [] };
     }
 
     const currentSupplyIndex = lendingIndexTimeline.current.data.supply_index.value;
     let totalWorth = 0;
     let totalAmount = 0;
+
+    let positionsInfo = userBallots.map(ballot => {
+      if ('YES_NO' in ballot) {
+        let worth = 0;
+        let apy = 0;
+        // Extract ballot data based on type (YES_NO)
+        const yesNoBallot = ballot.YES_NO;
+        const lock = unwrapLock(yesNoBallot);
+        if (lock.release_date > BigInt(info.current_time)) {
+          const foresight = yesNoBallot.foresight;
+          worth = supplyLedger.convertToUsd(yesNoBallot.amount + foresight.reward) || 0;
+          apy = aprToApy(foresight.apr.current);
+        }
+        return { worth, apy };
+      }
+    });
 
     // Sum up the worth and weighted APR of all active ballots
     userBallots.forEach(ballot => {
@@ -96,7 +113,8 @@ const Profile = () => {
 
     return {
       lockedSupplyWorth: totalWorth,
-      lockedSupplyAmount: totalAmount
+      lockedSupplyAmount: totalAmount,
+      positionsInfo
     };
   }, [userBallots, lendingIndexTimeline]);
 
@@ -114,7 +132,7 @@ const Profile = () => {
     const borrowApy = aprToApy(lendingIndexTimeline.current.data.borrow_rate);
     
     // Calculate net worth components in USD
-    const supplyWorth = supplyLedger.convertToUsd(lockedSupplyWorth) || 0;
+    const supplyWorth = positionsInfo.reduce((acc, pos) => acc + Number(pos?.worth), 0);
     const borrowWorth = supplyLedger.convertToUsd(loanPosition?.loan[0]?.current_owed || 0n) || 0;
     const collateralWorth = collateralLedger.convertToUsd(loanPosition?.collateral || 0n) || 0;
     const miningWorth = participationLedger.convertToUsd(tracker?.allocated || 0n) || 0;
@@ -126,8 +144,14 @@ const Profile = () => {
 
     // Calculate instant net APY
     const equity = supplyWorth + collateralWorth - borrowWorth;
+    const supplyApyWeight = positionsInfo.reduce((acc, pos) => {
+      if (pos) {
+        return acc + (Number(pos.worth) * pos.apy);
+      }
+      return acc;
+    }, 0);
     if (equity > 0) {
-      instantNetApy = (supplyWorth * supplyApy - borrowWorth * borrowApy) / equity;
+      instantNetApy = (supplyApyWeight - borrowWorth * borrowApy) / equity;
     }
 
     return { netWorth, instantNetApy };
