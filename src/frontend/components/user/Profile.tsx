@@ -275,7 +275,7 @@ const Profile = () => {
         </div>
 
         {/* Net Worth Breakdown */}
-        <div className="w-full lg:w-1/2 rounded-md border-0 sm:border border-gray-300 dark:border-gray-700 rounded-lg sm:p-4">
+        <div className="w-full lg:w-1/2 rounded-md border border-gray-300 dark:border-gray-700 rounded-lg p-2 sm:p-4">
           {/* Total */}
           <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
             <div className="text-gray-500 dark:text-gray-400 text-sm">Net Worth</div>

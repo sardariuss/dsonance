@@ -1,6 +1,7 @@
-import { useMemo, useContext } from "react";
+import { useMemo, useContext, useState, useEffect } from "react";
 import { ResponsivePie } from '@nivo/pie';
 import { protocolActor } from "../actors/ProtocolActor";
+import { backendActor } from "../actors/BackendActor";
 import DualLabel from "../common/DualLabel";
 import { ThemeContext } from "../App";
 import { FullTokenLabel } from "../common/TokenLabel";
@@ -9,6 +10,8 @@ import { useProtocolContext } from "../context/ProtocolContext";
 import { DASHBOARD_CONTAINER, STATS_OVERVIEW_CONTAINER, VERTICAL_DIVIDER, METRICS_WRAPPER, CONTENT_PANEL } from "../../utils/styles";
 import EmissionCurveChart from "../charts/EmissionCurveChart";
 import { useMiningRatesContext } from "../context/MiningRatesContext";
+import { Principal } from "@dfinity/principal";
+import type { User } from "@/declarations/backend/backend.did";
 
 interface TwvAccount {
   owner: { toText(): string } | string;
@@ -37,7 +40,7 @@ interface RollingTimeline<T> {
 const MiningDashboard = () => {
   const { theme } = useContext(ThemeContext);
   const { participationLedger : { formatAmount, totalSupply, metadata } } = useFungibleLedgerContext();
-  const { parameters, info, lendingIndexTimeline } = useProtocolContext();
+  const { parameters, info } = useProtocolContext();
   const { data: miningTrackers } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_mining_trackers',
     args: [],
@@ -52,6 +55,13 @@ const MiningDashboard = () => {
   });
 
   const { miningRates } = useMiningRatesContext();
+
+  // State to store user data for each account
+  const [userMap, setUserMap] = useState<Map<string, User | null>>(new Map());
+
+  const { call: getUser } = backendActor.unauthenticated.useQueryCall({
+    functionName: 'get_user',
+  });
 
   const miningStats = useMemo(() => {
     if (!miningTrackers) {
@@ -96,6 +106,31 @@ const MiningDashboard = () => {
       distributionData,
     };
   }, [miningTrackers, parameters]);
+
+  // Fetch user data for each account in the distribution data
+  useEffect(() => {
+    if (!miningStats.distributionData.length) return;
+
+    const fetchUsers = async () => {
+      const newUserMap = new Map<string, User | null>();
+
+      for (const item of miningStats.distributionData) {
+        try {
+          const principal = Principal.fromText(item.id);
+          const userData = await getUser([{ principal }]);
+          // userData is [] | [User], so we need to extract the user or set null
+          newUserMap.set(item.id, userData && userData.length > 0 ? userData[0] !== undefined ? userData[0] : null : null);
+        } catch (error) {
+          console.error(`Failed to fetch user for ${item.id}:`, error);
+          newUserMap.set(item.id, null);
+        }
+      }
+
+      setUserMap(newUserMap);
+    };
+
+    fetchUsers();
+  }, [miningStats.distributionData, getUser]);
 
   if (!miningTrackers) {
     return <div className="text-center text-gray-500">Loading TWV stats...</div>;
@@ -193,10 +228,41 @@ const MiningDashboard = () => {
             <div className="h-64 md:h-80">
               {miningStats.distributionData.length >= 1 ? (
                 <ResponsivePie
-                  data={miningStats.distributionData.slice(0, 10).filter(d => d.value > 0).map(d => ({
-                    ...d,
-                    value: Math.max(d.value, 1) // Ensure minimum value of 1 to prevent animation issues
-                  }))}
+                  data={(() => {
+                    const sortedData = [...miningStats.distributionData].sort((a, b) => b.value - a.value);
+                    const top10 = sortedData.slice(0, 10);
+                    const rest = sortedData.slice(10);
+
+                    const chartData = top10.filter(d => d.value > 0).map((d, index) => {
+                      const user = userMap.get(d.id);
+                      const displayLabel = user ? user.nickname : "Anonymous";
+                      // Use principal ID for color uniqueness, but display label for rendering
+                      return {
+                        ...d,
+                        id: d.id, // Keep original principal ID for unique colors
+                        label: displayLabel, // Display name for arc link labels
+                        displayLabel: displayLabel, // Store for tooltip
+                        value: Math.max(d.value, 1)
+                      };
+                    });
+
+                    // Add "Rest" category if there are more than 10 users
+                    if (rest.length > 0) {
+                      const restTotal = rest.reduce((sum, item) => sum + item.value, 0);
+                      if (restTotal > 0) {
+                        chartData.push({
+                          id: "Rest",
+                          label: "Rest",
+                          displayLabel: "Rest",
+                          value: restTotal,
+                          claimed: 0,
+                          allocated: 0,
+                        });
+                      }
+                    }
+
+                    return chartData;
+                  })()}
                   margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
                   innerRadius={0.5}
                   padAngle={0.7}
@@ -212,15 +278,12 @@ const MiningDashboard = () => {
                   arcLinkLabelsTextColor={theme === 'dark' ? '#e5e7eb' : '#374151'}
                   arcLinkLabelsThickness={2}
                   arcLinkLabelsColor={{ from: 'color' }}
-                  arcLabelsSkipAngle={10}
-                  arcLabelsTextColor={{
-                    from: 'color',
-                    modifiers: [['darker', 2]]
-                  }}
+                  arcLinkLabel={d => (d.data as any).displayLabel || d.label}
+                  enableArcLabels={false}
                   animate={false} // Disable animations to prevent useArcsTransition errors
                   tooltip={({ datum }) => (
                     <div className="bg-white dark:bg-gray-800 p-2 rounded shadow-lg border border-gray-200 dark:border-gray-700">
-                      <div className="font-mono text-xs">{datum.data?.label || 'Unknown'}</div>
+                      <div className="font-mono text-xs">{(datum.data as any).displayLabel || 'Unknown'}</div>
                       <div className="text-sm font-semibold">{formatAmount(datum.value)} TWV</div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">
                         {miningStats.totalMinted > 0n ? ((datum.value / Number(miningStats.totalMinted)) * 100).toFixed(2) : '0.00'}% of total
@@ -252,6 +315,7 @@ const MiningDashboard = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-300 dark:border-gray-700">
+                    <th className="text-left p-2">User</th>
                     <th className="text-left p-2">Account</th>
                     <th className="text-right p-2">Mined TWV</th>
                     <th className="text-right p-2">% of Total</th>
@@ -266,9 +330,23 @@ const MiningDashboard = () => {
                         ? (item.value / Number(miningStats.totalMinted) * 100).toFixed(2)
                         : "0.00";
 
+                      const user = userMap.get(item.id);
+                      const displayName = user ? user.nickname : "Anonymous";
+
                       return (
                         <tr key={item.id} className="border-b border-gray-200 dark:border-gray-700">
-                          <td className="p-2 font-mono text-xs">{item.label}</td>
+                          <td className="p-2">
+                            {displayName}
+                          </td>
+                          <td
+                            className="p-2 font-mono text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            onClick={() => {
+                              navigator.clipboard.writeText(item.id);
+                            }}
+                            title="Click to copy"
+                          >
+                            {item.label}
+                          </td>
                           <td className="text-right p-2">{formatAmount(item.value)}</td>
                           <td className="text-right p-2">{percentage}%</td>
                         </tr>
