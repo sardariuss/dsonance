@@ -115,32 +115,6 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
   
   return (
     <div className="flex flex-col w-full bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700 space-y-4">
-      { /* TODO: remove deadcode or reactivate it */}
-      { ballotEntries.ballots.length > 0 && false &&
-        <div className={`flex flex-col justify-between items-center w-full py-2 sm:py-6 w-full h-[300px] space-y-2`}>
-          <LockChart
-            ballots={ballotEntries.ballots.map(ballot => ballot.YES_NO)}
-            ballotPreview={undefined}
-            durationWindow={duration}
-            selectable={{
-              select_ballot: (id) => {
-                setTriggerScroll(!triggerScroll);
-                toggleBallot(id);
-              },
-              selected: selectedBallotId
-            }}
-          />
-          <IntervalPicker duration={duration} setDuration={setDuration} availableDurations={[DurationUnit.WEEK, DurationUnit.MONTH, DurationUnit.YEAR]} />
-        </div>
-      }
-      { /* TODO: remove deadcode or reactivate it */}
-      { ballotEntries.ballots.length > 0 && false &&
-        <label className="inline-flex items-center me-5 cursor-pointer justify-self-end pb-5">
-          <span className="mr-2 text-gray-900 dark:text-gray-100 truncate">Show unlocked</span>
-          <input type="checkbox" value={(!filterActive).toString()} className="sr-only peer" onChange={() => toggleFilterActive(!filterActive)}/>
-          <div className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-focus:ring-2 peer-focus:ring-blue-900 dark:peer-focus:ring-blue-900 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-900 dark:peer-checked:bg-blue-700"></div>
-        </label>
-      }
       <AdaptiveInfiniteScroll
         dataLength={ballotEntries.ballots.length}
         next={fetchNextBallots}
@@ -149,15 +123,13 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
         className="w-full flex flex-col min-h-full overflow-auto"
         style={{ height: "auto", overflow: "visible" }}
       >
-        {ballotEntries.ballots.length > 0 && (
-          <div className={`grid ${isMobile ? "grid-cols-[auto_minmax(100px,1fr)_minmax(80px,auto)]" : "grid-cols-[auto_minmax(100px,1fr)_minmax(60px,auto)_minmax(80px,auto)_minmax(100px,auto)]"} gap-2 gap-x-2 sm:gap-x-4 w-full items-center px-2 sm:px-3 pb-2`}>
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">POOL</span>
-            <div></div>
-            {!isMobile && <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">DISSENT</span>}
-            {!isMobile && <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">TIME LEFT</span>}
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">VALUE</span>
-          </div>
-        )}
+        <div className={`grid ${isMobile ? "grid-cols-[auto_minmax(100px,1fr)_minmax(80px,auto)]" : "grid-cols-[auto_minmax(100px,1fr)_minmax(60px,auto)_minmax(80px,auto)_minmax(100px,auto)]"} gap-2 gap-x-2 sm:gap-x-4 w-full items-center px-2 sm:px-3`}>
+          <span className="text-sm text-gray-500 dark:text-gray-500">POOL</span>
+          <div></div>
+          {!isMobile && <span className="text-sm text-gray-500 dark:text-gray-500 text-right">DISSENT</span>}
+          {!isMobile && <span className="text-sm text-gray-500 dark:text-gray-500 text-right">TIME LEFT</span>}
+          <span className="text-sm text-gray-500 dark:text-gray-500 text-right">VALUE</span>
+        </div>
         <ul className="w-full flex flex-col gap-y-2">
           {
             /* Size of the header is 26 on mobile and 22 on desktop */
