@@ -120,6 +120,18 @@ const ProtocolPage = () => {
   return (
     <div className="w-full sm:w-4/5 md:w-11/12 lg:w-5/6 xl:w-4/5 mx-auto px-3 pb-3 my-6">
 
+      {/* Limited Access Notice */}
+      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-lg mb-4">
+        <div className="flex items-center gap-3">
+          <span className="text-amber-600 dark:text-amber-400 text-xl mt-0.5">ℹ️</span>
+          <div className="flex-1">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              <span className="font-semibold">Beta information:</span> Consensus half-life and lock duration scaling parameters are set to create fast evolving consensus and short lock durations to faciliate testing. Longer half-life and durations will be used on mainnet.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className={DASHBOARD_CONTAINER}>
         {sections.map((section, idx) => (
           <div key={idx} className={CONTENT_PANEL}>

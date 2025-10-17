@@ -95,44 +95,50 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
         </div>
       </div>
       {/* Layout: Fixed column + Scrollable section */}
-      <div className="w-full flex">
-        {/* Fixed Pool column */}
-        <div className="flex-shrink-0 flex flex-col w-[200px] sm:w-[700px]">
-          {/* Pool header */}
-          <span className="pb-2 text-sm text-gray-500 dark:text-gray-500">POOL</span>
-          {/* Pool data rows */}
-          <ul className="flex flex-col gap-y-2">
-            {ballotEntries.ballots.map((ballot, index) => (
-              <li
-                key={index}
-                className="scroll-mt-[104px] sm:scroll-mt-[88px]"
-              >
-                <PoolRow ballot={ballot} />
-              </li>
-            ))}
-          </ul>
+      {ballotEntries.ballots.length === 0 ? (
+        <div className="w-full text-center py-8 text-gray-500 dark:text-gray-400">
+          No positions found.
         </div>
-
-        {/* Scrollable columns section (header + data together) */}
-        <div className="flex-1 overflow-x-auto">
-          <div className="min-w-[260px] flex flex-col">
-            {/* Scrollable header */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 pb-2">
-              <span className="text-sm text-gray-500 dark:text-gray-500 text-right">DISSENT</span>
-              <span className="text-sm text-gray-500 dark:text-gray-500 text-right">{filterActive ? "TIME LEFT" : "UNLOCKED"}</span>
-              <span className="text-sm text-gray-500 dark:text-gray-500 text-right">VALUE</span>
-            </div>
-            {/* Scrollable data rows */}
+      ) : (
+        <div className="w-full flex">
+          {/* Fixed Pool column */}
+          <div className="flex-shrink-0 flex flex-col w-[200px] sm:w-[700px]">
+            {/* Pool header */}
+            <span className="pb-2 text-sm text-gray-500 dark:text-gray-500">POOL</span>
+            {/* Pool data rows */}
             <ul className="flex flex-col gap-y-2">
               {ballotEntries.ballots.map((ballot, index) => (
-                <li key={index}>
-                  <PositionRow ballot={ballot} now={info?.current_time} />
+                <li
+                  key={index}
+                  className="scroll-mt-[104px] sm:scroll-mt-[88px]"
+                >
+                  <PoolRow ballot={ballot} />
                 </li>
               ))}
             </ul>
           </div>
+
+          {/* Scrollable columns section (header + data together) */}
+          <div className="flex-1 overflow-x-auto">
+            <div className="min-w-[260px] flex flex-col">
+              {/* Scrollable header */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 pb-2">
+                <span className="text-sm text-gray-500 dark:text-gray-500 text-right">DISSENT</span>
+                <span className="text-sm text-gray-500 dark:text-gray-500 text-right">{filterActive ? "TIME LEFT" : "UNLOCKED"}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-500 text-right">VALUE</span>
+              </div>
+              {/* Scrollable data rows */}
+              <ul className="flex flex-col gap-y-2">
+                {ballotEntries.ballots.map((ballot, index) => (
+                  <li key={index}>
+                    <PositionRow ballot={ballot} now={info?.current_time} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

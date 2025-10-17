@@ -169,6 +169,9 @@ wait
 #
 # Supply cap is set to 1M ckUSDT and borrow cap to 800k ckUSDT
 #
+# For main net:
+#   duration_scaler = record { a = 72800000000.0; b = 3.25; };
+#   ballot_half_life = variant { DAYS = 60 };
 dfx deploy protocol --argument '( variant { 
   init = record {
     canister_ids = record {
@@ -182,11 +185,11 @@ dfx deploy protocol --argument '( variant {
         dissent_steepness = 0.55;
         consent_steepness = 0.1;
       };
-      ballot_half_life = variant { YEARS = 1 };
-      duration_scaler = record { a = 72800000000.0; b = 3.25; };
+      ballot_half_life = variant { DAYS = 60 };
+      duration_scaler = record { a = 1500000000000.0; b = 1.9; };
       minimum_ballot_amount = 1_000_000;
       timer_interval_s = 300;
-      clock = variant { SIMULATED = record { dilation_factor = 100.0; } };
+      clock = variant { SIMULATED = record { dilation_factor = 10.0; } };
       twap_config = record {
         window_duration = variant { HOURS = 6 };
         max_observations = 1000;

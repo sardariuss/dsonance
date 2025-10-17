@@ -40,16 +40,16 @@ interface RollingTimeline<T> {
 const MiningDashboard = () => {
   const { theme } = useContext(ThemeContext);
   const { participationLedger : { formatAmount, totalSupply, metadata } } = useFungibleLedgerContext();
-  const { parameters, info } = useProtocolContext();
-  const { data: miningTrackers } = protocolActor.unauthenticated.useQueryCall({
+  const { parameters, info, refreshInfo } = useProtocolContext();
+  const { data: miningTrackers, call: refreshMiningTrackers } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_mining_trackers',
     args: [],
   });
-  const { data: totalAllocatedTimeline } = protocolActor.unauthenticated.useQueryCall({
+  const { data: totalAllocatedTimeline, call: refreshTotalAllocated } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_mining_total_allocated',
     args: [],
   });
-  const { data: totalClaimedTimeline } = protocolActor.unauthenticated.useQueryCall({
+  const { data: totalClaimedTimeline, call: refreshTotalClaimed } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_mining_total_claimed',
     args: [],
   });
@@ -62,6 +62,14 @@ const MiningDashboard = () => {
   const { call: getUser } = backendActor.unauthenticated.useQueryCall({
     functionName: 'get_user',
   });
+
+  // Refresh data when component mounts
+  useEffect(() => {
+    refreshInfo();
+    refreshMiningTrackers();
+    refreshTotalAllocated();
+    refreshTotalClaimed();
+  }, [refreshInfo, refreshMiningTrackers, refreshTotalAllocated, refreshTotalClaimed]);
 
   const miningStats = useMemo(() => {
     if (!miningTrackers) {

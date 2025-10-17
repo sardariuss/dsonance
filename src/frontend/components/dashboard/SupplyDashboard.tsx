@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { formatAmountCompact } from "../../utils/conversions/token";
 import BorrowInfoPanel from "../borrow/BorrowInfoPanel";
 import InterestRateModel from "../borrow/InterestRateModel";
@@ -13,9 +13,15 @@ import { DASHBOARD_CONTAINER, STATS_OVERVIEW_CONTAINER, VERTICAL_DIVIDER, METRIC
 // @todo: perfect layout for mobile
 const SupplyDashboard = () => {
 
-  const { parameters, lendingIndexTimeline, info } = useProtocolContext();
+  const { parameters, lendingIndexTimeline, info, refreshInfo, refreshLendingIndex } = useProtocolContext();
 
   const { supplyLedger } = useFungibleLedgerContext();
+
+  // Refresh data when component mounts
+  useEffect(() => {
+    refreshInfo();
+    refreshLendingIndex();
+  }, [refreshInfo, refreshLendingIndex]);
 
   const indexerState = lendingIndexTimeline?.current.data;
 
