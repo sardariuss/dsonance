@@ -175,8 +175,8 @@ async function callCanisterMethod() {
     // Mint ckBTC and USDT to each user
     let mintPromises = [];
     for (let [principal, _] of userActors) {
-        mintPromises.push(faucetActor.mint_btc({to: { owner: principal, subaccount: [] }, amount: BTC_USER_BALANCE}));
-        mintPromises.push(faucetActor.mint_usdt({to: { owner: principal, subaccount: [] }, amount: USDT_USER_BALANCE}));
+        mintPromises.push(faucetActor.admin_mint_btc({to: { owner: principal, subaccount: [] }, amount: BTC_USER_BALANCE}));
+        mintPromises.push(faucetActor.admin_mint_usdt({to: { owner: principal, subaccount: [] }, amount: USDT_USER_BALANCE}));
     }
     await Promise.all(mintPromises);
 

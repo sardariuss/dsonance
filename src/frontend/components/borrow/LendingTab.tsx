@@ -102,6 +102,7 @@ export const LendingTab = ({ user }: { user: NonNullable<ReturnType<typeof useAu
                 runOperation={(amount) => runOperation(amount, { "BORROW_SUPPLY": null })}
                 maxLabel="Available"
                 maxAmount={maxBorrowable}
+                disabled={collateral === 0n}
               />
             </div>
             <div className="flex-1">
@@ -112,6 +113,7 @@ export const LendingTab = ({ user }: { user: NonNullable<ReturnType<typeof useAu
                 runOperation={(amount) => runOperation(amount, { "REPAY_SUPPLY": { max_slippage_amount: BigInt(Math.ceil(REPAY_SLIPPAGE_RATIO * Number(amount))) } })}
                 maxLabel="Total owed"
                 maxAmount={currentOwed}
+                disabled={collateral === 0n}
               />
             </div>
           </div>
@@ -147,6 +149,7 @@ export const LendingTab = ({ user }: { user: NonNullable<ReturnType<typeof useAu
                 runOperation={(amount) => runOperation(amount, { "WITHDRAW_COLLATERAL": null })}
                 maxLabel="Available"
                 maxAmount={maxWithdrawable}
+                disabled={collateral === 0n}
               />
             </div>
           </div>

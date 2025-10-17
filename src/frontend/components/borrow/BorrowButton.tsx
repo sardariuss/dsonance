@@ -20,6 +20,7 @@ interface BorrowButtonProps {
   runOperation: (amount: bigint) => Promise<Result_1 | undefined>;
   maxLabel: string;
   maxAmount: bigint;
+  disabled?: boolean;
 }
 
 const BorrowButton: React.FC<BorrowButtonProps> = ({
@@ -29,6 +30,7 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
   runOperation,
   maxLabel,
   maxAmount,
+  disabled = false,
 }) => {
 
   const [isVisible, setIsVisible] = useState(false);
@@ -102,7 +104,11 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
 
   return (
     <>
-      <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md transition-colors shadow-sm" onClick={() => { setInputValue(""); setAmount(0n); setIsVisible(true) }}>
+      <button
+        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
+        onClick={() => { setInputValue(""); setAmount(0n); setIsVisible(true) }}
+        disabled={disabled}
+      >
         {title}
       </button>
       <Modal

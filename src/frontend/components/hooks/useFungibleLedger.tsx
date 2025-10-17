@@ -34,7 +34,8 @@ export interface FungibleLedger {
   transferTokens: (amount: bigint, to: Account) => Promise<TransferResult | undefined>;
   userBalance: bigint | undefined;
   refreshUserBalance: () => void;
-  mint: (amount: number) => Promise<boolean>;
+  hasMinted: boolean | undefined;
+  mint: () => Promise<boolean>;
   mintLoading: boolean;
 }
 
@@ -327,38 +328,35 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
 
   useEffect(() => {
     refreshUserBalance();
+    if (account) {
+      checkHasMinted([account?.owner]);
+    }
   }, [account]);
 
   const { call: mintToken, loading: mintLoading } = faucetActor.unauthenticated.useUpdateCall({
     functionName: ledgerType === LedgerType.SUPPLY ? 'mint_usdt' : ledgerType === LedgerType.COLLATERAL ? 'mint_btc' : 'mint_twv',
   });
 
-  const mint = async(amount: number) => {
-    if (isNaN(amount) || amount <= 0) {
-      console.error("Invalid amount to mint:", amount);
-      return false;
-    }
-    if (tokenDecimals === undefined){
-      console.error("Token decimals are not defined.");
-      return false;
-    }
+  const { data: hasMinted, call: checkHasMinted } = faucetActor.unauthenticated.useQueryCall({
+    functionName: ledgerType === LedgerType.SUPPLY ? 'has_minted_usdt' : ledgerType === LedgerType.COLLATERAL ? 'has_minted_btc' : 'has_minted_twv',
+  });
+
+  const mint = async() => {
     if (!account) {
       console.warn("User account is not provided.");
       return false;
     }
     try {
-      const mintResult = await mintToken([{
-        amount: toFixedPoint(amount, tokenDecimals) ?? 0n,
-        to: account,
-      }]);
+      const mintResult = await mintToken([account]);
       if (mintResult === undefined) {
-        throw new Error(`Failed to mint ${amount}: mintToken returned an undefined result`);
+        throw new Error(`Failed to mint: mintToken returned an undefined result`);
       }
       if ("err" in mintResult) {
-        throw new Error(`Failed to mint ${amount}: ${mintResult.err}`);
+        throw new Error(`Failed to mint: ${mintResult.err}`);
       }
       // Refresh user balance after minting
       refreshUserBalance();
+      checkHasMinted([account.owner]);
       return true;
     } catch (error) {
       console.error("Error in mint:", error);
@@ -383,6 +381,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     userBalance,
     refreshUserBalance,
     mint,
+    hasMinted,
     mintLoading,
   };
 };

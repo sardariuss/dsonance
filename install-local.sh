@@ -140,7 +140,9 @@ dfx deploy faucet --argument '( record {
     ckbtc_ledger = principal "'${CKBTC_LEDGER_PRINCIPAL}'";
     ckusdt_ledger = principal "'${CKUSDT_LEDGER_PRINCIPAL}'";
     twv_ledger = principal "'${TWV_LEDGER_PRINCIPAL}'";
-  }; 
+  };
+  ckbtc_mint_amount = 100_000_000 : nat;
+  ckusdt_mint_amount = 100_000_000_000 : nat;
 })' &
 # Prices taken from the neutrinite canister on 2025-07-01
 # https://dashboard.internetcomputer.org/canister/u45jl-liaaa-aaaam-abppa-cai#get_latest
@@ -226,7 +228,7 @@ dfx deps init
 dfx deps deploy internet_identity
 
 # Transfer TWV tokens for the protocol to mint
-dfx canister call faucet mint_twv '(
+dfx canister call faucet admin_mint_twv '(
   record {
     to = record {
       owner = principal "'${PROTOCOL_PRINCIPAL}'";
@@ -250,7 +252,7 @@ dfx canister call kong_backend add_token '(
     token = "IC.'${CKBTC_LEDGER_PRINCIPAL}'";
   },
 )'
-dfx canister call faucet mint_btc '(
+dfx canister call faucet admin_mint_btc '(
   record {
     to = record {
       owner = principal "'${DEFAULT_USER}'";
@@ -259,7 +261,7 @@ dfx canister call faucet mint_btc '(
     amount = 100_000_020 : nat;
   },
 )'
-dfx canister call faucet mint_usdt '(
+dfx canister call faucet admin_mint_usdt '(
   record {
     to = record {
       owner = principal "'${DEFAULT_USER}'";
