@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { SBallotType } from "@/declarations/protocol/protocol.did";
-import { timeDifference, timeToDate } from "../../utils/conversions/date";
+import { formatDate, timeDifference, timeToDate } from "../../utils/conversions/date";
 import { unwrapLock } from "../../utils/conversions/ballot";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { aprToApy } from "../../utils/lending";
+import { formatDuration } from "@/frontend/utils/conversions/durationUnit";
 
 interface PositionRowProps {
   ballot: SBallotType;
@@ -13,11 +14,13 @@ interface PositionRowProps {
 const PositionRow = ({ ballot, now }: PositionRowProps) => {
   const { supplyLedger: { formatAmountUsd } } = useFungibleLedgerContext();
 
-  const { releaseTimestamp, reward, currentApy } = useMemo(() => {
+  const { releaseTimestamp, durationAdded, reward, currentApy } = useMemo(() => {
+    const lockDuration = unwrapLock(ballot.YES_NO).duration_ns;
     return {
       currentApy: aprToApy(ballot.YES_NO.foresight.apr.current),
       reward: ballot.YES_NO.foresight.reward,
-      releaseTimestamp: ballot.YES_NO.timestamp + unwrapLock(ballot.YES_NO).duration_ns.current.data
+      releaseTimestamp: ballot.YES_NO.timestamp + lockDuration.current.data,
+      durationAdded: lockDuration.history.length === 0 ? undefined : lockDuration.current.data - lockDuration.history[0].data,
     };
   }, [ballot]);
 
@@ -31,11 +34,18 @@ const PositionRow = ({ ballot, now }: PositionRowProps) => {
       </div>
 
       {/* Time Left */}
-      <div className="w-full text-right flex items-center justify-end">
+      <div className={`w-full ${durationAdded ? "flex flex-col" : ""} text-right flex justify-end`}>
         <span className="text-sm">
           {releaseTimestamp <= now
-            ? `expired`
+            ? `${formatDate(timeToDate(releaseTimestamp))}`
             : `${timeDifference(timeToDate(releaseTimestamp), timeToDate(now))}`}
+        </span>
+        <span>
+          {durationAdded && (
+            <span className="text-xs text-gray-400">
+              +{formatDuration(durationAdded)}
+            </span>
+          )}
         </span>
       </div>
 

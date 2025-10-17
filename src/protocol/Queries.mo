@@ -50,17 +50,15 @@ module {
                         case (null) { break limit_loop; };
                         case (?id) { 
                             Option.iterate(Map.get(state.ballot_register.ballots, Map.thash, id), func(ballot_type: BallotType) {
-                                if (filter_active) {
-                                    switch(ballot_type){
-                                        case(#YES_NO(ballot)) {
-                                            let lock = BallotUtils.unwrap_lock_info(ballot);
-                                            if (lock.release_date > clock.get_time()){
-                                                buffer.add(SharedConversions.shareBallotType(ballot_type));
-                                            };
+                                switch(ballot_type){
+                                    case(#YES_NO(ballot)) {
+                                        let lock = BallotUtils.unwrap_lock_info(ballot);
+                                        if (filter_active and lock.release_date >= clock.get_time()){
+                                            buffer.add(SharedConversions.shareBallotType(ballot_type));
+                                        } else if (not filter_active and lock.release_date < clock.get_time()) {
+                                            buffer.add(SharedConversions.shareBallotType(ballot_type));
                                         };
                                     };
-                                } else {
-                                    buffer.add(SharedConversions.shareBallotType(ballot_type));
                                 };
                             });
                         };
