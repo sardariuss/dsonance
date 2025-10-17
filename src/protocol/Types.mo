@@ -209,8 +209,6 @@ module {
         foresight: {
             dissent_steepness: Float;
             consent_steepness: Float;
-            max_age: Duration;
-            age_coefficient: Float;
         };
         duration_scaler: DurationScalerParameters;
         minimum_ballot_amount: Nat;

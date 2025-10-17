@@ -529,8 +529,6 @@ module {
     public type ForesightParameters = {
         dissent_steepness: Float;
         consent_steepness: Float;
-        max_age: Nat;
-        age_coefficient: Float;
     };
 
     public type TransferResult = {
@@ -792,8 +790,6 @@ module {
         foresight: {
             dissent_steepness: Float;
             consent_steepness: Float;
-            max_age: Duration;
-            age_coefficient: Float;
         };
         mining: MiningParameters;
         timer_interval_s: Nat; // Use duration instead

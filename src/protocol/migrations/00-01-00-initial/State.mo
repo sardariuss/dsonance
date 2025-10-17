@@ -76,10 +76,6 @@ module {
                 map = Map.new<Text, Lock>();
             };
             parameters = { parameters with 
-                foresight = {
-                    parameters.foresight with
-                    max_age = Duration.toTime(parameters.foresight.max_age);
-                };
                 twap_config = {
                     window_duration_ns = Duration.toTime(parameters.twap_config.window_duration);
                     max_observations = parameters.twap_config.max_observations;
@@ -168,10 +164,6 @@ module {
         };
 
         let protocol_parameters = { parameters with
-            foresight = {
-                parameters.foresight with
-                max_age = Duration.toTime(parameters.foresight.max_age);
-            };
             twap_config = {
                 window_duration_ns = Duration.toTime(parameters.twap_config.window_duration);
                 max_observations = parameters.twap_config.max_observations;

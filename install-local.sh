@@ -179,8 +179,6 @@ dfx deploy protocol --argument '( variant {
     };
     parameters = record {
       foresight = record {
-        age_coefficient = 0.25;
-        max_age = variant { YEARS = 4 };
         dissent_steepness = 0.55;
         consent_steepness = 0.1;
       };

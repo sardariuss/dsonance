@@ -104,13 +104,12 @@ Where:
 The position APY is distributed **at the end of the locking period** and depend on the foresight of each position:
 
 $$
-\text{foresight} = \text{position_amount} \times \text{age_bonus} \times \text{position_dissent}_{t_0} \times \text{position_consent}_{t_{\text{end}}}
+\text{foresight} = \text{position_amount} \times \text{position_dissent}_{t_0} \times \text{position_consent}_{t_{\text{end}}}
 $$
 
 Where:
 
 * $$\text{position_amount}$$ is the amount of token in the position
-* $$\text{age_bonus}$$ is the age bonus of the position, between 1 and 1.25
 * $$\text{position\_dissent}_{t_0}$$represents how bold the choice was at the time of opening
 * $$\text{position\_consent}_{t_{\text{end}}}$$represents how well the position aligns with the final consensus:
 

@@ -15,7 +15,7 @@ module {
         lock_duration: Nat;
         parameters: ForesightParameters;
     }) : Float {
-        dissent * consent * age_bonus(lock_duration, parameters);
+        dissent * consent;
     };
     
     public func compute_consent({
@@ -66,8 +66,4 @@ module {
         dissent / amount;
     };
 
-    func age_bonus(age: Nat, parameters: ForesightParameters) : Float {
-        let { max_age; age_coefficient; } = parameters;
-        1.0 + age_coefficient * Float.fromInt(Nat.min(age, max_age)) / Float.fromInt(max_age);
-    };
 }

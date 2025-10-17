@@ -164,7 +164,7 @@ shared({caller = admin}) persistent actor class Faucet({
 
     public query func has_minted_twv(_: Principal) : async Bool {
         // TWV minting is not supported
-        Debug.trap("TWV minting is not supported");
+        false;
     };
 
 };

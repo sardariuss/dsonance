@@ -57,8 +57,6 @@ dfx deploy protocol --argument '( variant {
       dex = principal "ena4g-5yaaa-aaaap-an3ca-cai";
     };
     parameters = record {
-      age_coefficient = 0.25;
-      max_age = variant { YEARS = 4 };
       ballot_half_life = variant { YEARS = 1 };
       duration_scaler = record { a = 72800000000.0; b = 3.25; };
       minimum_ballot_amount = 1_000_000;
