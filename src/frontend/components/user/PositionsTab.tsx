@@ -2,7 +2,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { protocolActor } from "../actors/ProtocolActor";
 
-import BallotRow from "./BallotRow";
+import PoolRow from "./PoolRow";
+import PositionRow from "./PositionRow";
 import { useProtocolContext } from "../context/ProtocolContext";
 import { useAuth } from "@nfid/identitykit/react";
 import { Account, SBallotType } from "@/declarations/protocol/protocol.did";
@@ -115,34 +116,50 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
   
   return (
     <div className="flex flex-col w-full bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700 space-y-4">
-      <AdaptiveInfiniteScroll
-        dataLength={ballotEntries.ballots.length}
-        next={fetchNextBallots}
-        hasMore={ballotEntries.hasMore}
-        loader={<></>}
-        className="w-full flex flex-col min-h-full overflow-auto"
-        style={{ height: "auto", overflow: "visible" }}
-      >
-        <div className={`grid ${isMobile ? "grid-cols-[auto_minmax(100px,1fr)_minmax(80px,auto)]" : "grid-cols-[auto_minmax(100px,1fr)_minmax(60px,auto)_minmax(80px,auto)_minmax(100px,auto)]"} gap-2 gap-x-2 sm:gap-x-4 w-full items-center px-2 sm:px-3`}>
-          <span className="text-sm text-gray-500 dark:text-gray-500">POOL</span>
-          <div></div>
-          {!isMobile && <span className="text-sm text-gray-500 dark:text-gray-500 text-right">DISSENT</span>}
-          {!isMobile && <span className="text-sm text-gray-500 dark:text-gray-500 text-right">TIME LEFT</span>}
-          <span className="text-sm text-gray-500 dark:text-gray-500 text-right">VALUE</span>
-        </div>
-        <ul className="w-full flex flex-col gap-y-2">
-          {
-            /* Size of the header is 26 on mobile and 22 on desktop */
-            ballotEntries.ballots.map((ballot, index) => (
-              <li key={index} ref={(el) => {ballotRefs.current.set(ballot.YES_NO.ballot_id, el)}}
-                className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]"
+      {/* Layout: Fixed column + Scrollable section */}
+      <div className="w-full flex">
+        {/* Fixed Pool column */}
+        <div className="flex-shrink-0 flex flex-col w-[200px] sm:w-[700px]">
+          {/* Pool header */}
+          <div className="px-2 sm:px-3 pb-2">
+            <span className="text-sm text-gray-500 dark:text-gray-500">POOL</span>
+          </div>
+          {/* Pool data rows */}
+          <ul className="flex flex-col gap-y-2">
+            {ballotEntries.ballots.map((ballot, index) => (
+              <li
+                key={index}
+                ref={(el) => {
+                  ballotRefs.current.set(ballot.YES_NO.ballot_id, el);
+                }}
+                className="scroll-mt-[104px] sm:scroll-mt-[88px]"
               >
-                <BallotRow ballot={ballot} now={info?.current_time}/>
+                <PoolRow ballot={ballot} />
               </li>
-            ))
-          }
-        </ul>
-      </AdaptiveInfiniteScroll>
+            ))}
+          </ul>
+        </div>
+
+        {/* Scrollable columns section (header + data together) */}
+        <div className="flex-1 overflow-x-auto">
+          <div className="min-w-[260px] flex flex-col">
+            {/* Scrollable header */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 pb-2">
+              <span className="text-sm text-gray-500 dark:text-gray-500 text-right">DISSENT</span>
+              <span className="text-sm text-gray-500 dark:text-gray-500 text-right">TIME LEFT</span>
+              <span className="text-sm text-gray-500 dark:text-gray-500 text-right">VALUE</span>
+            </div>
+            {/* Scrollable data rows */}
+            <ul className="flex flex-col gap-y-2">
+              {ballotEntries.ballots.map((ballot, index) => (
+                <li key={index}>
+                  <PositionRow ballot={ballot} now={info?.current_time} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
