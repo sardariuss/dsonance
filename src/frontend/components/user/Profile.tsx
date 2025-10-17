@@ -9,16 +9,15 @@ import { useAuth } from "@nfid/identitykit/react";
 import { protocolActor } from "../actors/ProtocolActor";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { fromNullableExt } from "@/frontend/utils/conversions/nullable";
-import { SupplyContent, BorrowContent } from "../borrow/BorrowPage";
+import { LendingTab } from "../borrow/LendingTab";
 import { MiningContent } from "./MiningContent";
 import DualLabel from "../common/DualLabel";
 import { TabButton } from "../TabButton";
-import { useBorrowOperations } from "../hooks/useBorrowOperations";
-import { useLendingCalculations } from "../hooks/useLendingCalculations";
 import { useProtocolContext } from "../context/ProtocolContext";
 import HealthFactor from "../borrow/HealthFactor";
 import { useMiningRatesContext } from "../context/MiningRatesContext";
 import { aprToApy } from "@/frontend/utils/lending";
+import PositionsTab from "./PositionsTab";
 
 const Profile = () => {
 
@@ -28,7 +27,7 @@ const Profile = () => {
   const { user, updateNickname } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
-  const [activeTab, setActiveTab] = useState<'supply' | 'borrow' | 'mining'>('supply');
+  const [activeTab, setActiveTab] = useState<'positions' | 'lending' | 'mining'>('positions');
   
   const { participationLedger, supplyLedger, collateralLedger } = useFungibleLedgerContext();
   const { lendingIndexTimeline, info } = useProtocolContext();
@@ -315,14 +314,14 @@ const Profile = () => {
       {/* Tab Navigation */}
       <ul className="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-2 mb-4 items-center">
         {[
-          { key: 'supply', label: 'Supply' },
-          { key: 'borrow', label: 'Borrow' },
+          { key: 'positions', label: 'Positions' },
+          { key: 'lending', label: 'Lending' },
           { key: 'mining', label: 'Mining' }
         ].map((tab) => (
           <li key={tab.key} className="min-w-max text-center">
             <TabButton
               label={tab.label}
-              setIsCurrent={() => setActiveTab(tab.key as 'supply' | 'borrow' | 'mining')}
+              setIsCurrent={() => setActiveTab(tab.key as 'positions' | 'lending' | 'mining')}
               isCurrent={activeTab === tab.key}
             />
           </li>
@@ -330,8 +329,8 @@ const Profile = () => {
       </ul>
 
     {/* Tab Content */}
-      {activeTab === 'supply' && <SupplyTab user={connectedUser} />}
-      {activeTab === 'borrow' && <BorrowTab user={connectedUser} />}
+      {activeTab === 'positions' && <PositionsTab user={connectedUser} />}
+      {activeTab === 'lending' && <LendingTab user={connectedUser} />}
       {activeTab === 'mining' && (
         <MiningContent
           tracker={tracker}
@@ -342,48 +341,5 @@ const Profile = () => {
     </div>
   );
 }
-
-// Supply Tab Component
-const SupplyTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
-  const { supplyLedger } = useFungibleLedgerContext();
-  const { account } = useBorrowOperations(user);
-
-  const { data: userSupply } = protocolActor.unauthenticated.useQueryCall({
-    functionName: "get_user_supply",
-    args: [{ account }],
-  });
-
-  return <SupplyContent user={user} userSupply={userSupply} supplyLedger={supplyLedger} />;
-};
-
-// Borrow Tab Component
-const BorrowTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
-  const {
-    loanPosition,
-    previewOperation,
-    runOperation,
-    supplyLedger,
-    collateralLedger,
-  } = useBorrowOperations(user);
-
-  const { collateral, currentOwed, maxWithdrawable, maxBorrowable } = useLendingCalculations(
-    loanPosition,
-    collateralLedger,
-    supplyLedger
-  );
-
-  return (
-    <BorrowContent
-      collateral={collateral}
-      currentOwed={currentOwed}
-      maxWithdrawable={maxWithdrawable}
-      maxBorrowable={maxBorrowable}
-      collateralLedger={collateralLedger}
-      supplyLedger={supplyLedger}
-      previewOperation={previewOperation}
-      runOperation={runOperation}
-    />
-  );
-};
 
 export default Profile;

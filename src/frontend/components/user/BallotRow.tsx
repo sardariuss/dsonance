@@ -16,6 +16,7 @@ import { SYesNoVote } from "@/declarations/backend/backend.did";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { createThumbnailUrl } from "../../utils/thumbnail";
 import { aprToApy } from "../../utils/lending";
+import { useNavigate } from "react-router-dom";
 
 interface VoteTextProps {
   vote: SYesNoVote | undefined;
@@ -45,13 +46,13 @@ const VoteText = ({ vote }: VoteTextProps) => {
 interface BallotProps {
   ballot: SBallotType;
   now: bigint | undefined;
-  selected: boolean;
 }
 
-const BallotRow = ({ ballot, now, selected }: BallotProps) => {
+const BallotRow = ({ ballot, now }: BallotProps) => {
 
   const { supplyLedger: { formatAmountUsd } } = useFungibleLedgerContext();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
+  const navigate = useNavigate();
 
   const { releaseTimestamp, reward, currentApy } = useMemo(() => {
 
@@ -82,9 +83,9 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
 
   return (
     now === undefined ? <></> :
-    <div className={`rounded-lg py-2 shadow-sm bg-slate-200 dark:bg-gray-800 hover:cursor-pointer w-full ${ selected ? "border-2 dark:border-gray-500 border-gray-500" : "border dark:border-gray-700 border-gray-300"}`}>
-      <div className={`grid ${isMobile ? "grid-cols-[auto_minmax(100px,1fr)_minmax(80px,auto)]" : "grid-cols-[auto_minmax(100px,1fr)_minmax(60px,auto)_minmax(80px,auto)_minmax(100px,auto)]"} gap-2 gap-x-2 sm:gap-x-4 w-full items-center px-2 sm:px-3`}>
+    <div className={`py-2 w-full grid ${isMobile ? "grid-cols-[minmax(100px,1fr)_minmax(80px,auto)]" : "grid-cols-[minmax(100px,1fr)_minmax(60px,auto)_minmax(80px,auto)_minmax(100px,auto)]"} gap-2 gap-x-2 sm:gap-x-4 w-full items-center px-2 sm:px-3`}>
 
+      <div className="flex flex-row items-center hover:cursor-pointer gap-x-2" onClick={() => { navigate(`/vote/${ballot.YES_NO.vote_id}`); }}>
         {/* Thumbnail Image */}
         <img
           className="w-10 h-10 min-w-10 min-h-10 bg-contain bg-no-repeat bg-center rounded-md"
@@ -98,27 +99,26 @@ const BallotRow = ({ ballot, now, selected }: BallotProps) => {
             <ChoiceView choice={toEnum(ballot.YES_NO.choice)}/>
           </div>
         </div>
+      </div>
 
-        { !isMobile && <div className="w-full text-right">
-          <span>{ballot.YES_NO.dissent.toFixed(2)}</span>
-        </div> }
+      { !isMobile && <div className="w-full text-right">
+        <span>{ballot.YES_NO.dissent.toFixed(2)}</span>
+      </div> }
 
-        { !isMobile && <div className="w-full text-right">
-          <span>
-            {releaseTimestamp <= now ?
-              `expired` :
-              `${timeDifference(timeToDate(releaseTimestamp), timeToDate(now))}`
-            }
-          </span>
-        </div> }
+      { !isMobile && <div className="w-full text-right">
+        <span>
+          {releaseTimestamp <= now ?
+            `expired` :
+            `${timeDifference(timeToDate(releaseTimestamp), timeToDate(now))}`
+          }
+        </span>
+      </div> }
 
-        <div className="w-full flex flex-col items-end text-right">
-          <span className="font-semibold">{formatAmountUsd(ballot.YES_NO.amount + reward)}</span>
-          <span className="text-sm text-green-500">
-            {(currentApy * 100).toFixed(2)}% APY
-          </span>
-        </div>
-
+      <div className="w-full flex flex-col items-end text-right">
+        <span className="font-semibold">{formatAmountUsd(ballot.YES_NO.amount + reward)}</span>
+        <span className="text-sm text-green-500">
+          {(currentApy * 100).toFixed(2)}% APY
+        </span>
       </div>
 
     </div>

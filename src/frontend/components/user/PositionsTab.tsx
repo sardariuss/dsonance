@@ -22,33 +22,11 @@ type BallotEntries = {
   hasMore: boolean;
 };
 
-const BallotList = () => {
-  const { connect, user } = useAuth();
+const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
 
-  if (user === undefined || user.principal.isAnonymous()) {
-    return <BallotListLogin connect={connect} />;
-  }
-
-  return <BallotListContent user={user} />;
-};
-
-const BallotListLogin = ({ connect }: { connect: () => void }) => (
-  <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-850 py-5 rounded-md w-full">
-    <button
-      className="button-simple flex items-center space-x-2 px-6 py-3"
-      onClick={() => connect()}
-    >
-      <LoginIcon />
-      <span>Login to see your views</span>
-    </button>
-  </div>
-);
-
-export const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const ballotRefs = useRef<Map<string, (HTMLLIElement | null)>>(new Map());
   const [triggerScroll, setTriggerScroll] = useState(false);
-  const navigate = useNavigate();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const [ballotEntries, setBallotEntries] = useState<BallotEntries>({ ballots: [], previous: undefined, hasMore: true });
@@ -83,14 +61,6 @@ export const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeo
       return newParams;
     });
   }, [selectedBallotId, setSearchParams]);
-
-  const selectBallot = useCallback((ballotId: string) => {
-    setSearchParams((prevParams) => {
-      const newParams = new URLSearchParams(prevParams);
-      newParams.set("ballotId", ballotId);
-      return newParams;
-    });
-  }, [setSearchParams]);
 
   const fetchBallots = async (account: Account, entries: BallotEntries, filter_active: boolean) : Promise<BallotEntries> => {
 
@@ -144,7 +114,7 @@ export const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeo
   }, [triggerScroll, ballotEntries]);
   
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex flex-col w-full bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700 space-y-4">
       { /* TODO: remove deadcode or reactivate it */}
       { ballotEntries.ballots.length > 0 && false &&
         <div className={`flex flex-col justify-between items-center w-full py-2 sm:py-6 w-full h-[300px] space-y-2`}>
@@ -181,11 +151,11 @@ export const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeo
       >
         {ballotEntries.ballots.length > 0 && (
           <div className={`grid ${isMobile ? "grid-cols-[auto_minmax(100px,1fr)_minmax(80px,auto)]" : "grid-cols-[auto_minmax(100px,1fr)_minmax(60px,auto)_minmax(80px,auto)_minmax(100px,auto)]"} gap-2 gap-x-2 sm:gap-x-4 w-full items-center px-2 sm:px-3 pb-2`}>
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">POOL</span>
             <div></div>
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Pool</span>
-            {!isMobile && <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">Dissent</span>}
-            {!isMobile && <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">Time left</span>}
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">Value</span>
+            {!isMobile && <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">DISSENT</span>}
+            {!isMobile && <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">TIME LEFT</span>}
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">VALUE</span>
           </div>
         )}
         <ul className="w-full flex flex-col gap-y-2">
@@ -194,12 +164,8 @@ export const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeo
             ballotEntries.ballots.map((ballot, index) => (
               <li key={index} ref={(el) => {ballotRefs.current.set(ballot.YES_NO.ballot_id, el)}}
                 className="w-full scroll-mt-[104px] sm:scroll-mt-[88px]"
-                onClick={() => { selectBallot(ballot.YES_NO.ballot_id); navigate(`/ballot/${ballot.YES_NO.ballot_id}`); }}>
-                <BallotRow
-                  ballot={ballot}
-                  now={info?.current_time}
-                  selected={selectedBallotId === ballot.YES_NO.ballot_id}
-                />
+              >
+                <BallotRow ballot={ballot} now={info?.current_time}/>
               </li>
             ))
           }
@@ -209,4 +175,4 @@ export const BallotListContent = ({ user }: { user: NonNullable<ReturnType<typeo
   );
 };
 
-export default BallotList;
+export default PositionsTab;
