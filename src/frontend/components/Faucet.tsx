@@ -35,7 +35,7 @@ const Faucet = ({ ledger, onLogin, isLoggedIn }: FaucetProps) => {
       onClick={triggerMint}
       disabled={ledger.mintLoading || ledger.hasMinted}
     >
-      Mint ${getTokenName(ledger.metadata)}
+      Mint {getTokenName(ledger.metadata)}
     </button>
   );
 }

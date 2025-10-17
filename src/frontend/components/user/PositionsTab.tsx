@@ -115,15 +115,13 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
   }, [triggerScroll, ballotEntries]);
   
   return (
-    <div className="flex flex-col w-full bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700 space-y-4">
+    <div className="flex flex-col w-full bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 border border-slate-300 dark:border-slate-700 space-y-4">
       {/* Layout: Fixed column + Scrollable section */}
       <div className="w-full flex">
         {/* Fixed Pool column */}
         <div className="flex-shrink-0 flex flex-col w-[200px] sm:w-[700px]">
           {/* Pool header */}
-          <div className="px-2 sm:px-3 pb-2">
-            <span className="text-sm text-gray-500 dark:text-gray-500">POOL</span>
-          </div>
+          <span className="pb-2 text-sm text-gray-500 dark:text-gray-500">POOL</span>
           {/* Pool data rows */}
           <ul className="flex flex-col gap-y-2">
             {ballotEntries.ballots.map((ballot, index) => (

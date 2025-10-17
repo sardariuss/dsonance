@@ -24,14 +24,14 @@ const PositionRow = ({ ballot, now }: PositionRowProps) => {
   return now === undefined ? (
     <></>
   ) : (
-    <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center py-2">
+    <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center py-2 h-[60px] sm:h-[68px]">
       {/* Dissent */}
-      <div className="w-full text-right">
+      <div className="w-full text-right flex items-center justify-end">
         <span className="text-sm">{ballot.YES_NO.dissent.toFixed(2)}</span>
       </div>
 
       {/* Time Left */}
-      <div className="w-full text-right">
+      <div className="w-full text-right flex items-center justify-end">
         <span className="text-sm">
           {releaseTimestamp <= now
             ? `expired`
@@ -40,7 +40,7 @@ const PositionRow = ({ ballot, now }: PositionRowProps) => {
       </div>
 
       {/* Value */}
-      <div className="w-full flex flex-col items-end text-right">
+      <div className="w-full flex flex-col items-end text-right justify-center">
         <span className="font-semibold text-sm">
           {formatAmountUsd(ballot.YES_NO.amount + reward)}
         </span>

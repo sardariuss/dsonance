@@ -13,12 +13,16 @@ interface PutBallotPreviewProps {
   ballotPreview: SBallot | undefined;
   ballotPreviewWithoutImpact?: SBallot | undefined;
   onToggleSupplyImpact?: (enabled: boolean) => void;
+  labelSize?: string;
+  valueSize?: string;
 }
 
 const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
   ballotPreview,
   ballotPreviewWithoutImpact,
-  onToggleSupplyImpact
+  onToggleSupplyImpact,
+  labelSize = "text-base",
+  valueSize = "text-xl"
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [useSupplyImpact, setUseSupplyImpact] = useState(true);
@@ -86,9 +90,9 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
           <div key={label} className="flex justify-between items-center w-full rounded-lg">
             <div className="flex items-center gap-2">
               <span className="text-gray-600 dark:text-gray-400">{icon}</span>
-              <span className="text-base text-gray-700 dark:text-gray-300 whitespace-nowrap">{label}</span>
+              <span className={`${labelSize} text-gray-700 dark:text-gray-300 whitespace-nowrap`}>{label}</span>
             </div>
-            <span className="whitespace-nowrap text-xl text-gray-900 dark:text-white">{value}</span>
+            <span className={`whitespace-nowrap ${valueSize} text-gray-900 dark:text-white`}>{value}</span>
           </div>
         ))}
       </div>

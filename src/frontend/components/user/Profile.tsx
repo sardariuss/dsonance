@@ -260,35 +260,22 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Supply Section */}
-          <div className="mb-2">
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-0.5">Supply</div>
-            <div className="space-y-0.5 pl-3">
-              {/* Withdrawable */}
-              <div className="flex justify-between">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Withdrawable</div>
-                <div className="text-sm text-gray-900 dark:text-white font-medium">
-                  {supplyLedger.formatAmountUsd(0n)} { /* TODO: use real value when implemented */ }
-                </div>
-              </div>
-              {/* Locked Positions */}
-              <div className="flex justify-between">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Locked</div>
-                <div className="text-sm text-gray-900 dark:text-white font-medium">
-                  {supplyLedger.formatAmountUsd(lockedSupplyWorth)}
-                </div>
-              </div>
+          {/* Positions Section */}
+          <div className="mb-2 flex flex-row justify-between">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-0.5">Positions</div>
+            <div className="text-sm text-gray-900 dark:text-white font-medium">
+              {supplyLedger.formatAmountUsd(lockedSupplyWorth)}
             </div>
           </div>
 
           <div className="mb-2">
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-0.5">Borrow</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-0.5">Lending</div>
             <div className="space-y-0.5 pl-3">
-              {/* Borrowed */}
+              {/* Supply */}
               <div className="flex justify-between">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Borrowed</div>
-                <div className="text-sm text-red-600 dark:text-red-400 font-medium">
-                  -{supplyLedger.formatAmountUsd(loanPosition?.loan[0]?.current_owed || 0n)}
+                <div className="text-sm text-gray-600 dark:text-gray-400">Supply</div>
+                <div className="text-sm text-gray-900 dark:text-white font-medium">
+                  {supplyLedger.formatAmountUsd(0n)} { /* TODO: use real value when implemented */ }
                 </div>
               </div>
               {/* Collateral */}
@@ -296,6 +283,13 @@ const Profile = () => {
                 <div className="text-sm text-gray-600 dark:text-gray-400">Collateral</div>
                 <div className="text-sm text-gray-900 dark:text-white font-medium">
                   {collateralLedger.formatAmountUsd(loanPosition?.collateral || 0n)}
+                </div>
+              </div>
+              {/* Borrowed */}
+              <div className="flex justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Borrowed</div>
+                <div className="text-sm text-red-600 dark:text-red-400 font-medium">
+                  -{supplyLedger.formatAmountUsd(loanPosition?.loan[0]?.current_owed || 0n)}
                 </div>
               </div>
             </div>

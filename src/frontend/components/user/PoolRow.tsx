@@ -32,9 +32,9 @@ const PoolRow = ({ ballot }: PoolRowProps) => {
   }, [vote]);
 
   return (
-    <div className="px-2 sm:px-3 py-2">
+    <div className="py-2 h-[60px] sm:h-[68px] flex items-center">
       <div
-        className="flex flex-row items-center hover:cursor-pointer gap-x-1 sm:gap-x-2"
+        className="flex flex-row items-center hover:cursor-pointer gap-x-1 sm:gap-x-2 w-full"
         onClick={() => {
           navigate(`/vote/${ballot.YES_NO.vote_id}`);
         }}

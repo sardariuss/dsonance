@@ -27,15 +27,14 @@ export const MiningContent = ({ tracker, onWithdraw, withdrawLoading }: MiningCo
               <span className="text-xs text-gray-400"> { participationLedger.formatAmountUsd(tracker?.allocated || 0n) } </span>
             </div>
           </div>
-          <div className="flex flex-row gap-2 lg:w-auto w-full">
-            <div className="flex-1">
-              <ActionButton
-                title="Withdraw"
-                onClick={onWithdraw}
-                disabled={tracker === undefined || tracker?.allocated === 0n}
-                loading={withdrawLoading}
-              />
-            </div>
+          <div className="grid grid-cols-2 gap-2 w-full lg:w-[320px]">
+            <div></div>
+            <ActionButton
+              title="Withdraw"
+              onClick={onWithdraw}
+              disabled={tracker === undefined || tracker?.allocated === 0n}
+              loading={withdrawLoading}
+            />
           </div>
         </div>
       </div>

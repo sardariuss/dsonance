@@ -112,8 +112,8 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
         refreshUserBalance();
         showSuccessToast("View locked successfully", "Put ballot");
         setPutBallotLoading(false);
-        // Ballot successfully put, navigate to the ballot page
-        navigate(`/ballot/${result.ok.new.YES_NO.ballot_id}`);
+        // Ballot successfully put, navigate to the user's profile page
+        navigate(`/user/${user?.principal.toString()}`);
       });
     }).catch((error) => {
       console.error("Error during put ballot:", error);
@@ -163,7 +163,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
             "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`
           } onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.Yes })}
         >
-          {`True ${(yesBallotPreview && "ok" in yesBallotPreview) ? `${(aprToApy(yesBallotPreview.ok.new.YES_NO.foresight.apr.potential) * 100).toFixed(1)}%` : ''}`}
+          {`True ${(yesBallotPreview && "ok" in yesBallotPreview) ? `${yesBallotPreview.ok.new.YES_NO.dissent.toFixed(2)}` : ''}`}
         </button>
         <button className={`w-1/2 h-10 text-lg rounded-lg 
           ${ballot.choice === EYesNoChoice.No ? 
@@ -171,7 +171,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
             "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`
           } onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.No })}
         >
-          {`False ${(noBallotPreview && "ok" in noBallotPreview) ? `${(aprToApy(noBallotPreview.ok.new.YES_NO.foresight.apr.potential) * 100).toFixed(1)}%` : ''}`}
+          {`False ${(noBallotPreview && "ok" in noBallotPreview) ? `${noBallotPreview.ok.new.YES_NO.dissent.toFixed(2)}` : ''}`}
         </button>
       </div>
       <div className={`flex flex-col items-center w-full space-y-2`}>
@@ -290,33 +290,22 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
             </div>
 
             {ballotPreview && (
-              <>
-                { /* spacer */ }
-                <div className="border-t border-gray-300 dark:border-gray-600"></div>
-
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-row items-center space-x-2">
-                    
-                    <span className="text-gray-700 dark:text-gray-300">Min Duration</span>
-                    <HiOutlineClock className="w-5 h-5" />
-                  </div>
-                  <span className="font-medium">
-                    {formatDuration(get_current(unwrapLock(ballotPreview).duration_ns).data)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-row items-center space-x-2">
-                    
-                    <span className="text-gray-700 dark:text-gray-300">Win APY</span>
-                    <HiMiniArrowTrendingUp className="w-5 h-5" />
-                  </div>
-                  <span className="font-medium text-green-600 dark:text-green-400">
-                    {(aprToApy(ballotPreview.foresight.apr.potential) * 100).toFixed(2)}%
-                  </span>
-                </div>
-              </>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700 dark:text-gray-300">Dissent</span>
+                <span className="font-semibold px-2 rounded text-white">
+                  {ballotPreview.dissent.toFixed(2)}
+                </span>
+              </div>
             )}
+
+            { /* spacer */ }
+            <div className="border-t border-gray-300 dark:border-gray-600"></div>
+
+            <PutBallotPreview
+              ballotPreview={ballotPreview}
+              labelSize="text-sm"
+              valueSize="text-base"
+            />
           </div>
 
           <div className="flex flex-row items-center space-x-2">
