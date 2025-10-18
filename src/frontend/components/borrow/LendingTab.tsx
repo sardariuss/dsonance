@@ -8,23 +8,34 @@ import { useMemo } from "react";
 import { HiMiniTrophy } from "react-icons/hi2";
 import { useBorrowOperations } from "../hooks/useBorrowOperations";
 import { useLendingCalculations } from "../hooks/useLendingCalculations";
-import { useAuth } from "@nfid/identitykit/react";
 
-export const LendingTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
+type LendingTabProps = {
+  borrowOps: ReturnType<typeof useBorrowOperations>;
+  lendingCalcs: ReturnType<typeof useLendingCalculations>;
+  refetchUserBallots: () => Promise<any>;
+};
+
+export const LendingTab = ({ borrowOps, lendingCalcs, refetchUserBallots }: LendingTabProps) => {
 
   const {
-    loanPosition,
     previewOperation,
-    runOperation,
+    runOperation: baseRunOperation,
     supplyLedger,
     collateralLedger,
-  } = useBorrowOperations(user);
-  
-  const { collateral, currentOwed, maxWithdrawable, maxBorrowable } = useLendingCalculations(
-    loanPosition,
-    collateralLedger,
-    supplyLedger
-  );
+  } = borrowOps;
+
+  const { collateral, currentOwed, maxWithdrawable, maxBorrowable } = lendingCalcs;
+
+  // Wrap runOperation to refetch user ballots after successful operations
+  const runOperation: typeof baseRunOperation = async (amount, kind) => {
+    const result = await baseRunOperation(amount, kind);
+    if (result !== undefined && "ok" in result) {
+      // Refetch ballots to update positions data in Profile
+      await refetchUserBallots();
+    }
+    return result;
+  };
+
   // Mining rates calculation
   const { participationLedger } = useFungibleLedgerContext();
   const { miningRates } = useMiningRatesContext();

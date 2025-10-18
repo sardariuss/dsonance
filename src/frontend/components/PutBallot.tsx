@@ -182,15 +182,37 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
             <input
               ref={customRef}
               type="text"
+              inputMode="decimal"
               placeholder="0"
               onFocus={() => setIsCustomActive(true)}
               onBlur={() => setIsCustomActive(false)}
               className="w-full flex-grow h-9 rounded appearance-none bg-transparent text-right text-3xl outline-none focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              onKeyDown={(e) => {
+                // Allow: backspace, delete, tab, escape, enter, decimal point
+                if ([8, 9, 27, 13, 46, 110, 190].includes(e.keyCode) ||
+                    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                    (e.keyCode === 65 && e.ctrlKey === true) ||
+                    (e.keyCode === 67 && e.ctrlKey === true) ||
+                    (e.keyCode === 86 && e.ctrlKey === true) ||
+                    (e.keyCode === 88 && e.ctrlKey === true) ||
+                    // Allow: home, end, left, right
+                    (e.keyCode >= 35 && e.keyCode <= 39)) {
+                  return;
+                }
+                // Ensure that it is a number and stop the keypress if not
+                if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                  e.preventDefault();
+                }
+              }}
               onChange={(e) => {
                 if (isCustomActive) {
-                  // Remove commas from input value before converting
-                  const rawValue = e.target.value.replace(/,/g, '');
-                  const amount = convertToFixedPoint(Number(rawValue)) ?? 0n;
+                  // Remove commas and any non-numeric characters except decimal point
+                  const rawValue = e.target.value.replace(/[^0-9.]/g, '');
+                  // Prevent multiple decimal points
+                  const parts = rawValue.split('.');
+                  const sanitizedValue = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : rawValue;
+
+                  const amount = convertToFixedPoint(Number(sanitizedValue)) ?? 0n;
                   setBallot({
                     choice: ballot.choice,
                     amount: amount,

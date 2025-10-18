@@ -19,37 +19,56 @@ import { useMiningRatesContext } from "../context/MiningRatesContext";
 import { aprToApy } from "@/frontend/utils/lending";
 import PositionsTab from "./PositionsTab";
 import { unwrapLock } from "@/frontend/utils/conversions/ballot";
+import { useBorrowOperations } from "../hooks/useBorrowOperations";
+import { useLendingCalculations } from "../hooks/useLendingCalculations";
 
 const Profile = () => {
-
   const { principal } = useParams();
-  const { user: connectedUser, disconnect } = useAuth();
+  const { user: connectedUser } = useAuth();
+
+  // Early return before hooks if user is not authenticated
+  if (connectedUser === undefined || connectedUser.principal.isAnonymous()) {
+    return <div>Invalid principal</div>;
+  }
+
+  // Ensure the principal in the URL matches the connected user's principal
+  if (principal !== connectedUser.principal.toString()) {
+    return <div>Unauthorized</div>;
+  }
+
+  return <InnerProfile user={connectedUser} />;
+}
+
+const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
+
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
+  const { disconnect } = useAuth();
   const { user, updateNickname } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
   const [activeTab, setActiveTab] = useState<'positions' | 'lending' | 'mining'>('positions');
-  
+
   const { participationLedger, supplyLedger, collateralLedger } = useFungibleLedgerContext();
   const { lendingIndexTimeline, info } = useProtocolContext();
   const { miningRates } = useMiningRatesContext();
 
-  // Fetch loan position data
-  const { data: loanPosition } = protocolActor.unauthenticated.useQueryCall({
-    functionName: 'get_loan_position',
-    args: connectedUser ? [{ owner: connectedUser.principal, subaccount: [] }] : undefined,
-  });
+  // Borrow operations hook - provides loan position data and operation handlers
+  const borrowOps = useBorrowOperations(connectedUser);
+  const { loanPosition } = borrowOps;
+
+  // Lending calculations hook - provides calculated values based on loan position
+  const lendingCalcs = useLendingCalculations(loanPosition, collateralLedger, supplyLedger);
 
   // TODO: create query in backend to get whole supply worth
   // Fetch user's active ballots to calculate locked supply
-  const { data: userBallots } = protocolActor.unauthenticated.useQueryCall({
+  const { data: userBallots, call: refetchUserBallots } = protocolActor.unauthenticated.useQueryCall({
     functionName: 'get_ballots',
-    args: connectedUser ? [{
+    args: [{
       account: { owner: connectedUser.principal, subaccount: [] },
       previous: [],
       limit: 100n,
       filter_active: true
-    }] : undefined,
+    }],
   });
 
   // Fetch mining tracker data
@@ -167,11 +186,6 @@ const Profile = () => {
     return (lockedSupplyAmount * currentSupplyRatePerToken + Number(loanPosition?.loan[0]?.raw_borrowed || 0n) * currentBorrowRatePerToken);
   }, [miningRates, lockedSupplyAmount, loanPosition]);
 
-  // Early return after all hooks are called
-  if (connectedUser === undefined || connectedUser.principal.isAnonymous()) {
-    return <div>Invalid principal</div>;
-  }
-
   const handleEditNickname = () => {
     setNicknameInput(user?.nickname || "");
     setIsEditingNickname(true);
@@ -198,10 +212,6 @@ const Profile = () => {
       console.error("Failed to withdraw TWV:", error);
     }
   };
-
-  if (principal !== connectedUser.principal.toString()) {
-    return <div>Unauthorized</div>;
-  }
 
   return (
     <div className="flex flex-col w-full sm:w-4/5 md:w-11/12 lg:w-5/6 xl:w-4/5 mx-auto px-3 my-4 sm:my-6">
@@ -253,14 +263,12 @@ const Profile = () => {
                 </span>
               )}
             </div>
-            { connectedUser.principal.toString() === principal &&
-              <Link
-                className="fill-gray-800 justify-self-end hover:fill-black dark:fill-gray-200 dark:hover:fill-white p-2.5 rounded-lg hover:cursor-pointer"
-                onClick={()=>{ disconnect(); }}
-                to="/">
-                <LogoutIcon />
-              </Link>
-            }
+            <Link
+              className="fill-gray-800 justify-self-end hover:fill-black dark:fill-gray-200 dark:hover:fill-white p-2.5 rounded-lg hover:cursor-pointer"
+              onClick={()=>{ disconnect(); }}
+              to="/">
+              <LogoutIcon />
+            </Link>
           </div>
           <div className="flex flex-row space-x-4">
             <DualLabel top="Net APY" bottom={`${instantNetApy === undefined ? UNDEFINED_SCALAR : (instantNetApy * 100).toFixed(2) + "%"}`} />
@@ -348,7 +356,13 @@ const Profile = () => {
 
     {/* Tab Content */}
       {activeTab === 'positions' && <PositionsTab user={connectedUser} />}
-      {activeTab === 'lending' && <LendingTab user={connectedUser} />}
+      {activeTab === 'lending' && (
+        <LendingTab
+          borrowOps={borrowOps}
+          lendingCalcs={lendingCalcs}
+          refetchUserBallots={refetchUserBallots}
+        />
+      )}
       {activeTab === 'mining' && (
         <MiningContent
           tracker={tracker}
