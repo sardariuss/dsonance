@@ -161,17 +161,13 @@ wait
 # dissent_steepness be in [0; 1[ - the closer to 1 the steepest (the less the majority is rewarded)
 # consent_steepness be in [0; 0.25] - the closer to 0 the steepest
 #
-# Duration scaler parameters (see https://www.desmos.com/calculator/ywe3znxzje)
+# Duration scaler parameters (see https://www.desmos.com/calculator/3xh0qbetki)
 # { a = 72800000000.0; b = 3.25; }
 # Gives a duration of 1 day for 1 USDT and 1 year for 100k USDT
 #
 # 216 seconds timer interval, with a 100x dilation factor, means 6 hours in simulated time
 #
 # Supply cap is set to 1M ckUSDT and borrow cap to 800k ckUSDT
-#
-# For main net:
-#   duration_scaler = record { a = 72800000000.0; b = 3.25; };
-#   ballot_half_life = variant { DAYS = 60 };
 dfx deploy protocol --argument '( variant { 
   init = record {
     canister_ids = record {

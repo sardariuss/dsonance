@@ -69,7 +69,7 @@ const MiningDashboard = () => {
     refreshMiningTrackers();
     refreshTotalAllocated();
     refreshTotalClaimed();
-  }, [refreshInfo, refreshMiningTrackers, refreshTotalAllocated, refreshTotalClaimed]);
+  }, []);
 
   const miningStats = useMemo(() => {
     if (!miningTrackers) {

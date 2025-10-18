@@ -21,7 +21,7 @@ const SupplyDashboard = () => {
   useEffect(() => {
     refreshInfo();
     refreshLendingIndex();
-  }, [refreshInfo, refreshLendingIndex]);
+  }, []);
 
   const indexerState = lendingIndexTimeline?.current.data;
 
