@@ -49,13 +49,13 @@ export const LendingTab = ({ borrowOps, lendingCalcs, refetchUserBallots }: Lend
   return (
     <div className="bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700 space-y-6">
       <div className="flex flex-col w-full gap-4">
-        {/* Beta Limitation Notice */}
+        {/* Build in progress notice */}
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-lg">
           <div className="flex items-center gap-3">
             <span className="text-amber-600 dark:text-amber-400 text-xl mt-0.5">ℹ️</span>
             <div className="flex-1">
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                <span className="font-semibold">Beta limitation:</span> Resolved positions are currently sent straight to your wallet at resolution. In the future, they'll remain in the supply pool to keep accumulating the base supply APR and be withdrawable at any moment.
+                <span className="font-semibold">Build in progress:</span> Resolved positions are currently sent straight to your wallet at resolution. In the future, they'll remain in the supply pool to keep accumulating the base supply APR and be withdrawable at any moment.
               </p>
             </div>
           </div>

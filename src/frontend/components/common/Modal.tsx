@@ -31,7 +31,7 @@ const Modal = ({ isVisible, children, onClose, title }: Props) => {
       style={{ minHeight: '100dvh' }}
     >
       <div
-        className="w-full max-w-md max-h-[80vh] max-h-[80dvh] overflow-y-auto rounded-xl bg-slate-200 dark:bg-slate-800 px-4 pb-4"
+        className="w-full max-w-md overflow-y-auto rounded-xl bg-slate-200 dark:bg-slate-800 px-4 pb-4"
         onClick={handleModalClick}
       >
         {/* Header with title and close button on same line */}

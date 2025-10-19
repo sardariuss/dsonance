@@ -121,13 +121,13 @@ function NewVote() {
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
-      {/* Limited Access Notice */}
+      {/* Build in progress notice */}
       <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-lg">
         <div className="flex items-center gap-3">
           <span className="text-amber-600 dark:text-amber-400 text-xl mt-0.5">ℹ️</span>
           <div className="flex-1">
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              <span className="font-semibold">Beta limitation:</span> Only the owner of the platform can currently open new pools. Soon, any DAO member will be able to suggest new pools to vote on.
+              <span className="font-semibold">Build in progress:</span> Any user can currently open new pools. Soon, only DAO members will be able to suggest new pools which will then be voted on by the community.
             </p>
           </div>
         </div>

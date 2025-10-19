@@ -61,7 +61,7 @@ const VoteBallots = ({ voteId }: VoteBallotsProps) => {
     return (
       <div className="flex flex-col space-y-4">
         <div className="text-center text-gray-500 dark:text-gray-400">
-          No ballots found for this vote.
+          No positions found.
         </div>
       </div>
     );

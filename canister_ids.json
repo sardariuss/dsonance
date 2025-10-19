@@ -2,7 +2,7 @@
   "backend": {
     "ic": "hysvo-fqaaa-aaaap-anxgq-cai"
   },
-  "ck_btc": {
+  "ckbtc_ledger": {
     "ic": "hewp7-sqaaa-aaaap-anxeq-cai"
   },
   "frontend": {
@@ -14,10 +14,10 @@
   "protocol": {
     "ic": "hkucx-jaaaa-aaaap-anxfq-cai"
   },
-  "ck_usdt": {
+  "ckusdt_ledger": {
     "ic": "hnved-eyaaa-aaaap-anxfa-cai"
   },
-  "dex": {
+  "kong_backend": {
     "ic": "ena4g-5yaaa-aaaap-an3ca-cai"
   }
 }

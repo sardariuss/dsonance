@@ -282,7 +282,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
               src={thumbnail}
             />
             {/* Vote Text */}
-            <div className="flex-grow text-gray-800 dark:text-gray-200 text-lg font-bold">
+            <div className="flex-grow text-gray-800 dark:text-gray-200 text-lg font-bold line-clamp-3 overflow-hidden">
               {vote.info.text}
             </div>
           </div>
@@ -314,7 +314,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
             {ballotPreview && (
               <div className="flex justify-between items-center">
                 <span className="text-gray-700 dark:text-gray-300">Dissent</span>
-                <span className="font-semibold px-2 rounded text-white">
+                <span className="font-semibold px-2 rounded">
                   {ballotPreview.dissent.toFixed(2)}
                 </span>
               </div>
