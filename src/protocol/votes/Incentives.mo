@@ -2,7 +2,6 @@ import Types    "../Types";
 import Math     "../utils/Math";
 
 import Float  "mo:base/Float";
-import Nat    "mo:base/Nat";
 
 module {
 
@@ -12,8 +11,6 @@ module {
     public func compute_discernment({
         dissent: Float;
         consent: Float;
-        lock_duration: Nat;
-        parameters: ForesightParameters;
     }) : Float {
         dissent * consent;
     };

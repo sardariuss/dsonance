@@ -3,6 +3,7 @@ import Duration "duration/Duration";
 import IterUtils "utils/Iter";
 
 import Float "mo:base/Float";
+import Nat "mo:base/Nat";
 
 import Map "mo:map/Map";
 
@@ -61,7 +62,7 @@ module {
 
         public func update_foresights() {
 
-            let { accrued_interests; interests_rate; timestamp; } = supply_info;
+            let { accrued_interests; interests_rate; timestamp = now; } = supply_info;
 
             let active_items = get_items();
             
@@ -76,7 +77,7 @@ module {
                 };
                 {   
                     item with contrib = {
-                        cumulated = weight * Float.fromInt(timestamp - item.timestamp);
+                        cumulated = weight * Float.fromInt(now - item.timestamp);
                         current = weight;
                     };
                 };
@@ -100,10 +101,23 @@ module {
 
                 let { cumulated; current; } = item.contrib;
 
-                let remaining_duration = Duration.toAnnual(Duration.getDuration({ from = timestamp; to = item.release_date; }));
-                let lock_duration = Duration.toAnnual(Duration.getDuration({ from = item.timestamp; to = item.release_date; }));
-                
-                
+                let { remaining_duration; lock_duration; } = do {
+                    if (item.release_date <= now) {
+                        // TODO: This is a risky assumption. This behavior should change.
+                        // If the release date is in the past, it means the lock has not been unlocked yet but will be immediately
+                        // after this call (by the LockScheduler). In that case, we consider that the remaining duration is 0.
+                        { 
+                            remaining_duration = 0.0;
+                            lock_duration = Duration.toAnnual(Duration.getDuration({ from = item.timestamp; to = now }));
+                        };
+                    } else {
+                        {
+                            remaining_duration = Duration.toAnnual(Duration.getDuration({ from = now; to = item.release_date }));
+                            lock_duration = Duration.toAnnual(Duration.getDuration({ from = item.timestamp; to = item.release_date }));
+                        };
+                    };
+                };
+
                 let share = do {
                     // The denominator will always be greater than the nominator, but if both are close to 0, just return 0
                     if(Float.equalWithin(sum_contribs.cumulated, 0.0, EPSILON)) {

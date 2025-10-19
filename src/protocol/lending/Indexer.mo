@@ -162,11 +162,20 @@ module {
         // On the IC, certified block time (`time`) is not guaranteed to
         // strictly increase between messages — it can stay the same or
         // even appear to go backwards relative to our last state.
-        // To explicitly account for the IC’s time model and prevent
+        // To explicitly account for the IC's time model and prevent
         // negative elapsed periods (which would imply "negative interest
         // accrual"), we clamp forward with Nat.max.
+
+        // Log warning if provided time is older than state timestamp (abnormal behavior)
+        if (time < state.timestamp) {
+            let time_diff_ns : Int = state.timestamp - time;
+            let time_diff_seconds = Float.fromInt(time_diff_ns) / Float.fromInt(Duration.NS_IN_SECOND);
+            Debug.print("WARNING: Indexer received time older than state timestamp!");
+            Debug.print("  Time difference: " # debug_show(time_diff_seconds) # " seconds");
+        };
+
         let timestamp = Nat.max(time, state.timestamp);
-        let elapsed_ns : Int = timestamp - state.timestamp;
+        let elapsed_ns = Int.abs(timestamp - state.timestamp);
 
         // If no time has passed, no need to accrue interests nor update indexes
         if (elapsed_ns == 0) {
@@ -174,7 +183,7 @@ module {
         };
 
         // Calculate the time period in years
-        let elapsed_annual = Duration.toAnnual(Duration.getDuration({ from = state.timestamp; to = timestamp; }));
+        let elapsed_annual = Duration.toAnnual(#NS(elapsed_ns));
 
         // Accrue the supply interests up to this date using the previous state up to this date!
         let supply_interests = state.utilization.raw_supplied * state.supply_rate * elapsed_annual;

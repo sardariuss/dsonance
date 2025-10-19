@@ -4,6 +4,7 @@ import { protocolActor } from "../actors/ProtocolActor";
 import { ProtocolInfo, SParameters, LendingIndex } from "@/declarations/protocol/protocol.did";
 import { compute_decay } from "../../utils/decay";
 import { durationToNs } from "../../utils/conversions/duration";
+import { nsToMs, timeToDate } from "@/frontend/utils/conversions/date";
 
 // Timeline type until it's generated in the .did file
 interface TimedData<T> {
@@ -32,18 +33,24 @@ const ProtocolContext = createContext<ProtocolContextType | undefined>(undefined
 export const ProtocolProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const { data: parameters, call: refreshParameters } = protocolActor.unauthenticated.useQueryCall({
-      functionName: "get_parameters",
-      args: [],
+    functionName: "get_parameters",
+    args: [],
   });
 
   const { data: info, call: refreshInfo } = protocolActor.unauthenticated.useQueryCall({
-      functionName: "get_info",
-      args: [],
+    functionName: "get_info",
+    args: [],
+    onSuccess: () => {
+      console.log("Protocol timestamp: " + timeToDate(info?.current_time || 0n).toISOString());
+    }
   });
 
   const { data: lendingIndexTimeline, call: refreshLendingIndex } = protocolActor.unauthenticated.useQueryCall({
-      functionName: "get_lending_index",
-      args: [],
+    functionName: "get_lending_index",
+    args: [],
+    onSuccess: () => {
+      console.log("Index timestamp: " + timeToDate(lendingIndexTimeline?.current.timestamp || 0n).toISOString());
+    }
   });
 
   return (
