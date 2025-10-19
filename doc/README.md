@@ -6,7 +6,7 @@ coverY: 0
 
 # Towerview: The World's First Consensus Market
 
-**Towerview** is a decentralized platform that introduces a new primitive: a **Consensus Market** — a mechanism for reaching crowd-based agreement on complex, unresolved, or empirical topics such as scientific claims, historical narratives, or public health questions.
+**Towerview** is a decentralized platform that introduces a new primitive: a **Consensus Market** — a mechanism for reaching crowd-based agreement on complex, unresolved, empirical topics such as scientific claims, historical narratives, or public health questions.
 
 Unlike DAOs, which coordinate action on protocol decisions, or prediction markets, which speculate on binary future outcomes, Towerview tackles questions with no fixed resolution date. Think: Did COVID-19 leak from a lab? Is keto a healthy diet?
 
@@ -15,9 +15,6 @@ Users stake USDT to open a position on a given claim. Each position is locked fo
 Towerview is powered by a Bitcoin-collateralized lending system that generates real yield in the background, allowing users to participate without financial risk or loss of capital.
 
 Towerview is unplayable, impartial, and time-driven — no moderators, no centralized resolution. Just a self-sustaining, crypto-native mechanism to coordinate belief around fuzzy, controversial, or slow-moving topics.
-
-By filling the gap between governance and prediction, Towerview unlocks a new layer of decentralized collaboration — enabling us to ask not only what will happen or what should we do, but what do we believe is true?
-
 
 #### 🎯 **Goals**
 

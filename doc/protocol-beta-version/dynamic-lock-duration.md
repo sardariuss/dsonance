@@ -19,15 +19,15 @@ This formula ensures that **earlier positions contribute to later ones**, while 
 
 To convert hotness into a lock duration, a **power scaling** function is applied. This function translates hotness into a **meaningful lock duration** while preventing extreme values (e.g., durations of just 10 seconds or over 100 years).&#x20;
 
-<div align="center" data-full-width="false"><figure><img src="../.gitbook/assets/power_scaler.png" alt="" width="563"><figcaption><p>Graph of the lock duration as a function of hotness. Here the nominal lock duration for 100 sats is set to 3 days. As hotness increases, the lock duration follows a power function, reaching 768 days (approximately 2 years) for a hotness of 1 BTC.</p></figcaption></figure></div>
+<div align="center" data-full-width="false"><figure><img src="../.gitbook/assets/duration_scaler.png" alt="" width="563"><figcaption><p>Graph of the lock duration as a function of hotness. Here the multiplier (a) is configured such that 1 USDT of hotness results in a 3-day lock duration. As hotness increases, the lock duration follows a power function, reaching 768 days (approximately 2 years) for a hotness of 1M USDT.</p></figcaption></figure></div>
 
-The function follows a power law, ensuring that the **duration doubles for each order of magnitude increase in hotness**:
+The function follows a power law with configurable parameters:
 
 $$
-\text{duration} = \text{nominal\_lock\_duration} \times \text{hotness}^{\log(2)}
+\text{duration} = a \times \text{hotness}^{\log_{10}(b)}
 $$
 
 where:
 
-* $$nominal\_lock\_duration$$ is a protocol parameter representing the lock duration for the smallest possible position amount.
-* $$log(2)$$ ensures that the duration doubles for each 10× increase in hotness.
+* $$a$$ is the **Multiplier** - a protocol parameter that serves as the base multiplier for duration scaling
+* $$b$$ is the **Logarithmic Base** - a protocol parameter that controls the power law exponent through $$\log_{10}(b)$$

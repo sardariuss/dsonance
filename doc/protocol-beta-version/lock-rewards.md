@@ -109,12 +109,12 @@ $$
 
 Where:
 
-* $$\text{position_amount}$$ is the amount of token in the position
+* $$\text{position\_amount}$$ is the amount of token in the position
 * $$\text{position\_dissent}_{t_0}$$represents how bold the choice was at the time of opening
-* $$\text{position\_consent}_{t_{\text{end}}}$$represents how well the position aligns with the final consensus:
+* $$\text{position\_consent}_{t_{\text{end}}}$$represents how well the position aligns with the final consensus
 
-The reward for a position is its weighted proportion of foresight, relative to the total foresight of all active positions (for all pools), multiplied by the total token yield accumulated by all positions:
+The reward for a position is its weighted proportion of foresight, relative to the total foresight of all active positions (for all pools), multiplied by the total yield accumulated by all positions:
 
 $$
-\text{token_yield}_i = \frac{\text{foresight}_i}{\sum_{j} \text{foresight}_j} \times {\text{total_accumulated_token}}
+\text{position_apy}_i = \frac{\text{foresight}_i}{\sum_{j} \text{foresight}_j} \times {\text{total_apy}}
 $$
