@@ -185,9 +185,12 @@ module {
         // Calculate the time period in years
         let elapsed_annual = Duration.toAnnual(#NS(elapsed_ns));
 
+        let supply_base = state.utilization.raw_supplied + state.accrued_interests.supply;
+        let borrow_base = state.utilization.raw_borrowed + state.accrued_interests.borrow;
+
         // Accrue the supply interests up to this date using the previous state up to this date!
-        let supply_interests = state.utilization.raw_supplied * state.supply_rate * elapsed_annual;
-        let borrow_interests = state.utilization.raw_borrowed * state.borrow_rate * elapsed_annual;
+        let supply_interests = supply_base * state.supply_rate * elapsed_annual;
+        let borrow_interests = borrow_base * state.borrow_rate * elapsed_annual;
 
         let accrued_interests = {
             supply = state.accrued_interests.supply + supply_interests;
