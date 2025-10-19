@@ -139,19 +139,23 @@ function NewVote() {
         <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
           <li className="flex items-start gap-2">
             <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-            <span>Be precise and measurable</span>
+            <span>Be precise and fact-based</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-            <span>Ensure your statement is time-bound</span>
+            <span>Claims must be investigable — something evidence could confirm or refute</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+            <span>Focus on past or ongoing events</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-red-600 dark:text-red-400 mt-0.5">✗</span>
-            <span>Avoid absolute moral or ideological claims</span>
+            <span>Avoid topics whose resolution date is known in advance</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-red-600 dark:text-red-400 mt-0.5">✗</span>
-            <span>No personal or defamatory statements</span>
+            <span>Avoid moral judgments or unverifiable personal opinions</span>
           </li>
         </ul>
         <Link to={DOCS_URL} className="text-blue-600 dark:text-blue-400 mt-3 inline-flex items-center text-sm hover:underline font-medium" target="_blank" rel="noopener">
