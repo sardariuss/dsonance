@@ -5,13 +5,32 @@ dfx identity use default
 export DEFAULT_USER=$(dfx identity get-principal)
 export TOWER_COIN=$(base64 -w 0 ./src/frontend/assets/tower_coin.png)
 
+# Exchange rate for ckUSDT/USD with 9 decimals (typical format from exchange_rate canister)
+# 1_000_000_000 = 1.0 USD (with 9 decimals)
+CKUSDT_USD_PRICE=1_000_000_000
+CKUSDT_DECIMALS=9
+# Exchange rate for ckBTC/USD with 9 decimals (typical format from exchange_rate canister)
+CKBTC_USD_PRICE=108_702_526_142_608
+CKBTC_DECIMALS=9
+
 # Create the canisters
 dfx canister create --all
 
 # Fetch canister IDs dynamically
-for canister in ckbtc_ledger ckusdt_ledger twv_ledger kong_backend protocol faucet; do
+for canister in ckbtc_ledger ckusdt_ledger twv_ledger kong_backend protocol faucet xrc_stub; do
   export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
 done
+
+dfx deploy xrc_stub --argument '( record {
+  ck_usdt = record {
+    usd_price = '${CKUSDT_USD_PRICE}' : nat64;
+    decimals = '${CKUSDT_DECIMALS}' : nat32;
+  };
+  ck_btc = record {
+    usd_price = '${CKBTC_USD_PRICE}' : nat64;
+    decimals = '${CKBTC_DECIMALS}' : nat32;
+  };
+})'
 
 # Parallel deployment for independent canisters
 dfx deploy ckbtc_ledger --argument '(
@@ -144,14 +163,6 @@ dfx deploy faucet --argument '( record {
   ckbtc_mint_amount = 100_000_000 : nat;
   ckusdt_mint_amount = 100_000_000_000 : nat;
 })' &
-# Prices taken from the neutrinite canister on 2025-07-01
-# https://dashboard.internetcomputer.org/canister/u45jl-liaaa-aaaam-abppa-cai#get_latest
-dfx deploy icp_coins --argument '( record {
-  initial_prices =  record {
-    ck_btc = 106075.52614260835;
-    ck_usdt = 0.9937106157584112;
-  };
-})' &
 wait
 
 # Deploy protocol canister
@@ -175,6 +186,7 @@ dfx deploy protocol --argument '( variant {
       collateral_ledger = principal "'${CKBTC_LEDGER_PRINCIPAL}'";
       kong_backend = principal "'${KONG_BACKEND_PRINCIPAL}'";
       participation_ledger = principal "'${TWV_LEDGER_PRINCIPAL}'";
+      xrc = principal "'${XRC_STUB_PRINCIPAL}'";
     };
     parameters = record {
       foresight = record {

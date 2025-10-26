@@ -104,7 +104,7 @@ let test_twap_tracker_initialization = func() : async () {
     
     // Create tracker
     let tracker = PriceTracker.TWAPPriceTracker({
-        dex = mockDex;
+        price_source = #Dex(mockDex);
         tracked_twap_price;
         twap_config = testConfig;
         pay_ledger = mockPayLedger;
@@ -134,7 +134,7 @@ let test_price_fetching_and_twap_calculation = func() : async () {
     
     // Create tracker
     let tracker = PriceTracker.TWAPPriceTracker({
-        dex = mockDex;
+        price_source = #Dex(mockDex);
         tracked_twap_price;
         twap_config = testConfig;
         pay_ledger = mockPayLedger;
@@ -152,13 +152,13 @@ let test_price_fetching_and_twap_calculation = func() : async () {
     // Verify we have one observation
     verify(tracker.get_observations_count(), 1, Testify.Testify.nat.equal);
     
-    // Verify spot price
+    // Verify spot price (normalized to unit price: 50000 * 10^6 / 10^8 = 500)
     let spot_price = tracker.get_spot_price();
-    verify(spot_price, 50000.0, equal);
-    
+    verify(spot_price, 500.0, equal);
+
     // For single observation, TWAP should equal spot price
     let twap_price = tracker.get_twap_price();
-    verify(twap_price, 50000.0, equal);
+    verify(twap_price, 500.0, equal);
     
     Debug.print("✓ Price fetching and single observation TWAP test passed");
 };
@@ -210,7 +210,7 @@ let test_multiple_observations_twap = func() : async () {
     
     // Create tracker with dynamic prices
     let tracker = PriceTracker.TWAPPriceTracker({
-        dex = dynamicMockDex;
+        price_source = #Dex(dynamicMockDex);
         tracked_twap_price;
         twap_config = testConfig;
         pay_ledger = mockPayLedger;
@@ -244,7 +244,8 @@ let test_multiple_observations_twap = func() : async () {
     let final_spot = tracker.get_spot_price();
     
     // TWAP should be within reasonable bounds (considering price variations)
-    assert(final_twap > 48000.0 and final_twap < 53000.0);
+    // Prices: [50000, 51000, 49000, 52000] -> normalized: [500, 510, 490, 520]
+    assert(final_twap > 480.0 and final_twap < 530.0);
     
     Debug.print("✓ Multiple observations TWAP test passed");
 };
@@ -271,7 +272,7 @@ let test_window_duration_filtering = func() : async () {
     
     // Create tracker
     let tracker = PriceTracker.TWAPPriceTracker({
-        dex = mockDex;
+        price_source = #Dex(mockDex);
         tracked_twap_price;
         twap_config = shortConfig;
         pay_ledger = mockPayLedger;
@@ -321,7 +322,7 @@ let test_max_observations_limit = func() : async () {
     
     // Create tracker
     let tracker = PriceTracker.TWAPPriceTracker({
-        dex = mockDex;
+        price_source = #Dex(mockDex);
         tracked_twap_price;
         twap_config = limitedConfig;
         pay_ledger = mockPayLedger;

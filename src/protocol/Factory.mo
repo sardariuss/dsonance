@@ -73,7 +73,7 @@ module {
         let dex = Dex.Dex(state);
 
         let collateral_price_tracker = PriceTracker.TWAPPriceTracker({
-            dex;
+            price_source = #Xrc(state.xrc);
             tracked_twap_price = collateral_twap_price;
             twap_config;
             pay_ledger = collateral_ledger;

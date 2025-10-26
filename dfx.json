@@ -70,10 +70,9 @@
       "main": "simulation/faucet.mo",
       "type": "motoko"
     },
-    "icp_coins": {
-      "main": "src/mocks/icp_coins.mo",
-      "type": "motoko",
-      "id": "u45jl-liaaa-aaaam-abppa-cai"
+    "xrc_stub": {
+      "main": "simulation/xrc.mo",
+      "type": "motoko"
     }
   },
   "defaults": {

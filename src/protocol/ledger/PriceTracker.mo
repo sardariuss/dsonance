@@ -4,16 +4,22 @@ import Result "mo:base/Result";
 import Debug  "mo:base/Debug";
 import Float  "mo:base/Float";
 import Nat8   "mo:base/Nat8";
-import Buffer   "mo:base/Buffer";
-import Array    "mo:base/Array";
-import Int      "mo:base/Int";
+import Nat64  "mo:base/Nat64";
+import Nat32  "mo:base/Nat32";
+import Buffer "mo:base/Buffer";
+import Array  "mo:base/Array";
+import Int    "mo:base/Int";
 
 module {
 
     type IDex            = Types.IDex;
+    type IXRC            = Types.IXRC;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type ILedgerFungible = Types.ILedgerFungible;
     type TrackedPrice    = Types.TrackedPrice;
+    type GetExchangeRateRequest = Types.GetExchangeRateRequest;
+    type GetExchangeRateResult = Types.GetExchangeRateResult;
+    type LedgerInfo      = Types.LedgerInfo;
     
     type PriceObservation = {
         timestamp: Int;
@@ -25,6 +31,11 @@ module {
         max_observations: Nat;
     };
 
+    type PriceSource = {
+        #Dex: IDex;
+        #Xrc: IXRC;
+    };
+
     type TrackedTWAPPrice = {
         var spot_price: ?Float;
         var observations: [PriceObservation];
@@ -33,14 +44,14 @@ module {
     };
     
     public class SpotPriceTracker({
-        dex: IDex;
+        price_source: PriceSource;
         tracked_price: TrackedPrice;
         pay_ledger: ILedgerFungible;
         receive_ledger: ILedgerFungible;
     })  : Types.IPriceTracker {
 
         public func fetch_price() : async* Result<(), Text>{
-            tracked_price.value := switch(await* query_price({ dex; pay_ledger; receive_ledger })) {
+            tracked_price.value := switch(await* query_price({ price_source; pay_ledger; receive_ledger })) {
                 case(#err(error)) { return #err(error); };
                 case(#ok(token_price)) { ?token_price; };
             };
@@ -57,7 +68,7 @@ module {
     };
     
     public class TWAPPriceTracker({
-        dex: IDex;
+        price_source: PriceSource;
         tracked_twap_price: TrackedTWAPPrice;
         twap_config: TWAPConfig;
         pay_ledger: ILedgerFungible;
@@ -67,22 +78,22 @@ module {
 
         public func fetch_price() : async* Result<(), Text>{
             let current_time = get_current_time();
-            
-            let normalized_price = switch(await* query_price({ dex; pay_ledger; receive_ledger })){
+
+            let normalized_price = switch(await* query_price({ price_source; pay_ledger; receive_ledger })) {
                 case(#err(error)) { return #err(error); };
-                case(#ok(token_price)) { token_price; };
+                case(#ok(price)) { price; };
             };
-            
+
             // Update spot price with normalized value
             tracked_twap_price.spot_price := ?normalized_price;
-            
+
             // Add new observation with normalized price
             let new_observation = { timestamp = current_time; price = normalized_price; };
             add_observation(new_observation);
-            
+
             // Clear TWAP cache to force recalculation
             tracked_twap_price.twap_cache := null;
-            
+
             #ok;
         };
 
@@ -215,32 +226,110 @@ module {
 
     };
 
-    // Convert from token price to unit price for use with raw amounts in calculations
-    // token_price is in "receive_tokens per pay_token" (e.g., 50,000 USDT per BTC)
-    // unit_price should be in "receive_units per pay_unit" (e.g., micro-USDT per satoshi)
-    func query_price({ dex: IDex; pay_ledger: ILedgerFungible; receive_ledger: ILedgerFungible }) : async* Result<Float, Text> {
-        
+    func query_price({
+        price_source: PriceSource;
+        pay_ledger: ILedgerFungible;
+        receive_ledger: ILedgerFungible;
+    }) : async* Result<Float, Text> {
+
         let pay_token_info = pay_ledger.get_token_info();
         let receive_token_info = receive_ledger.get_token_info();
 
+        let query_result = switch(price_source) {
+            case(#Dex(dex)) {
+                await* query_price_from_dex({ dex; pay_token_info; receive_token_info });
+            };
+            case(#Xrc(xrc)) {
+                await* query_price_from_xrc({ 
+                    xrc;
+                    base_asset = { 
+                        symbol = pay_token_info.token_symbol;
+                        class_ = #Cryptocurrency; 
+                    };
+                    quote_asset = { 
+                        symbol = receive_token_info.token_symbol;
+                        class_ = #Cryptocurrency; 
+                    };
+                });
+            };
+        };
+
+        let token_price = switch(query_result) {
+            case(#err(error)) { return #err(error); };
+            case(#ok(price)) { price; };
+        };
+
+        // Convert from token price to unit price for use with raw amounts in calculations
+        // token_price is in "receive_tokens per pay_token" (e.g., 50,000 USDT per BTC)
+        // unit_price should be in "receive_units per pay_unit" (e.g., micro-USDT per satoshi)
+        // Conversion formula:
+        // unit_price = token_price * (10^receive_decimals) / (10^pay_decimals)
+        let receive_multiplier = Float.fromInt(10 ** Nat8.toNat(receive_token_info.decimals));
+        let pay_divisor = Float.fromInt(10 ** Nat8.toNat(pay_token_info.decimals));
+        let unit_price = token_price * receive_multiplier / pay_divisor;
+        #ok(unit_price);
+    };
+
+    // Query price from DEX
+    // Returns token_price in "receive_token per pay_token" (e.g., USDT per BTC)
+    func query_price_from_dex({ dex: IDex; pay_token_info: LedgerInfo; receive_token_info: LedgerInfo }) : async* Result<Float, Text> {
+
         // Fetch the current spot price
         let preview = await* dex.swap_amounts(pay_token_info.token_symbol, 1, receive_token_info.token_symbol);
-        let token_price = switch(preview) {
+        switch(preview) {
             case(#err(error)) { return #err(error); };
             case(#ok(reply)) { 
                 // Guard against invalid prices
                 if (reply.mid_price <= 0.0) {
                     return #err("Invalid price received from DEX: " # Float.toText(reply.mid_price));
                 };
-                reply.mid_price; 
+                #ok(reply.mid_price); 
             }
         };
+    };
 
-        // unit_price = token_price * (10^receive_decimals) / (10^pay_decimals)
-        let receive_multiplier = Float.fromInt(10 ** Nat8.toNat(receive_token_info.decimals));
-        let pay_divisor = Float.fromInt(10 ** Nat8.toNat(pay_token_info.decimals));
-        let unit_price = token_price * receive_multiplier / pay_divisor;
-        #ok(unit_price);
-    }
+    type Asset = {
+        symbol : Text;
+        class_ : { #Cryptocurrency; #FiatCurrency; };
+    };
+
+    // Query price from XRC (Exchange Rate Canister)
+    // Returns token_price in "receive_token per pay_token" (e.g., USDT per BTC)
+    func query_price_from_xrc({
+        xrc: IXRC;
+        base_asset: Asset;
+        quote_asset: Asset;
+    }) : async* Result<Float, Text> {
+
+        // Fetch exchange rate from XRC (5B cycles as upper bound)
+        let result = await (with cycles = 5_000_000_000) xrc.get_exchange_rate({
+            base_asset;
+            quote_asset;
+            timestamp = null;
+        });
+
+        let exchange_rate = switch (result) {
+            case (#Ok(rate)) {
+                // Guard against invalid rates
+                if (rate.rate == 0) {
+                    return #err("Invalid exchange rate received from XRC: zero rate");
+                };
+                rate;
+            };
+            case (#Err(error)) {
+                return #err("XRC error: " # debug_show(error));
+            };
+        };
+
+        // The XRC returns rate with its own decimals
+        // For example: ckBTC/USD might return rate=95847000000000 with decimals=9
+        // This means 1 ckBTC = 95847.000000000 USD (9 decimal places)
+
+        // Convert XRC rate to token price (tokens per token)
+        let xrc_decimals = Nat32.toNat(exchange_rate.metadata.decimals);
+        let token_price = Float.fromInt(Nat64.toNat(exchange_rate.rate)) / Float.fromInt(10 ** xrc_decimals);
+
+        #ok(token_price);
+    };
 
 };

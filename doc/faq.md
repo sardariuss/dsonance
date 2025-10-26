@@ -21,7 +21,7 @@ coverY: 0
 ***
 
 **Q: How is the resolution APY computed?**\
-**A:** The position's resolution APY depends on several factors. The first factor, which is independant to the position, is the borrowing utilization rate (how much is borrowed compared to how much is supplied in the protocol). The other factors are the initial position's dissent and the position's consent at the time of unlock. It is explained in details in the [Position rewards](protocol-beta-version/lock-rewards.md) chapter.
+**A:** The position's resolution APY depends on several factors. The first factor, which is independant to the position, is the borrowing utilization rate (how much is borrowed compared to how much is supplied in the protocol). The other factors are the initial position's dissent and the position's consent (how much the position aligns with the consensus) at the time of unlock. It is explained in details in the [Position rewards](protocol-beta-version/lock-rewards.md) chapter.
 
 ***
 

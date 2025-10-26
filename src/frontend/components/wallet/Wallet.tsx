@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MdClose, MdOutlineAccountBalanceWallet } from "react-icons/md";
+import { MdClose, MdLogout, MdOutlineAccountBalanceWallet } from "react-icons/md";
 import { LedgerType } from "../hooks/useFungibleLedger";
 import WalletRow from "./WalletRow";
 import { useAuth } from "@nfid/identitykit/react";
@@ -7,7 +7,6 @@ import { toAccount } from "@/frontend/utils/conversions/account";
 import { Account } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
 import { fromNullable, uint8ArrayToHexString } from "@dfinity/utils";
 import { Link } from "react-router-dom";
-import LogoutIcon from "../icons/LogoutIcon";
 
 const accountToString = (account: Account | undefined): string => {
   let str = "";
@@ -111,14 +110,14 @@ const Wallet = ({ isOpen, onClose }: WalletProps) => {
           </div>
           <div className="flex flex-row items-center gap-2">
             <Link
-              className="rounded-full h-8 w-8 pr-1 flex flex-col items-center justify-center fill-gray-800 hover:fill-black dark:fill-gray-200 dark:hover:fill-white hover:bg-gray-100 dark:hover:bg-gray-700 hover:cursor-pointer"
+              className="rounded-full h-8 w-8 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200 hover:cursor-pointer"
               onClick={()=>{ disconnect(); onClose(); }}
               to="/">
-              <LogoutIcon />
+              <MdLogout />
             </Link>
             <button
               onClick={onClose}
-              className="rounded-full h-8 w-8 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+              className="rounded-full h-8 w-8 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200 hover:cursor-pointer"
             >
               <MdClose size={24} />
             </button>

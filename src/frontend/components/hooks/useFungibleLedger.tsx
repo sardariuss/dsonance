@@ -5,7 +5,7 @@ import { icpCoinsActor } from "../actors/IcpCoinsActor";
 import { faucetActor } from "../actors/FaucetActor";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
 import { getTokenDecimals, getTokenFee } from "../../utils/metadata";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { canisterId as protocolCanisterId } from "../../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
 import { Account, MetadataValue, TransferResult } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
@@ -307,24 +307,14 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     }]);
   };
 
-  const { call: icrc1BalanceOf } = ledgerActor.unauthenticated.useQueryCall({
+   const { data: userBalance, call: icrc1BalanceOf } = ledgerActor.unauthenticated.useQueryCall({
     functionName: 'icrc1_balance_of',
+    args: account ? [account] : undefined,
   });
 
-  const [userBalance, setUserBalance] = useState<bigint | undefined>(undefined);
-
-  const refreshUserBalance = () => {
-    if (account) {
-      icrc1BalanceOf([account]).then(balance => {
-        setUserBalance(balance);
-      }).catch(error => {
-        console.error("Error fetching user balance:", error);
-        setUserBalance(undefined);
-      });
-    } else {
-      setUserBalance(undefined);
-    }
-  }
+  const refreshUserBalance = useCallback(() => {
+    icrc1BalanceOf(account ? [account] : undefined);
+  }, [account]);
 
   useEffect(() => {
     refreshUserBalance();
