@@ -10,7 +10,7 @@ export TOWER_COIN=$(base64 -w 0 ./src/frontend/assets/tower_coin.png)
 CKUSDT_USD_PRICE=1_000_000_000
 CKUSDT_DECIMALS=9
 # Exchange rate for ckBTC/USD with 9 decimals (typical format from exchange_rate canister)
-CKBTC_USD_PRICE=108_702_526_142_608
+CKBTC_USD_PRICE=108_702_000_000_000
 CKBTC_DECIMALS=9
 
 # Create the canisters
@@ -20,17 +20,6 @@ dfx canister create --all
 for canister in ckbtc_ledger ckusdt_ledger twv_ledger kong_backend protocol faucet xrc_stub; do
   export $(echo ${canister^^}_PRINCIPAL)=$(dfx canister id $canister)
 done
-
-dfx deploy xrc_stub --argument '( record {
-  ck_usdt = record {
-    usd_price = '${CKUSDT_USD_PRICE}' : nat64;
-    decimals = '${CKUSDT_DECIMALS}' : nat32;
-  };
-  ck_btc = record {
-    usd_price = '${CKBTC_USD_PRICE}' : nat64;
-    decimals = '${CKBTC_DECIMALS}' : nat32;
-  };
-})'
 
 # Parallel deployment for independent canisters
 dfx deploy ckbtc_ledger --argument '(
@@ -154,6 +143,16 @@ dfx deploy twv_ledger --argument '(
   }
 )' &
 dfx deploy kong_backend &
+dfx deploy xrc_stub --argument '( record {
+  ck_usdt = record {
+    usd_price = '${CKUSDT_USD_PRICE}' : nat64;
+    decimals = '${CKUSDT_DECIMALS}' : nat32;
+  };
+  ck_btc = record {
+    usd_price = '${CKBTC_USD_PRICE}' : nat64;
+    decimals = '${CKBTC_DECIMALS}' : nat32;
+  };
+})' &
 dfx deploy faucet --argument '( record {
   canister_ids = record {
     ckbtc_ledger = principal "'${CKBTC_LEDGER_PRINCIPAL}'";
@@ -261,13 +260,14 @@ dfx canister call kong_backend add_token '(
     token = "IC.'${CKBTC_LEDGER_PRINCIPAL}'";
   },
 )'
+# 1K ckBTC and 108M ckUSDT liquidity
 dfx canister call faucet admin_mint_btc '(
   record {
     to = record {
       owner = principal "'${DEFAULT_USER}'";
       subaccount = null;
     };
-    amount = 100_000_020 : nat;
+    amount = 100_000_000_020 : nat;
   },
 )'
 dfx canister call faucet admin_mint_usdt '(
@@ -276,7 +276,7 @@ dfx canister call faucet admin_mint_usdt '(
       owner = principal "'${DEFAULT_USER}'";
       subaccount = null;
     };
-    amount = 100_000_020_000 : nat;
+    amount = 108_702_000_020_000 : nat;
   },
 )'
 dfx canister call ckbtc_ledger icrc2_approve '(
@@ -285,7 +285,7 @@ dfx canister call ckbtc_ledger icrc2_approve '(
     memo = null;
     from_subaccount = null;
     created_at_time = null;
-    amount = 100_000_010 : nat;
+    amount = 100_000_000_010 : nat;
     expected_allowance = null;
     expires_at = null;
     spender = record {
@@ -300,7 +300,7 @@ dfx canister call ckusdt_ledger icrc2_approve '(
     memo = null;
     from_subaccount = null;
     created_at_time = null;
-    amount = 100_000_010_000 : nat;
+    amount = 108_702_000_010_000 : nat;
     expected_allowance = null;
     expires_at = null;
     spender = record {
@@ -313,8 +313,8 @@ dfx canister call kong_backend add_pool '(
   record {
     token_0 = "IC.'${CKBTC_LEDGER_PRINCIPAL}'";
     token_1 = "IC.'${CKUSDT_LEDGER_PRINCIPAL}'";
-    amount_0 = 100_000_000 : nat;
-    amount_1 =  100_000_000_000 : nat;
+    amount_0 = 100_000_000_000 : nat;
+    amount_1 =  108_702_000_000_000 : nat;
     tx_id_0 = null;
     tx_id_1 = null;
     lp_fee_bps = null;

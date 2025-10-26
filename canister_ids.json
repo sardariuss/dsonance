@@ -5,6 +5,12 @@
   "ckbtc_ledger": {
     "ic": "hewp7-sqaaa-aaaap-anxeq-cai"
   },
+  "twv_ledger": {
+    "ic": "a4zma-baaaa-aaaap-qqf6q-cai"
+  },
+  "xrc_stub": {
+    "ic": "av2h4-xiaaa-aaaap-qqf7a-cai"
+  },
   "frontend": {
     "ic": "hrr6s-tyaaa-aaaap-anxha-cai"
   },
