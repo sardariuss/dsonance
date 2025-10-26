@@ -135,6 +135,14 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         getFacade().get_parameters();
     };
 
+    public query func get_collateral_token_price_usd() : async Float {
+        getFacade().get_collateral_token_price_usd();
+    };
+
+    public query func get_supply_token_price_usd() : async Float {
+        getFacade().get_supply_token_price_usd();
+    };
+
     public query func get_lending_index() : async Types.STimeline<Types.LendingIndex> {
         getFacade().get_lending_index();
     };

@@ -1,11 +1,11 @@
 import { ckBtcLedgerActor } from "../actors/CkBtcActor";
 import { ckUsdtLedgerActor } from "../actors/CkUsdtActor";
 import { twvLedgerActor } from "../actors/TwvLedgerActor";
-import { icpCoinsActor } from "../actors/IcpCoinsActor";
+import { protocolActor } from "../actors/ProtocolActor";
 import { faucetActor } from "../actors/FaucetActor";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
 import { getTokenDecimals, getTokenFee } from "../../utils/metadata";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { canisterId as protocolCanisterId } from "../../../declarations/protocol"
 import { Principal } from "@dfinity/principal";
 import { Account, MetadataValue, TransferResult } from "@/declarations/ckbtc_ledger/ckbtc_ledger.did";
@@ -69,27 +69,22 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     args: [],
   });
 
-  const { call: fetchLatestPrices } = icpCoinsActor.unauthenticated.useQueryCall({
-    functionName: "get_latest",
+  const { call: refreshCollateralPrice } = protocolActor.unauthenticated.useQueryCall({
+    functionName: "get_collateral_token_price_usd",
     args: [],
-    onSuccess: (data) => {
-      if(data !== undefined) {
-        // Search for the pair ckBTC/USD or ckUSDT/USD depending on the ledger type
-        const priceRow = data.find(row => {
-          const [tokenIds, tokenName] = row;
-          return (ledgerType === LedgerType.SUPPLY && tokenName === "ckUSDT/USD") ||
-                 (ledgerType === LedgerType.COLLATERAL && tokenName === "ckBTC/USD");
-        });
-        if (priceRow) {
-          const [, , price] = priceRow;
-          setPrice(price);
-        } else {
-          console.warn(`Price for ${ledgerType} not found in latest prices.`);
-          setPrice(undefined);
-        }
-      } else {
-        console.warn("No latest prices data available.");
-        setPrice(undefined);
+    onSuccess: (price) => {
+      if (ledgerType === LedgerType.COLLATERAL && price !== undefined) {
+        setPrice(price);
+      }
+    }
+  });
+
+  const { call: refreshSupplyPrice } = protocolActor.unauthenticated.useQueryCall({
+    functionName: "get_supply_token_price_usd",
+    args: [],
+    onSuccess: (price) => {
+      if (ledgerType === LedgerType.SUPPLY && price !== undefined) {
+        setPrice(price);
       }
     }
   });
@@ -99,16 +94,10 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
     args: [],
   });
 
+  const tokenDecimals = useMemo(() => getTokenDecimals(metadata), [metadata]);
+  const tokenFee = useMemo(() => getTokenFee(metadata), [metadata]);
+
   const [price, setPrice] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    if (ledgerType === LedgerType.SUPPLY || ledgerType === LedgerType.COLLATERAL) {
-      fetchLatestPrices();
-    }
-  }, []);
-
-  const tokenDecimals = getTokenDecimals(metadata);
-  const tokenFee = getTokenFee(metadata);
 
   const formatAmount = (amount: bigint | number | undefined, notation: "standard" | "compact" = "compact") => {
     if (amount === undefined || tokenDecimals === undefined) {
@@ -317,10 +306,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
   }, [account]);
 
   useEffect(() => {
-    refreshUserBalance();
-    if (account) {
-      checkHasMinted([account?.owner]);
-    }
+    icrc1BalanceOf(account ? [account] : undefined);
   }, [account]);
 
   const { call: mintToken, loading: mintLoading } = faucetActor.unauthenticated.useUpdateCall({
@@ -329,6 +315,7 @@ export const useFungibleLedger = (ledgerType: LedgerType) : FungibleLedger => {
 
   const { data: hasMinted, call: checkHasMinted } = faucetActor.unauthenticated.useQueryCall({
     functionName: ledgerType === LedgerType.SUPPLY ? 'has_minted_usdt' : ledgerType === LedgerType.COLLATERAL ? 'has_minted_btc' : 'has_minted_twv',
+    args: account ? [account.owner] : undefined,
   });
 
   const mint = async() => {

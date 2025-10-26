@@ -1,14 +1,14 @@
 
 
 shared persistent actor class ExchangeRate({ 
-    ck_usdt: {
-        usd_price: Nat64;
-        decimals: Nat32;
-    };
-    ck_btc: {
-        usd_price: Nat64;
-        decimals: Nat32;
-    };
+  ck_usdt: {
+    usd_price: Nat64;
+    decimals: Nat32;
+  };
+  ck_btc: {
+    usd_price: Nat64;
+    decimals: Nat32;
+  };
 }) {
 
   // === Types from the XRC IDL ===
@@ -74,16 +74,20 @@ shared persistent actor class ExchangeRate({
   // === Mock Implementation ===
 
   public query func get_exchange_rate(req : GetExchangeRateRequest) : async GetExchangeRateResult {
-    
-    if (req.quote_asset.symbol != "USD") {
-      return #Err(#CryptoQuoteAssetNotFound);
-    };
 
-    let { rate; decimals; } = switch (req.base_asset.symbol) {
-      case ("ckUSDT") { { rate = ck_usdt.usd_price; decimals = ck_usdt.decimals; }; };
-      case ("ckBTC") { { rate = ck_btc.usd_price; decimals = ck_btc.decimals; }; };
-      case (_) {
-        return #Err(#CryptoBaseAssetNotFound);
+    // Approximation: use USD price instead of ckUSDT price
+    let { rate; decimals; } = do {
+      if((req.quote_asset.class_ == #FiatCurrency and req.quote_asset.symbol == "USD") or
+        (req.quote_asset.class_ == #Cryptocurrency and req.quote_asset.symbol == "ckUSDT")) {
+        switch (req.base_asset.symbol) {
+          case ("ckUSDT") { { rate = ck_usdt.usd_price; decimals = ck_usdt.decimals; }; };
+          case ("ckBTC") { { rate = ck_btc.usd_price; decimals = ck_btc.decimals; }; };
+          case (_) {
+            return #Err(#CryptoBaseAssetNotFound);
+          };
+        };
+      } else {
+        return #Err(#CryptoQuoteAssetNotFound);
       };
     };
 

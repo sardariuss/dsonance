@@ -55,7 +55,7 @@ $$
 $$
 
 {% hint style="info" %}
-The beta version slightly modifies the dissent formulation to ensure that a position can have dissent even when no previous positions have been opened in a pool. This adjustment prevents early participants from being unfairly assigned a dissent of zero. This limitation will be removed once limit orders are implemented.
+The current testnet version slightly modifies the dissent formulation to ensure that a position can have dissent even when no previous positions have been opened in a pool. This adjustment prevents early participants from being unfairly assigned a dissent of zero. This limitation will be removed once limit orders are implemented.
 {% endhint %}
 
 $$

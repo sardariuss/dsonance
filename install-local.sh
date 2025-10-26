@@ -331,7 +331,6 @@ dfx generate kong_backend &
 dfx generate backend & # Will generate protocol as well
 dfx generate internet_identity &
 dfx generate faucet &
-dfx generate icp_coins &
 wait
 
 dfx deploy frontend

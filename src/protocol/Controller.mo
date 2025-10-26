@@ -100,6 +100,8 @@ module {
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         collateral_price_tracker: IPriceTracker;
+        collateral_usd_price_tracker: { fetch_price: () -> async* Result<(), Text>; get_token_price_usd: () -> Float };
+        supply_usd_price_tracker: { fetch_price: () -> async* Result<(), Text>; get_token_price_usd: () -> Float };
         miner: Miner.Miner;
         parameters: Parameters;
         foresight_updater: ForesightUpdater.ForesightUpdater;
@@ -241,11 +243,21 @@ module {
         // TODO: make sure none of the methods called in this function can trap:
         // it should only log errors
         public func run() : async* () {
-            
+
             let time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
 
-            // 1. Liquidate unhealthy loans
+            // 1. Fetch USD prices
+            switch(await* collateral_usd_price_tracker.fetch_price()){
+                case(#err(error)) { Debug.print("Failed to fetch collateral USD price: " # error); };
+                case(#ok(_)) {};
+            };
+            switch(await* supply_usd_price_tracker.fetch_price()){
+                case(#err(error)) { Debug.print("Failed to fetch supply USD price: " # error); };
+                case(#ok(_)) {};
+            };
+
+            // 2. Liquidate unhealthy loans
             switch(await* collateral_price_tracker.fetch_price()){
                 case(#err(error)) { Debug.print("Failed to update collateral price: " # error); };
                 case(#ok(_)) {
@@ -255,14 +267,14 @@ module {
                     };
                 };
             };
-            
-            // 2. Update foresights before unlocking, so the rewards are up-to-date
+
+            // 3. Update foresights before unlocking, so the rewards are up-to-date
             foresight_updater.update_foresights();
-            
-            // 3. Unlock expired locks and process them
+
+            // 4. Unlock expired locks and process them
             let unlocked_ids = lock_scheduler.try_unlock(time);
-            
-            // 4. Process each unlocked ballot
+
+            // 5. Process each unlocked ballot
             label unlock_supply for (ballot_id in Set.keys(unlocked_ids)) {
 
                 let ballot = switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)) {
@@ -337,6 +349,14 @@ module {
                 current_time = clock.get_time();
                 genesis_time;
             };
+        };
+
+        public func get_collateral_token_price_usd() : Float {
+            collateral_usd_price_tracker.get_token_price_usd();
+        };
+
+        public func get_supply_token_price_usd() : Float {
+            supply_usd_price_tracker.get_token_price_usd();
         };
 
         type ProcessedBallotInput = {

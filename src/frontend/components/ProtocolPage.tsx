@@ -126,7 +126,7 @@ const ProtocolPage = () => {
           <span className="text-amber-600 dark:text-amber-400 text-xl mt-0.5">ℹ️</span>
           <div className="flex-1">
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              <span className="font-semibold">Beta information:</span> Consensus half-life and lock duration scaling parameters are set to create fast evolving consensus and short lock durations to faciliate testing. Longer half-life and durations will be used on mainnet.
+              <span className="font-semibold">Testnet configuration:</span> Consensus half-life and lock duration scaling parameters are configured to allow fast-evolving consensus and short lock periods for easier testing. Longer half-life and lock durations will be applied on mainnet.
             </p>
           </div>
         </div>

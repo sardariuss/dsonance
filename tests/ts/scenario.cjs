@@ -83,7 +83,6 @@ async function callCanisterMethod() {
     const { idlFactory: backendFactory } = await import("../../.dfx/local/canisters/backend/service.did.js");
     const { idlFactory: btcFactory } = await import("../../.dfx/local/canisters/ckbtc_ledger/service.did.js");
     const { idlFactory: usdtFactory } = await import("../../.dfx/local/canisters/ckusdt_ledger/service.did.js");
-    const { idlFactory: icpCoinsFactory } = await import("../../.dfx/local/canisters/icp_coins/service.did.js");
 
     // Retrieve canister ID from environment variables
     const protocolCanisterId = process.env.CANISTER_ID_PROTOCOL;
@@ -91,7 +90,6 @@ async function callCanisterMethod() {
     const backendCanisterId = process.env.CANISTER_ID_BACKEND;
     const btcCanisterId = process.env.CANISTER_ID_CKBTC_LEDGER;
     const usdtCanisterId = process.env.CANISTER_ID_CKUSDT_LEDGER;
-    const icpCoinsCanisterId = process.env.CANISTER_ID_ICP_COINS;
 
     if (!protocolCanisterId){
         throw new Error("Protocol canister ID is missing");
@@ -107,9 +105,6 @@ async function callCanisterMethod() {
     }
     if (!usdtCanisterId){
         throw new Error("ckUSDT canister ID is missing");
-    }
-    if (!icpCoinsCanisterId){
-        throw new Error("ICP Coins canister ID is missing");
     }
 
     // Simulation actors
@@ -129,11 +124,6 @@ async function callCanisterMethod() {
     let faucetActor = await getActor(faucetCanisterId, faucetFactory, simIdentity);
     if (faucetActor === null) {
         throw new Error("ckBTC actor is null");
-    }
-
-    let icpCoinsActor = await getActor(icpCoinsCanisterId, icpCoinsFactory, simIdentity);
-    if (icpCoinsActor === null) {
-        throw new Error("ICP Coins actor is null");
     }
 
     let parameters = await protocolActor.get_parameters();
@@ -282,9 +272,7 @@ async function callCanisterMethod() {
         // Borrow
         const { principal, actors } = getRandomUser(userActors);
         const utilization = (await actors.protocol.get_lending_index()).current.data.utilization;
-        const price_btc = await icpCoinsActor.get_latest().then((latest) => {
-            return Number(latest.at(0)[2]); // @todo: remove this hardcoded index
-        });
+        const price_btc = Number(await protocolActor.get_collateral_token_price_usd());
         console.log(`BTC price: ${price_btc} USD`);
 
         const usdtAvailableFromLiquidity = Math.max((utilization.raw_supplied * (1.0 - RESERVE_LIQUIDITY) - utilization.raw_borrowed), 0.0);

@@ -42,6 +42,43 @@ module {
         var twap_cache: ?Float;
         var last_twap_calculation: Int;
     };
+
+    public class SpotUsdPriceTracker({
+        xrc: IXRC;
+        ledger: ILedgerFungible;
+    }) {
+
+        var token_price_usd = ?0.0;
+
+        public func fetch_price() : async* Result<(), Text>{
+
+            let token_info = ledger.get_token_info();
+
+            token_price_usd := switch(await* query_price_from_xrc({
+                xrc;
+                base_asset = {
+                    symbol = token_info.token_symbol;
+                    class_ = #Cryptocurrency;
+                };
+                quote_asset = {
+                    symbol = "USD";
+                    class_ = #FiatCurrency;
+                };
+            })) {
+                case(#err(error)) { return #err(error); };
+                case(#ok(token_price)) { ?token_price; };
+            };
+            #ok;
+        };
+
+        public func get_token_price_usd() : Float {
+            switch(token_price_usd) {
+                case(?value) { value; };
+                case(null) { Debug.trap("Price not set"); };
+            }
+        };
+
+    };
     
     public class SpotPriceTracker({
         price_source: PriceSource;

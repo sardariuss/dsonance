@@ -57,7 +57,7 @@ The project uses multiple canisters (smart contracts):
 - `ck_usdt` - ckUSDT ledger (src/ledger/main.mo)
 - `dex` - DEX functionality (src/dex/main.mo)
 - `faucet` - Faucet
-- `icp_coins` - Price oracle
+- `xrc` - Exchange rate canister
 - `internet_identity` - Authentication
 
 ### Key Frontend Components

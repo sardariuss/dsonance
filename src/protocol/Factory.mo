@@ -81,6 +81,16 @@ module {
             get_current_time = clock.get_time;
         });
 
+        let collateral_usd_price_tracker = PriceTracker.SpotUsdPriceTracker({
+            xrc = state.xrc;
+            ledger = collateral_ledger;
+        });
+
+        let supply_usd_price_tracker = PriceTracker.SpotUsdPriceTracker({
+            xrc = state.xrc;
+            ledger = supply_ledger;
+        });
+
         let { supply; supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
             lending with
             parameters = parameters.lending;
@@ -150,6 +160,8 @@ module {
             borrow_registry;
             withdrawal_queue;
             collateral_price_tracker;
+            collateral_usd_price_tracker;
+            supply_usd_price_tracker;
             miner;
             parameters;
             foresight_updater;
@@ -177,6 +189,14 @@ module {
                 };
                 switch(await* collateral_price_tracker.fetch_price()) {
                     case(#err(error)) { return #err("Failed to update collateral price: " # error); };
+                    case(#ok(_)) {};
+                };
+                switch(await* collateral_usd_price_tracker.fetch_price()) {
+                    case(#err(error)) { return #err("Failed to fetch collateral USD price: " # error); };
+                    case(#ok(_)) {};
+                };
+                switch(await* supply_usd_price_tracker.fetch_price()) {
+                    case(#err(error)) { return #err("Failed to fetch supply USD price: " # error); };
                     case(#ok(_)) {};
                 };
                 ignore Timer.recurringTimer<system>(#seconds(parameters.timer_interval_s), func() : async () {

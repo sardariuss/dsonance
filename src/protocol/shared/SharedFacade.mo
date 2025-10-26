@@ -100,6 +100,14 @@ module {
             SharedConversions.shareParameters(queries.get_parameters());
         };
 
+        public func get_collateral_token_price_usd() : Float {
+            controller.get_collateral_token_price_usd();
+        };
+
+        public func get_supply_token_price_usd() : Float {
+            controller.get_supply_token_price_usd();
+        };
+
         public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
             queries.get_vote_ballots(vote_id);
         };
