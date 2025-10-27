@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { MdClose, MdLogout, MdOutlineAccountBalanceWallet } from "react-icons/md";
+import { HiOutlineExclamationTriangle } from "react-icons/hi2";
 import { LedgerType } from "../hooks/useFungibleLedger";
 import WalletRow from "./WalletRow";
 import { useAuth } from "@nfid/identitykit/react";
@@ -121,6 +122,18 @@ const Wallet = ({ isOpen, onClose }: WalletProps) => {
             >
               <MdClose size={24} />
             </button>
+          </div>
+        </div>
+
+        {/* Testnet Warning */}
+        <div className="bg-amber-50 dark:bg-amber-900/20 border-y border-amber-200 dark:border-amber-800 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <HiOutlineExclamationTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-amber-900 dark:text-amber-100">
+                <span className="font-semibold">Testnet tokens only.</span> Do not send real assets. All funds will be lost!
+              </p>
+            </div>
           </div>
         </div>
 

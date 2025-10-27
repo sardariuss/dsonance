@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "sonner";
 
 import Router from "../router/Router";
+import TestnetWarningBanner from "./TestnetWarningBanner";
 
 const originalConsoleError = console.error;
 
@@ -72,6 +73,7 @@ function AppContent() {
       <div className="flex flex-col min-h-screen w-full bg-slate-100 dark:bg-slate-900 dark:border-gray-700 border-gray-300 text-gray-800 dark:text-white justify-between">
         <div className="flex flex-col w-full flex-grow items-center bg-slate-100 dark:bg-slate-900">
           <Header/>
+          <TestnetWarningBanner/>
           <Router/>
         </div>
         <Footer/>
