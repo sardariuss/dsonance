@@ -16,7 +16,6 @@ import "@nfid/identitykit/react/styles.css";
 const isLocal = process.env.DFX_NETWORK === "local";
 const backendId = process.env.CANISTER_ID_BACKEND;
 const protocolId = process.env.CANISTER_ID_PROTOCOL;
-const frontendId = process.env.CANISTER_ID_FRONTEND;
 
 // Local II configuration for local development
 const localInternetIdentity = {
@@ -39,7 +38,6 @@ if (protocolId) {
 
 const signerClientOptions = {
   targets,
-  derivationOrigin: isLocal ? undefined: `https://${frontendId}.icp0.io`,
   maxTimeToLive: BigInt(7) * BigInt(24) * BigInt(3_600_000_000_000), // 1 week in nanoseconds
 };
 

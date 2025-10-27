@@ -200,7 +200,7 @@ function NewVote() {
           </label>
           <label
             htmlFor="thumbnail-upload"
-            className={`relative w-10 h-10 rounded-lg border-2 border-dashed transition-all cursor-pointer overflow-hidden
+            className={`relative w-16 h-16 rounded-lg border-2 border-dashed transition-all cursor-pointer overflow-hidden
               ${thumbnailPreview
                 ? 'border-gray-300 dark:border-gray-600'
                 : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10'

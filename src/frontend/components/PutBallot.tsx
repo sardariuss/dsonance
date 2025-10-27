@@ -80,7 +80,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
       return;
     }
     if (putBallotLoading) {
-      console.warn("Put ballot is already in progress");
+      console.warn("Lock position is already in progress");
       return;
     }
     setShowConfirmModal(true);
@@ -102,22 +102,22 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
         choice_type: { YES_NO: toCandid(ballot.choice) },
       }]).then((result) => {
         if (result === undefined) {
-          throw new Error("Put ballot returned undefined result");
+          throw new Error("Lock position returned undefined result");
         }
         if ('err' in result) {
-          console.error("Put ballot failed:", result.err);
-          showErrorToast(extractErrorMessage(result.err), "Put ballot");
-          throw new Error(`Put ballot failed: ${result.err.toString()}`);
+          console.error("Lock position failed:", result.err);
+          showErrorToast(extractErrorMessage(result.err), "Lock position");
+          throw new Error(`Lock position failed: ${result.err.toString()}`);
         }
         refreshUserBalance();
-        showSuccessToast("View locked successfully", "Put ballot");
+        showSuccessToast("View locked successfully", "Lock position");
         setPutBallotLoading(false);
         // Ballot successfully put, navigate to the user's profile page
-        navigate(`/user/${user?.principal.toString()}`);
+        navigate(`/user/${user?.principal.toString()}?scrollToBottom=true`);
       });
     }).catch((error) => {
-      console.error("Error during put ballot:", error);
-      showErrorToast(extractErrorMessage(error), "Put ballot");
+      console.error("Error during Lock position:", error);
+      showErrorToast(extractErrorMessage(error), "Lock position");
       setPutBallotLoading(false);
     });
   };

@@ -30,8 +30,10 @@ const ConsensusIndicator: React.FC<ConsensusIndicatorProps> = ({ cursor, pulse }
           strokeWidth={strokeWidth}
           className={`${cursor < 0.5 ? 'stroke-brand-false' : 'stroke-brand-true dark:stroke-brand-true-dark'} ${pulse? "animate-pulse" : ""}`}
           style={{
-            strokeDasharray: halfCircumference,
-            strokeDashoffset: halfCircumference * (1 - cursor),
+            strokeDasharray: cursor < 0.5
+              ? `0 ${cursor * halfCircumference} ${(1 - cursor) * halfCircumference}`
+              : halfCircumference,
+            strokeDashoffset: cursor < 0.5 ? 0 : halfCircumference * (1 - cursor),
           }}
         />
       </svg>

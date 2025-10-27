@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 /**
  * Shows an error toast notification for actor call failures
  * @param message The error message to display
- * @param operation Optional operation name for better context (e.g., "Put ballot", "Borrow")
+ * @param operation Optional operation name for better context (e.g., "Lock position", "Borrow")
  */
 export const showErrorToast = (message: string, operation?: string) => {
   const title = operation ? `${operation} failed` : 'Operation failed';
@@ -18,7 +18,7 @@ export const showErrorToast = (message: string, operation?: string) => {
 /**
  * Shows a success toast notification for successful operations
  * @param message The success message to display
- * @param operation Optional operation name for better context (e.g., "Put ballot", "Borrow")
+ * @param operation Optional operation name for better context (e.g., "Lock position", "Borrow")
  */
 export const showSuccessToast = (message: string, operation?: string) => {
   const title = operation ? `${operation} successful` : 'Operation successful';
