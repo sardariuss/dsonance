@@ -16,6 +16,7 @@ shared({ caller = admin }) persistent actor class Backend() = this {
     type YesNoChoice = ProtocolTypes.YesNoChoice;
     type SVoteType = ProtocolTypes.SVoteType;
     type SBallotType = ProtocolTypes.SBallotType;
+    type QueryDirection = ProtocolTypes.QueryDirection;
     type VoteInfo = {
         text: Text;
         visible: Bool;
@@ -65,10 +66,10 @@ shared({ caller = admin }) persistent actor class Backend() = this {
         });
     };
 
-    public composite query func get_votes({ previous: ?UUID; limit: Nat; }) : async [SYesNoVote] {
+    public composite query func get_votes({ previous: ?UUID; limit: Nat; direction: QueryDirection; }) : async [SYesNoVote] {
 
         // Fetch votes using the collected `filter_ids`
-        let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); previous; limit; });
+        let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); previous; limit; direction; });
 
         // Process and return votes
         Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {

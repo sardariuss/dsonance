@@ -14,7 +14,7 @@ export const TELEGRAM_URL = "https://t.me/dsonance";
 export const REPAY_SLIPPAGE_RATIO = 0.001; // 0.1% 
 // New vote constants
 // TODO: this limit shall be embedded in the backend canister
-export const VOTE_MAX_CHARACTERS = 500;
+export const VOTE_MAX_CHARACTERS = 200;
 export const NEW_VOTE_PLACEHOLDER = "Suggest a statement—see where consensus stands.";
 // Chart constants
 export const TICK_TEXT_COLOR_DARK = "#aaa";

@@ -67,6 +67,7 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
       account: { owner: connectedUser.principal, subaccount: [] },
       previous: [],
       limit: 100n,
+      direction: { backward: null },
       filter_active: true
     }],
   });

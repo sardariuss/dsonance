@@ -69,6 +69,11 @@ module {
 
     // CANISTER ARGS
 
+    public type QueryDirection = {
+        #forward;
+        #backward;
+    };
+
     public type NewVoteArgs = {
         account: Account;
         type_enum: VoteTypeEnum;
@@ -79,12 +84,14 @@ module {
         origin: Principal;
         previous: ?UUID;
         limit: Nat;
+        direction: QueryDirection;
     };
 
     public type GetVotesByAuthorArgs = {
         author: Account;
         previous: ?UUID;
         limit: Nat;
+        direction: QueryDirection;
     };
 
     public type GetBallotArgs = {
@@ -92,6 +99,7 @@ module {
         previous: ?UUID;
         limit: Nat;
         filter_active: Bool;
+        direction: QueryDirection;
     };
 
     public type FindVoteArgs = {

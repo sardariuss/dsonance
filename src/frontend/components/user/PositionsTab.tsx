@@ -10,6 +10,7 @@ import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
 import { toNullable } from "@dfinity/utils";
 import { toAccount } from "@/frontend/utils/conversions/account";
+import InfiniteScroll from "react-infinite-scroll-component";
 
 type BallotEntries = {
   ballots: SBallotType[];
@@ -17,13 +18,39 @@ type BallotEntries = {
   hasMore: boolean;
 };
 
+const PositionSkeleton = ({ count }: { count: number }) => (
+  <div className="w-full flex">
+    {/* Pool column skeleton */}
+    <div className="flex-shrink-0 flex flex-col w-[200px] sm:w-[700px] gap-y-2">
+      {Array(count).fill(null).map((_, index) => (
+        <div key={index} className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse">
+          <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-md" />
+          <div className="flex-1 h-4 bg-gray-300 dark:bg-gray-600 rounded" />
+        </div>
+      ))}
+    </div>
+    {/* Data columns skeleton */}
+    <div className="flex-1 overflow-x-auto">
+      <div className="min-w-[260px] flex flex-col gap-y-2">
+        {Array(count).fill(null).map((_, index) => (
+          <div key={index} className="grid grid-cols-3 gap-2 sm:gap-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse">
+            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded" />
+            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded" />
+            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const [ballotEntries, setBallotEntries] = useState<BallotEntries>({ ballots: [], previous: undefined, hasMore: true });
   const [filterActive, setFilterActive] = useState(true);
-  const limit = isMobile ? 8n : 10n;
+  const limit = isMobile ? 6n : 4n;
 
   const { info, refreshInfo } = useProtocolContext();
 
@@ -41,9 +68,10 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
 
     const fetchedBallots = await getBallots([{
       account,
-      previous: toNullable(entries.previous), 
+      previous: toNullable(entries.previous),
       limit,
       filter_active,
+      direction: { backward: null }
     }]);
 
     if (fetchedBallots && fetchedBallots.length > 0) {
@@ -61,6 +89,11 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
     refreshInfo();
     fetchBallots(toAccount(user), ballotEntries, filterActive).then(setBallotEntries);
   }, []);
+
+  const fetchMoreBallots = async () => {
+    const newEntries = await fetchBallots(toAccount(user), ballotEntries, filterActive);
+    setBallotEntries(newEntries);
+  };
 
   const toggleFilterActive = useCallback((active: boolean) => {
     setFilterActive(active);
@@ -100,44 +133,52 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
           No positions found.
         </div>
       ) : (
-        <div className="w-full flex">
-          {/* Fixed Pool column */}
-          <div className="flex-shrink-0 flex flex-col w-[200px] sm:w-[700px]">
-            {/* Pool header */}
-            <span className="pb-2 text-sm text-gray-500 dark:text-gray-500">POOL</span>
-            {/* Pool data rows */}
-            <ul className="flex flex-col gap-y-2">
-              {ballotEntries.ballots.map((ballot, index) => (
-                <li
-                  key={index}
-                  className="scroll-mt-[104px] sm:scroll-mt-[88px]"
-                >
-                  <PoolRow ballot={ballot} />
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Scrollable columns section (header + data together) */}
-          <div className="flex-1 overflow-x-auto">
-            <div className="min-w-[260px] flex flex-col">
-              {/* Scrollable header */}
-              <div className="grid grid-cols-3 gap-2 sm:gap-4 pb-2">
-                <span className="text-sm text-gray-500 dark:text-gray-500 text-right">DISSENT</span>
-                <span className="text-sm text-gray-500 dark:text-gray-500 text-right">{filterActive ? "TIME LEFT" : "UNLOCKED"}</span>
-                <span className="text-sm text-gray-500 dark:text-gray-500 text-right">VALUE</span>
-              </div>
-              {/* Scrollable data rows */}
+        <InfiniteScroll
+          dataLength={ballotEntries.ballots.length}
+          next={fetchMoreBallots}
+          hasMore={ballotEntries.hasMore}
+          loader={<PositionSkeleton count={1} />}
+          style={{ height: "auto", overflow: "visible" }}
+        >
+          <div className="w-full flex">
+            {/* Fixed Pool column */}
+            <div className="flex-shrink-0 flex flex-col w-[200px] sm:w-[700px]">
+              {/* Pool header */}
+              <span className="pb-2 text-sm text-gray-500 dark:text-gray-500">POOL</span>
+              {/* Pool data rows */}
               <ul className="flex flex-col gap-y-2">
                 {ballotEntries.ballots.map((ballot, index) => (
-                  <li key={index}>
-                    <PositionRow ballot={ballot} now={info?.current_time} />
+                  <li
+                    key={index}
+                    className="scroll-mt-[104px] sm:scroll-mt-[88px]"
+                  >
+                    <PoolRow ballot={ballot} />
                   </li>
                 ))}
               </ul>
             </div>
+
+            {/* Scrollable columns section (header + data together) */}
+            <div className="flex-1 overflow-x-auto">
+              <div className="min-w-[260px] flex flex-col">
+                {/* Scrollable header */}
+                <div className="grid grid-cols-3 gap-2 sm:gap-4 pb-2">
+                  <span className="text-sm text-gray-500 dark:text-gray-500 text-right">DISSENT</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-500 text-right">{filterActive ? "TIME LEFT" : "UNLOCKED"}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-500 text-right">VALUE</span>
+                </div>
+                {/* Scrollable data rows */}
+                <ul className="flex flex-col gap-y-2">
+                  {ballotEntries.ballots.map((ballot, index) => (
+                    <li key={index}>
+                      <PositionRow ballot={ballot} now={info?.current_time} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
-        </div>
+        </InfiniteScroll>
       )}
     </div>
   );

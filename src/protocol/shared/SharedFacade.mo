@@ -42,6 +42,7 @@ module {
     type ProtocolInfo = Types.ProtocolInfo;
     type MiningTracker = Types.MiningTracker;
     type LendingIndex = Types.LendingIndex;
+    type QueryDirection = Types.QueryDirection;
 
     public class SharedFacade({
         controller: Controller.Controller;
@@ -112,12 +113,12 @@ module {
             queries.get_vote_ballots(vote_id);
         };
 
-        public func get_votes({origin: Principal; previous: ?UUID; limit: Nat }) : [SVoteType] {
-            queries.get_votes({origin; previous; limit; });
+        public func get_votes({origin: Principal; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [SVoteType] {
+            queries.get_votes({origin; previous; limit; direction; });
         };
-        
-        public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; }) : [SVoteType] {
-            queries.get_votes_by_author({author; previous; limit;});
+
+        public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [SVoteType] {
+            queries.get_votes_by_author({author; previous; limit; direction;});
         };
         
         public func find_vote({vote_id: UUID;}) : ?SVoteType {

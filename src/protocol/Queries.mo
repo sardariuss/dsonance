@@ -35,20 +35,25 @@ module {
     type UserSupply = Types.UserSupply;
     type STimeline<T> = Types.STimeline<T>;
     type LendingIndex = Types.LendingIndex;
+    type QueryDirection = Types.QueryDirection;
 
     public class Queries({
         clock: Clock.Clock;
         state: State; 
     }){
 
-        public func get_ballots({ account: Account; previous: ?UUID; limit: Nat; filter_active: Bool; }) : [SBallotType] {
+        public func get_ballots({ account: Account; previous: ?UUID; limit: Nat; filter_active: Bool; direction: QueryDirection; }) : [SBallotType] {
             let buffer = Buffer.Buffer<SBallotType>(limit);
             Option.iterate(Map.get(state.ballot_register.by_account, MapUtils.acchash, account), func(ids: Set.Set<UUID>) {
                 let iter = Set.keysFrom(ids, Set.thash, previous);
                 label limit_loop while (buffer.size() < limit) {
-                    switch (iter.next()) {
+                    let next_id = switch(direction) {
+                        case(#forward) { iter.next(); };
+                        case(#backward) { iter.prev(); };
+                    };
+                    switch (next_id) {
                         case (null) { break limit_loop; };
-                        case (?id) { 
+                        case (?id) {
                             Option.iterate(Map.get(state.ballot_register.ballots, Map.thash, id), func(ballot_type: BallotType) {
                                 switch(ballot_type){
                                     case(#YES_NO(ballot)) {
@@ -64,7 +69,7 @@ module {
                         };
                     };
                 };
-            }); 
+            });
 
             Buffer.toArray(buffer);
         };
@@ -108,39 +113,47 @@ module {
             return { amount = 0; apr = 0.0; }; 
         };
 
-        public func get_votes({origin: Principal; previous: ?UUID; limit: Nat;}) : [SVoteType] {
+        public func get_votes({origin: Principal; previous: ?UUID; limit: Nat; direction: QueryDirection;}) : [SVoteType] {
             let buffer = Buffer.Buffer<VoteType>(limit);
             Option.iterate(Map.get(state.vote_register.by_origin, Map.phash, origin), func(ids: Set.Set<UUID>) {
                 let iter = Set.keysFrom(ids, Set.thash, previous);
                 label limit_loop while (buffer.size() < limit) {
-                    switch (iter.next()) {
+                    let next_id = switch(direction) {
+                        case(#forward) { iter.next(); };
+                        case(#backward) { iter.prev(); };
+                    };
+                    switch (next_id) {
                         case (null) { break limit_loop; };
-                        case (?id) { 
+                        case (?id) {
                             Option.iterate(Map.get(state.vote_register.votes, Map.thash, id), func(vote_type: VoteType) {
                                 buffer.add(vote_type);
                             });
                         };
                     };
                 };
-            }); 
+            });
             Buffer.toArray(Buffer.map<VoteType, SVoteType>(buffer, SharedConversions.shareVoteType));
         };
 
-        public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; }) : [SVoteType] {
+        public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [SVoteType] {
             let buffer = Buffer.Buffer<VoteType>(limit);
             Option.iterate(Map.get(state.vote_register.by_author, MapUtils.acchash, author), func(ids: Set.Set<UUID>) {
                 let iter = Set.keysFrom(ids, Set.thash, previous);
                 label limit_loop while (buffer.size() < limit) {
-                    switch (iter.next()) {
+                    let next_id = switch(direction) {
+                        case(#forward) { iter.next(); };
+                        case(#backward) { iter.prev(); };
+                    };
+                    switch (next_id) {
                         case (null) { break limit_loop; };
-                        case (?id) { 
+                        case (?id) {
                             Option.iterate(Map.get(state.vote_register.votes, Map.thash, id), func(vote_type: VoteType) {
                                 buffer.add(vote_type);
                             });
                         };
                     };
                 };
-            }); 
+            });
             Buffer.toArray(Buffer.map<VoteType, SVoteType>(buffer, SharedConversions.shareVoteType));
         };
 

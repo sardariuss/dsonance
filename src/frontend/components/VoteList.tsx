@@ -39,9 +39,10 @@ const VoteList = () => {
 
   const fetchAndSetVotes = async () => {
 
-    const fetchedVotes = await fetchVotes([{ 
-      previous: toNullable(previous), 
-      limit: BigInt(limit)
+    const fetchedVotes = await fetchVotes([{
+      previous: toNullable(previous),
+      limit: BigInt(limit),
+      direction: { backward: null }
     }]);
 
     if (fetchedVotes && fetchedVotes.length > 0) {
