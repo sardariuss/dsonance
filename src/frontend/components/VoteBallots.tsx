@@ -102,9 +102,11 @@ const VoteBallots = ({ voteId }: VoteBallotsProps) => {
         {/* Ballot Date */}
         <div className="text-right">
           <div className="text-sm text-gray-600 dark:text-gray-400">Date</div>
-          <div className="text-sm">
-            {timeDifference(timeToDate(ballot.timestamp), new Date())} ago
-          </div>
+          { currentTime && 
+            <div className="text-sm">
+              {timeDifference(timeToDate(currentTime), timeToDate(ballot.timestamp))} ago
+            </div>
+          }
         </div>
 
       </div>
@@ -122,7 +124,7 @@ const VoteBallots = ({ voteId }: VoteBallotsProps) => {
         <div className="flex flex-col space-y-3">
           <div className="flex items-center space-x-2">
             <div className="text-base font-semibold">
-              YES Votes
+              YES Positions
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
               ({yesBallots.length})
@@ -133,7 +135,7 @@ const VoteBallots = ({ voteId }: VoteBallotsProps) => {
               yesBallots.map(renderBallotCard)
             ) : (
               <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                No YES votes yet
+                No YES positions yet
               </div>
             )}
           </div>
@@ -143,7 +145,7 @@ const VoteBallots = ({ voteId }: VoteBallotsProps) => {
         <div className="flex flex-col space-y-3">
           <div className="flex items-center space-x-2">
             <div className="text-base font-semibold">
-              NO Votes
+              NO Positions
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
               ({noBallots.length})
@@ -154,7 +156,7 @@ const VoteBallots = ({ voteId }: VoteBallotsProps) => {
               noBallots.map(renderBallotCard)
             ) : (
               <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                No NO votes yet
+                No NO positions yet
               </div>
             )}
           </div>

@@ -38,8 +38,8 @@ export const niceFormatDate = (date: Date, now: Date) : string => {
   return date.toLocaleDateString('en-US', options);
 }
 
-export const timeDifference = (date: Date, now: Date): string => {
-  const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000);
+export const timeDifference = (date1: Date, date2: Date): string => {
+  const diffInSeconds = Math.floor((date1.getTime() - date2.getTime()) / 1000);
 
   // Handle "X seconds/minutes/hours/days/months/years"
   if (Math.abs(diffInSeconds) < 60) {
