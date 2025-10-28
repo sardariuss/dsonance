@@ -14,6 +14,7 @@ module {
   public type Timeline<T> = {
     var current: TimedData<T>;
     var history: [TimedData<T>];
+    var lastCheckpointTimestamp: Nat;
     minIntervalNs: Nat;
   };
 
@@ -21,6 +22,7 @@ module {
     {
       var current = { timestamp; data };
       var history = [];
+      var lastCheckpointTimestamp = timestamp;
       minIntervalNs;
     }
   };
@@ -32,11 +34,11 @@ module {
   // Insert a new entry
   public func insert<T>(timeline: Timeline<T>, timestamp: Nat, data: T) {
 
-    let window : Int = timestamp - timeline.current.timestamp;
+    let window : Int = timestamp - timeline.lastCheckpointTimestamp;
 
     // TODO: return an error or trap?
     if (window < 0) {
-      Debug.print("WARNING: Timeline insert: timestamp is " # debug_show(window) # " ns older than current timestamp");
+      Debug.print("WARNING: Timeline insert: timestamp is " # debug_show(window) # " ns older than last checkpoint timestamp");
     };
 
     // If within the current window, overwrite current
@@ -44,7 +46,10 @@ module {
       timeline.current := { timestamp; data };
       return;
     };
+
+    // Push current to history and update checkpoint
     timeline.history := Array.append(timeline.history, [timeline.current]);
+    timeline.lastCheckpointTimestamp := timestamp;
     timeline.current := { timestamp; data };
   };
 

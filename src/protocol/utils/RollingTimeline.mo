@@ -15,6 +15,7 @@ module {
   public type RollingTimeline<T> = {
     var current: TimedData<T>;
     history: [var ?TimedData<T>];
+    var lastCheckpointTimestamp: Nat;
     var index: Nat;
     maxSize: Nat;
     minIntervalNs: Nat; // in nanoseconds, e.g. 5 min = 300_000_000_000
@@ -25,6 +26,7 @@ module {
     {
       var current = { timestamp; data };
       history = Array.init<?TimedData<T>>(maxSize, null);
+      var lastCheckpointTimestamp = timestamp;
       var index = 0;
       maxSize;
       minIntervalNs;
@@ -38,12 +40,12 @@ module {
 
   /// Insert a new entry, respecting batching and ring size
   public func insert<T>(timeline: RollingTimeline<T>, timestamp: Nat, data: T) {
-    
-    let window : Int = timestamp - timeline.current.timestamp;
-    
+
+    let window : Int = timestamp - timeline.lastCheckpointTimestamp;
+
     // TODO: return an error or trap?
     if (window < 0) {
-      Debug.print("WARNING: RollingTimeline insert: timestamp is " # debug_show(window) # " ns older than current timestamp");
+      Debug.print("WARNING: RollingTimeline insert: timestamp is " # debug_show(window) # " ns older than last checkpoint timestamp");
     };
 
     // If within the current window, overwrite current
@@ -52,9 +54,10 @@ module {
       return;
     };
 
-    // Otherwise push the current into ring buffer
+    // Otherwise push the current into ring buffer and update checkpoint
     timeline.history[timeline.index] := ?timeline.current;
     timeline.index := (timeline.index + 1) % timeline.maxSize;
+    timeline.lastCheckpointTimestamp := timestamp;
     timeline.current := { timestamp; data };
   };
 

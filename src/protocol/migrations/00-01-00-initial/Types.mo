@@ -480,12 +480,14 @@ module {
     public type Timeline<T> = {
         var current: TimedData<T>;
         var history: [TimedData<T>];
+        var lastCheckpointTimestamp: Nat;
         minIntervalNs: Nat;
     };
 
     public type RollingTimeline<T> = {
         var current: TimedData<T>;
         history: [var ?TimedData<T>];
+        var lastCheckpointTimestamp: Nat;
         var index: Nat;
         maxSize: Nat;
         minIntervalNs: Nat;
