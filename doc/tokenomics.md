@@ -21,7 +21,8 @@ While the users's borrow APY depends solely on the utilization rate, his supply 
 
 The TWV token serves as governance token for the Towerview platform:
 
-* **Rewards** – Distributed to borrowers and liquidity providers.
+* **Mining** – Distributed to suppliers, borrowers and pool creators based on their performance.
+* **Burn** – Required to open new pools; buy-back and burn TWV using platform lending fees.
 * **Governance** – Locked in neurons, enabling participation in decisions shaping the future of Towerview.
 
 The minting of TWV rewards follows an **exponential decay model** with a **4-year half-life**. Early users earn more, while emissions gradually decrease, ensuring long-term scarcity and sustainability.
