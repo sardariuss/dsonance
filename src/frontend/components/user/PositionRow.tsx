@@ -5,13 +5,14 @@ import { unwrapLock } from "../../utils/conversions/ballot";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { aprToApy } from "../../utils/lending";
 import { formatDuration } from "@/frontend/utils/conversions/durationUnit";
+import { useProtocolContext } from "../context/ProtocolContext";
 
 interface PositionRowProps {
   ballot: SBallotType;
-  now: bigint | undefined;
 }
 
-const PositionRow = ({ ballot, now }: PositionRowProps) => {
+const PositionRow = ({ ballot }: PositionRowProps) => {
+  const { info } = useProtocolContext();
   const { supplyLedger: { formatAmountUsd } } = useFungibleLedgerContext();
 
   const { releaseTimestamp, durationAdded, reward, currentApy } = useMemo(() => {
@@ -24,7 +25,7 @@ const PositionRow = ({ ballot, now }: PositionRowProps) => {
     };
   }, [ballot]);
 
-  return now === undefined ? (
+  return info?.current_time === undefined ? (
     <></>
   ) : (
     <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center py-2 h-[60px] sm:h-[68px]">
@@ -36,9 +37,9 @@ const PositionRow = ({ ballot, now }: PositionRowProps) => {
       {/* Time Left */}
       <div className={`w-full ${durationAdded ? "flex flex-col" : ""} text-right flex justify-end`}>
         <span className="font-semibold text-sm">
-          {releaseTimestamp <= now
+          {releaseTimestamp <= info?.current_time
             ? `${formatDate(timeToDate(releaseTimestamp))}`
-            : `${timeDifference(timeToDate(releaseTimestamp), timeToDate(now))}`}
+            : `${timeDifference(timeToDate(releaseTimestamp), timeToDate(info?.current_time))}`}
         </span>
         <span>
           {durationAdded && (

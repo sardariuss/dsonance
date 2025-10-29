@@ -1,16 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { protocolActor } from "../actors/ProtocolActor";
 
 import PoolRow from "./PoolRow";
 import PositionRow from "./PositionRow";
 import { useProtocolContext } from "../context/ProtocolContext";
 import { useAuth } from "@nfid/identitykit/react";
-import { Account, SBallotType } from "@/declarations/protocol/protocol.did";
-import { useMediaQuery } from "react-responsive";
-import { MOBILE_MAX_WIDTH_QUERY } from "../../constants";
+import { SBallotType } from "@/declarations/protocol/protocol.did";
 import { toNullable } from "@dfinity/utils";
 import { toAccount } from "@/frontend/utils/conversions/account";
 import InfiniteScroll from "react-infinite-scroll-component";
+import Spinner from "../Spinner";
 
 type BallotEntries = {
   ballots: SBallotType[];
@@ -18,86 +17,52 @@ type BallotEntries = {
   hasMore: boolean;
 };
 
-const PositionSkeleton = ({ count }: { count: number }) => (
-  <div className="w-full flex">
-    {/* Pool column skeleton */}
-    <div className="flex-shrink-0 flex flex-col w-[200px] sm:w-[700px] gap-y-2">
-      {Array(count).fill(null).map((_, index) => (
-        <div key={index} className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse">
-          <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-md" />
-          <div className="flex-1 h-4 bg-gray-300 dark:bg-gray-600 rounded" />
-        </div>
-      ))}
-    </div>
-    {/* Data columns skeleton */}
-    <div className="flex-1 overflow-x-auto">
-      <div className="min-w-[260px] flex flex-col gap-y-2">
-        {Array(count).fill(null).map((_, index) => (
-          <div key={index} className="grid grid-cols-3 gap-2 sm:gap-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse">
-            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded" />
-            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded" />
-            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded" />
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
 const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
-
-  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const [ballotEntries, setBallotEntries] = useState<BallotEntries>({ ballots: [], previous: undefined, hasMore: true });
   const [filterActive, setFilterActive] = useState(true);
-  const limit = isMobile ? 6n : 4n;
+  const limit = 10n;
+  const { refreshInfo } = useProtocolContext();
 
-  const { info, refreshInfo } = useProtocolContext();
+  const account = useMemo(() => toAccount(user), [user]);
 
-  const { call: getBallots } = protocolActor.unauthenticated.useQueryCall({
+  const { call: refreshBallots } = protocolActor.unauthenticated.useQueryCall({
     functionName: "get_ballots",
+    args: [{
+      account,
+      previous: toNullable(ballotEntries.previous),
+      limit,
+      filter_active: filterActive,
+      direction: { backward: null }
+    }],
     onError: (error) => {
       console.error("Error fetching ballots:", error);
     },
     onSuccess: (data) => {
       console.log("Fetched ballots:", data);
+      updateBallotEntries(data);
     }
   });
 
-  const fetchBallots = async (account: Account, entries: BallotEntries, filter_active: boolean) : Promise<BallotEntries> => {
-
-    const fetchedBallots = await getBallots([{
-      account,
-      previous: toNullable(entries.previous),
-      limit,
-      filter_active,
-      direction: { backward: null }
-    }]);
-
-    if (fetchedBallots && fetchedBallots.length > 0) {
-      const mergedBallots = [...entries.ballots, ...fetchedBallots];
+  const updateBallotEntries = (newBallots: SBallotType[]) => {
+    setBallotEntries((prevEntries) => {
+      const mergedBallots = [...prevEntries.ballots, ...newBallots];
       const uniqueBallots = Array.from(new Map(mergedBallots.map(v => [v.YES_NO.ballot_id, v])).values());
-      const previous = fetchedBallots[fetchedBallots.length - 1].YES_NO.ballot_id;
-      const hasMore = (fetchedBallots.length === Number(limit));
+      const previous = newBallots.length > 0 ? newBallots[newBallots.length - 1].YES_NO.ballot_id : prevEntries.previous;
+      const hasMore = newBallots.length === Number(limit);
       return { ballots: uniqueBallots, previous, hasMore };
-    } else {
-      return { ballots: entries.ballots, previous: entries.previous, hasMore: false };
-    }
+    });
   };
 
   useEffect(() => {
     refreshInfo();
-    fetchBallots(toAccount(user), ballotEntries, filterActive).then(setBallotEntries);
-  }, []);
-
-  const fetchMoreBallots = async () => {
-    const newEntries = await fetchBallots(toAccount(user), ballotEntries, filterActive);
-    setBallotEntries(newEntries);
-  };
+    refreshBallots();
+  }, [user]);
 
   const toggleFilterActive = useCallback((active: boolean) => {
+    setBallotEntries({ ballots: [], previous: undefined, hasMore: true });
     setFilterActive(active);
-    fetchBallots(toAccount(user), { ballots: [], previous: undefined, hasMore: true }, active).then(setBallotEntries);
+    refreshBallots();
   }, [user]);
   
   return (
@@ -135,9 +100,9 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
       ) : (
         <InfiniteScroll
           dataLength={ballotEntries.ballots.length}
-          next={fetchMoreBallots}
+          next={refreshBallots}
           hasMore={ballotEntries.hasMore}
-          loader={<PositionSkeleton count={1} />}
+          loader={<Spinner size={"25px"} />}
           style={{ height: "auto", overflow: "visible" }}
         >
           <div className="w-full flex">
@@ -171,7 +136,7 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
                 <ul className="flex flex-col gap-y-2">
                   {ballotEntries.ballots.map((ballot, index) => (
                     <li key={index}>
-                      <PositionRow ballot={ballot} now={info?.current_time} />
+                      <PositionRow ballot={ballot} />
                     </li>
                   ))}
                 </ul>

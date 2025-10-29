@@ -31,7 +31,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
 
   const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
   const [duration, setDuration] = useState<DurationUnit | undefined>(DurationUnit.MONTH);
-  const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.CDV);
+  const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.Consensus);
 
   const { data: voteBallots } = protocolActor.unauthenticated.useQueryCall({
     functionName: "get_vote_ballots",

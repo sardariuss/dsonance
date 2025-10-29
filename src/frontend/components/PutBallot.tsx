@@ -113,7 +113,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
         showSuccessToast("View locked successfully", "Lock position");
         setPutBallotLoading(false);
         // Ballot successfully put, navigate to the user's profile page
-        navigate(`/user/${user?.principal.toString()}?scrollToBottom=true`);
+        navigate(`/user/${user?.principal.toString()}`);
       });
     }).catch((error) => {
       console.error("Error during Lock position:", error);

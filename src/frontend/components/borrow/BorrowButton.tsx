@@ -180,7 +180,6 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
                         return;
                       }
                       let inputEquivalent = fromFixedPoint(maxAmount, ledger.tokenDecimals);
-                      console.log("Setting max amount: ", inputEquivalent.toString());
                       setInputValue(inputEquivalent.toString());
                       setAmount(maxAmount);
                     }}
