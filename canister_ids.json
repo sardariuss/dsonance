@@ -1,29 +1,29 @@
 {
   "backend": {
-    "ic": "hysvo-fqaaa-aaaap-anxgq-cai"
+    "ic": "durzr-kaaaa-aaaau-acuhq-cai"
   },
   "ckbtc_ledger": {
-    "ic": "hewp7-sqaaa-aaaap-anxeq-cai"
-  },
-  "twv_ledger": {
-    "ic": "a4zma-baaaa-aaaap-qqf6q-cai"
-  },
-  "xrc_stub": {
-    "ic": "av2h4-xiaaa-aaaap-qqf7a-cai"
-  },
-  "frontend": {
-    "ic": "hrr6s-tyaaa-aaaap-anxha-cai"
-  },
-  "faucet": {
-    "ic": "h7tt2-iiaaa-aaaap-anxga-cai"
-  },
-  "protocol": {
-    "ic": "hkucx-jaaaa-aaaap-anxfq-cai"
+    "ic": "bjmxz-ziaaa-aaaau-acuia-cai"
   },
   "ckusdt_ledger": {
-    "ic": "hnved-eyaaa-aaaap-anxfa-cai"
+    "ic": "bonrn-uqaaa-aaaau-acuiq-cai"
+  },
+  "faucet": {
+    "ic": "f7ypg-qqaaa-aaaau-acuqq-cai"
+  },
+  "frontend": {
+    "ic": "bap4f-paaaa-aaaau-acujq-cai"
   },
   "kong_backend": {
-    "ic": "ena4g-5yaaa-aaaap-an3ca-cai"
+    "ic": "bvini-oiaaa-aaaau-acuka-cai"
+  },
+  "protocol": {
+    "ic": "bsjl4-dqaaa-aaaau-acukq-cai"
+  },
+  "twv_ledger": {
+    "ic": "b3kaa-vyaaa-aaaau-acula-cai"
+  },
+  "xrc_stub": {
+    "ic": "b4lgu-yaaaa-aaaau-aculq-cai"
   }
 }
