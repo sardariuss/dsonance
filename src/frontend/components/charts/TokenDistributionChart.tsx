@@ -10,35 +10,35 @@ const TokenDistributionChart = () => {
     {
       id: 'mining',
       label: 'User Mining Rewards',
-      value: 6700000,
+      value: 67000000,
       percentage: 67,
       description: 'Distributed to users over time for opening positions and borrowing'
     },
     {
       id: 'community',
       label: 'Community Treasury',
-      value: 900000,
+      value: 9000000,
       percentage: 9,
       description: 'Reserved for grants, partnerships, and strategic growth'
     },
     {
       id: 'sns',
       label: 'Governance Bootstrap (SNS)',
-      value: 900000,
+      value: 9000000,
       percentage: 9,
       description: 'SNS decentralization swap for community participation'
     },
     {
       id: 'vesting',
       label: 'Core Builder Vesting',
-      value: 900000,
+      value: 9000000,
       percentage: 9,
       description: 'Vesting pool for core builder, unlocked via governance'
     },
     {
       id: 'seed',
       label: 'Core Builder Seed',
-      value: 600000,
+      value: 6000000,
       percentage: 6,
       description: 'Initial allocation to founding developer'
     }

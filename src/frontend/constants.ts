@@ -3,13 +3,12 @@ export const UNDEFINED_SCALAR = "—";
 // Layout constants
 export const MOBILE_MAX_WIDTH_QUERY = "(max-width: 640px)";
 // Documentation links
-export const DOCS_URL = "https://sardarius-corp.gitbook.io/dsonance";
+export const DOCS_URL = "https://sardarius-corp.gitbook.io/towerview/";
 export const DOCS_CDV_URL = DOCS_URL + "/glossary#consensus-decayed-value-cdv";
 export const DOCS_TVL_URL = DOCS_URL + "/glossary#total-value-locked-tvl";
-export const X_URL = "https://x.com/dsonance_xyz";
+export const X_URL = "https://x.com/towerview_xyz";
 export const GITHUB_URL = "https://github.com/sardariuss/dsonance";
-export const OPENCHAT_URL = "https://oc.app/community/b6oax-faaaa-aaaac-anaya-cai/";
-export const TELEGRAM_URL = "https://t.me/dsonance";
+export const DISCORD_URL = "https://discord.gg/JTbwu4h8Hz";
 // Borrow tab constants
 export const REPAY_SLIPPAGE_RATIO = 0.001; // 0.1% 
 // New vote constants

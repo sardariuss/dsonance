@@ -1,12 +1,15 @@
 name: Towerview
 
 description: >
-    Towerview combines prediction markets, arbitration, and DeFi lending into 
+    Towerview combines prediction markets and DeFi lending into 
     the first Real-Time Consensus Engine. Its innovative proof-of-foresight 
     mechanism incentivizes participants to act genuinely by validating opinions 
     that withstand time.
+    Towerview is offered for participation only by persons legally
+    allowed to participate in token sales in their jurisdiction.
+    By participating, you declare that you are eligible under local laws.
 
-logo: logo.png
+logo: tower_coin.png
 
 url: https://towerview.xyz
 
@@ -16,28 +19,38 @@ NnsProposal:
     summary: >
         Proposal to create an SNS for the project Towerview.
         The SNS will be initialized with the following parameters:
-        - Total TWV supply: 1_000_000_000
-        - 180_000_000 Public Sale, 120_000_000 Dev Neuron, 700_000_000 treasury
-        - ICP to raise min: 10_000 ICP
+        - Total TWV supply: 100_000_000
+        - 9_000_000 Public Sale, 6_000_000 Dev Neuron, 85_000_000 treasury
+        - ICP to raise min: 25_000 ICP
         - ICP to raise max: 100_000 ICP
-        - Min number of tokens per contributor: 1 ICP
+        - Min number of tokens per contributor: 10 ICP
         - Max number of tokens per contributor: 10_000 ICP
-        - Min number of participants: 20
+        - Min number of participants: 10
         - Neuron fund participation: False
 
         Learn more:
-        - https://www.towerview.xyz
-        - https://sardarius-corp.gitbook.io/dsonance
+        - https://towerview.xyz
+        - https://testnet.towerview.app
+        - https://sardarius-corp.gitbook.io/towerview
         - https://github.com/sardariuss/dsonance
 
 fallback_controller_principals:
-    - h23d5-ol2s3-ja723-sdma3-2kmwd-r4rmi-nj2vh-prmu3-ldekj-3vhgf-pae
+    - rcxgt-ht5me-4eprw-r6cnk-3pmif-3jp2g-3hod7-3a4ep-i6ylz-c55aq-yae
 
 dapp_canisters:
+    # Landing page
+    - tcloc-hyaaa-aaaap-any6a-cai # landing
+    # Dapp - will be deployed on mainnet
     - hkucx-jaaaa-aaaap-anxfq-cai # protocol
     - hysvo-fqaaa-aaaap-anxgq-cai # backend
-    - h7tt2-iiaaa-aaaap-anxga-cai # faucet
     - hrr6s-tyaaa-aaaap-anxha-cai # frontend
+    # Dapp - specific to testnet
+    - h7tt2-iiaaa-aaaap-anxga-cai # faucet
+    - av2h4-xiaaa-aaaap-qqf7a-cai # xrc_stub
+    - hewp7-sqaaa-aaaap-anxeq-cai # ckbtc_ledger
+    - a4zma-baaaa-aaaap-qqf6q-cai # twv_ledger
+    - hnved-eyaaa-aaaap-anxfa-cai # ckusdt_ledger
+    - ena4g-5yaaa-aaaap-an3ca-cai # kong_backend
 
 Token:
     name: Towerview
@@ -46,21 +59,21 @@ Token:
     logo: tower_coin.png
 
 Proposals:
-    rejection_fee: 1 token
+    rejection_fee: 10 tokens
     initial_voting_period: 4 days
     maximum_wait_for_quiet_deadline_extension: 1 day
 
 Neurons:
-    minimum_creation_stake: 1 token
+    minimum_creation_stake: 10 tokens
 
 Voting:
     minimum_dissolve_delay: 3 months
     MaximumVotingPowerBonuses:
         DissolveDelay:
-            duration: 2 years
+            duration: 4 years
             bonus: 100%
         Age:
-            duration: 12 months
+            duration: 2 years
             bonus: 25%
     RewardRate:
         initial: 5%
@@ -70,37 +83,37 @@ Voting:
 Distribution:
     Neurons:
         - principal: mxw3v-r4nzv-5sflf-yi5bz-mp726-ucqpl-jsny5-7xm7e-g4fsj-fji75-tae
-          stake: 150_000 tokens
+          stake: 1_500_000 tokens
           memo: 0
           dissolve_delay: 6 months
           vesting_period: 12 months
         - principal: e4mex-sii3l-bkcvt-5kkhf-ol44c-3r724-2ce7e-m4pqc-s5my6-kpdof-eqe
-          stake: 150_000 tokens
+          stake: 1_500_000 tokens
           memo: 1
           dissolve_delay: 6 months
           vesting_period: 12 months
         - principal: mxw3v-r4nzv-5sflf-yi5bz-mp726-ucqpl-jsny5-7xm7e-g4fsj-fji75-tae
-          stake: 150_000 tokens
+          stake: 1_500_000 tokens
           memo: 2
           dissolve_delay: 12 months
           vesting_period: 24 months
         - principal: e4mex-sii3l-bkcvt-5kkhf-ol44c-3r724-2ce7e-m4pqc-s5my6-kpdof-eqe
-          stake: 150_000 tokens
+          stake: 1_500_000 tokens
           memo: 3
           dissolve_delay: 12 months
           vesting_period: 24 months
 
     InitialBalances:
-        swap: 900_000 tokens
-        treasury: 8_500_000 tokens
+        swap: 9_000_000 tokens
+        treasury: 85_000_000 tokens
 
-    total: 10_000_000 tokens
+    total: 100_000_000 tokens
 
 Swap:
-    minimum_participants: 20
-    minimum_direct_participation_icp: 10_000 tokens
+    minimum_participants: 10
+    minimum_direct_participation_icp: 25_000 tokens
     maximum_direct_participation_icp: 100_000 tokens
-    minimum_participant_icp: 1 token
+    minimum_participant_icp: 10 tokens
     maximum_participant_icp: 10_000 tokens
     restricted_countries:
         - AF
@@ -124,6 +137,7 @@ Swap:
         - SO
         - SS
         - SY
+        - US
         - VE
         - YE
     VestingSchedule:

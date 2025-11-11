@@ -229,7 +229,7 @@ async function callCanisterMethod() {
         console.log("Scenario tick: ", tick);
 
         // Retrieve all votes
-        let votes = await backendSimActor.get_votes( { previous: [], limit: 100 } );
+        let votes = await backendSimActor.get_votes( { previous: [], limit: 100, direction: { backward: null } } );
         let putBallotPromises = [];
 
         // Put ballots loop

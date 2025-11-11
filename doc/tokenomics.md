@@ -40,15 +40,15 @@ To reinforce this deflationary shift, platform lending fees will be used to buy 
 
 <figure><img src=".gitbook/assets/image (8).png" alt=""><figcaption></figcaption></figure>
 
-The total supply of TWV will be **10 million tokens** distributed as follows:
+The total supply of TWV will be **100 million tokens** distributed as follows:
 
-* **600k TWV (6%) – Core Builder Seed**\
+* **6M TWV (6%) – Core Builder Seed**\
   Initial allocation to the founding developer, recognizing early work and providing runway to continue building.
-* **900k TWV (9%) – Governance Bootstrap (SNS Swap)**\
+* **9M TWV (9%) – Governance Bootstrap (SNS Swap)**\
   Allocated for the SNS decentralization swap, ensuring early community participation and a decentralized platform.
-* **900k TWV (9%) – Community Treasury**\
+* **9M TWV (9%) – Community Treasury**\
   Reserved for future initiatives such as ecosystem grants, partnerships, liquidity, and strategic growth, under the control of SNS governance.
-* **900k TWV (9%) – Core Builder Vesting Pool**\
+* **9M TWV (9%) – Core Builder Vesting Pool**\
   A vesting pool reserved for the core builder, gradually unlocked through SNS governance proposals to align long-term incentives.
-* **6.7 million TWV (67%) – User Mining Rewards**\
+* **67M TWV (67%) – User Mining Rewards**\
   Distributed to users over time as incentives for participation (for opening positions and borrowing), following a halving-based emission model to sustain engagement and growth.

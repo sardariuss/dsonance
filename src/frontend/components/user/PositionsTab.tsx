@@ -59,11 +59,17 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
     refreshBallots();
   }, [user]);
 
+  // Refetch when filter changes
+  useEffect(() => {
+    if (ballotEntries.ballots.length === 0 && ballotEntries.previous === undefined) {
+      refreshBallots();
+    }
+  }, [filterActive]);
+
   const toggleFilterActive = useCallback((active: boolean) => {
     setBallotEntries({ ballots: [], previous: undefined, hasMore: true });
     setFilterActive(active);
-    refreshBallots();
-  }, [user]);
+  }, []);
   
   return (
     <div className="flex flex-col w-full bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 border border-slate-300 dark:border-slate-700 space-y-4">

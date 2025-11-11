@@ -1,12 +1,11 @@
 import { useMediaQuery } from 'react-responsive';
 import icLogo from '../assets/ic-logo.svg';
-import { DOCS_URL, MOBILE_MAX_WIDTH_QUERY, OPENCHAT_URL, GITHUB_URL, X_URL, TELEGRAM_URL } from '../constants';
+import { DOCS_URL, MOBILE_MAX_WIDTH_QUERY, GITHUB_URL, X_URL, DISCORD_URL } from '../constants';
 import XIcon from './icons/XIcon';
 import { Link } from 'react-router-dom';
 import GitbookIcon from './icons/GitbookIcon';
 import GithubIcon from './icons/GithubIcon';
-import OpenChatIcon from './icons/OpenChatIcon';
-import TelegramIcon from './icons/TelegramIcon';
+import DiscordIcon from './icons/DiscordIcon';
 
 const DesktopFooter: React.FC = () => {
 
@@ -31,11 +30,8 @@ const DesktopFooter: React.FC = () => {
         <Link to={X_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
           <XIcon/>
         </Link>
-        <Link to={OPENCHAT_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
-          <OpenChatIcon/>
-        </Link>
-        <Link to={TELEGRAM_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
-          <TelegramIcon/>
+        <Link to={DISCORD_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
+          <DiscordIcon/>
         </Link>
       </div>
     </footer>
@@ -59,11 +55,8 @@ const MobileFooter: React.FC = () => {
         <Link to={X_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
           <XIcon/>
         </Link>
-        <Link to={OPENCHAT_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
-          <OpenChatIcon/>
-        </Link>
-        <Link to={TELEGRAM_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
-          <TelegramIcon/>
+        <Link to={DISCORD_URL} className="hover:cursor-pointer" target="_blank" rel="noopener">
+          <DiscordIcon/>
         </Link>
       </div>
     </footer>
