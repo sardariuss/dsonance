@@ -14,11 +14,11 @@ coverY: 0
 **Q5 2025**
 
 * **Official Platform Launch**: Launch on mainnet.
-* **TWV Buyback & Burn.**
+* **Accountable pool creation:** burn TWV to create it, earn TWV if it gains traction.
+* **TWV Buyback & Burn:** redistribute platform fees to TWV holders.
 * **Expand Wallet Support** with additional wallet providers.
 
 **Later**
 
 * **Multiple Choice and Range Positions** to complete current binary positions.
-* **Pool opening bot**: automatic scrapping of web that open statements to participate in.
-* **AI integration**: to improving statements wording, avoiding duplicates, getting trends, etc.
+* **Towerview API:** for providing services and AIs with real-time consensus.
