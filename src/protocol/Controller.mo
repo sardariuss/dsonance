@@ -407,6 +407,7 @@ module {
                 args = { args with ballot_id; tx_id; supply_index; timestamp; from };
             });
 
+            // TODO: critical: need to process unlocked ids
             ignore lock_scheduler.try_unlock(timestamp);
 
             lock_scheduler.add(

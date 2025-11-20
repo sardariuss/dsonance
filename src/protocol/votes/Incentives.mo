@@ -63,4 +63,24 @@ module {
         dissent / amount;
     };
 
+    public func compute_amount({
+        target_dissent: Float;
+        parameters: ForesightParameters;
+        choice: YesNoChoice;
+        total_yes: Float;
+        total_no: Float;
+        initial_addend: Float;
+    }) : Float {
+        
+        let { same; opposit; } = switch(choice){
+            case(#YES) { { same = total_yes; opposit = total_no; }; };
+            case(#NO) { { same = total_no; opposit = total_yes; }; };
+        };
+
+        let steepness = parameters.dissent_steepness;
+        let total = same + opposit;
+
+        (opposit + initial_addend) / Float.pow(target_dissent, 1.0 / steepness) - total;
+    };
+
 }
