@@ -275,17 +275,6 @@ module {
     public type YesNoBallot = Ballot<YesNoChoice>;
     public type YesNoVote = Vote<YesNoAggregate, YesNoChoice>;
 
-    public type PutLimitOrderArgs = {
-        id: UUID;
-        vote_id: UUID;
-        choice_type: ChoiceType;
-        from_subaccount: ?Blob;
-        amount: Nat;
-        limit_dissent: Float;
-    };
-
-    public type PutLimitOrderResult = Result<PutBallotSuccess, Text>;
-
     // RESULT/ERROR TYPES
 
     public type PutBallotSuccess = {

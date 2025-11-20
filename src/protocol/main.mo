@@ -45,11 +45,6 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         #ok;
     };
 
-    // TODO: implement put_limit_order and uncomment this method
-    public shared({caller}) func put_limit_order(args: Types.PutLimitOrderArgs) : async Types.PutLimitOrderResult {
-        //await* getFacade().put_limit_order({ args with caller; });
-    };
-
     // Create a new vote
     public shared({caller}) func new_vote(args: Types.NewVoteArgs) : async Types.SNewVoteResult {
         await* getFacade().new_vote({ args with origin = caller; });
