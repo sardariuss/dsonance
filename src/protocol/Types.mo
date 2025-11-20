@@ -39,6 +39,9 @@ module {
     public type Vote<A, B>               = Types.Current.Vote<A, B>;
     public type LockInfo                 = Types.Current.LockInfo;
     public type Ballot<B>                = Types.Current.Ballot<B>;
+    public type LimitOrder<B>            = Types.Current.LimitOrder<B>;
+    public type LimitOrderRegister<B>    = Types.Current.LimitOrderRegister<B>;
+    public type LimitOrderBTreeKey       = Types.Current.LimitOrderBTreeKey;
     public type Duration                 = Types.Current.Duration;
     public type State                    = Types.Current.State;
     public type ClockParameters          = Types.Current.ClockParameters;
@@ -274,17 +277,6 @@ module {
 
     public type YesNoBallot = Ballot<YesNoChoice>;
     public type YesNoVote = Vote<YesNoAggregate, YesNoChoice>;
-
-    public type PutLimitOrderArgs = {
-        id: UUID;
-        vote_id: UUID;
-        choice_type: ChoiceType;
-        from_subaccount: ?Blob;
-        amount: Nat;
-        limit_dissent: Float;
-    };
-
-    public type PutLimitOrderResult = Result<PutBallotSuccess, Text>;
 
     // RESULT/ERROR TYPES
 

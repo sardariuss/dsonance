@@ -7,20 +7,32 @@ import IterUtils          "../utils/Iter";
 
 import Set                "mo:map/Set";
 import Map                "mo:map/Map";
+import BTree              "mo:stableheapbtreemap/BTree";
 
 import Debug              "mo:base/Debug";
 import Iter               "mo:base/Iter";
+import Order              "mo:base/Order";
+import Float              "mo:base/Float";
+import Int                "mo:base/Int";
 
 module {
+
+    let BTREE_ORDER = 8;
 
     type Account = Types.Account;
     type UUID = Types.UUID;
     type Vote<A, B> = Types.Vote<A, B>;
+    type LimitOrder<B> = Types.LimitOrder<B>;
+    type LimitOrderRegister<B> = Types.LimitOrderRegister<B>;
+    type LimitOrderBTreeKey = Types.LimitOrderBTreeKey;
     type Ballot<B> = Types.Ballot<B>;
     type LockInfo = Types.LockInfo;
     type Foresight = Types.Foresight;
 
     type Iter<T> = Map.Iter<T>;
+    type BTree<K, V> = BTree.BTree<K, V>;
+    type Set<T> = Set.Set<T>;
+    type Order = Order.Order;
 
     public type PutBallotArgs = {
         ballot_id: UUID;
@@ -31,6 +43,17 @@ module {
         from: Account;
     };
 
+    public type PutLimitOrderArgs<B> = {
+        order_id: UUID;
+        account: Account;
+        amount: Nat;
+        choice: B;
+        limit_dissent: Float;
+        tx_id: Nat;
+        supply_index: Float;
+        timestamp: Nat;
+    };
+
     type PutBallotSuccess<B> = {
         new: Ballot<B>;
         previous: [Ballot<B>];
@@ -38,6 +61,7 @@ module {
    
     public class VoteController<A, B>({
         empty_aggregate: A;
+        choice_hash: Map.HashUtils<B>;
         ballot_aggregator: BallotAggregator.BallotAggregator<A, B>;
         decay_model: Decay.DecayModel;
         lock_info_updater: LockInfoUpdater.LockInfoUpdater;
@@ -59,6 +83,10 @@ module {
                 origin;
                 aggregate = RollingTimeline.make1h4y(date, empty_aggregate);
                 ballots = Set.new<UUID>();
+                limit_orders = {
+                    register = Map.new<UUID, LimitOrder<B>>();
+                    descending_orders_by_choice = Map.new<B, BTree<LimitOrderBTreeKey, UUID>>();
+                };
                 author;
                 var tvl = 0;
             };
@@ -70,6 +98,7 @@ module {
             let { ballot_id; amount; timestamp; } = args;
             let time = timestamp;
 
+            // TODO: it is too late to check for existing ballot here, the transfer has already happened
             if (Set.has(vote.ballots, Set.thash, ballot_id)) {
                 Debug.trap("A ballot with the ID " # args.ballot_id # " already exists");
             };
@@ -99,6 +128,50 @@ module {
             vote.tvl += amount;
 
             { new; previous = Iter.toArray(vote_ballots(vote)); };
+        };
+
+        public func put_limit_order(vote: Vote<A, B>, args: PutLimitOrderArgs<B>) {
+
+            // TODO: should we check for existing order_id?
+
+            let { order_id; account; amount; choice; limit_dissent; supply_index; tx_id; timestamp; } = args;
+            let { register; descending_orders_by_choice } = vote.limit_orders;
+
+            // Store the limit order in the register
+            Map.set(register, Map.thash, order_id, {
+                order_id;
+                account;
+                choice;
+                limit_dissent;
+                var raw_amount = amount;
+                supply_index;
+                tx_id;
+                timestamp;
+            });
+
+            // Get or create the descending orders btree for that choice
+            let descending_orders = switch(Map.get(descending_orders_by_choice, choice_hash, choice)){
+                case(null) {
+                    let btree = BTree.init<LimitOrderBTreeKey, UUID>(?BTREE_ORDER);
+                    Map.set(descending_orders_by_choice, choice_hash, choice, btree);
+                    btree;
+                };
+                case(?(btree)) { btree; };
+            };
+
+            // Insert the order in the descending orders btree
+            let key = { limit_dissent; timestamp };
+            ignore BTree.insert(descending_orders, func(a: LimitOrderBTreeKey, b: LimitOrderBTreeKey) : Order {
+                // First compare by limit_dissent descending
+                switch(Float.compare(b.limit_dissent, a.limit_dissent)){
+                    case(#less) { #less; };
+                    case(#greater) { #greater; };
+                    case(#equal) {
+                        // Then compare by timestamp ascending
+                        Int.compare(a.timestamp, b.timestamp);
+                    };
+                };
+            }, key, order_id);
         };
 
         public func unlock_ballot(vote: Vote<A, B>, ballot_id: UUID) {

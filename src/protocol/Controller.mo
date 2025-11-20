@@ -28,6 +28,15 @@ import Principal               "mo:base/Principal";
 
 module {
 
+    type PutLimitOrderArgs = {
+        order_id: Types.UUID;
+        vote_id: Types.UUID;
+        account: Account;
+        amount: Nat;
+        choice: Types.ChoiceType;
+        limit_dissent: Float;
+    };
+
     type Time = Int;
     type VoteRegister = Types.VoteRegister;
     type VoteType = Types.VoteType;
@@ -210,6 +219,52 @@ module {
                 tx_id;
                 supply_index;
             });
+        };
+
+        public func put_limit_order(args: PutLimitOrderArgs) : async Result<(), Text> {
+
+            let { order_id; vote_id; account; amount; limit_dissent; } = args;
+
+            if (Principal.isAnonymous(account.owner)) {
+                return #err("Anonymous caller cannot put a ballot");
+            };
+
+            let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
+                case(null) return #err("Vote not found: " # vote_id);
+                case(?v) v;
+            };
+
+            if (limit_dissent < 0.0 or limit_dissent > 1.0) {
+                return #err("Limit dissent must be between 0.0 and 1.0");
+            };
+
+            if (amount < parameters.minimum_ballot_amount){
+                return #err("Insufficient amount: " # debug_show(amount) # " (minimum: " # debug_show(parameters.minimum_ballot_amount) # ")");
+            };
+
+            // Capture timestamp before the transfer for the indexer
+            let timestamp_before_transfer = clock.get_time();
+
+            let transfer = await* supply_registry.add_position({
+                id = order_id;
+                account = account;
+                supplied = amount;
+            }, timestamp_before_transfer);
+
+            let { tx_id; supply_index; } = switch(transfer){
+                case(#err(err)) { return #err(err); };
+                case(#ok(ok)) { ok; };
+            };
+
+            // Recapture timestamp after the async operation for the ballot
+            let timestamp = clock.get_time();
+
+            vote_type_controller.put_limit_order({
+                vote_type;
+                args = { args with tx_id; supply_index; timestamp; };
+            });
+
+            #ok;
         };
 
         public func run_borrow_operation(args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {

@@ -42,6 +42,14 @@ module {
             };
         };
 
+        public func put_limit_order({ vote_type: VoteType; args: VoteController.PutLimitOrderArgs<ChoiceType>; }) : () {
+            switch(vote_type, args.choice){
+                case(#YES_NO(vote), #YES_NO(c)) { 
+                    yes_no_controller.put_limit_order(vote, { args with choice = c; });
+                };
+            };
+        };
+
         public func unlock_ballot({ vote_type: VoteType; ballot_id: UUID; }) {
             switch(vote_type){
                 case(#YES_NO(vote)){

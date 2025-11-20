@@ -527,6 +527,27 @@ module {
         #YES;
         #NO;
     };
+
+    public type LimitOrder<B> = {
+        order_id: UUID;
+        account: Account;
+        choice: B;
+        limit_dissent: Float;
+        var raw_amount: Nat;
+        supply_index: Float;
+        tx_id: Nat;
+        timestamp: Nat;
+    };
+
+    public type LimitOrderBTreeKey = {
+        limit_dissent: Float;
+        timestamp: Nat;
+    };
+
+    public type LimitOrderRegister<B> = {
+        register: Map<UUID, LimitOrder<B>>;
+        descending_orders_by_choice: Map<B, BTree<LimitOrderBTreeKey, UUID>>;
+    };
     
     public type Vote<A, B> = {
         vote_id: UUID;
@@ -535,6 +556,7 @@ module {
         origin: Principal;
         aggregate: RollingTimeline<A>;
         ballots: Set<UUID>;
+        limit_orders: LimitOrderRegister<B>;
         author: Account;
         var tvl: Int;
     };
