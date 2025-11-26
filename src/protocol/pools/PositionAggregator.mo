@@ -5,9 +5,9 @@ module {
     type UpdateAggregate<A, B>      = Types.UpdateAggregate<A, B>;
     type ComputeDissent<A, B>       = Types.ComputeDissent<A, B>;
     type ComputeConsent<A, B>       = Types.ComputeConsent<A, B>;
-    type BallotAggregatorOutcome<A> = Types.BallotAggregatorOutcome<A>;
+    type PositionAggregatorOutcome<A> = Types.PositionAggregatorOutcome<A>;
    
-    public class BallotAggregator<A, B>({
+    public class PositionAggregator<A, B>({
         update_aggregate: UpdateAggregate<A, B>;
         compute_dissent: ComputeDissent<A, B>;
         compute_consent: ComputeConsent<A, B>;
@@ -18,7 +18,7 @@ module {
             choice: B;
             amount: Nat;
             time: Nat;
-        }) : BallotAggregatorOutcome<A> {
+        }) : PositionAggregatorOutcome<A> {
 
             // Compute the dissent before updating the aggregate
             let dissent = compute_dissent({ aggregate; choice; amount; time; });
@@ -31,7 +31,7 @@ module {
 
             {         
                 aggregate = { update };
-                ballot = { dissent; consent };
+                position = { dissent; consent };
             };
         };
 

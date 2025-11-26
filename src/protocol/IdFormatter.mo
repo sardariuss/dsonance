@@ -1,14 +1,14 @@
 module {
     
     public type InputId = {
-        #VoteId: Text;
-        #BallotId: Text;
+        #Pool: Text;
+        #Position: Text;
     };
 
     public func format(input_id: InputId) : Text {
         switch(input_id) {
-            case(#VoteId(id)) { "vote-" # id };
-            case(#BallotId(id)) { "ballot-" # id };
+            case(#Pool(id)) { "pool-" # id };
+            case(#Position(id)) { "position-" # id };
         }
     };
 };

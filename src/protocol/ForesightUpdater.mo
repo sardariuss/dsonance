@@ -13,7 +13,7 @@ module {
 
     type UUID = Types.UUID;
     type Foresight = Types.Foresight;
-    type YesNoVote = Types.YesNoVote;
+    type YesNoPool = Types.YesNoPool;
 
     type Iter<T> = Map.Iter<T>;
 

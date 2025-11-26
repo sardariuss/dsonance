@@ -18,15 +18,15 @@ module {
     };
 
     // https://www.desmos.com/calculator/n4yits420e
-    // The duration scaler function is responsible for computing the lock duration of ballots
-    // based on the "hotness" of the vote (how much USDT is locked around the ballot's timestamp).
+    // The duration scaler function is responsible for computing the lock duration of positions
+    // based on the "hotness" of the pool (how much USDT is locked around the position's timestamp).
     // It uses a power scaling function to prevent absurd durations (e.g. 10 seconds or 100 years).
     // The function is defined as:
     //      duration = a * hotness ^ log(b)
     // where:
     //      a is the multiplier parameter (controls baseline duration)
     //      b is the logarithmic base parameter (controls scaling rate)
-    //      hotness is the amount of USDT locked around the ballot's timestamp
+    //      hotness is the amount of USDT locked around the position's timestamp
     //
     //                                                   ································
     //  duration                         ················

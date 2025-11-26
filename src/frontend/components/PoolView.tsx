@@ -1,59 +1,59 @@
-import { SYesNoVote } from "@/declarations/backend/backend.did";
-import PutBallot from "./PutBallot";
-import VoteBallots from "./VoteBallots";
+import { SYesNoPool } from "@/declarations/backend/backend.did";
+import PutPosition from "./PutPosition";
+import PoolPositions from "./PoolPositions";
 import { useEffect, useMemo, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import CdvChart from "./charts/CdvChart";
-import { BallotInfo } from "./types";
-import { add_ballot, compute_vote_details } from "../utils/conversions/votedetails";
+import { PositionInfo } from "./types";
+import { add_position, compute_pool_details } from "../utils/conversions/pooldetails";
 import { useProtocolContext } from "./context/ProtocolContext";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
-import VoteFigures, { VoteFiguresSkeleton } from "./VoteFigures";
+import PoolFigures, { PoolFiguresSkeleton } from "./PoolFigures";
 import { interpolate_now, map_timeline } from "../utils/timeline";
 import ConsensusChart from "./charts/ConsensusChart";
 import { protocolActor } from "./actors/ProtocolActor";
 import LockChart from "./charts/LockChart";
-import { useBallotPreview } from "./hooks/useBallotPreview";
+import { usePositionPreview } from "./hooks/usePositionPreview";
 import { DurationUnit } from "../utils/conversions/durationUnit";
 import IntervalPicker from "./charts/IntervalPicker";
 import ChartToggle, { ChartType } from "./charts/ChartToggle";
 import { createThumbnailUrl } from "../utils/thumbnail";
-import VoteSlider from "./VoteSlider";
+import PoolSlider from "./PoolSlider";
 
-interface VoteViewProps {
-  vote: SYesNoVote;
+interface PoolViewProps {
+  pool: SYesNoPool;
 }
 
-const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
+const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  const [ballot, setBallot] = useState<BallotInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
+  const [position, setPosition] = useState<PositionInfo>({ choice: EYesNoChoice.Yes, amount: 0n });
   const [duration, setDuration] = useState<DurationUnit | undefined>(DurationUnit.MONTH);
   const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.Consensus);
 
-  const { data: voteBallots } = protocolActor.unauthenticated.useQueryCall({
-    functionName: "get_vote_ballots",
-    args: [vote.vote_id], 
+  const { data: poolPositions } = protocolActor.unauthenticated.useQueryCall({
+    functionName: "get_pool_positions",
+    args: [pool.pool_id], 
   });
 
   const { computeDecay, info } = useProtocolContext();
   
-  const ballotPreview = useBallotPreview(vote.vote_id, ballot, true);
-  const ballotPreviewWithoutImpact = useBallotPreview(vote.vote_id, ballot, false);
+  const positionPreview = usePositionPreview(pool.pool_id, position, true);
+  const positionPreviewWithoutImpact = usePositionPreview(pool.pool_id, position, false);
 
   // TODO: remove redundant code
-  const { voteDetails, liveDetails } = useMemo(() => {
+  const { poolDetails, liveDetails } = useMemo(() => {
     if (computeDecay === undefined || info === undefined) {
-      return { voteDetails: undefined, liveDetails: undefined };
+      return { poolDetails: undefined, liveDetails: undefined };
     }
   
-    const voteDetails = compute_vote_details(vote, computeDecay(info.current_time));
-    const liveDetails = ballot ? add_ballot(voteDetails, ballot) : voteDetails;
+    const poolDetails = compute_pool_details(pool, computeDecay(info.current_time));
+    const liveDetails = position ? add_position(poolDetails, position) : poolDetails;
   
-    return { voteDetails, liveDetails };
-  }, [vote, computeDecay, info, ballot]);
+    return { poolDetails, liveDetails };
+  }, [pool, computeDecay, info, position]);
   
   const consensusTimeline = useMemo(() => {
     if (liveDetails === undefined || info === undefined) {
@@ -61,7 +61,7 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
     }
   
     let timeline = interpolate_now(
-      map_timeline(vote.aggregate, (aggregate) => 
+      map_timeline(pool.aggregate, (aggregate) => 
         Number(aggregate.total_yes) / Number(aggregate.total_yes + aggregate.total_no)
       ),
       info.current_time
@@ -80,38 +80,38 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
     return timeline;
   }, [liveDetails]);
     
-  const resetVote = () => {
-    setBallot({ choice: EYesNoChoice.Yes, amount: 0n });
+  const resetPool = () => {
+    setPosition({ choice: EYesNoChoice.Yes, amount: 0n });
   }
 
   useEffect(() => {
-    resetVote();
-  }, [vote]);
+    resetPool();
+  }, [pool]);
 
-  const thumbnail = useMemo(() => createThumbnailUrl(vote.info.thumbnail), [vote]);
+  const thumbnail = useMemo(() => createThumbnailUrl(pool.info.thumbnail), [pool]);
 
   return (
     <div className={`flex flex-col items-center ${isMobile ? "px-3 py-1 w-full" : "py-3 w-full"}`}>
       
       {/* Mobile Layout: Keep original structure */}
       <div className="block md:hidden w-full">
-        {/* Top Row: Image and Vote Text */}
+        {/* Top Row: Image and Pool Text */}
         <div className="w-full flex flex-row items-center gap-4 mb-2">
           {/* Placeholder Image */}
           <img 
             className="w-16 h-16 bg-contain bg-no-repeat bg-center rounded-md self-start"
             src={thumbnail}
           />
-          {/* Vote Text */}
+          {/* Pool Text */}
           <div className="flex-grow text-gray-800 dark:text-gray-200 text-lg font-bold">
-            {vote.info.text}
+            {pool.info.text}
           </div>
         </div>
 
-        {/* Vote Details */}
-        {voteDetails !== undefined ? 
-          <VoteFigures timestamp={vote.date} voteDetails={voteDetails} ballot={ballot} tvl={vote.tvl} /> :
-          <VoteFiguresSkeleton />
+        {/* Pool Details */}
+        {poolDetails !== undefined ? 
+          <PoolFigures timestamp={pool.date} poolDetails={poolDetails} position={position} tvl={pool.tvl} /> :
+          <PoolFiguresSkeleton />
         }
       </div>
 
@@ -119,39 +119,39 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
       <div className="hidden md:flex w-full gap-8">
         {/* Main Content Panel */}
         <div className="flex-1 flex flex-col items-center">
-          {/* Top Row: Image and Vote Text */}
+          {/* Top Row: Image and Pool Text */}
           <div className="w-full flex flex-row items-center gap-4 mb-4">
             {/* Placeholder Image */}
             <img 
               className="w-16 h-16 bg-contain bg-no-repeat bg-center rounded-md self-start"
               src={thumbnail}
             />
-            {/* Vote Text */}
+            {/* Pool Text */}
             <div className="flex-grow text-gray-800 dark:text-gray-200 text-lg max-w-none font-bold">
-              {vote.info.text}
+              {pool.info.text}
             </div>
           </div>
 
-          {/* Vote Details */}
-          {voteDetails !== undefined ? 
-            <VoteFigures timestamp={vote.date} voteDetails={voteDetails} ballot={ballot} tvl={vote.tvl} /> :
-            <VoteFiguresSkeleton />
+          {/* Pool Details */}
+          {poolDetails !== undefined ? 
+            <PoolFigures timestamp={pool.date} poolDetails={poolDetails} position={position} tvl={pool.tvl} /> :
+            <PoolFiguresSkeleton />
           }
 
-          {/* Charts and Ballots for Desktop */}
-          {voteDetails !== undefined && vote.vote_id !== undefined && (
+          {/* Charts and Positions for Desktop */}
+          {poolDetails !== undefined && pool.pool_id !== undefined && (
             <div className="flex flex-col space-y-4 w-full">
-              {voteBallots && voteBallots.length > 0 &&
+              {poolPositions && poolPositions.length > 0 &&
                 <div className="w-full flex flex-col items-center justify-between space-y-2">
                   <div className="w-full h-[250px]">
                     {selectedChart === ChartType.CDV ?
-                      (voteDetails.total > 0 && <CdvChart vote={vote} ballot={ballot} durationWindow={duration} />)
+                      (poolDetails.total > 0 && <CdvChart pool={pool} position={position} durationWindow={duration} />)
                       : selectedChart === ChartType.Consensus ?
                       (consensusTimeline !== undefined && liveDetails?.cursor !== undefined &&
                         <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} durationWindow={duration}/> 
                       ) 
                       : selectedChart === ChartType.TVL ?
-                      (voteBallots !== undefined && <LockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} durationWindow={duration}/>)
+                      (poolPositions !== undefined && <LockChart positions={poolPositions.map(position => position.YES_NO)} positionPreview={positionPreview} durationWindow={duration}/>)
                       : <></>
                     }
                   </div>
@@ -161,47 +161,47 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
                   </div>
                 </div>
               }
-              <VoteSlider
-                id={vote.vote_id}
-                ballot={ballot}
-                setBallot={setBallot}
-                voteDetails={voteDetails}
+              <PoolSlider
+                id={pool.pool_id}
+                position={position}
+                setPosition={setPosition}
+                poolDetails={poolDetails}
               />
-              <VoteBallots voteId={vote.vote_id} />
+              <PoolPositions poolId={pool.pool_id} />
             </div>
           )}
         </div>
 
-        {/* PutBallot Sidebar */}
+        {/* PutPosition Sidebar */}
         <div className="w-96 flex-shrink-0 sticky top-24 self-start">
-          {voteDetails !== undefined && vote.vote_id !== undefined && (
-            <PutBallot
-              id={vote.vote_id}
-              ballot={ballot}
-              setBallot={setBallot}
-              ballotPreview={ballotPreview?.new.YES_NO}
-              ballotPreviewWithoutImpact={ballotPreviewWithoutImpact?.new.YES_NO}
-              vote={vote}
+          {poolDetails !== undefined && pool.pool_id !== undefined && (
+            <PutPosition
+              id={pool.pool_id}
+              position={position}
+              setPosition={setPosition}
+              positionPreview={positionPreview?.new.YES_NO}
+              positionPreviewWithoutImpact={positionPreviewWithoutImpact?.new.YES_NO}
+              pool={pool}
             />
           )}
         </div>
       </div>
 
-      {/* Mobile Layout: Charts and Ballots */}
+      {/* Mobile Layout: Charts and Positions */}
       <div className="block md:hidden w-full">
-        {voteDetails !== undefined && vote.vote_id !== undefined ? 
+        {poolDetails !== undefined && pool.pool_id !== undefined ? 
           <div className="flex flex-col space-y-4 items-center w-full">
-            {voteBallots && voteBallots.length > 0 &&
+            {poolPositions && poolPositions.length > 0 &&
               <div className="w-full flex flex-col items-center justify-between space-y-2">
                 <div className="w-full h-[200px]">
                   {selectedChart === ChartType.CDV ?
-                    (voteDetails.total > 0 && <CdvChart vote={vote} ballot={ballot} durationWindow={duration} />)
+                    (poolDetails.total > 0 && <CdvChart pool={pool} position={position} durationWindow={duration} />)
                     : selectedChart === ChartType.Consensus ?
                     (consensusTimeline !== undefined && liveDetails?.cursor !== undefined &&
                       <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} durationWindow={duration}/> 
                     ) 
                     : selectedChart === ChartType.TVL ?
-                    (voteBallots !== undefined && <LockChart ballots={voteBallots.map(ballot => ballot.YES_NO)} ballotPreview={ballotPreview} durationWindow={duration}/>)
+                    (poolPositions !== undefined && <LockChart positions={poolPositions.map(position => position.YES_NO)} positionPreview={positionPreview} durationWindow={duration}/>)
                     : <></>
                   }
                 </div>
@@ -211,21 +211,21 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
                 </div>
               </div>
             }
-            <VoteSlider
-              id={vote.vote_id}
-              ballot={ballot}
-              setBallot={setBallot}
-              voteDetails={voteDetails}
+            <PoolSlider
+              id={pool.pool_id}
+              position={position}
+              setPosition={setPosition}
+              poolDetails={poolDetails}
             />
-            <PutBallot
-              id={vote.vote_id}
-              ballot={ballot}
-              setBallot={setBallot}
-              ballotPreview={ballotPreview?.new.YES_NO}
-              ballotPreviewWithoutImpact={ballotPreviewWithoutImpact?.new.YES_NO}
-              vote={vote}
+            <PutPosition
+              id={pool.pool_id}
+              position={position}
+              setPosition={setPosition}
+              positionPreview={positionPreview?.new.YES_NO}
+              positionPreviewWithoutImpact={positionPreviewWithoutImpact?.new.YES_NO}
+              pool={pool}
             />
-            <VoteBallots voteId={vote.vote_id} />
+            <PoolPositions poolId={pool.pool_id} />
           </div> : 
         <div className="flex flex-col space-y-2 items-center w-full">
           <div className="w-full h-64 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"/>
@@ -238,9 +238,9 @@ const VoteView: React.FC<VoteViewProps> = ({ vote }) => {
   
 };
 
-export default VoteView;
+export default PoolView;
 
-export const VoteViewSkeleton: React.FC = () => {
+export const PoolViewSkeleton: React.FC = () => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
@@ -249,30 +249,30 @@ export const VoteViewSkeleton: React.FC = () => {
       
       {/* Mobile Layout: Keep original structure */}
       <div className="block md:hidden w-full">
-        {/* Top Row: Image and Vote Text */}
+        {/* Top Row: Image and Pool Text */}
         <div className="w-full flex flex-row items-center gap-4 mb-4">
           <div className="w-20 h-20 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
           <div className="flex-grow h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
         </div>
 
-        {/* Vote Details Skeleton */}
-        <VoteFiguresSkeleton />
+        {/* Pool Details Skeleton */}
+        <PoolFiguresSkeleton />
       </div>
 
       {/* Desktop Layout: Main content + Sidebar */}
       <div className="hidden md:flex w-full gap-8">
         {/* Main Content Panel */}
         <div className="flex-1 flex flex-col space-y-4 items-center">
-          {/* Top Row: Image and Vote Text */}
+          {/* Top Row: Image and Pool Text */}
           <div className="w-full flex flex-row items-center gap-4 mb-4">
             <div className="w-20 h-20 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
             <div className="flex-grow h-6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
           </div>
 
-          {/* Vote Details Skeleton */}
-          <VoteFiguresSkeleton />
+          {/* Pool Details Skeleton */}
+          <PoolFiguresSkeleton />
 
-          {/* Charts and Ballots Skeleton for Desktop */}
+          {/* Charts and Positions Skeleton for Desktop */}
           <div className="flex flex-col space-y-4 w-full">
             <div className="w-full flex flex-col items-center justify-between space-y-2">
               <div className="w-full h-[400px] bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
@@ -285,13 +285,13 @@ export const VoteViewSkeleton: React.FC = () => {
           </div>
         </div>
 
-        {/* PutBallot Sidebar Skeleton */}
+        {/* PutPosition Sidebar Skeleton */}
         <div className="w-96 flex-shrink-0 sticky top-24 self-start">
           <div className="w-full h-64 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
         </div>
       </div>
 
-      {/* Mobile Layout: Charts and Ballots */}
+      {/* Mobile Layout: Charts and Positions */}
       <div className="block md:hidden w-full">
         <div className="flex flex-col space-y-2 items-center w-full">
           <div className="w-full h-[200px] bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />

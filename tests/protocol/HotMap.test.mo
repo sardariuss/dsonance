@@ -25,7 +25,7 @@ suite("HotMap", func(){
             
         var _added: ?A = null;
 
-        public func add_hot(to_add: A){ // @todo: find a way to generalize this with BallotBuilder
+        public func add_hot(to_add: A){ // @todo: find a way to generalize this with PositionBuilder
             switch(_added){
                 case(null) { _added := ?to_add; };
                 case(_) { Debug.trap("Element has already been added")};

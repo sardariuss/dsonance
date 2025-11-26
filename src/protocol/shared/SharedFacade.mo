@@ -10,28 +10,28 @@ module {
 
     type Time = Int;
     type UUID = Types.UUID;
-    type VoteType = Types.VoteType;
-    type BallotType = Types.BallotType;
-    type PutBallotResult = Types.PutBallotResult;
-    type NewVoteArgs = Types.NewVoteArgs;
-    type PutBallotArgs = Types.PutBallotArgs;
-    type PutBallotPreview = Types.PutBallotPreview;
-    type GetBallotArgs = Types.GetBallotArgs;
+    type PoolType = Types.PoolType;
+    type PositionType = Types.PositionType;
+    type PutPositionResult = Types.PutPositionResult;
+    type NewPoolArgs = Types.NewPoolArgs;
+    type PutPositionArgs = Types.PutPositionArgs;
+    type PutPositionPreview = Types.PutPositionPreview;
+    type GetPositionArgs = Types.GetPositionArgs;
     type Account = Types.Account;
-    type SBallotType = Types.SBallotType;
+    type SPositionType = Types.SPositionType;
     type Duration = Types.Duration;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type SNewVoteResult = Types.SNewVoteResult;
-    type NewVoteError = Types.NewVoteError;
+    type SNewPoolResult = Types.SNewPoolResult;
+    type NewPoolError = Types.NewPoolError;
     type SRollingTimeline<T> = Types.SRollingTimeline<T>;
     type STimeline<T> = Types.STimeline<T>;
     type Parameters = Types.Parameters;
     type SParameters = Types.SParameters;
-    type SVoteType = Types.SVoteType;
+    type SPoolType = Types.SPoolType;
     type SDebtInfo = Types.SDebtInfo;
     type DebtRecord = Types.DebtRecord;
-    type PutBallotSuccess = Types.PutBallotSuccess;
-    type SPutBallotSuccess = Types.SPutBallotSuccess;
+    type PutPositionSuccess = Types.PutPositionSuccess;
+    type SPutPositionSuccess = Types.SPutPositionSuccess;
     type SYieldState = Types.SYieldState;
     type UserSupply = Types.UserSupply;
     type LoanPosition = LendingTypes.LoanPosition;
@@ -49,16 +49,16 @@ module {
         queries: Queries.Queries;
     }) {
 
-        public func new_vote(args: NewVoteArgs and { origin: Principal; }) : async* SNewVoteResult {
-            await* controller.new_vote(args);
+        public func new_pool(args: NewPoolArgs and { origin: Principal; }) : async* SNewPoolResult {
+            await* controller.new_pool(args);
         };
 
-        public func put_ballot_for_free(args: PutBallotPreview and { caller: Principal; }) : PutBallotResult {
-            controller.put_ballot_for_free(args);
+        public func put_position_for_free(args: PutPositionPreview and { caller: Principal; }) : PutPositionResult {
+            controller.put_position_for_free(args);
         };
 
-        public func put_ballot(args: PutBallotArgs and { caller: Principal; }) : async* PutBallotResult {
-            await* controller.put_ballot(args);
+        public func put_position(args: PutPositionArgs and { caller: Principal; }) : async* PutPositionResult {
+            await* controller.put_position(args);
         };
 
         public func run() : async* () {
@@ -109,32 +109,32 @@ module {
             controller.get_supply_token_price_usd();
         };
 
-        public func get_vote_ballots(vote_id: UUID) : [SBallotType] {
-            queries.get_vote_ballots(vote_id);
+        public func get_pool_positions(pool_id: UUID) : [SPositionType] {
+            queries.get_pool_positions(pool_id);
         };
 
-        public func get_votes({origin: Principal; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [SVoteType] {
-            queries.get_votes({origin; previous; limit; direction; });
+        public func get_pools({origin: Principal; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [SPoolType] {
+            queries.get_pools({origin; previous; limit; direction; });
         };
 
-        public func get_votes_by_author({ author: Account; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [SVoteType] {
-            queries.get_votes_by_author({author; previous; limit; direction;});
+        public func get_pools_by_author({ author: Account; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [SPoolType] {
+            queries.get_pools_by_author({author; previous; limit; direction;});
         };
         
-        public func find_vote({vote_id: UUID;}) : ?SVoteType {
-            queries.find_vote(vote_id);
+        public func find_pool({pool_id: UUID;}) : ?SPoolType {
+            queries.find_pool(pool_id);
         };
         
-        public func get_ballots(args: GetBallotArgs) : [SBallotType] {
-            queries.get_ballots(args);
+        public func get_positions(args: GetPositionArgs) : [SPositionType] {
+            queries.get_positions(args);
         };
         
         public func get_user_supply({ account: Account; }) : UserSupply {
             queries.get_user_supply({account});
         };
         
-        public func find_ballot(ballot_id: UUID) : ?SBallotType {
-            queries.find_ballot(ballot_id);
+        public func find_position(position_id: UUID) : ?SPositionType {
+            queries.find_position(position_id);
         };
 
         public func get_lending_index() : STimeline<LendingIndex> {

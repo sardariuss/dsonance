@@ -62,10 +62,12 @@ The frontend should be available on localhost:3000
  -> indexer.add_raw_supply or remove_raw_supply
  -> call observers
  -> call foresight updater
-An extra moment the foresight shall be updated is right before the unlock of the ballot. This is why it is called in Controller.run.
+An extra moment the foresight shall be updated is right before the unlock of the position. This is why it is called in Controller.run.
 
 
 When adding a supply position, no need to update the indexes up to that time BEFORE adding, but after (in order for queried elments'APR to be correct).
 When removing a supply position, need to update the indexes up to that time BEFORE removing (in order for the APR of removed element to be correct), and after (in order for queried elements'APR to be correct).
 
 Problem: if you add a position at t2 when run() should remove a position at t1 < t2, will both APR be wrong? I guess it is something that can be accepted, because the position to be removed is technically still there.
+
+Change the trusted origins in backend canister.

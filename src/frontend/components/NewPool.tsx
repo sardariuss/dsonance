@@ -6,13 +6,12 @@ import { useState, useEffect } from "react";
 
 import { v4 as uuidv4 } from 'uuid';
 import { Link, useNavigate } from "react-router-dom";
-import { DOCS_URL, NEW_VOTE_PLACEHOLDER, VOTE_MAX_CHARACTERS } from "../constants";
-import BackArrowIcon from "./icons/BackArrowIcon";
+import { DOCS_URL, NEW_POOL_PLACEHOLDER, POOL_MAX_CHARACTERS } from "../constants";
 import { showErrorToast, showSuccessToast, extractErrorMessage } from '../utils/toasts';
 
-function NewVote() {
+function NewPool() {
 
-  const INPUT_BOX_ID = "new-vote-input";
+  const INPUT_BOX_ID = "new-pool-input";
 
   const { user, connect } = useAuth();
   const authenticated = !!user;
@@ -23,23 +22,23 @@ function NewVote() {
 
   const navigate = useNavigate();
 
-  const { call: newVote, loading } = backendActor.authenticated.useUpdateCall({
-    functionName: 'new_vote',
+  const { call: newPool, loading } = backendActor.authenticated.useUpdateCall({
+    functionName: 'new_pool',
     onSuccess: (result) => {
       if (result === undefined) {
         return;
       }
       if ('err' in result) {
         console.error(result.err);
-        showErrorToast(extractErrorMessage(result.err), "New vote");
+        showErrorToast(extractErrorMessage(result.err), "New pool");
         return;
       }
-      showSuccessToast("Your vote has been created successfully", "New vote");
-      navigate(`/vote/${result.ok.vote_id}`);
+      showSuccessToast("Your pool has been created successfully", "New pool");
+      navigate(`/pool/${result.ok.pool_id}`);
     },
     onError: (error) => {
       console.error(error);
-      showErrorToast(extractErrorMessage(error), "New vote");
+      showErrorToast(extractErrorMessage(error), "New pool");
     }
   });
 
@@ -89,12 +88,12 @@ function NewVote() {
     }
   };
 
-  const openVote = () => {
+  const openPool = () => {
     if (authenticated) {
       if (thumbnail === null) {
         throw new Error("Thumbnail is null");
       };
-      newVote([{ text, id: uuidv4(), from_subaccount: [], thumbnail }]);
+      newPool([{ text, id: uuidv4(), from_subaccount: [], thumbnail }]);
     } else {
       connect();
     }
@@ -102,7 +101,7 @@ function NewVote() {
 
   useEffect(() => {
     
-    let proposeVoteInput = document.getElementById(INPUT_BOX_ID);
+    let proposePoolInput = document.getElementById(INPUT_BOX_ID);
 
     const listener = function (this: HTMLElement, _ : Event) {
       setText(this.textContent ?? "");
@@ -112,10 +111,10 @@ function NewVote() {
       }      
     };
     
-    proposeVoteInput?.addEventListener('input', listener);
+    proposePoolInput?.addEventListener('input', listener);
     
     return () => {
-      proposeVoteInput?.removeEventListener('input', listener);
+      proposePoolInput?.removeEventListener('input', listener);
     }
   }, []);
 
@@ -178,14 +177,14 @@ function NewVote() {
               hover:border-gray-400 dark:hover:border-gray-500
               focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30
               ${text.length > 0 ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-500"}`}
-            data-placeholder={NEW_VOTE_PLACEHOLDER}
+            data-placeholder={NEW_POOL_PLACEHOLDER}
             contentEditable="true"
           />
           <div className="flex justify-between items-center">
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              {text.length > 0 ? `${text.length} / ${VOTE_MAX_CHARACTERS} characters` : ''}
+              {text.length > 0 ? `${text.length} / ${POOL_MAX_CHARACTERS} characters` : ''}
             </span>
-            {text.length > VOTE_MAX_CHARACTERS && (
+            {text.length > POOL_MAX_CHARACTERS && (
               <span className="text-xs text-red-600 dark:text-red-400">
                 Character limit exceeded
               </span>
@@ -241,12 +240,12 @@ function NewVote() {
       <div className="flex justify-end">
         <button
           className={`px-6 py-3 rounded-lg font-medium transition-all
-            ${loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS || thumbnail === null
+            ${loading || text.length === 0 || text.length > POOL_MAX_CHARACTERS || thumbnail === null
               ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
               : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
             }`}
-          onClick={openVote}
-          disabled={loading || text.length === 0 || text.length > VOTE_MAX_CHARACTERS || thumbnail === null}
+          onClick={openPool}
+          disabled={loading || text.length === 0 || text.length > POOL_MAX_CHARACTERS || thumbnail === null}
         >
           {loading ? 'Submitting...' : 'Suggest Pool'}
         </button>
@@ -255,4 +254,4 @@ function NewVote() {
   );
 }
 
-export default NewVote;
+export default NewPool;

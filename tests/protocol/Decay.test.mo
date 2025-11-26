@@ -84,19 +84,19 @@ suite("Decay", func(){
         let half_life_ns = Duration.toTime(#HOURS(1)); // 1 hour half-life
         let decay_model = Decay.DecayModel({ half_life_ns; genesis_time; });
 
-        // Alice adds a $100 ballot at t0
+        // Alice adds a $100 position at t0
         let t0 = Int.abs(genesis_time);
         let alice_amount = 100.0;
-        let alice_ballot = decay_model.create_decayed(alice_amount, t0);
+        let alice_position = decay_model.create_decayed(alice_amount, t0);
 
         // At t0, CDV should be $100
-        let evp_at_t0 = decay_model.unwrap_decayed(alice_ballot, genesis_time);
+        let evp_at_t0 = decay_model.unwrap_decayed(alice_position, genesis_time);
         verify<Float>(evp_at_t0, 100.0, Testify.float.equalEpsilon6);
 
         // At t1 (some time later), CDV should decrease due to decay
         // Let's say t1 is 10 minutes later
         let t1 = genesis_time + Duration.toTime(#MINUTES(10));
-        let evp_at_t1 = decay_model.unwrap_decayed(alice_ballot, t1);
+        let evp_at_t1 = decay_model.unwrap_decayed(alice_position, t1);
         
         // CDV should be less than 100 since decay increases over time
         // but the unwrap_decayed divides by a larger decay value
@@ -140,18 +140,18 @@ suite("Decay", func(){
         let production_half_life_ns = Duration.toTime(#YEARS(1));
         let decay_model = Decay.DecayModel({ half_life_ns = production_half_life_ns; genesis_time; });
 
-        let ballot_amount = 90000.0;
-        let ballot = decay_model.create_decayed(ballot_amount, Int.abs(genesis_time));
+        let position_amount = 90000.0;
+        let position = decay_model.create_decayed(position_amount, Int.abs(genesis_time));
         
         let two_weeks_later = genesis_time + Duration.toTime(#DAYS(14));
-        let evp_after_2_weeks = decay_model.unwrap_decayed(ballot, two_weeks_later);
+        let evp_after_2_weeks = decay_model.unwrap_decayed(position, two_weeks_later);
         
         // After 2 weeks with 1-year half-life, CDV should be very close to original
         // If it's showing 0.1 USD instead of ~89k USD, there's a major bug
         Debug.print("CDV after 2 weeks with 1-year half-life:");
-        Debug.print("Original: " # Float.toText(ballot_amount));
+        Debug.print("Original: " # Float.toText(position_amount));
         Debug.print("After 2 weeks: " # Float.toText(evp_after_2_weeks));
-        Debug.print("Ratio: " # Float.toText(evp_after_2_weeks / ballot_amount));
+        Debug.print("Ratio: " # Float.toText(evp_after_2_weeks / position_amount));
         
         let is_reasonable = evp_after_2_weeks > 80000.0; // Should be > 80k
         verify<Bool>(is_reasonable, true, Testify.bool.equal);

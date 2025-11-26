@@ -1,6 +1,6 @@
-import VoteController     "VoteController";
+import PoolController     "PoolController";
 import Incentives         "Incentives";
-import BallotAggregator   "BallotAggregator";
+import PositionAggregator   "PositionAggregator";
 import Types              "../Types";
 import Decay              "../duration/Decay";
 import LockInfoUpdater    "../locks/LockInfoUpdater";
@@ -13,25 +13,25 @@ import Debug "mo:base/Debug";
 
 module {
 
-    type VoteController<A, B> = VoteController.VoteController<A, B>;
+    type PoolController<A, B> = PoolController.PoolController<A, B>;
     type YesNoAggregate       = Types.YesNoAggregate;
-    type YesNoBallot          = Types.YesNoBallot;
+    type YesNoPosition          = Types.YesNoPosition;
     type YesNoChoice          = Types.YesNoChoice;
     type Duration             = Types.Duration;
     type UUID                 = Types.UUID;
-    type BallotRegister       = Types.BallotRegister;
+    type PositionRegister       = Types.PositionRegister;
     type Parameters           = Types.Parameters;
     
     type Iter<T>              = Iter.Iter<T>;
 
     public func build_yes_no({
         parameters: Parameters;
-        ballot_register: BallotRegister;
+        position_register: PositionRegister;
         decay_model: Decay.DecayModel;
         lock_info_updater: LockInfoUpdater.LockInfoUpdater;
-    }) : VoteController<YesNoAggregate, YesNoChoice> {
+    }) : PoolController<YesNoAggregate, YesNoChoice> {
 
-        let ballot_aggregator = BallotAggregator.BallotAggregator<YesNoAggregate, YesNoChoice>({
+        let position_aggregator = PositionAggregator.PositionAggregator<YesNoAggregate, YesNoChoice>({
             update_aggregate = func({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Nat;}) : YesNoAggregate {
                 switch(choice){
                     case(#YES) {{
@@ -48,7 +48,7 @@ module {
             };
             compute_dissent = func({aggregate: YesNoAggregate; choice: YesNoChoice; amount: Nat; time: Nat}) : Float {
                 Incentives.compute_dissent({
-                    initial_addend = Float.fromInt(parameters.minimum_ballot_amount);
+                    initial_addend = Float.fromInt(parameters.minimum_position_amount);
                     parameters = parameters.foresight;
                     choice;
                     amount = Float.fromInt(amount);
@@ -66,19 +66,19 @@ module {
             };
         });
         
-        VoteController.VoteController<YesNoAggregate, YesNoChoice>({
+        PoolController.PoolController<YesNoAggregate, YesNoChoice>({
             empty_aggregate = { total_yes = 0; total_no = 0; current_yes = #DECAYED(0.0); current_no = #DECAYED(0.0); };
-            ballot_aggregator;
+            position_aggregator;
             lock_info_updater;
             decay_model;
-            get_ballot = func(id: UUID) : YesNoBallot {
-                switch(Map.get(ballot_register.ballots, Map.thash, id)){
-                    case(null) { Debug.trap("Ballot not found"); };
+            get_position = func(id: UUID) : YesNoPosition {
+                switch(Map.get(position_register.positions, Map.thash, id)){
+                    case(null) { Debug.trap("Position not found"); };
                     case(?(#YES_NO(b))) { b; };
                 };
             };
-            add_ballot = func(id: UUID, ballot: YesNoBallot) {
-                Map.set(ballot_register.ballots, Map.thash, id, #YES_NO(ballot));
+            add_position = func(id: UUID, position: YesNoPosition) {
+                Map.set(position_register.positions, Map.thash, id, #YES_NO(position));
             };
         });
     };

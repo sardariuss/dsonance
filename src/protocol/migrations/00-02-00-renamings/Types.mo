@@ -493,23 +493,23 @@ module {
         minIntervalNs: Nat;
     };
 
-    public type VoteRegister = {
-        pools: Map<UUID, VoteType>;
+    public type PoolRegister = {
+        pools: Map<UUID, PoolType>;
         by_origin: Map<Principal, Set<UUID>>;
         by_author: Map<Account, Set.Set<UUID>>;
     };
 
-    public type BallotRegister = {
-        ballots: Map<UUID, BallotType>;
+    public type PositionRegister = {
+        positions: Map<UUID, PositionType>;
         by_account: Map<Account, Set<UUID>>;
     };
 
-    public type VoteType = {
-        #YES_NO: Vote<YesNoAggregate, YesNoChoice>;
+    public type PoolType = {
+        #YES_NO: Pool<YesNoAggregate, YesNoChoice>;
     };
 
-    public type BallotType = {
-        #YES_NO: Ballot<YesNoChoice>;
+    public type PositionType = {
+        #YES_NO: Position<YesNoChoice>;
     };
 
     public type YesNoAggregate = {
@@ -528,13 +528,13 @@ module {
         #NO;
     };
     
-    public type Vote<A, B> = {
+    public type Pool<A, B> = {
         pool_id: UUID;
         tx_id: Nat;
         date: Nat;
         origin: Principal;
         aggregate: RollingTimeline<A>;
-        ballots: Set<UUID>;
+        positions: Set<UUID>;
         author: Account;
         var tvl: Int;
     };
@@ -565,11 +565,11 @@ module {
         };
     };
 
-    public type Ballot<B> = {
-        ballot_id: UUID;
+    public type Position<C> = {
+        position_id: UUID;
         pool_id: UUID;
         timestamp: Nat;
-        choice: B;
+        choice: C;
         amount: Nat;
         dissent: Float;
         consent: RollingTimeline<Float>;
@@ -828,14 +828,14 @@ module {
     public type Parameters = {
         foresight: ForesightParameters;
         duration_scaler: DurationScalerParameters;
-        minimum_ballot_amount: Nat;
+        minimum_position_amount: Nat;
         mining: {
             emission_half_life_s: Float;
             emission_total_amount_e8s: Nat;
             borrowers_share: Float;
         };
         timer_interval_s: Nat;
-        ballot_half_life_ns: Nat;
+        position_half_life_ns: Nat;
         clock: ClockParameters;
         lending: LendingParameters;
         twap_config: TWAPConfig;
@@ -850,9 +850,9 @@ module {
     };
 
     public type InitParameters = {
-        ballot_half_life: Duration;
+        position_half_life: Duration;
         duration_scaler: DurationScalerParameters;
-        minimum_ballot_amount: Nat;
+        minimum_position_amount: Nat;
         foresight: {
             dissent_steepness: Float;
             consent_steepness: Float;
@@ -896,8 +896,8 @@ module {
             var twap_cache: ?Float;
             var last_twap_calculation: Int;
         };
-        pool_register: VoteRegister;
-        ballot_register: BallotRegister;
+        pool_register: PoolRegister;
+        position_register: PositionRegister;
         lock_scheduler_state: LockSchedulerState;
         accounts: ProtocolAccounts;
         lending: {

@@ -28,7 +28,7 @@ const ProtocolPage = () => {
       items: [
         {
           label: "Positions' Half-Life",
-          value: formatDurationValue(parameters.ballot_half_life),
+          value: formatDurationValue(parameters.position_half_life),
           description: "Controls how much time shall affect positions' weight in the consensus"
         },
       ]
@@ -110,7 +110,7 @@ const ProtocolPage = () => {
       items: [
         {
           label: "Minimum Position Amount",
-          value: (Number(parameters.minimum_ballot_amount) / 1_000_000).toLocaleString() + " USDT",
+          value: (Number(parameters.minimum_position_amount) / 1_000_000).toLocaleString() + " USDT",
           description: "Minimum amount required to lock a position"
         },
       ]

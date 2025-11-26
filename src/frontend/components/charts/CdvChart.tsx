@@ -1,9 +1,9 @@
 import { useContext, useMemo } from "react";
 import { SRollingTimeline_2, YesNoAggregate }                      from "@/declarations/protocol/protocol.did";
-import { SYesNoVote }                                       from "@/declarations/backend/backend.did";
+import { SYesNoPool }                                       from "@/declarations/backend/backend.did";
 import { EYesNoChoice }                                     from "../../utils/conversions/yesnochoice";
 import { AreaBumpSerie, ResponsiveAreaBump }                from "@nivo/bump";
-import { BallotInfo }                                       from "../types";
+import { PositionInfo }                                       from "../types";
 import { DurationUnit, toNs }                                     from "../../utils/conversions/durationUnit";
 import { CHART_CONFIGURATIONS, chartTheme, computeInterval, DurationParameters } from ".";
 import { ThemeContext }                                     from "../App";
@@ -116,12 +116,12 @@ const computePriceLevels = (min: number, max: number) : number[] => {
 }
 
 interface CdvChartrops {
-  vote: SYesNoVote;
-  ballot: BallotInfo;
+  pool: SYesNoPool;
+  position: PositionInfo;
   durationWindow: DurationUnit | undefined;
 }
 
-const CdvChart: React.FC<CdvChartrops> = ({ vote, ballot, durationWindow }) => {
+const CdvChart: React.FC<CdvChartrops> = ({ pool, position, durationWindow }) => {
 
   const { theme } = useContext(ThemeContext);
   
@@ -135,7 +135,7 @@ const CdvChart: React.FC<CdvChartrops> = ({ vote, ballot, durationWindow }) => {
 
   const { info, parameters, computeDecay } = useProtocolContext();
      
-  const voteData = useMemo<ChartProperties>(() => {
+  const poolData = useMemo<ChartProperties>(() => {
     if (!info || !parameters || !computeDecay) {
       return ({ chartData: [], total: { current: 0, maximum: 0 }, priceLevels: [], dateTicks: [], dateFormat: () => "" });
     }
@@ -144,28 +144,28 @@ const CdvChart: React.FC<CdvChartrops> = ({ vote, ballot, durationWindow }) => {
       currentTime: info.current_time,
       computeDecay,
       durationWindow,
-      aggregate: vote.aggregate 
+      aggregate: pool.aggregate 
     });
   }, 
-  [info, parameters, computeDecay, durationWindow, vote.aggregate]);
+  [info, parameters, computeDecay, durationWindow, pool.aggregate]);
 
   const { chartData, total, priceLevels, dateTicks, dateFormat } = useMemo<ChartProperties>(() => {
-    const newTotal = { maximum : voteData.total.maximum, current: voteData.total.current + Number(ballot.amount) };
+    const newTotal = { maximum : poolData.total.maximum, current: poolData.total.current + Number(position.amount) };
     return {
-      chartData : voteData.chartData.slice().map((serie) => {
-        if (serie.id === (ballot.choice.toString())) {
+      chartData : poolData.chartData.slice().map((serie) => {
+        if (serie.id === (position.choice.toString())) {
           const lastPoint = serie.data[serie.data.length - 1];
-          const newLastPoint = { x: lastPoint.x, y: lastPoint.y + Number(ballot.amount) };
+          const newLastPoint = { x: lastPoint.x, y: lastPoint.y + Number(position.amount) };
           return { id: serie.id, data: [...serie.data.slice(0, serie.data.length - 1), newLastPoint], color: serie.color };
         };
         return serie;
       }),
       total: newTotal,
       priceLevels: computePriceLevels(0, Math.max(newTotal.maximum, newTotal.current)),
-      dateTicks: voteData.dateTicks,
-      dateFormat: voteData.dateFormat,
+      dateTicks: poolData.dateTicks,
+      dateFormat: poolData.dateFormat,
     };
-  }, [voteData, ballot]);
+  }, [poolData, position]);
 
   
   const getHeightLine = (levels: number[]) => {
@@ -189,8 +189,8 @@ const CdvChart: React.FC<CdvChartrops> = ({ vote, ballot, durationWindow }) => {
   }
 
   const pulseArea = useMemo(() => {
-    if (parameters !== undefined && ballot.amount > parameters.minimum_ballot_amount){
-      if (ballot.choice === EYesNoChoice.Yes){
+    if (parameters !== undefined && position.amount > parameters.minimum_position_amount){
+      if (position.choice === EYesNoChoice.Yes){
         return "pulse-area-true";
       } else {
         return "pulse-area-false";
@@ -198,7 +198,7 @@ const CdvChart: React.FC<CdvChartrops> = ({ vote, ballot, durationWindow }) => {
     }
     return "";
   }
-  , [ballot, parameters]);
+  , [position, parameters]);
 
   return (
     <div className={`flex flex-col items-center space-y-2 w-full h-full ${pulseArea}`} ref={containerRef}>
@@ -206,7 +206,7 @@ const CdvChart: React.FC<CdvChartrops> = ({ vote, ballot, durationWindow }) => {
       <div style={{ position: 'relative', width: `${containerSize.width}px`, height: `${containerSize.height}px`, zIndex: 10 }}>
         { /* TODO: fix opacity of price levels via a custom layer */ }
         <div style={{ position: 'absolute', top: AXIS_MARGIN, right: CHART_MOBILE_HORIZONTAL_MARGIN, bottom: AXIS_MARGIN, left: isMobile ? CHART_MOBILE_HORIZONTAL_MARGIN : 60, zIndex: 5 }} className="flex flex-col">
-          <ul className="flex flex-col w-full" key={vote.vote_id}>
+          <ul className="flex flex-col w-full" key={pool.pool_id}>
             {
               priceLevels.slice().reverse().map((price, index) => (
                 <li key={index}>

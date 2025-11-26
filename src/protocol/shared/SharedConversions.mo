@@ -8,12 +8,12 @@ import Array "mo:base/Array";
 
 module {
 
-    type BallotType = Types.BallotType;
-    type SBallotType = Types.SBallotType;
-    type Vote<A, B> = Types.Vote<A, B>;
-    type SVote<A, B> = Types.SVote<A, B>;
-    type Ballot<B> = Types.Ballot<B>;
-    type SBallot<B> = Types.SBallot<B>;
+    type PositionType = Types.PositionType;
+    type SPositionType = Types.SPositionType;
+    type Pool<A, B> = Types.Pool<A, B>;
+    type SPool<A, B> = Types.SPool<A, B>;
+    type Position<B> = Types.Position<B>;
+    type SPosition<B> = Types.SPosition<B>;
     type RollingTimeline<T> = Types.RollingTimeline<T>;
     type SRollingTimeline<T> = Types.SRollingTimeline<T>;
     type Timeline<T> = Types.Timeline<T>;
@@ -30,10 +30,10 @@ module {
     type Parameters = Types.Parameters;
     type SParameters = Types.SParameters;
     type ProtocolInfo = Types.ProtocolInfo;
-    type PutBallotSuccess = Types.PutBallotSuccess;
-    type SPutBallotSuccess = Types.SPutBallotSuccess;
-    type VoteType = Types.VoteType;
-    type SVoteType = Types.SVoteType;
+    type PutPositionSuccess = Types.PutPositionSuccess;
+    type SPutPositionSuccess = Types.SPutPositionSuccess;
+    type PoolType = Types.PoolType;
+    type SPoolType = Types.SPoolType;
     type YieldState = Types.YieldState;
     type SYieldState = Types.SYieldState;
 
@@ -41,28 +41,28 @@ module {
         Option.map(opt, f);
     };
 
-    public func shareBallotType(ballot: BallotType) : SBallotType {
-        switch(ballot){
-            case(#YES_NO(ballot)) { #YES_NO(shareBallot(ballot)); };
+    public func sharePositionType(position: PositionType) : SPositionType {
+        switch(position){
+            case(#YES_NO(position)) { #YES_NO(sharePosition(position)); };
         };
     };
 
-    func shareBallot<B>(ballot: Ballot<B>) : SBallot<B> {
+    func sharePosition<B>(position: Position<B>) : SPosition<B> {
         {
-            ballot_id = ballot.ballot_id;
-            vote_id = ballot.vote_id;
-            timestamp = ballot.timestamp;
-            choice = ballot.choice;
-            amount = ballot.amount;
-            dissent = ballot.dissent;
-            consent = shareRollingTimeline(ballot.consent);
-            foresight = ballot.foresight;
-            tx_id = ballot.tx_id;
-            supply_index = ballot.supply_index;
-            from = ballot.from;
-            hotness = ballot.hotness;
-            decay = ballot.decay;
-            lock = Option.map(ballot.lock, func(lock: LockInfo) : SLockInfo {
+            position_id = position.position_id;
+            pool_id = position.pool_id;
+            timestamp = position.timestamp;
+            choice = position.choice;
+            amount = position.amount;
+            dissent = position.dissent;
+            consent = shareRollingTimeline(position.consent);
+            foresight = position.foresight;
+            tx_id = position.tx_id;
+            supply_index = position.supply_index;
+            from = position.from;
+            hotness = position.hotness;
+            decay = position.decay;
+            lock = Option.map(position.lock, func(lock: LockInfo) : SLockInfo {
                 {
                     duration_ns = shareRollingTimeline(lock.duration_ns);
                     release_date = lock.release_date;
@@ -111,7 +111,7 @@ module {
                 window_duration = Duration.fromTime(parameters.twap_config.window_duration_ns);
                 max_observations = parameters.twap_config.max_observations;
             };
-            ballot_half_life = Duration.fromTime(parameters.ballot_half_life_ns);
+            position_half_life = Duration.fromTime(parameters.position_half_life_ns);
         };
     };
 
@@ -125,15 +125,15 @@ module {
         };
     };
 
-    public func sharePutBallotSuccess(preview: PutBallotSuccess) : SPutBallotSuccess {
+    public func sharePutPositionSuccess(preview: PutPositionSuccess) : SPutPositionSuccess {
         {
-            new = shareBallotType(preview.new);
-            previous = Array.map<BallotType, SBallotType>(preview.previous, shareBallotType);
+            new = sharePositionType(preview.new);
+            previous = Array.map<PositionType, SPositionType>(preview.previous, sharePositionType);
         };
     };
 
-    public func shareVoteType(vote: VoteType) : SVoteType {
-        switch(vote){
+    public func sharePoolType(pool: PoolType) : SPoolType {
+        switch(pool){
             case(#YES_NO(v)) { 
                 #YES_NO({
                     v with 

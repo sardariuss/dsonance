@@ -15,7 +15,7 @@ const Dashboard = () => {
     { key: "mining", label: "Mining" },
   ];
 
-  // Get the current tab or default to "votes"
+  // Get the current tab or default to "pools"
   let selectedTab = searchParams.get("tab") || "supply";
 
   // Ensure the tab is valid, otherwise reset to "supply"

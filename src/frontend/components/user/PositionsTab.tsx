@@ -5,69 +5,69 @@ import PoolRow from "./PoolRow";
 import PositionRow from "./PositionRow";
 import { useProtocolContext } from "../context/ProtocolContext";
 import { useAuth } from "@nfid/identitykit/react";
-import { SBallotType } from "@/declarations/protocol/protocol.did";
+import { SPositionType } from "@/declarations/protocol/protocol.did";
 import { toNullable } from "@dfinity/utils";
 import { toAccount } from "@/frontend/utils/conversions/account";
 import InfiniteScroll from "react-infinite-scroll-component";
 import Spinner from "../Spinner";
 
-type BallotEntries = {
-  ballots: SBallotType[];
+type PositionEntries = {
+  positions: SPositionType[];
   previous: string | undefined;
   hasMore: boolean;
 };
 
 const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => {
 
-  const [ballotEntries, setBallotEntries] = useState<BallotEntries>({ ballots: [], previous: undefined, hasMore: true });
+  const [positionEntries, setPositionEntries] = useState<PositionEntries>({ positions: [], previous: undefined, hasMore: true });
   const [filterActive, setFilterActive] = useState(true);
   const limit = 10n;
   const { refreshInfo } = useProtocolContext();
 
   const account = useMemo(() => toAccount(user), [user]);
 
-  const { call: refreshBallots } = protocolActor.unauthenticated.useQueryCall({
-    functionName: "get_ballots",
+  const { call: refreshPositions } = protocolActor.unauthenticated.useQueryCall({
+    functionName: "get_positions",
     args: [{
       account,
-      previous: toNullable(ballotEntries.previous),
+      previous: toNullable(positionEntries.previous),
       limit,
       filter_active: filterActive,
       direction: { backward: null }
     }],
     onError: (error) => {
-      console.error("Error fetching ballots:", error);
+      console.error("Error fetching positions:", error);
     },
     onSuccess: (data) => {
-      console.log("Fetched ballots:", data);
-      updateBallotEntries(data);
+      console.log("Fetched positions:", data);
+      updatePositionEntries(data);
     }
   });
 
-  const updateBallotEntries = (newBallots: SBallotType[]) => {
-    setBallotEntries((prevEntries) => {
-      const mergedBallots = [...prevEntries.ballots, ...newBallots];
-      const uniqueBallots = Array.from(new Map(mergedBallots.map(v => [v.YES_NO.ballot_id, v])).values());
-      const previous = newBallots.length > 0 ? newBallots[newBallots.length - 1].YES_NO.ballot_id : prevEntries.previous;
-      const hasMore = newBallots.length === Number(limit);
-      return { ballots: uniqueBallots, previous, hasMore };
+  const updatePositionEntries = (newPositions: SPositionType[]) => {
+    setPositionEntries((prevEntries) => {
+      const mergedPositions = [...prevEntries.positions, ...newPositions];
+      const uniquePositions = Array.from(new Map(mergedPositions.map(v => [v.YES_NO.position_id, v])).values());
+      const previous = newPositions.length > 0 ? newPositions[newPositions.length - 1].YES_NO.position_id : prevEntries.previous;
+      const hasMore = newPositions.length === Number(limit);
+      return { positions: uniquePositions, previous, hasMore };
     });
   };
 
   useEffect(() => {
     refreshInfo();
-    refreshBallots();
+    refreshPositions();
   }, [user]);
 
   // Refetch when filter changes
   useEffect(() => {
-    if (ballotEntries.ballots.length === 0 && ballotEntries.previous === undefined) {
-      refreshBallots();
+    if (positionEntries.positions.length === 0 && positionEntries.previous === undefined) {
+      refreshPositions();
     }
   }, [filterActive]);
 
   const toggleFilterActive = useCallback((active: boolean) => {
-    setBallotEntries({ ballots: [], previous: undefined, hasMore: true });
+    setPositionEntries({ positions: [], previous: undefined, hasMore: true });
     setFilterActive(active);
   }, []);
   
@@ -99,15 +99,15 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
         </div>
       </div>
       {/* Layout: Fixed column + Scrollable section */}
-      {ballotEntries.ballots.length === 0 ? (
+      {positionEntries.positions.length === 0 ? (
         <div className="w-full text-center py-8 text-gray-500 dark:text-gray-400">
           No positions found.
         </div>
       ) : (
         <InfiniteScroll
-          dataLength={ballotEntries.ballots.length}
-          next={refreshBallots}
-          hasMore={ballotEntries.hasMore}
+          dataLength={positionEntries.positions.length}
+          next={refreshPositions}
+          hasMore={positionEntries.hasMore}
           loader={<Spinner size={"25px"} />}
           style={{ height: "auto", overflow: "visible" }}
         >
@@ -118,12 +118,12 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
               <span className="pb-2 text-sm text-gray-500 dark:text-gray-500">POOL</span>
               {/* Pool data rows */}
               <ul className="flex flex-col gap-y-2">
-                {ballotEntries.ballots.map((ballot, index) => (
+                {positionEntries.positions.map((position, index) => (
                   <li
                     key={index}
                     className="scroll-mt-[104px] sm:scroll-mt-[88px]"
                   >
-                    <PoolRow ballot={ballot} />
+                    <PoolRow position={position} />
                   </li>
                 ))}
               </ul>
@@ -140,9 +140,9 @@ const PositionsTab = ({ user }: { user: NonNullable<ReturnType<typeof useAuth>["
                 </div>
                 {/* Scrollable data rows */}
                 <ul className="flex flex-col gap-y-2">
-                  {ballotEntries.ballots.map((ballot, index) => (
+                  {positionEntries.positions.map((position, index) => (
                     <li key={index}>
-                      <PositionRow ballot={ballot} />
+                      <PositionRow position={position} />
                     </li>
                   ))}
                 </ul>

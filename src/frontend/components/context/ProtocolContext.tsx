@@ -62,7 +62,7 @@ export const ProtocolProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       refreshInfo,
       refreshLendingIndex,
       computeDecay: parameters && info ? (time: bigint) => {
-        return compute_decay(info.genesis_time, durationToNs(parameters.ballot_half_life), time);
+        return compute_decay(info.genesis_time, durationToNs(parameters.position_half_life), time);
       } : undefined
     }}>
       {children}

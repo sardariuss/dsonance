@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
-import { BallotInfo } from "./types";
-import { add_ballot, VoteDetails } from "../utils/conversions/votedetails";
+import { PositionInfo } from "./types";
+import { add_position, PoolDetails } from "../utils/conversions/pooldetails";
 import { useProtocolContext } from "./context/ProtocolContext";
 import { formatDate, niceFormatDate, timeToDate } from "../utils/conversions/date";
 import InfoIcon from "./icons/InfoIcon";
@@ -10,25 +10,25 @@ import ConsensusIndicator from "./ConsensusIndicator";
 import { useMediaQuery } from "react-responsive";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 
-interface VoteFiguresProps {
+interface PoolFiguresProps {
   timestamp: bigint;
-  voteDetails: VoteDetails;
+  poolDetails: PoolDetails;
   tvl: bigint;
-  ballot?: BallotInfo;
+  position?: PositionInfo;
 }
 
-const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, ballot }) => {
+const PoolFigures: React.FC<PoolFiguresProps> = ({ timestamp, poolDetails, tvl, position }) => {
 
   const { supplyLedger : { formatAmountUsd } } = useFungibleLedgerContext();
   const { info, refreshInfo } = useProtocolContext();
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
   const liveDetails = useMemo(() => {
-    if (ballot) {
-      return add_ballot(voteDetails, ballot);
+    if (position) {
+      return add_position(poolDetails, position);
     }
-    return voteDetails;
-  }, [voteDetails, ballot]);
+    return poolDetails;
+  }, [poolDetails, position]);
 
   const date = useMemo(() => {
     if (info === undefined) {
@@ -56,7 +56,7 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, 
             <InfoIcon/>
           </Link>
         </span>
-        <span className={`self-center ${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{formatAmountUsd(liveDetails.total)}</span>
+        <span className={`self-center ${position && position?.amount > 0n ? "animate-pulse" : ""}`}>{formatAmountUsd(liveDetails.total)}</span>
       </div>
       <div className="grid grid-rows-2 justify-items-end h-16 gap-y-1">
         <span className="self-center flex flex-row gap-x-1 items-center">
@@ -65,21 +65,21 @@ const VoteFigures: React.FC<VoteFiguresProps> = ({ timestamp, voteDetails, tvl, 
             <InfoIcon/>
           </Link>
         </span>
-        <span className={`self-center ${ballot && ballot?.amount > 0n ? "animate-pulse" : ""}`}>{ formatAmountUsd(tvl + (ballot?.amount ?? 0n)) }</span>
+        <span className={`self-center ${position && position?.amount > 0n ? "animate-pulse" : ""}`}>{ formatAmountUsd(tvl + (position?.amount ?? 0n)) }</span>
       </div>
       <div className="grid grid-rows-2 justify-items-end h-16 gap-y-1">
         <span className="self-center text-sm text-gray-600 dark:text-gray-400">Consensus</span>
         <span className="self-center">
-          { liveDetails.cursor === undefined ? <></> : <ConsensusIndicator cursor={liveDetails.cursor} pulse={ballot && ballot?.amount > 0n}/> }
+          { liveDetails.cursor === undefined ? <></> : <ConsensusIndicator cursor={liveDetails.cursor} pulse={position && position?.amount > 0n}/> }
         </span>
       </div>
     </div>
   );
 };
 
-export default VoteFigures;
+export default PoolFigures;
 
-export const VoteFiguresSkeleton: React.FC = () => {
+export const PoolFiguresSkeleton: React.FC = () => {
   return (
   <div className="grid grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
     {/* Opened Date */}

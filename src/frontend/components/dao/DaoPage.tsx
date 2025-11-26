@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { TabButton } from "../TabButton";
-import NewVote from "../NewVote";
+import NewPool from "../NewPool";
 import { MdConstruction } from "react-icons/md";
 import TokenDistributionChart from "../charts/TokenDistributionChart";
 
 const DaoPage = () => {
-  const [activeTab, setActiveTab] = useState<'suggest-pool' | 'submit-proposals' | 'vote-proposals' | 'tokenomics'>('tokenomics');
+  const [activeTab, setActiveTab] = useState<'suggest-pool' | 'submit-proposals' | 'pool-proposals' | 'tokenomics'>('tokenomics');
 
   return (
     <div className="flex flex-col w-full sm:w-4/5 md:w-11/12 lg:w-5/6 xl:w-4/5 mx-auto px-3 my-4 sm:my-6">
@@ -16,12 +16,12 @@ const DaoPage = () => {
           { key: 'tokenomics', label: 'Tokenomics' },
           { key: 'suggest-pool', label: 'Suggest Pool' },
           { key: 'submit-proposals', label: 'Submit Proposals' },
-          { key: 'vote-proposals', label: 'Vote on Proposals' }
+          { key: 'pool-proposals', label: 'Pool on Proposals' }
         ].map((tab) => (
           <li key={tab.key} className="min-w-max text-center">
             <TabButton
               label={tab.label}
-              setIsCurrent={() => setActiveTab(tab.key as 'suggest-pool' | 'submit-proposals' | 'vote-proposals' | 'tokenomics')}
+              setIsCurrent={() => setActiveTab(tab.key as 'suggest-pool' | 'submit-proposals' | 'pool-proposals' | 'tokenomics')}
               isCurrent={activeTab === tab.key}
             />
           </li>
@@ -54,14 +54,14 @@ const DaoPage = () => {
             </div>
           </div>
         )}
-        {activeTab === 'suggest-pool' && <NewVote />}
+        {activeTab === 'suggest-pool' && <NewPool />}
         {activeTab === 'submit-proposals' && (
           <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-4">
             <MdConstruction size={64} className="text-gray-400 dark:text-gray-500" />
             <p className="text-lg text-gray-600 dark:text-gray-400">Coming soon!</p>
           </div>
         )}
-        {activeTab === 'vote-proposals' && (
+        {activeTab === 'pool-proposals' && (
           <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-4">
             <MdConstruction size={64} className="text-gray-400 dark:text-gray-500" />
             <p className="text-lg text-gray-600 dark:text-gray-400">Coming soon!</p>
