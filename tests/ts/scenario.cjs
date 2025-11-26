@@ -11,7 +11,7 @@ const seedrandom = require('seedrandom');
 const avatar = require('boring-avatars');
 const { renderToString } = require('react-dom/server');
 
-const VOTES_TO_OPEN = [
+const POOLS_TO_OPEN = [
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
     "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
     "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
@@ -37,7 +37,7 @@ const VOTES_TO_OPEN = [
 const NUM_USERS = 10;
 const BTC_USER_BALANCE = 100_000_000n; // 8 decimals, so 1 BTC
 const USDT_USER_BALANCE = 1_000_000_000_000n; // 6 decimals, so 1M USDT
-const NUM_VOTES = 5;
+const NUM_POOLS = 5;
 const SCENARIO_DURATION = { 'DAYS': 18n };
 const SCENARIO_TICK_DURATION = { 'DAYS': 3n };
 const TARGET_LTV = 0.6; // 60% LTV
@@ -60,8 +60,8 @@ const exponentialRandom = (mean) => {
     return -mean * Math.log(Math.random());
 };
 
-const generateDeterministicRandom = (voteId) => {
-    const rng = seedrandom(voteId);
+const generateDeterministicRandom = (poolId) => {
+    const rng = seedrandom(poolId);
     return rng(); // Returns a number between 0 and 1
 }
 
@@ -135,7 +135,7 @@ async function callCanisterMethod() {
 
     const numTicks = BigInt(toNs(SCENARIO_DURATION)) / BigInt(toNs(SCENARIO_TICK_DURATION));
     // Target half the supply cap
-    const meanBallotAmount = 0.5 * Number(supply_cap) / (NUM_USERS * NUM_VOTES * 0.2 * Number(numTicks));
+    const meanPositionAmount = 0.5 * Number(supply_cap) / (NUM_USERS * NUM_POOLS * 0.2 * Number(numTicks));
 
     // Get user actors for each principal in a Map<Principal, Map<string, Actor>>
 
@@ -206,16 +206,16 @@ async function callCanisterMethod() {
         console.error('Error during approvals:', error);
     });
 
-    // A random user opens up a new vote
-    for (let i = 0; i < NUM_VOTES; i++) {
+    // A random user opens up a new pool
+    for (let i = 0; i < NUM_POOLS; i++) {
         const id = uuidv4();
         const thumbnail = getThumbnail(id);
-        const args = { text: VOTES_TO_OPEN[i], id, thumbnail, from_subaccount: [] };
-        getRandomUser(userActors).actors.backend.new_vote(args).then((result) => {
+        const args = { text: POOLS_TO_OPEN[i], id, thumbnail, from_subaccount: [] };
+        getRandomUser(userActors).actors.backend.new_pool(args).then((result) => {
             if ('ok' in result) {
-                console.log('New vote added: ', args.text);
+                console.log('New pool added: ', args.text);
             } else {
-                console.error('Error adding new vote:', result.err);
+                console.error('Error adding new pool:', result.err);
             }
         });
     }
@@ -228,46 +228,46 @@ async function callCanisterMethod() {
 
         console.log("Scenario tick: ", tick);
 
-        // Retrieve all votes
-        let votes = await backendSimActor.get_votes( { previous: [], limit: 100, direction: { backward: null } } );
-        let putBallotPromises = [];
+        // Retrieve all pools
+        let pools = await backendSimActor.get_pools( { previous: [], limit: 100, direction: { backward: null } } );
+        let putPositionPromises = [];
 
-        // Put ballots loop
+        // Put positions loop
         for (let [_, actors] of userActors) {
 
-            for (let vote of votes) {
+            for (let pool of pools) {
 
-                // 20% chance that this user vote by calling protocolActor.put_ballot
+                // 20% chance that this user pool by calling protocolActor.put_position
                 if (Math.random() < 0.20) {
                     await sleep(250);
 
-                    const vote_id = vote.vote_id;
+                    const pool_id = pool.pool_id;
 
-                    // Generate a deterministic probability for YES based on vote_id
-                    const yesProbability = generateDeterministicRandom(vote_id);
+                    // Generate a deterministic probability for YES based on pool_id
+                    const yesProbability = generateDeterministicRandom(pool_id);
                     
-                    putBallotPromises.push(
-                        actors.protocol.put_ballot({
-                            vote_id,
+                    putPositionPromises.push(
+                        actors.protocol.put_position({
+                            pool_id,
                             id: uuidv4(),
                             from_subaccount: [],
-                            amount: BigInt(Math.floor(exponentialRandom(meanBallotAmount))),
+                            amount: BigInt(Math.floor(exponentialRandom(meanPositionAmount))),
                             choice_type: { 'YES_NO': Math.random() < yesProbability ? { 'YES': null } : { 'NO': null } }
                         }).then((result) => {
                             if (!result) {
-                                console.error('Put ballot result is null');
+                                console.error('Put position result is null');
                             } else if ('err' in result) {
-                                console.error('Error putting ballot: ', result.err);
+                                console.error('Error putting position: ', result.err);
                             }
                         })
                         .catch((error) => {
-                            console.error('Error putting ballot: ', error);
+                            console.error('Error putting position: ', error);
                         })
                     );
                 }
             }
         }
-        await Promise.all(putBallotPromises);
+        await Promise.all(putPositionPromises);
 
         // Borrow
         const { principal, actors } = getRandomUser(userActors);
