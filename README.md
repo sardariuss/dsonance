@@ -69,3 +69,5 @@ When adding a supply position, no need to update the indexes up to that time BEF
 When removing a supply position, need to update the indexes up to that time BEFORE removing (in order for the APR of removed element to be correct), and after (in order for queried elements'APR to be correct).
 
 Problem: if you add a position at t2 when run() should remove a position at t1 < t2, will both APR be wrong? I guess it is something that can be accepted, because the position to be removed is technically still there.
+
+Change the trusted origins in backend canister.

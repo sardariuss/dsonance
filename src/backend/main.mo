@@ -14,10 +14,10 @@ shared({ caller = admin }) persistent actor class Backend() = this {
 
     type YesNoAggregate = ProtocolTypes.YesNoAggregate;
     type YesNoChoice = ProtocolTypes.YesNoChoice;
-    type SVoteType = ProtocolTypes.SVoteType;
-    type SBallotType = ProtocolTypes.SBallotType;
+    type SPoolType = ProtocolTypes.SPoolType;
+    type SPositionType = ProtocolTypes.SPositionType;
     type QueryDirection = ProtocolTypes.QueryDirection;
-    type VoteInfo = {
+    type PoolInfo = {
         text: Text;
         visible: Bool;
         thumbnail: Blob;
@@ -27,75 +27,75 @@ shared({ caller = admin }) persistent actor class Backend() = this {
         nickname: Text;
         joinedDate: Int;
     };
-    type SYesNoVote = ProtocolTypes.SVote<YesNoAggregate, YesNoChoice> and { info: VoteInfo };
-    type SYesNoBallot = ProtocolTypes.SBallot<YesNoChoice>;
-    type SYesNoBallotWithUser = ProtocolTypes.SBallot<YesNoChoice> and { user: ?User };
+    type SYesNoPool = ProtocolTypes.SPool<YesNoAggregate, YesNoChoice> and { info: PoolInfo };
+    type SYesNoPosition = ProtocolTypes.SPosition<YesNoChoice>;
+    type SYesNoPositionWithUser = ProtocolTypes.SPosition<YesNoChoice> and { user: ?User };
     type Account = ProtocolTypes.Account;
     type UUID = ProtocolTypes.UUID;
-    type GetVotesByAuthorArgs = ProtocolTypes.GetVotesByAuthorArgs;
-    type SNewVoteResult = Result.Result<SYesNoVote, Text>;
+    type GetPoolsByAuthorArgs = ProtocolTypes.GetPoolsByAuthorArgs;
+    type SNewPoolResult = Result.Result<SYesNoPool, Text>;
 
-    let _infos = Map.new<UUID, VoteInfo>();
+    let _infos = Map.new<UUID, PoolInfo>();
     let _users = Map.new<Principal, User>();
 
-    public shared({ caller }) func new_vote({
+    public shared({ caller }) func new_pool({
         text: Text;
         thumbnail: Blob;
         id: UUID;
         from_subaccount: ?Blob;
-    }) : async SNewVoteResult {
+    }) : async SNewPoolResult {
         if (Principal.isAnonymous(caller)){
-            return #err("Anonymous users cannot create a vote");
+            return #err("Anonymous users cannot create a pool");
         };
-        let new_result = await Protocol.new_vote({ type_enum = #YES_NO; id; account = { owner = caller; subaccount = from_subaccount; } });
-        Result.mapOk(new_result, func(vote_type: SVoteType) : SYesNoVote {
-            switch(vote_type) {
-                case(#YES_NO(vote)) {
+        let new_result = await Protocol.new_pool({ type_enum = #YES_NO; id; account = { owner = caller; subaccount = from_subaccount; } });
+        Result.mapOk(new_result, func(pool_type: SPoolType) : SYesNoPool {
+            switch(pool_type) {
+                case(#YES_NO(pool)) {
                     let info = { text; thumbnail; visible = true; };
-                    Map.set(_infos, Map.thash, vote.vote_id, info);
-                    { vote with info; };
+                    Map.set(_infos, Map.thash, pool.pool_id, info);
+                    { pool with info; };
                 };
             };
         });
     };
 
-    public composite query func get_vote({ vote_id: UUID }) : async ?SYesNoVote {
-        let vote = await Protocol.find_vote({ vote_id; });
-        Option.map(vote, func(vote_type: SVoteType) : SYesNoVote {
-            with_info(vote_type);
+    public composite query func get_pool({ pool_id: UUID }) : async ?SYesNoPool {
+        let pool = await Protocol.find_pool({ pool_id; });
+        Option.map(pool, func(pool_type: SPoolType) : SYesNoPool {
+            with_info(pool_type);
         });
     };
 
-    public composite query func get_votes({ previous: ?UUID; limit: Nat; direction: QueryDirection; }) : async [SYesNoVote] {
+    public composite query func get_pools({ previous: ?UUID; limit: Nat; direction: QueryDirection; }) : async [SYesNoPool] {
 
-        // Fetch votes using the collected `filter_ids`
-        let votes = await Protocol.get_votes({ origin = Principal.fromActor(this); previous; limit; direction; });
+        // Fetch pools using the collected `filter_ids`
+        let pools = await Protocol.get_pools({ origin = Principal.fromActor(this); previous; limit; direction; });
 
-        // Process and return votes
-        Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {
-            with_info(vote_type);
+        // Process and return pools
+        Array.map(pools, func(pool_type: SPoolType) : SYesNoPool {
+            with_info(pool_type);
         });
     };
 
-    public composite query func get_votes_by_author(args: GetVotesByAuthorArgs) : async [SYesNoVote] {
-        let votes = await Protocol.get_votes_by_author(args);
-        Array.map(votes, func(vote_type: SVoteType) : SYesNoVote {
-            with_info(vote_type);
+    public composite query func get_pools_by_author(args: GetPoolsByAuthorArgs) : async [SYesNoPool] {
+        let pools = await Protocol.get_pools_by_author(args);
+        Array.map(pools, func(pool_type: SPoolType) : SYesNoPool {
+            with_info(pool_type);
         });
     };
 
-    public shared({caller}) func set_vote_visible({vote_id: UUID; visible: Bool; }) : async Result.Result<(), Text> {
+    public shared({caller}) func set_pool_visible({pool_id: UUID; visible: Bool; }) : async Result.Result<(), Text> {
 
         if (caller != admin) {
-            return #err("Only the admin can set or unset the visibility of a vote");
+            return #err("Only the admin can set or unset the visibility of a pool");
         };
 
-        let info = switch(Map.get<UUID, VoteInfo>(_infos, Map.thash, vote_id)){
-            case(null) { return #err("Vote not found"); };
+        let info = switch(Map.get<UUID, PoolInfo>(_infos, Map.thash, pool_id)){
+            case(null) { return #err("Pool not found"); };
             case(?i) { i; };
         };
 
-        Map.set(_infos, Map.thash, vote_id, { info with visible; });
+        Map.set(_infos, Map.thash, pool_id, { info with visible; });
         #ok;
     };
 
@@ -131,10 +131,10 @@ shared({ caller = admin }) persistent actor class Backend() = this {
         #ok;
     };
 
-    public composite query func get_vote_ballots(vote_id: Text) : async [SYesNoBallotWithUser] {
-        let ballots = await Protocol.get_vote_ballots(vote_id);
-        Array.map(ballots, func(ballot: ProtocolTypes.SBallotType) : SYesNoBallotWithUser {
-            switch(ballot) {
+    public composite query func get_pool_positions(pool_id: Text) : async [SYesNoPositionWithUser] {
+        let positions = await Protocol.get_pool_positions(pool_id);
+        Array.map(positions, func(position: ProtocolTypes.SPositionType) : SYesNoPositionWithUser {
+            switch(position) {
                 case(#YES_NO(b)) {
                     { b with user = Map.get<Principal, User>(_users, Map.phash, b.from.owner); };
                 };
@@ -142,12 +142,12 @@ shared({ caller = admin }) persistent actor class Backend() = this {
         });
     };
 
-    func with_info(vote_type: SVoteType) : SYesNoVote {
-        switch(vote_type){
-            case(#YES_NO(vote)) {
-                switch(Map.get<UUID, VoteInfo>(_infos, Map.thash, vote.vote_id)){
-                    case(null) { Debug.trap("Vote info not found"); };
-                    case(?info) { { vote with info; }; };
+    func with_info(pool_type: SPoolType) : SYesNoPool {
+        switch(pool_type){
+            case(#YES_NO(pool)) {
+                switch(Map.get<UUID, PoolInfo>(_infos, Map.thash, pool.pool_id)){
+                    case(null) { Debug.trap("Pool info not found"); };
+                    case(?info) { { pool with info; }; };
                 };
             };
         };
