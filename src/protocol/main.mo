@@ -30,9 +30,12 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
             return #err("The facade is already initialized");
         };
 
-        let #v0_1_0(s) = state;
+        let statev2 = switch(state){
+            case(#v0_2_0(s)) { s; };
+            case(_){ Debug.trap("Unsupported state version, v0_2_0 expected"); };
+        };
         let { controller; queries; initialize; } = Factory.build({
-            state = s;
+            state = statev2;
             protocol = Principal.fromActor(this);
             admin;
         });
@@ -45,33 +48,33 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         #ok;
     };
 
-    // Create a new vote
-    public shared({caller}) func new_vote(args: Types.NewVoteArgs) : async Types.SNewVoteResult {
-        await* getFacade().new_vote({ args with origin = caller; });
+    // Create a new pool
+    public shared({caller}) func new_pool(args: Types.NewPoolArgs) : async Types.SNewPoolResult {
+        await* getFacade().new_pool({ args with origin = caller; });
     };
 
-    // Get the votes of the given origin
-    public query func get_votes(args: Types.GetVotesArgs) : async [Types.SVoteType] {
-        getFacade().get_votes(args);
+    // Get the pools of the given origin
+    public query func get_pools(args: Types.GetPoolsArgs) : async [Types.SPoolType] {
+        getFacade().get_pools(args);
     };
 
-    public query func get_votes_by_author(args: Types.GetVotesByAuthorArgs) : async [Types.SVoteType] {
-        getFacade().get_votes_by_author(args);
+    public query func get_pools_by_author(args: Types.GetPoolsByAuthorArgs) : async [Types.SPoolType] {
+        getFacade().get_pools_by_author(args);
     };
 
-    public query func find_vote(args: Types.FindVoteArgs) : async ?Types.SVoteType {
-        getFacade().find_vote(args);
+    public query func find_pool(args: Types.FindPoolArgs) : async ?Types.SPoolType {
+        getFacade().find_pool(args);
     };
 
     // ⚠️ THIS IS INTENTIONALLY A QUERY FUNCTION
-    // DO NOT CHANGE IT TO A SHARED FUNCTION OTHERWISE THE PREVIEW WILL PUT AN ACTUAL BALLOT
-    public query({caller}) func preview_ballot(args: Types.PutBallotPreview) : async Types.PutBallotResult {
-        getFacade().put_ballot_for_free({ args with caller; });
+    // DO NOT CHANGE IT TO A SHARED FUNCTION OTHERWISE THE PREVIEW WILL PUT AN ACTUAL POSITION
+    public query({caller}) func preview_position(args: Types.PutPositionPreview) : async Types.PutPositionResult {
+        getFacade().put_position_for_free({ args with caller; });
     };
 
-    // Add a ballot on the given vote identified by its vote_id
-    public shared({caller}) func put_ballot(args: Types.PutBallotArgs) : async Types.PutBallotResult {
-        await* getFacade().put_ballot({ args with caller; });
+    // Add a position on the given pool identified by its pool_id
+    public shared({caller}) func put_position(args: Types.PutPositionArgs) : async Types.PutPositionResult {
+        await* getFacade().put_position({ args with caller; });
     };
 
     // Run the protocol
@@ -100,23 +103,23 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         getFacade().get_mining_total_claimed();
     };
 
-    // Get the ballots of the given account
-    public query func get_ballots(args: Types.GetBallotArgs) : async [Types.SBallotType] {
-        getFacade().get_ballots(args);
+    // Get the positions of the given account
+    public query func get_positions(args: Types.GetPositionArgs) : async [Types.SPositionType] {
+        getFacade().get_positions(args);
     };
 
     public query func get_user_supply({ account: Types.Account; }) : async Types.UserSupply {
         getFacade().get_user_supply({ account; });
     };
 
-    // Get the ballots of the given vote
-    public query func get_vote_ballots(vote_id: Types.UUID) : async [Types.SBallotType] {
-        getFacade().get_vote_ballots(vote_id);
+    // Get the positions of the given pool
+    public query func get_pool_positions(pool_id: Types.UUID) : async [Types.SPositionType] {
+        getFacade().get_pool_positions(pool_id);
     };
 
-    // Find a ballot by its vote_id and ballot_id
-    public query func find_ballot(ballot_id: Types.UUID) : async ?Types.SBallotType {
-        getFacade().find_ballot(ballot_id);
+    // Find a position by its pool_id and position_id
+    public query func find_position(position_id: Types.UUID) : async ?Types.SPositionType {
+        getFacade().find_position(position_id);
     };
 
     public shared func add_clock_offset(duration: Types.Duration) : async Result.Result<(), Text> {

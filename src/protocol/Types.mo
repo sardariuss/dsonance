@@ -28,17 +28,17 @@ module {
     public type AllowanceArgs            = Types.Current.AllowanceArgs;
     public type Allowance                = Types.Current.Allowance;
     public type ICRC2                    = Types.Current.ICRC2;
-    public type VoteRegister             = Types.Current.VoteRegister;
-    public type VoteType                 = Types.Current.VoteType;
+    public type PoolRegister             = Types.Current.PoolRegister;
+    public type PoolType                 = Types.Current.PoolType;
     public type YesNoAggregate           = Types.Current.YesNoAggregate;
     public type Decayed                  = Types.Current.Decayed;
     public type YesNoChoice              = Types.Current.YesNoChoice;
     public type TimedData<T>             = Types.Current.TimedData<T>;
     public type RollingTimeline<T>       = Types.Current.RollingTimeline<T>;
     public type Timeline<T>              = Types.Current.Timeline<T>;
-    public type Vote<A, B>               = Types.Current.Vote<A, B>;
+    public type Pool<A, B>               = Types.Current.Pool<A, B>;
     public type LockInfo                 = Types.Current.LockInfo;
-    public type Ballot<B>                = Types.Current.Ballot<B>;
+    public type Position<B>                = Types.Current.Position<B>;
     public type Duration                 = Types.Current.Duration;
     public type State                    = Types.Current.State;
     public type ClockParameters          = Types.Current.ClockParameters;
@@ -47,8 +47,8 @@ module {
     public type DebtInfo                 = Types.Current.DebtInfo;
     public type Transfer                 = Types.Current.Transfer;
     public type TransferResult           = Types.Current.TransferResult;
-    public type BallotType               = Types.Current.BallotType;
-    public type BallotRegister           = Types.Current.BallotRegister;
+    public type PositionType               = Types.Current.PositionType;
+    public type PositionRegister           = Types.Current.PositionRegister;
     public type Parameters               = Types.Current.Parameters;
     public type LendingParameters        = Types.Current.LendingParameters;
     public type DurationScalerParameters = Types.Current.DurationScalerParameters;
@@ -74,27 +74,27 @@ module {
         #backward;
     };
 
-    public type NewVoteArgs = {
+    public type NewPoolArgs = {
         account: Account;
-        type_enum: VoteTypeEnum;
+        type_enum: PoolTypeEnum;
         id: UUID;
     };
 
-    public type GetVotesArgs = {
+    public type GetPoolsArgs = {
         origin: Principal;
         previous: ?UUID;
         limit: Nat;
         direction: QueryDirection;
     };
 
-    public type GetVotesByAuthorArgs = {
+    public type GetPoolsByAuthorArgs = {
         author: Account;
         previous: ?UUID;
         limit: Nat;
         direction: QueryDirection;
     };
 
-    public type GetBallotArgs = {
+    public type GetPositionArgs = {
         account: Account;
         previous: ?UUID;
         limit: Nat;
@@ -102,25 +102,25 @@ module {
         direction: QueryDirection;
     };
 
-    public type FindVoteArgs = {
-        vote_id: UUID;
+    public type FindPoolArgs = {
+        pool_id: UUID;
     };
 
-    public type PutBallotArgs = {
+    public type PutPositionArgs = {
         id: UUID;
-        vote_id: UUID;
+        pool_id: UUID;
         choice_type: ChoiceType;
         from_subaccount: ?Blob;
         amount: Nat;
     };
 
-    public type PutBallotPreview = PutBallotArgs and {
+    public type PutPositionPreview = PutPositionArgs and {
         with_supply_apy_impact: Bool;
     };
 
-    public type FindBallotArgs = {
-        vote_id: UUID;
-        ballot_id: UUID;
+    public type FindPositionArgs = {
+        pool_id: UUID;
+        position_id: UUID;
     };
 
     public type UserSupply = {
@@ -139,12 +139,12 @@ module {
         };
     };
 
-    public type SVoteType = {
-        #YES_NO: SVote<YesNoAggregate, YesNoChoice>;
+    public type SPoolType = {
+        #YES_NO: SPool<YesNoAggregate, YesNoChoice>;
     };
 
-    public type SBallotType = {
-        #YES_NO: SBallot<YesNoChoice>;
+    public type SPositionType = {
+        #YES_NO: SPosition<YesNoChoice>;
     };
 
     public type SDebtInfo = {
@@ -168,9 +168,9 @@ module {
         minIntervalNs: Nat;
     };
 
-    public type SBallot<B> = {
-        ballot_id: UUID;
-        vote_id: UUID;
+    public type SPosition<B> = {
+        position_id: UUID;
+        pool_id: UUID;
         timestamp: Nat;
         choice: B;
         amount: Nat;
@@ -190,8 +190,8 @@ module {
         release_date: Nat;
     };
 
-    public type SVote<A, B> = {
-        vote_id: UUID;
+    public type SPool<A, B> = {
+        pool_id: UUID;
         date: Nat;
         origin: Principal;
         aggregate: SRollingTimeline<A>;
@@ -219,8 +219,8 @@ module {
             consent_steepness: Float;
         };
         duration_scaler: DurationScalerParameters;
-        minimum_ballot_amount: Nat;
-        ballot_half_life: Duration;
+        minimum_position_amount: Nat;
+        position_half_life: Duration;
         clock: SClockParameters;
         lending: LendingParameters;
         mining: {
@@ -250,11 +250,11 @@ module {
     public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Nat;}) -> Float;
     public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Nat;}) -> Float;
 
-    public type BallotAggregatorOutcome<A> = {
+    public type PositionAggregatorOutcome<A> = {
         aggregate: {
             update: A;
         };
-        ballot: {
+        position: {
             dissent: Float;
             consent: Float;
         };
@@ -268,32 +268,32 @@ module {
         #YES_NO: YesNoChoice;
     };
 
-    public type VoteTypeEnum = {
+    public type PoolTypeEnum = {
         #YES_NO;
     };
 
-    public type YesNoBallot = Ballot<YesNoChoice>;
-    public type YesNoVote = Vote<YesNoAggregate, YesNoChoice>;
+    public type YesNoPosition = Position<YesNoChoice>;
+    public type YesNoPool = Pool<YesNoAggregate, YesNoChoice>;
 
     // RESULT/ERROR TYPES
 
-    public type PutBallotSuccess = {
-        new: BallotType;
-        previous: [BallotType];
+    public type PutPositionSuccess = {
+        new: PositionType;
+        previous: [PositionType];
     };
 
-    public type SPutBallotSuccess = {
-        new: SBallotType;
-        previous: [SBallotType];
+    public type SPutPositionSuccess = {
+        new: SPositionType;
+        previous: [SPositionType];
     };
 
-    public type VoteNotFoundError        = { #VoteNotFound: { vote_id: UUID; }; };
+    public type PoolNotFoundError        = { #PoolNotFound: { pool_id: UUID; }; };
     public type InsuficientAmountError   = { #InsufficientAmount: { amount: Nat; minimum: Nat; }; };
-    public type NewVoteError             = { #VoteAlreadyExists: { vote_id: UUID; }; } or TransferFromError;
-    public type BallotAlreadyExistsError = { #BallotAlreadyExists: { ballot_id: UUID; }; };
-    public type PutBallotError           = VoteNotFoundError or InsuficientAmountError or BallotAlreadyExistsError or TransferFromError;
-    public type PutBallotResult          = Result<SPutBallotSuccess, Text>;
-    public type NewVoteResult            = Result<VoteType, Text>;
-    public type SNewVoteResult           = Result<SVoteType, Text>;
+    public type NewPoolError             = { #PoolAlreadyExists: { pool_id: UUID; }; } or TransferFromError;
+    public type PositionAlreadyExistsError = { #PositionAlreadyExists: { position_id: UUID; }; };
+    public type PutPositionError           = PoolNotFoundError or InsuficientAmountError or PositionAlreadyExistsError or TransferFromError;
+    public type PutPositionResult          = Result<SPutPositionSuccess, Text>;
+    public type NewPoolResult            = Result<PoolType, Text>;
+    public type SNewPoolResult           = Result<SPoolType, Text>;
 
 };

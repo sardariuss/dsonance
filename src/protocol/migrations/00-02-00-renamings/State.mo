@@ -228,7 +228,10 @@ module {
                 by_account = v1_state.ballot_register.by_account;
             };
             lock_scheduler_state = v1_state.lock_scheduler_state;
-            parameters = v1_state.parameters;
+            parameters = { v1_state.parameters with
+                position_half_life_ns = v1_state.parameters.ballot_half_life_ns;
+                minimum_position_amount = v1_state.parameters.minimum_ballot_amount;
+            };
             accounts = v1_state.accounts;
             lending = v1_state.lending;
             mining = v1_state.mining;
@@ -314,7 +317,10 @@ module {
                 by_account = v2_state.position_register.by_account;
             };
             lock_scheduler_state = v2_state.lock_scheduler_state;
-            parameters = v2_state.parameters;
+            parameters = { v2_state.parameters with
+                ballot_half_life_ns = v2_state.parameters.position_half_life_ns;
+                minimum_ballot_amount = v2_state.parameters.minimum_position_amount;
+            };
             accounts = v2_state.accounts;
             lending = v2_state.lending;
             mining = v2_state.mining;

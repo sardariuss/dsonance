@@ -58,7 +58,7 @@ module {
             Debug.trap("The hotness of the new elem should be 0.0");
         };
 
-        // Init with the ballot amount
+        // Init with the position amount
         elem.hotness := Float.fromInt(elem.amount);
 
         // Iterate over the previous elems

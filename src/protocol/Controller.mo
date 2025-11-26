@@ -5,8 +5,8 @@ import MapUtils                "utils/Map";
 import RollingTimeline         "utils/RollingTimeline";
 import Clock                   "utils/Clock";
 import SharedConversions       "shared/SharedConversions";
-import BallotUtils             "votes/BallotUtils";
-import VoteTypeController      "votes/VoteTypeController";
+import PositionUtils             "pools/PositionUtils";
+import PoolTypeController      "pools/PoolTypeController";
 import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
 import LedgerTypes             "ledger/Types";
@@ -29,25 +29,25 @@ import Principal               "mo:base/Principal";
 module {
 
     type Time = Int;
-    type VoteRegister = Types.VoteRegister;
-    type VoteType = Types.VoteType;
-    type BallotType = Types.BallotType;
-    type PutBallotResult = Types.PutBallotResult;
+    type PoolRegister = Types.PoolRegister;
+    type PoolType = Types.PoolType;
+    type PositionType = Types.PositionType;
+    type PutPositionResult = Types.PutPositionResult;
     type ChoiceType = Types.ChoiceType;
     type Account = Types.Account;
     type UUID = Types.UUID;
-    type SNewVoteResult = Types.SNewVoteResult;
-    type BallotRegister = Types.BallotRegister;
+    type SNewPoolResult = Types.SNewPoolResult;
+    type PositionRegister = Types.PositionRegister;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type Parameters = Types.Parameters;
     type RollingTimeline<T> = Types.RollingTimeline<T>;
     type ProtocolInfo = Types.ProtocolInfo;
-    type YesNoBallot = Types.YesNoBallot;
-    type YesNoVote = Types.YesNoVote;
+    type YesNoPosition = Types.YesNoPosition;
+    type YesNoPool = Types.YesNoPool;
     type Lock = Types.Lock;
     type Duration = Types.Duration;
     type YieldState = Types.YieldState;
-    type PutBallotError = Types.PutBallotError;
+    type PutPositionError = Types.PutPositionError;
     type LoanPosition = LendingTypes.LoanPosition;
     type Loan = LendingTypes.Loan;
     type BorrowOperation = LendingTypes.BorrowOperation;
@@ -61,29 +61,29 @@ module {
     type Set<T> = Set.Set<T>;
 
     type WeightParams = {
-        ballot: BallotType;
-        update_ballot: (BallotType) -> ();
+        position: PositionType;
+        update_position: (PositionType) -> ();
         weight: Float;
     };
 
-    public type NewVoteArgs = {
+    public type NewPoolArgs = {
         id: UUID;
         origin: Principal;
-        type_enum: Types.VoteTypeEnum;
+        type_enum: Types.PoolTypeEnum;
         account: Account;
     };
 
-    public type PutBallotArgs = {
+    public type PutPositionArgs = {
         id: UUID;
-        vote_id: UUID;
+        pool_id: UUID;
         choice_type: ChoiceType;
         caller: Principal;
         from_subaccount: ?Blob;
         amount: Nat;
     };
 
-    public type PutBallotPreviewArgs = PutBallotArgs and {
-        // If true, the preview will take into account the impact of the ballot on the supply APY
+    public type PutPositionPreviewArgs = PutPositionArgs and {
+        // If true, the preview will take into account the impact of the position on the supply APY
         // If false, the preview will not take into account this impact
         with_supply_apy_impact: Bool;
     };
@@ -91,10 +91,10 @@ module {
     public class Controller({
         genesis_time: Nat;
         clock: Clock.Clock;
-        vote_register: VoteRegister;
-        ballot_register: BallotRegister;
+        pool_register: PoolRegister;
+        position_register: PositionRegister;
         lock_scheduler: LockScheduler.LockScheduler;
-        vote_type_controller: VoteTypeController.VoteTypeController;
+        pool_type_controller: PoolTypeController.PoolTypeController;
         supply: SupplyAccount.SupplyAccount;
         supply_registry: SupplyRegistry.SupplyRegistry;
         borrow_registry: BorrowRegistry.BorrowRegistry;
@@ -107,54 +107,54 @@ module {
         foresight_updater: ForesightUpdater.ForesightUpdater;
     }){
 
-        public func new_vote(args: NewVoteArgs) : async* SNewVoteResult {
+        public func new_pool(args: NewPoolArgs) : async* SNewPoolResult {
 
             let { type_enum; origin; id; account; } = args;
 
-            let vote_id = IdFormatter.format(#VoteId(id));
+            let pool_id = IdFormatter.format(#Pool(id));
 
-            if (Map.has(vote_register.votes, Map.thash, vote_id)){
-                return #err("Vote already exists: " # vote_id);
+            if (Map.has(pool_register.pools, Map.thash, pool_id)){
+                return #err("Pool already exists: " # pool_id);
             };
 
-            // Add the vote
-            let vote = vote_type_controller.new_vote({
-                vote_id;
-                tx_id = 0; // @todo: for now everyone can create a vote without a transfer
-                vote_type_enum = type_enum;
+            // Add the pool
+            let pool = pool_type_controller.new_pool({
+                pool_id;
+                tx_id = 0; // @todo: for now everyone can create a pool without a transfer
+                pool_type_enum = type_enum;
                 date = clock.get_time();
                 origin;
                 author = account;
             });
-            Map.set(vote_register.votes, Map.thash, vote_id, vote);
+            Map.set(pool_register.pools, Map.thash, pool_id, pool);
 
             // Update the by_origin and by_author maps
-            MapUtils.putInnerSet(vote_register.by_origin, Map.phash, origin, Map.thash, vote_id);
-            MapUtils.putInnerSet(vote_register.by_author, MapUtils.acchash, account, Map.thash, vote_id);
+            MapUtils.putInnerSet(pool_register.by_origin, Map.phash, origin, Map.thash, pool_id);
+            MapUtils.putInnerSet(pool_register.by_author, MapUtils.acchash, account, Map.thash, pool_id);
             
             // TODO: ideally it's not the controller's responsibility to share types
-            #ok(SharedConversions.shareVoteType(vote));
+            #ok(SharedConversions.sharePoolType(pool));
         };
 
-        // This function is made to allow the frontend to preview the result of put_ballot
+        // This function is made to allow the frontend to preview the result of put_position
         // TODO: ideally one should have a true preview function that does not mutate the state
-        public func put_ballot_for_free(args: PutBallotPreviewArgs) : PutBallotResult {
+        public func put_position_for_free(args: PutPositionPreviewArgs) : PutPositionResult {
 
             let timestamp = clock.get_time();
 
-            let { ballot_id; vote_type; } = switch(process_ballot_input(args)){
+            let { position_id; pool_type; } = switch(process_position_input(args)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(input)) { input; };
             };
 
             // If with_supply_apy_impact is true, the preview will take into account
-            // the impact of the ballot on the supply APY
+            // the impact of the position on the supply APY
             let supplied = do {
                 if (args.with_supply_apy_impact) args.amount else 0;
             };
 
             let preview_result = supply_registry.add_position_without_transfer({
-                id = ballot_id;
+                id = position_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
                 supplied;
             }, timestamp);
@@ -164,23 +164,23 @@ module {
                 case(#ok(ok)) { ok; };
             };
 
-            perform_put_ballot({
+            perform_put_position({
                 args;
                 timestamp;
-                vote_type;
-                ballot_id;
+                pool_type;
+                position_id;
                 tx_id;
                 supply_index;
             });
         };
 
-        public func put_ballot(args: PutBallotArgs) : async* PutBallotResult {
+        public func put_position(args: PutPositionArgs) : async* PutPositionResult {
 
             if (Principal.isAnonymous(args.caller)) {
-                return #err("Anonymous caller cannot put a ballot");
+                return #err("Anonymous caller cannot put a position");
             };
 
-            let { ballot_id; vote_type; } = switch(process_ballot_input(args)){
+            let { position_id; pool_type; } = switch(process_position_input(args)){
                 case(#err(err)) { return #err(err); };
                 case(#ok(input)) { input; };
             };
@@ -189,7 +189,7 @@ module {
             let timestamp_before_transfer = clock.get_time();
 
             let transfer = await* supply_registry.add_position({
-                id = ballot_id;
+                id = position_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
                 supplied = args.amount;
             }, timestamp_before_transfer);
@@ -199,14 +199,14 @@ module {
                 case(#ok(ok)) { ok; };
             };
 
-            // Recapture timestamp after the async operation for the ballot
+            // Recapture timestamp after the async operation for the position
             let timestamp = clock.get_time();
 
-            perform_put_ballot({
+            perform_put_position({
                 args;
                 timestamp;
-                vote_type;
-                ballot_id;
+                pool_type;
+                position_id;
                 tx_id;
                 supply_index;
             });
@@ -274,35 +274,35 @@ module {
             // 4. Unlock expired locks and process them
             let unlocked_ids = lock_scheduler.try_unlock(time);
 
-            // 5. Process each unlocked ballot
-            label unlock_supply for (ballot_id in Set.keys(unlocked_ids)) {
+            // 5. Process each unlocked position
+            label unlock_supply for (position_id in Set.keys(unlocked_ids)) {
 
-                let ballot = switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)) {
+                let position = switch(Map.get(position_register.positions, Map.thash, position_id)) {
                     case(null) { 
-                        Debug.print("Ballot " # debug_show(ballot_id) # " not found");
+                        Debug.print("Position " # debug_show(position_id) # " not found");
                         continue unlock_supply;
                     };
-                    case(?#YES_NO(ballot)) { ballot; };
+                    case(?#YES_NO(position)) { position; };
                 };
-                let { vote_id; } = ballot;
+                let { pool_id; } = position;
 
-                let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)) {
+                let pool_type = switch(Map.get(pool_register.pools, Map.thash, pool_id)) {
                     case(null) { 
-                        Debug.print("Vote " # debug_show(vote_id) # " not found");
+                        Debug.print("Pool " # debug_show(pool_id) # " not found");
                         continue unlock_supply;
                     };
                     case(?v) { v; };
                 };
 
-                vote_type_controller.unlock_ballot({ vote_type; ballot_id; });
+                pool_type_controller.unlock_position({ pool_type; position_id; });
                 
-                // Remove supply position using the ballot's foresight reward
+                // Remove supply position using the position's foresight reward
                 switch(supply_registry.remove_position({
-                    id = ballot_id;
-                    interest_amount = Int.abs(ballot.foresight.reward);
+                    id = position_id;
+                    interest_amount = Int.abs(position.foresight.reward);
                     time;
                 })){
-                    case(#err(err)) { Debug.print("Failed to remove supply position for ballot " # debug_show(ballot_id) # ": " # err); };
+                    case(#err(err)) { Debug.print("Failed to remove supply position for position " # debug_show(position_id) # ": " # err); };
                     case(#ok(_)) {};
                 };
             };
@@ -359,70 +359,70 @@ module {
             supply_usd_price_tracker.get_token_price_usd();
         };
 
-        type ProcessedBallotInput = {
-            ballot_id: Text;
-            vote_type: VoteType;
+        type ProcessedPositionInput = {
+            position_id: Text;
+            pool_type: PoolType;
         };
 
-        func process_ballot_input(args: PutBallotArgs) : Result<ProcessedBallotInput, Text> {
+        func process_position_input(args: PutPositionArgs) : Result<ProcessedPositionInput, Text> {
             
-            let { id; vote_id; amount; } = args;
+            let { id; pool_id; amount; } = args;
 
-            let ballot_id = IdFormatter.format(#BallotId(id));
+            let position_id = IdFormatter.format(#Position(id));
 
-            let vote_type = switch(Map.get(vote_register.votes, Map.thash, vote_id)){
-                case(null) return #err("Vote not found: " # vote_id);
+            let pool_type = switch(Map.get(pool_register.pools, Map.thash, pool_id)){
+                case(null) return #err("Pool not found: " # pool_id);
                 case(?v) v;
             };
 
-            switch(Map.get(ballot_register.ballots, Map.thash, ballot_id)){
-                case(?_) return #err("Ballot already exists: " # ballot_id);
+            switch(Map.get(position_register.positions, Map.thash, position_id)){
+                case(?_) return #err("Position already exists: " # position_id);
                 case(null) {};
             };
 
-            if (amount < parameters.minimum_ballot_amount){
-                return #err("Insufficient amount: " # debug_show(amount) # " (minimum: " # debug_show(parameters.minimum_ballot_amount) # ")");
+            if (amount < parameters.minimum_position_amount){
+                return #err("Insufficient amount: " # debug_show(amount) # " (minimum: " # debug_show(parameters.minimum_position_amount) # ")");
             };
 
             #ok({
-                ballot_id;
-                vote_type;
+                position_id;
+                pool_type;
             });
         };
 
-        func perform_put_ballot({
-            args: PutBallotArgs;
+        func perform_put_position({
+            args: PutPositionArgs;
             timestamp: Nat;
-            vote_type: VoteType;
-            ballot_id: Text;
+            pool_type: PoolType;
+            position_id: Text;
             tx_id: Nat;
             supply_index: Float;
-        }): PutBallotResult {
+        }): PutPositionResult {
             
             let from = { owner = args.caller; subaccount = args.from_subaccount };
 
-            let put_ballot = vote_type_controller.put_ballot({
-                vote_type;
+            let put_position = pool_type_controller.put_position({
+                pool_type;
                 choice_type = args.choice_type;
-                args = { args with ballot_id; tx_id; supply_index; timestamp; from };
+                args = { args with position_id; tx_id; supply_index; timestamp; from };
             });
 
             // TODO: critical: need to process unlocked ids
             ignore lock_scheduler.try_unlock(timestamp);
 
             lock_scheduler.add(
-                BallotUtils.unwrap_lock(put_ballot.new),
-                IterUtils.map<BallotType, Lock>(
-                    vote_type_controller.vote_ballots(vote_type),
-                    BallotUtils.unwrap_lock
+                PositionUtils.unwrap_lock(put_position.new),
+                IterUtils.map<PositionType, Lock>(
+                    pool_type_controller.pool_positions(pool_type),
+                    PositionUtils.unwrap_lock
                 )
             );
             // Need to update the foresights after adding the new lock
             foresight_updater.update_foresights();
 
-            MapUtils.putInnerSet(ballot_register.by_account, MapUtils.acchash, from, Map.thash, ballot_id);
+            MapUtils.putInnerSet(position_register.by_account, MapUtils.acchash, from, Map.thash, position_id);
 
-            #ok(SharedConversions.sharePutBallotSuccess(put_ballot));
+            #ok(SharedConversions.sharePutPositionSuccess(put_position));
         };
 
     };

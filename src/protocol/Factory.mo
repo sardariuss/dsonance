@@ -3,8 +3,8 @@ import Controller             "Controller";
 import Queries                "Queries";
 import Decay                  "duration/Decay";
 import DurationScaler         "duration/DurationScaler";
-import VoteFactory            "votes/VoteFactory";
-import VoteTypeController     "votes/VoteTypeController";
+import PoolFactory            "pools/PoolFactory";
+import PoolTypeController     "pools/PoolTypeController";
 import LockInfoUpdater        "locks/LockInfoUpdater";
 import LockScheduler          "LockScheduler";
 import Clock                  "utils/Clock";
@@ -12,7 +12,7 @@ import RollingTimeline        "utils/RollingTimeline";
 import IterUtils              "utils/Iter";
 import MapUtils               "utils/Map";
 import ForesightUpdater       "ForesightUpdater";
-import Incentives             "votes/Incentives";
+import Incentives             "pools/Incentives";
 import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
 import LedgerAccount          "ledger/LedgerAccount";
@@ -30,14 +30,14 @@ import Timer                  "mo:base/Timer";
 module {
 
     type State       = Types.State;
-    type YesNoBallot = Types.YesNoBallot;
-    type YesNoVote   = Types.YesNoVote;
+    type YesNoPosition = Types.YesNoPosition;
+    type YesNoPool   = Types.YesNoPool;
     type Lock        = Types.Lock; 
     type UUID        = Types.UUID;
     type DebtInfo    = Types.DebtInfo;
     type LockEvent   = Types.LockEvent;
-    type BallotType  = Types.BallotType;
-    type VoteType    = Types.VoteType;
+    type PositionType  = Types.PositionType;
+    type PoolType    = Types.PoolType;
     
     type Iter<T>     = Map.Iter<T>;
     type Map<K, V>   = Map.Map<K, V>;
@@ -56,7 +56,7 @@ module {
         admin: Principal;
     }) : BuildOutput {
 
-        let { genesis_time; vote_register; ballot_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; mining; } = state;
+        let { genesis_time; pool_register; position_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; mining; } = state;
         let { duration_scaler; twap_config; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
@@ -108,8 +108,8 @@ module {
         let foresight_updater = ForesightUpdater.ForesightUpdater({
             initial_supply_info = to_supply_info(indexer.get_index(clock.get_time()));
             get_items = func() : Iter<ForesightUpdater.ForesightItem> {
-                // Map the ballots to foresight items
-                get_foresight_items(Map.keys(lock_scheduler_state.map), ballot_register.ballots);
+                // Map the positions to foresight items
+                get_foresight_items(Map.keys(lock_scheduler_state.map), position_register.positions);
             };
         });
 
@@ -137,24 +137,24 @@ module {
             lending_index = lending.index;
         });
 
-        let yes_no_controller = VoteFactory.build_yes_no({
+        let yes_no_controller = PoolFactory.build_yes_no({
             parameters;
-            ballot_register;
-            decay_model = Decay.DecayModel({ half_life_ns = parameters.ballot_half_life_ns; genesis_time; });
+            position_register;
+            decay_model = Decay.DecayModel({ half_life_ns = parameters.position_half_life_ns; genesis_time; });
             lock_info_updater = LockInfoUpdater.LockInfoUpdater({duration_scaler = duration_scaler_instance});
         });
 
-        let vote_type_controller = VoteTypeController.VoteTypeController({
+        let pool_type_controller = PoolTypeController.PoolTypeController({
             yes_no_controller;
         });
 
         let controller = Controller.Controller({
             genesis_time;
             clock;
-            vote_register;
-            ballot_register;
+            pool_register;
+            position_register;
             lock_scheduler;
-            vote_type_controller;
+            pool_type_controller;
             supply;
             supply_registry;
             borrow_registry;
@@ -207,13 +207,13 @@ module {
         };
     };
 
-    func get_foresight_items(locked_ballots: Iter<Text>, ballots: Map<UUID, BallotType>) : Iter<ForesightUpdater.ForesightItem> {
-        IterUtils.map(locked_ballots, func(ballot_id: Text) : ForesightUpdater.ForesightItem {
-            let ballot_type = MapUtils.getOrTrap(ballots, Map.thash, ballot_id);
-            switch(ballot_type){
+    func get_foresight_items(locked_positions: Iter<Text>, positions: Map<UUID, PositionType>) : Iter<ForesightUpdater.ForesightItem> {
+        IterUtils.map(locked_positions, func(position_id: Text) : ForesightUpdater.ForesightItem {
+            let position_type = MapUtils.getOrTrap(positions, Map.thash, position_id);
+            switch(position_type){
                 case(#YES_NO(b)) {     
                     let release_date = switch(b.lock){
-                        case(null) { Debug.trap("The ballot does not have a lock"); };
+                        case(null) { Debug.trap("The position does not have a lock"); };
                         case(?lock) { lock.release_date; };
                     };
                     let discernment = Incentives.compute_discernment({
