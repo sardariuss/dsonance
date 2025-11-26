@@ -18,32 +18,33 @@ import Text           "mo:base/Text";
 
 module {
 
-    type Time             = Int;
-    type State            = MigrationTypes.State;
-    type Account          = Types.Account;
-    type ICRC1            = Types.ICRC1;
-    type ICRC2            = Types.ICRC2;
-    type MiningTracker    = Types.MiningTracker;
-    type InitArgs         = Types.InitArgs;
-    type UpgradeArgs      = Types.UpgradeArgs;
-    type DowngradeArgs    = Types.DowngradeArgs;
-    type UUID             = Types.UUID;
-    type Lock             = Types.Lock;
-    type DebtInfo         = Types.DebtInfo;
-    type Position<B>      = Types.Position<B>;
-    type YesNoChoice      = Types.YesNoChoice;
-    type PoolType         = Types.PoolType;
-    type PositionType     = Types.PositionType;
-    type BorrowPosition   = Types.BorrowPosition;
-    type SupplyPosition   = Types.SupplyPosition;
-    type Withdrawal       = Types.Withdrawal;
-    type KongBackendActor = Types.KongBackendActor;
-    type XrcActor         = Types.XrcActor;
-    type TrackedPrice     = Types.TrackedPrice;
-    type Parameters       = Types.Parameters;
-    type InitParameters   = Types.InitParameters;
-    type LendingIndex     = Types.LendingIndex;
-    type Set<K>           = Set.Set<K>;
+    type Time               = Int;
+    type State              = MigrationTypes.State;
+    type Account            = Types.Account;
+    type ICRC1              = Types.ICRC1;
+    type ICRC2              = Types.ICRC2;
+    type MiningTracker      = Types.MiningTracker;
+    type InitArgs           = Types.InitArgs;
+    type UpgradeArgs        = Types.UpgradeArgs;
+    type DowngradeArgs      = Types.DowngradeArgs;
+    type UUID               = Types.UUID;
+    type Lock               = Types.Lock;
+    type DebtInfo           = Types.DebtInfo;
+    type Position<B>        = Types.Position<B>;
+    type YesNoChoice        = Types.YesNoChoice;
+    type PoolType           = Types.PoolType;
+    type PositionType       = Types.PositionType;
+    type BorrowPosition     = Types.BorrowPosition;
+    type SupplyPosition     = Types.SupplyPosition;
+    type Withdrawal         = Types.Withdrawal;
+    type KongBackendActor   = Types.KongBackendActor;
+    type XrcActor           = Types.XrcActor;
+    type TrackedPrice       = Types.TrackedPrice;
+    type Parameters         = Types.Parameters;
+    type InitParameters     = Types.InitParameters;
+    type LendingIndex       = Types.LendingIndex;
+    type LimitOrderBTreeKey = Types.LimitOrderBTreeKey;
+    type Set<K>             = Set.Set<K>;
 
     let BTREE_ORDER = 8;
 
@@ -169,6 +170,7 @@ module {
                         aggregate = pool.aggregate;
                         positions = pool.ballots;
                         author = pool.author;
+                        descending_orders = Map.new<YesNoChoice, BTree.BTree<LimitOrderBTreeKey, UUID>>();
                         var tvl = pool.tvl;
                     });
                 };

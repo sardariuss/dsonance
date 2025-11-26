@@ -82,6 +82,15 @@ module {
         amount: Nat;
     };
 
+    type PutLimitOrderArgs = {
+        order_id: Types.UUID;
+        pool_id: Types.UUID;
+        account: Account;
+        amount: Nat;
+        choice: Types.ChoiceType;
+        limit_dissent: Float;
+    };
+
     public type PutPositionPreviewArgs = PutPositionArgs and {
         // If true, the preview will take into account the impact of the position on the supply APY
         // If false, the preview will not take into account this impact
@@ -210,6 +219,52 @@ module {
                 tx_id;
                 supply_index;
             });
+        };
+
+        public func put_limit_order(args: PutLimitOrderArgs) : async Result<(), Text> {
+
+            let { order_id; pool_id; account; amount; limit_dissent; } = args;
+
+            if (Principal.isAnonymous(account.owner)) {
+                return #err("Anonymous caller cannot put a position");
+            };
+
+            let pool_type = switch(Map.get(pool_register.pools, Map.thash, pool_id)){
+                case(null) return #err("Pool not found: " # pool_id);
+                case(?v) v;
+            };
+
+            if (limit_dissent < 0.0 or limit_dissent > 1.0) {
+                return #err("Limit dissent must be between 0.0 and 1.0");
+            };
+
+            if (amount < parameters.minimum_position_amount){
+                return #err("Insufficient amount: " # debug_show(amount) # " (minimum: " # debug_show(parameters.minimum_position_amount) # ")");
+            };
+
+            // Capture timestamp before the transfer for the indexer
+            let timestamp_before_transfer = clock.get_time();
+
+            let transfer = await* supply_registry.add_position({
+                id = order_id;
+                account = account;
+                supplied = amount;
+            }, timestamp_before_transfer);
+
+            let { tx_id; supply_index; } = switch(transfer){
+                case(#err(err)) { return #err(err); };
+                case(#ok(ok)) { ok; };
+            };
+
+            // Recapture timestamp after the async operation for the position
+            let timestamp = clock.get_time();
+
+            pool_type_controller.put_limit_order({
+                pool_type;
+                args = { args with timestamp; };
+            });
+
+            #ok;
         };
 
         public func run_borrow_operation(args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {

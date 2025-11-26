@@ -527,13 +527,30 @@ module {
         #YES;
         #NO;
     };
+
+    public type LimitOrder<C> = {
+        order_id: UUID;
+        account: Account;
+        choice: C;
+        limit_dissent: Float;
+        var raw_amount: Nat;
+        supply_index: Float;
+        tx_id: Nat;
+        timestamp: Nat;
+    };
+
+    public type LimitOrderBTreeKey = {
+        limit_dissent: Float;
+        timestamp: Nat;
+    };
     
-    public type Pool<A, B> = {
+    public type Pool<A, C> = {
         pool_id: UUID;
         tx_id: Nat;
         date: Nat;
         origin: Principal;
         aggregate: RollingTimeline<A>;
+        descending_orders: Map<C, BTree<LimitOrderBTreeKey, UUID>>;
         positions: Set<UUID>;
         author: Account;
         var tvl: Int;

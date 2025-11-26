@@ -36,9 +36,9 @@ module {
     public type TimedData<T>             = Types.Current.TimedData<T>;
     public type RollingTimeline<T>       = Types.Current.RollingTimeline<T>;
     public type Timeline<T>              = Types.Current.Timeline<T>;
-    public type Pool<A, B>               = Types.Current.Pool<A, B>;
+    public type Pool<A, C>               = Types.Current.Pool<A, C>;
     public type LockInfo                 = Types.Current.LockInfo;
-    public type Position<B>                = Types.Current.Position<B>;
+    public type Position<C>              = Types.Current.Position<C>;
     public type Duration                 = Types.Current.Duration;
     public type State                    = Types.Current.State;
     public type ClockParameters          = Types.Current.ClockParameters;
@@ -47,8 +47,10 @@ module {
     public type DebtInfo                 = Types.Current.DebtInfo;
     public type Transfer                 = Types.Current.Transfer;
     public type TransferResult           = Types.Current.TransferResult;
-    public type PositionType               = Types.Current.PositionType;
-    public type PositionRegister           = Types.Current.PositionRegister;
+    public type PositionType             = Types.Current.PositionType;
+    public type LimitOrder<C>            = Types.Current.LimitOrder<C>;
+    public type LimitOrderBTreeKey       = Types.Current.LimitOrderBTreeKey;
+    public type PositionRegister         = Types.Current.PositionRegister;
     public type Parameters               = Types.Current.Parameters;
     public type LendingParameters        = Types.Current.LendingParameters;
     public type DurationScalerParameters = Types.Current.DurationScalerParameters;
