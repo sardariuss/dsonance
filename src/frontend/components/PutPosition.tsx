@@ -1,77 +1,77 @@
 import { EYesNoChoice, toCandid } from '../utils/conversions/yesnochoice';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { BallotInfo } from './types';
+import { PositionInfo } from './types';
 import { useAuth } from '@nfid/identitykit/react';
 import { useProtocolContext } from './context/ProtocolContext';
-import PutBallotPreview from './PutBallotPreview';
+import PutPositionPreview from './PutPositionPreview';
 import { protocolActor } from "./actors/ProtocolActor";
 import { useNavigate } from 'react-router-dom';
-import { PutBallotPreview as PreviewArgs, SBallot } from '@/declarations/protocol/protocol.did';
+import { PutPositionPreview as PreviewArgs, SPosition } from '@/declarations/protocol/protocol.did';
 import { useFungibleLedgerContext } from './context/FungibleLedgerContext';
 import { getTokenLogo, getTokenSymbol } from '../utils/metadata';
 import { showErrorToast, showSuccessToast, extractErrorMessage } from '../utils/toasts';
 import Modal from './common/Modal';
 import { formatDuration } from '../utils/conversions/durationUnit';
 import { get_current } from '../utils/timeline';
-import { unwrapLock } from '../utils/conversions/ballot';
+import { unwrapLock } from '../utils/conversions/position';
 import { aprToApy } from '../utils/lending';
 import { HiMiniArrowTrendingUp, HiOutlineClock, HiOutlineExclamationTriangle } from 'react-icons/hi2';
-import { SYesNoVote } from '@/declarations/backend/backend.did';
+import { SYesNoPool } from '@/declarations/backend/backend.did';
 import { createThumbnailUrl } from '../utils/thumbnail';
 
 const PREDEFINED_PERCENTAGES = [0.1, 0.25, 0.5, 1.0];
 
 type Props = {
   id: string;
-  ballot: BallotInfo;
-  setBallot: (ballot: BallotInfo) => void;
-  ballotPreview: SBallot | undefined;
-  ballotPreviewWithoutImpact?: SBallot | undefined;
-  vote: SYesNoVote;
+  position: PositionInfo;
+  setPosition: (position: PositionInfo) => void;
+  positionPreview: SPosition | undefined;
+  positionPreviewWithoutImpact?: SPosition | undefined;
+  pool: SYesNoPool;
 };
 
-const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutImpact, vote}: Props) => {
+const PutPosition = ({id, position, setPosition, positionPreview, positionPreviewWithoutImpact, pool}: Props) => {
 
   const { supplyLedger: { formatAmount, formatAmountUsd, metadata, 
     convertToFixedPoint, approveIfNeeded, userBalance, refreshUserBalance, tokenDecimals } } = useFungibleLedgerContext();
   const { user, connect } = useAuth();
   const authenticated = !!user;
   const { parameters } = useProtocolContext();
-  const [putBallotLoading, setPutBallotLoading] = useState(false);
+  const [putPositionLoading, setPutPositionLoading] = useState(false);
   const [selectedPredefined, setSelectedPredefined] = useState<number | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const yesArgs : PreviewArgs = useMemo(() => ({
     id: uuidv4(),
-    vote_id: id,
+    pool_id: id,
     from_subaccount: [],
     amount: 1_000_000n,
     choice_type: { YES_NO: toCandid(EYesNoChoice.Yes) },
     with_supply_apy_impact: false
   }), [id]);
-  const { data: yesBallotPreview } = protocolActor.unauthenticated.useQueryCall({
-    functionName: "preview_ballot",
+  const { data: yesPositionPreview } = protocolActor.unauthenticated.useQueryCall({
+    functionName: "preview_position",
     args: [ yesArgs ]
   });
   const noArgs : PreviewArgs = useMemo(() => ({
     id: uuidv4(),
-    vote_id: id,
+    pool_id: id,
     from_subaccount: [],
     amount: 1_000_000n,
     choice_type: { YES_NO: toCandid(EYesNoChoice.No) },
     with_supply_apy_impact: false
   }), [id]);
-  const { data: noBallotPreview } = protocolActor.unauthenticated.useQueryCall({
-    functionName: "preview_ballot",
+  const { data: noPositionPreview } = protocolActor.unauthenticated.useQueryCall({
+    functionName: "preview_position",
     args: [ noArgs ]
   });
   const navigate = useNavigate();
 
-  const thumbnail = useMemo(() => createThumbnailUrl(vote.info.thumbnail), [vote]);
+  const thumbnail = useMemo(() => createThumbnailUrl(pool.info.thumbnail), [pool]);
   
-  const { call: putBallot } = protocolActor.authenticated.useUpdateCall({
-    functionName: "put_ballot",
+  const { call: putPosition } = protocolActor.authenticated.useUpdateCall({
+    functionName: "put_position",
   });
 
   const showConfirmation = () => {
@@ -79,27 +79,27 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
       connect();
       return;
     }
-    if (putBallotLoading) {
+    if (putPositionLoading) {
       console.warn("Lock position is already in progress");
       return;
     }
     setShowConfirmModal(true);
   };
 
-  const executeVote = () => {
+  const executePool = () => {
     
-    setPutBallotLoading(true);
+    setPutPositionLoading(true);
     
-    approveIfNeeded(ballot.amount).then(({tokenFee, approveCalled}) => {
+    approveIfNeeded(position.amount).then(({tokenFee, approveCalled}) => {
       // Subtract the token fee from the amount if an approval was executed.
       // Second token fee is for the tranfer_from operation that will be executed by the protocol.
-      const finalAmount = ballot.amount - tokenFee * (approveCalled ? 2n : 1n);
-      putBallot([{
-        vote_id: id,
+      const finalAmount = position.amount - tokenFee * (approveCalled ? 2n : 1n);
+      putPosition([{
+        pool_id: id,
         id: uuidv4(),
         from_subaccount: [],
         amount: finalAmount,
-        choice_type: { YES_NO: toCandid(ballot.choice) },
+        choice_type: { YES_NO: toCandid(position.choice) },
       }]).then((result) => {
         if (result === undefined) {
           throw new Error("Lock position returned undefined result");
@@ -111,28 +111,28 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
         }
         refreshUserBalance();
         showSuccessToast("View locked successfully", "Lock position");
-        setPutBallotLoading(false);
-        // Ballot successfully put, navigate to the user's profile page
+        setPutPositionLoading(false);
+        // Position successfully put, navigate to the user's profile page
         navigate(`/user/${user?.principal.toString()}`);
       });
     }).catch((error) => {
       console.error("Error during Lock position:", error);
       showErrorToast(extractErrorMessage(error), "Lock position");
-      setPutBallotLoading(false);
+      setPutPositionLoading(false);
     });
   };
 
   useEffect(() => {
     // Only update if input is not focused, meaning that it comes from an external stimulus
     if (customRef.current && !isCustomActive) {
-      let amount = formatAmount(ballot.amount, "standard");
+      let amount = formatAmount(position.amount, "standard");
       if (amount !== undefined) {
         // If amount is 0, clear the input to show placeholder
-        customRef.current.value = ballot.amount === 0n ? "" : amount;
+        customRef.current.value = position.amount === 0n ? "" : amount;
       }
     }
   },
-  [ballot]);
+  [position]);
 
   const customRef = useRef<HTMLInputElement>(null);
   const [isCustomActive, setIsCustomActive] = useState(false);
@@ -145,33 +145,33 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
       return;
     }
     const tokenSymbol = getTokenSymbol(metadata);
-    const tooSmall = ballot.amount < parameters.minimum_ballot_amount;
+    const tooSmall = position.amount < parameters.minimum_position_amount;
     if (tooSmall) {
-      setErrorMsg(`Minimum ${formatAmount(parameters.minimum_ballot_amount)} ${tokenSymbol}`);
+      setErrorMsg(`Minimum ${formatAmount(parameters.minimum_position_amount)} ${tokenSymbol}`);
     } else {
       setErrorMsg(undefined);
     }
   }
-  , [ballot, parameters]);
+  , [position, parameters]);
 
 	return (
     <div className="flex flex-col items-center w-full gap-y-2 rounded-lg shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 p-4">
       <div className="flex flex-row w-full justify-between space-x-2">
         <button className={`w-1/2 h-10 text-lg rounded-lg 
-          ${ballot.choice === EYesNoChoice.Yes ? 
+          ${position.choice === EYesNoChoice.Yes ? 
             "bg-brand-true dark:bg-brand-true-dark text-white" : 
             "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`
-          } onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.Yes })}
+          } onClick={() => setPosition({ amount: position.amount, choice: EYesNoChoice.Yes })}
         >
-          {`True ${(yesBallotPreview && "ok" in yesBallotPreview) ? `${yesBallotPreview.ok.new.YES_NO.dissent.toFixed(2)}` : ''}`}
+          {`True ${(yesPositionPreview && "ok" in yesPositionPreview) ? `${yesPositionPreview.ok.new.YES_NO.dissent.toFixed(2)}` : ''}`}
         </button>
         <button className={`w-1/2 h-10 text-lg rounded-lg 
-          ${ballot.choice === EYesNoChoice.No ? 
+          ${position.choice === EYesNoChoice.No ? 
             "bg-brand-false text-white" : 
             "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`
-          } onClick={() => setBallot({ amount: ballot.amount, choice: EYesNoChoice.No })}
+          } onClick={() => setPosition({ amount: position.amount, choice: EYesNoChoice.No })}
         >
-          {`False ${(noBallotPreview && "ok" in noBallotPreview) ? `${noBallotPreview.ok.new.YES_NO.dissent.toFixed(2)}` : ''}`}
+          {`False ${(noPositionPreview && "ok" in noPositionPreview) ? `${noPositionPreview.ok.new.YES_NO.dissent.toFixed(2)}` : ''}`}
         </button>
       </div>
       <div className={`flex flex-col items-center w-full space-y-2`}>
@@ -213,8 +213,8 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
                   const sanitizedValue = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : rawValue;
 
                   const amount = convertToFixedPoint(Number(sanitizedValue)) ?? 0n;
-                  setBallot({
-                    choice: ballot.choice,
+                  setPosition({
+                    choice: position.choice,
                     amount: amount,
                   });
                   setSelectedPredefined(null);
@@ -230,7 +230,7 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
             />
           </div>
           <div className="text-gray-500 text-sm text-right self-end">
-            {formatAmountUsd(ballot.amount)}
+            {formatAmountUsd(position.amount)}
           </div>
         </div>
         <div className="flex flex-row items-center self-end space-x-1 w-3/4">
@@ -239,8 +239,8 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
               <button 
                 key={percentage} 
                 className={`rounded-lg h-8 text-base justify-center flex-grow ${selectedPredefined === index ? "bg-blue-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
-                onClick={() => { if(!authenticated) { connect() } else { setBallot({ amount: BigInt(Math.floor(percentage * Number(userBalance))), choice: ballot.choice }), setSelectedPredefined(index); }}}
-                disabled={putBallotLoading}
+                onClick={() => { if(!authenticated) { connect() } else { setPosition({ amount: BigInt(Math.floor(percentage * Number(userBalance))), choice: position.choice }), setSelectedPredefined(index); }}}
+                disabled={putPositionLoading}
               >
                 {percentage * 100}%
               </button>
@@ -251,17 +251,17 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
       <span className="w-full border-b border-gray-300 dark:border-gray-700">
         {/* Divider */}
       </span>
-      {ballotPreview && (
+      {positionPreview && (
         <div className="animate-in slide-in-from-top-4 fade-in-0 duration-300 w-full">
-          <PutBallotPreview
-            ballotPreview={ballotPreview}
-            ballotPreviewWithoutImpact={ballotPreviewWithoutImpact}
+          <PutPositionPreview
+            positionPreview={positionPreview}
+            positionPreviewWithoutImpact={positionPreviewWithoutImpact}
           />
         </div>
       )}
       <button
         className="button-simple w-full h-9 justify-center items-center text-base mt-2 flex space-x-2"
-        disabled={authenticated && (putBallotLoading || errorMsg !== undefined || ballot.amount === 0n)}
+        disabled={authenticated && (putPositionLoading || errorMsg !== undefined || position.amount === 0n)}
         onClick={() => { if (!authenticated) { connect() } else { showConfirmation() } }}
       >
         <span>Lock Position</span>
@@ -274,16 +274,16 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
         title="Confirm Lock Position"
       >
         <div className="flex flex-col w-full text-black dark:text-white space-y-4">
-          {/* Vote Information */}
+          {/* Pool Information */}
           <div className="w-full flex flex-row items-center gap-4">
             {/* Thumbnail */}
             <img
               className="w-16 h-16 bg-contain bg-no-repeat bg-center rounded-md flex-shrink-0"
               src={thumbnail}
             />
-            {/* Vote Text */}
+            {/* Pool Text */}
             <div className="flex-grow text-gray-800 dark:text-gray-200 text-lg font-bold line-clamp-3 overflow-hidden">
-              {vote.info.text}
+              {pool.info.text}
             </div>
           </div>
 
@@ -291,11 +291,11 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
             <div className="flex justify-between items-center">
               <span className="text-gray-700 dark:text-gray-300">Choice</span>
               <span className={`font-semibold px-2 rounded text-white ${
-                ballot.choice === EYesNoChoice.Yes
+                position.choice === EYesNoChoice.Yes
                   ? 'bg-brand-true dark:bg-brand-true-dark'
                   : 'bg-brand-false'
               }`}>
-                {ballot.choice === EYesNoChoice.Yes ? 'True' : 'False'}
+                {position.choice === EYesNoChoice.Yes ? 'True' : 'False'}
               </span>
             </div>
 
@@ -303,19 +303,19 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
               <span className="text-gray-700 dark:text-gray-300">Amount</span>
               <div className="text-right flex flex-row space-x-1 items-center">
                 <div className="font-semibold">
-                  {formatAmount(ballot.amount)} {getTokenSymbol(metadata)}
+                  {formatAmount(position.amount)} {getTokenSymbol(metadata)}
                 </div>
                 <div className="text-sm text-gray-500">
-                  {`(${formatAmountUsd(ballot.amount)})`}
+                  {`(${formatAmountUsd(position.amount)})`}
                 </div>
               </div>
             </div>
 
-            {ballotPreview && (
+            {positionPreview && (
               <div className="flex justify-between items-center">
                 <span className="text-gray-700 dark:text-gray-300">Dissent</span>
                 <span className="font-semibold px-2 rounded">
-                  {ballotPreview.dissent.toFixed(2)}
+                  {positionPreview.dissent.toFixed(2)}
                 </span>
               </div>
             )}
@@ -323,8 +323,8 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
             { /* spacer */ }
             <div className="border-t border-gray-300 dark:border-gray-600"></div>
 
-            <PutBallotPreview
-              ballotPreview={ballotPreview}
+            <PutPositionPreview
+              positionPreview={positionPreview}
               labelSize="text-sm"
               valueSize="text-base"
             />
@@ -347,10 +347,10 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
             <button
               className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors
               disabled:bg-gray-500 disabled:dark:bg-gray-700 disabled:bg-none"
-              onClick={executeVote}
-              disabled={putBallotLoading}
+              onClick={executePool}
+              disabled={putPositionLoading}
             >
-              {putBallotLoading ? 'Processing...' : 'Confirm Lock'}
+              {putPositionLoading ? 'Processing...' : 'Confirm Lock'}
             </button>
           </div>
         </div>
@@ -360,4 +360,4 @@ const PutBallot = ({id, ballot, setBallot, ballotPreview, ballotPreviewWithoutIm
 	);
 };
 
-export default PutBallot;
+export default PutPosition;

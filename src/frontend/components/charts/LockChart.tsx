@@ -1,11 +1,11 @@
 import { useMemo, useRef, Fragment, useContext } from 'react';
 import { ResponsiveLine, Serie } from '@nivo/line';
-import { SBallot, SPutBallotSuccess } from '@/declarations/protocol/protocol.did';
+import { SPosition, SPutPositionSuccess } from '@/declarations/protocol/protocol.did';
 import { DurationUnit, toNs } from '../../utils/conversions/durationUnit';
 import { computeAdaptiveTicks, computeNiceGridLines } from '.';
 import { nsToMs, timeToDate } from '../../utils/conversions/date';
 import { get_current } from '../../utils/timeline';
-import { unwrapLock } from '../../utils/conversions/ballot';
+import { unwrapLock } from '../../utils/conversions/position';
 import { ThemeContext } from '../App';
 import { useMediaQuery } from 'react-responsive';
 import { MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT } from '../../constants';
@@ -37,17 +37,17 @@ type ChartProperties = {
 
 type Selectable = {
   selected: string | null;
-  select_ballot: (id: string) => void;
+  select_position: (id: string) => void;
 };
 
 interface LockChartProps {
-  ballots: SBallot[];
-  ballotPreview: SPutBallotSuccess | undefined;
+  positions: SPosition[];
+  positionPreview: SPutPositionSuccess | undefined;
   durationWindow: DurationUnit | undefined;
   selectable?: Selectable;
 };
 
-const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockChartProps) => {
+const LockChart = ({ positions, positionPreview, durationWindow, selectable }: LockChartProps) => {
 
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
@@ -68,40 +68,40 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
     let gridY : number[] = [];
     let totalLocked = 0;
 
-    const all_ballots = [...ballots, ...(ballotPreview ? [ballotPreview.new.YES_NO] : [])];
+    const all_positions = [...positions, ...(positionPreview ? [positionPreview.new.YES_NO] : [])];
 
     const dateStart = durationWindow !== undefined
       ? nsToMs(info.current_time - toNs(1, durationWindow))
-      : all_ballots.reduce((acc, ballot) => Math.min(acc, nsToMs(ballot.timestamp)), Number.POSITIVE_INFINITY);
+      : all_positions.reduce((acc, position) => Math.min(acc, nsToMs(position.timestamp)), Number.POSITIVE_INFINITY);
     let dateEnd = nsToMs(info.current_time);
 
-    // Create map of preview ballots
+    // Create map of preview positions
     const previewLockDuration = new Map<string, bigint>();
-    if (ballotPreview !== undefined) {
-      ballotPreview.previous.forEach((b) => {
-        previewLockDuration.set(b.YES_NO.ballot_id, unwrapLock(b.YES_NO).duration_ns.current.data);
+    if (positionPreview !== undefined) {
+      positionPreview.previous.forEach((b) => {
+        previewLockDuration.set(b.YES_NO.position_id, unwrapLock(b.YES_NO).duration_ns.current.data);
       });
     }
 
-    totalLocked = all_ballots.reduce((acc, ballot) => { 
-      const baseTimestamp = nsToMs(ballot.timestamp);
-      const actualLockEnd = baseTimestamp + nsToMs(previewLockDuration.get(ballot.ballot_id) ?? get_current(unwrapLock(ballot).duration_ns).data);
+    totalLocked = all_positions.reduce((acc, position) => { 
+      const baseTimestamp = nsToMs(position.timestamp);
+      const actualLockEnd = baseTimestamp + nsToMs(previewLockDuration.get(position.position_id) ?? get_current(unwrapLock(position).duration_ns).data);
       // Skip locks that expired before the start date
-      const to_add = (dateStart === undefined || actualLockEnd > dateStart) ? (convertToFloatingPoint(ballot.amount) ?? 0) : 0;
+      const to_add = (dateStart === undefined || actualLockEnd > dateStart) ? (convertToFloatingPoint(position.amount) ?? 0) : 0;
       return acc + to_add;
     }, 0);
 
     let height_no = 0;
     let height_yes = totalLocked;
 
-    all_ballots.forEach((ballot, index) => {
-      const { timestamp, amount, ballot_id, choice } = ballot;
-      const duration_ns = unwrapLock(ballot).duration_ns;
+    all_positions.forEach((position, index) => {
+      const { timestamp, amount, position_id, choice } = position;
+      const duration_ns = unwrapLock(position).duration_ns;
 
       // Compute timestamps
       const baseTimestamp = nsToMs(timestamp);
       const initialLockEnd = baseTimestamp + nsToMs(get_current(duration_ns).data);
-      const actualLockEnd = baseTimestamp + nsToMs(previewLockDuration.get(ballot_id) ?? get_current(duration_ns).data);
+      const actualLockEnd = baseTimestamp + nsToMs(previewLockDuration.get(position_id) ?? get_current(duration_ns).data);
 
       // Skip locks that expired before the start date
       if (dateStart === undefined || actualLockEnd > dateStart) { 
@@ -121,7 +121,7 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
           height_yes -= height;
         }
         
-        // Generate chart data points for this ballot
+        // Generate chart data points for this position
         const points = [
           { x: new Date(Math.max(dateStart, baseTimestamp)), y},
           { x: new Date(actualLockEnd)                           , y},
@@ -133,7 +133,7 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
         });
 
         lockRects.push({
-          id: ballot_id,
+          id: position_id,
           start: points[0],
           mid: { x: new Date(initialLockEnd), y },
           end: points[1],
@@ -151,7 +151,7 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
 
     return { dateRange : { start: dateStart, end: dateEnd }, chartData, lockRects, gridX, gridY, totalLocked };
 
-  }, [ballots, formatAmount, info, ballotPreview, convertToFloatingPoint, durationWindow]);
+  }, [positions, formatAmount, info, positionPreview, convertToFloatingPoint, durationWindow]);
 
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -188,8 +188,8 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
             className = "fill-brand-false stroke-2 stroke-brand-false";
           }
 
-          // Highlight the preview ballot
-          if (ballotPreview !== undefined && id === ballotPreview.new.YES_NO.ballot_id) {
+          // Highlight the preview position
+          if (positionPreview !== undefined && id === positionPreview.new.YES_NO.position_id) {
             className += " animate-pulse";
           }
   
@@ -205,7 +205,7 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
                   className={className}
                   onClick={() =>{
                     if (selectable) {
-                      selectable.select_ballot(id);
+                      selectable.select_position(id);
                     }
                   }}
                   style={{
@@ -250,7 +250,7 @@ const LockChart = ({ ballots, ballotPreview, durationWindow, selectable }: LockC
               fill="white"
               onClick={() =>{
                 if (selectable) {
-                  selectable.select_ballot(id);
+                  selectable.select_position(id);
                 }
               }}
               className={`${selectable? "hover:cursor-pointer": ""} ${selectable?.selected === id ? "font-semibold" : ""}`}

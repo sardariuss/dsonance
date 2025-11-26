@@ -1,29 +1,29 @@
 import { useMemo } from "react";
-import { SBallotType } from "@/declarations/protocol/protocol.did";
+import { SPositionType } from "@/declarations/protocol/protocol.did";
 import { formatDate, timeDifference, timeToDate } from "../../utils/conversions/date";
-import { unwrapLock } from "../../utils/conversions/ballot";
+import { unwrapLock } from "../../utils/conversions/position";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { aprToApy } from "../../utils/lending";
 import { formatDuration } from "@/frontend/utils/conversions/durationUnit";
 import { useProtocolContext } from "../context/ProtocolContext";
 
 interface PositionRowProps {
-  ballot: SBallotType;
+  position: SPositionType;
 }
 
-const PositionRow = ({ ballot }: PositionRowProps) => {
+const PositionRow = ({ position }: PositionRowProps) => {
   const { info } = useProtocolContext();
   const { supplyLedger: { formatAmountUsd } } = useFungibleLedgerContext();
 
   const { releaseTimestamp, durationAdded, reward, currentApy } = useMemo(() => {
-    const lockDuration = unwrapLock(ballot.YES_NO).duration_ns;
+    const lockDuration = unwrapLock(position.YES_NO).duration_ns;
     return {
-      currentApy: aprToApy(ballot.YES_NO.foresight.apr.current),
-      reward: ballot.YES_NO.foresight.reward,
-      releaseTimestamp: ballot.YES_NO.timestamp + lockDuration.current.data,
+      currentApy: aprToApy(position.YES_NO.foresight.apr.current),
+      reward: position.YES_NO.foresight.reward,
+      releaseTimestamp: position.YES_NO.timestamp + lockDuration.current.data,
       durationAdded: lockDuration.history.length === 0 ? undefined : lockDuration.current.data - lockDuration.history[0].data,
     };
-  }, [ballot]);
+  }, [position]);
 
   return info?.current_time === undefined ? (
     <></>
@@ -31,7 +31,7 @@ const PositionRow = ({ ballot }: PositionRowProps) => {
     <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center py-2 h-[60px] sm:h-[68px]">
       {/* Dissent */}
       <div className="w-full text-right flex items-center justify-end">
-        <span className="font-semibold text-sm">{ballot.YES_NO.dissent.toFixed(2)}</span>
+        <span className="font-semibold text-sm">{position.YES_NO.dissent.toFixed(2)}</span>
       </div>
 
       {/* Time Left */}
@@ -53,7 +53,7 @@ const PositionRow = ({ ballot }: PositionRowProps) => {
       {/* Value */}
       <div className="w-full flex flex-col items-end text-right justify-center">
         <span className="font-semibold text-sm">
-          {formatAmountUsd(ballot.YES_NO.amount + reward)}
+          {formatAmountUsd(position.YES_NO.amount + reward)}
         </span>
         <span className="text-xs text-green-500">
           {(currentApy * 100).toFixed(2)}% APY

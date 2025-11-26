@@ -1,17 +1,17 @@
-import { VoteDetails } from "../utils/conversions/votedetails";
+import { PoolDetails } from "../utils/conversions/pooldetails";
 import ConsensusIndicator from "./ConsensusIndicator";
 import { useMemo } from "react";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import { createThumbnailUrl } from "../utils/thumbnail";
 
-interface VoteCardProps {
+interface PoolCardProps {
   tvl: bigint;
-  voteDetails: VoteDetails;
+  poolDetails: PoolDetails;
   text: string;
   thumbnail: number[] | Uint8Array;
 }
 
-const VoteCard: React.FC<VoteCardProps> = ({ tvl, voteDetails, text, thumbnail }) => {
+const PoolCard: React.FC<PoolCardProps> = ({ tvl, poolDetails, text, thumbnail }) => {
   const { supplyLedger } = useFungibleLedgerContext();
 
   const thumbnailUrl = useMemo(() => createThumbnailUrl(thumbnail), [thumbnail]);
@@ -24,34 +24,34 @@ const VoteCard: React.FC<VoteCardProps> = ({ tvl, voteDetails, text, thumbnail }
         <img 
           className="w-10 h-10 min-w-10 min-h-10 bg-contain bg-no-repeat bg-center rounded-md self-start" 
           src={thumbnailUrl}
-          alt="Vote Thumbnail"
+          alt="Pool Thumbnail"
         />
 
-        {/* Vote Text */}
+        {/* Pool Text */}
         <div className="flex-grow text-gray-800 dark:text-gray-200 font-medium line-clamp-3">
           {text}
         </div>
 
         {/* Consensus Indicator */}
-        {voteDetails.cursor !== undefined && (
+        {poolDetails.cursor !== undefined && (
           <div className="flex self-start">
-            <ConsensusIndicator cursor={voteDetails.cursor} />
+            <ConsensusIndicator cursor={poolDetails.cursor} />
           </div>
         )}
       </div>
 
       {/* Bottom Row: CDV and TVL */}
       <div className="mt-auto flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 pt-4">
-        <span>CDV: {supplyLedger.formatAmountUsd(voteDetails.total)}</span>
+        <span>CDV: {supplyLedger.formatAmountUsd(poolDetails.total)}</span>
         <span>TVL: {supplyLedger.formatAmountUsd(tvl)}</span>
       </div>
     </div>
   );
 };
 
-export default VoteCard;
+export default PoolCard;
 
-export const VoteCardSkeleton: React.FC = () => {
+export const PoolCardSkeleton: React.FC = () => {
   return (
     <div className="flex flex-col h-full">
       {/* Top Row: Image and Text */}

@@ -12,10 +12,10 @@ import { useLendingCalculations } from "../hooks/useLendingCalculations";
 type LendingTabProps = {
   borrowOps: ReturnType<typeof useBorrowOperations>;
   lendingCalcs: ReturnType<typeof useLendingCalculations>;
-  refetchUserBallots: () => Promise<any>;
+  refetchUserPositions: () => Promise<any>;
 };
 
-export const LendingTab = ({ borrowOps, lendingCalcs, refetchUserBallots }: LendingTabProps) => {
+export const LendingTab = ({ borrowOps, lendingCalcs, refetchUserPositions }: LendingTabProps) => {
 
   const {
     previewOperation,
@@ -26,12 +26,12 @@ export const LendingTab = ({ borrowOps, lendingCalcs, refetchUserBallots }: Lend
 
   const { collateral, currentOwed, maxWithdrawable, maxBorrowable } = lendingCalcs;
 
-  // Wrap runOperation to refetch user ballots after successful operations
+  // Wrap runOperation to refetch user positions after successful operations
   const runOperation: typeof baseRunOperation = async (amount, kind) => {
     const result = await baseRunOperation(amount, kind);
     if (result !== undefined && "ok" in result) {
-      // Refetch ballots to update positions data in Profile
-      await refetchUserBallots();
+      // Refetch positions to update positions data in Profile
+      await refetchUserPositions();
     }
     return result;
   };

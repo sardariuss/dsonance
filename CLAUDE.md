@@ -69,7 +69,7 @@ The project uses multiple canisters (smart contracts):
 ### Protocol Architecture
 - **Main Protocol**: `src/protocol/main.mo` with migration system
 - **Lending System**: `src/protocol/lending/` with interest rates, borrowing, supply
-- **Voting System**: `src/protocol/votes/` with ballot aggregation and incentives
+- **Pool/Position System**: `src/protocol/pools/` with position aggregation and incentives
 - **Duration System**: `src/protocol/duration/` with decay calculations
 - **Utilities**: `src/protocol/utils/` for common functionality
 
@@ -91,11 +91,11 @@ The project uses multiple canisters (smart contracts):
 
 ## Lock Duration Computation
 
-The protocol uses a dynamic lock duration system that adapts based on the "hotness" of votes. The lock duration for ballots is computed using the **DurationScaler** (`src/protocol/duration/DurationScaler.mo`).
+The protocol uses a dynamic lock duration system that adapts based on the "hotness" of pools. The lock duration for positions is computed using the **DurationScaler** (`src/protocol/duration/DurationScaler.mo`).
 
 ### How it Works
 
-1. **Hotness Calculation**: When a ballot is submitted, the system calculates the "hotness" of the vote based on how much USDT is locked around the ballot's timestamp. Higher amounts of locked USDT indicate a "hotter" vote.
+1. **Hotness Calculation**: When a position is submitted, the system calculates the "hotness" of the pool based on how much USDT is locked around the position's timestamp. Higher amounts of locked USDT indicate a "hotter" pool.
 
 2. **Duration Scaling**: The lock duration is computed using a power scaling function:
    ```
@@ -104,12 +104,12 @@ The protocol uses a dynamic lock duration system that adapts based on the "hotne
    Where:
    - `a` is the multiplier parameter (controls baseline duration)
    - `b` is the logarithmic base parameter (controls the power law exponent)
-   - `hotness` is the amount of USDT locked around the ballot's timestamp
+   - `hotness` is the amount of USDT locked around the position's timestamp
    - `log_10(b)` determines the scaling exponent (e.g., b=3.25 gives exponent ≈ 0.512)
 
-3. **Scaling Behavior**: As hotness increases, the duration increases but at a decreasing rate (sub-linear scaling when b < 10). This is the desired behavior for preventing extremely long lock durations while still scaling appropriately with activity. The sub-linear relationship means that highly active votes don't result in impractically long lock periods.
+3. **Scaling Behavior**: As hotness increases, the duration increases but at a decreasing rate (sub-linear scaling when b < 10). This is the desired behavior for preventing extremely long lock durations while still scaling appropriately with activity. The sub-linear relationship means that highly active pools don't result in impractically long lock periods.
 
-4. **Purpose**: This system prevents absurd lock durations (e.g., 10 seconds or 100 years) by scaling the duration based on the economic activity around the vote. More active votes (higher hotness) get different lock durations than less active ones, but the scaling is controlled to remain reasonable.
+4. **Purpose**: This system prevents absurd lock durations (e.g., 10 seconds or 100 years) by scaling the duration based on the economic activity around the pool. More active pools (higher hotness) get different lock durations than less active ones, but the scaling is controlled to remain reasonable.
 
 5. **Configuration**: The `a` and `b` parameters can be configured in the protocol factory to tune the scaling behavior according to the desired economics. For example:
    - `b = 10` gives linear scaling (hotness^1)

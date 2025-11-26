@@ -1,10 +1,10 @@
 import { Route, Routes } from "react-router-dom";
 
-import VoteList from "../components/VoteList";
+import PoolList from "../components/PoolList";
 import Profile from "../components/user/Profile";
 import Dashboard from "../components/Dashboard";
-import Vote from "../components/Vote";
-import NewVote from "../components/NewVote";
+import Pool from "../components/Pool";
+import NewPool from "../components/NewPool";
 import FaucetPage from "../components/FaucetPage";
 import DaoPage from "../components/dao/DaoPage";
 import ProtocolPage from "../components/ProtocolPage";
@@ -13,13 +13,13 @@ const Router = () => {
   
     return (
       <Routes>
-        <Route path={"/"} element={<VoteList />} />
-        <Route path={"/new"} element={<NewVote />} />
+        <Route path={"/"} element={<PoolList />} />
+        <Route path={"/new"} element={<NewPool />} />
         <Route path={"/dashboard"} element={<Dashboard />} />
         <Route path={"/dao"} element={<DaoPage />} />
         <Route path={"/protocol"} element={<ProtocolPage />} />
         <Route path={"/user/:principal"} element={<Profile />} />
-        <Route path={"/vote/:id"} element={<Vote />} />
+        <Route path={"/pool/:id"} element={<Pool />} />
         <Route path={"/faucet"} element={<FaucetPage/>} />
       </Routes>
     );

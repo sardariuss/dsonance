@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { EYesNoChoice } from '../utils/conversions/yesnochoice';
-import { BallotInfo } from './types';
-import { add_ballot, deduce_ballot, VoteDetails } from '../utils/conversions/votedetails';
+import { PositionInfo } from './types';
+import { add_position, deduce_position, PoolDetails } from '../utils/conversions/pooldetails';
 
 const CURSOR_HEIGHT = "0.3rem";
 const MIN_CURSOR = 0.001;
@@ -11,40 +11,40 @@ const clampCursor = (cursor: number) => {
   return Math.min(Math.max(cursor, MIN_CURSOR), MAX_CURSOR);
 };
 
-interface VoteSliderProps {
+interface PoolSliderProps {
   id: string;
-  ballot: BallotInfo;
-  setBallot: (ballot: BallotInfo) => void;
-  voteDetails: VoteDetails;
+  position: PositionInfo;
+  setPosition: (position: PositionInfo) => void;
+  poolDetails: PoolDetails;
 }
 
-const VoteSlider: React.FC<VoteSliderProps> = ({ 
+const PoolSlider: React.FC<PoolSliderProps> = ({ 
   id, 
-  ballot, 
-  setBallot, 
-  voteDetails,
+  position, 
+  setPosition, 
+  poolDetails,
 }) => {
   const sliderRef = useRef<HTMLInputElement>(null);
   const [isSliderActive, setIsSliderActive] = useState(false);
   
-  const initCursor = voteDetails.cursor;
+  const initCursor = poolDetails.cursor;
   const [cursor, setCursor] = useState(initCursor);
 
-  const updateBallot = (value: number) => {
+  const updatePosition = (value: number) => {
     value = clampCursor(value);
     setCursor(value);
-    setBallot(deduce_ballot(voteDetails, value));
+    setPosition(deduce_position(poolDetails, value));
   };
 
   useEffect(() => {
     if (sliderRef.current && !isSliderActive) {
-      const liveDetails = add_ballot(voteDetails, ballot);
+      const liveDetails = add_position(poolDetails, position);
       setCursor(liveDetails.cursor);
       if (liveDetails.cursor !== undefined) {
         sliderRef.current.value = liveDetails.cursor.toString();
       }
     }
-  }, [ballot, voteDetails, isSliderActive]);
+  }, [position, poolDetails, isSliderActive]);
 
   if (cursor === undefined) {
     return <div className="pt-2"></div>;
@@ -55,13 +55,13 @@ const VoteSlider: React.FC<VoteSliderProps> = ({
       <div className="flex w-full rounded-sm z-0" style={{ height: CURSOR_HEIGHT, position: 'relative' }}>  
         {cursor > MIN_CURSOR && (
           <div 
-            className={`bg-brand-true dark:bg-brand-true-dark h-full rounded-l ${ballot.choice === EYesNoChoice.Yes ? "" : "opacity-70"}`}  
+            className={`bg-brand-true dark:bg-brand-true-dark h-full rounded-l ${position.choice === EYesNoChoice.Yes ? "" : "opacity-70"}`}  
             style={{ width: `${cursor * 100}%` }}
           />
         )}
         {cursor < MAX_CURSOR && (
           <div 
-            className={`bg-brand-false h-full rounded-r ${ballot.choice === EYesNoChoice.No ? "" : "opacity-70"}`} 
+            className={`bg-brand-false h-full rounded-r ${position.choice === EYesNoChoice.No ? "" : "opacity-70"}`} 
             style={{ width: `${(1 - cursor) * 100}%` }}
           />
         )}
@@ -76,7 +76,7 @@ const VoteSlider: React.FC<VoteSliderProps> = ({
         defaultValue={initCursor}
         onFocus={() => setIsSliderActive(true)}
         onBlur={() => setIsSliderActive(false)}
-        onChange={(e) => updateBallot(Number(e.target.value))}
+        onChange={(e) => updatePosition(Number(e.target.value))}
         onTouchEnd={() => {}}
         onMouseUp={() => {}}
         onTouchStart={() => {}}
@@ -88,4 +88,4 @@ const VoteSlider: React.FC<VoteSliderProps> = ({
   );
 };
 
-export default VoteSlider;
+export default PoolSlider;

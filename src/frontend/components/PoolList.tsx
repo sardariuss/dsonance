@@ -1,12 +1,12 @@
-import { SYesNoVote } from "../../declarations/backend/backend.did";
+import { SYesNoPool } from "../../declarations/backend/backend.did";
 import { backendActor } from "./actors/BackendActor";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
-import VoteCard from "./VoteCard"
+import PoolCard from "./PoolCard"
 import { useProtocolContext } from "./context/ProtocolContext";
-import { compute_vote_details } from "../utils/conversions/votedetails";
+import { compute_pool_details } from "../utils/conversions/pooldetails";
 import { toNullable } from "@dfinity/utils";
 import InfiniteScroll from "react-infinite-scroll-component";
 
@@ -18,14 +18,14 @@ const SkeletonLoader = ({ count }: { count: number }) => (
   </div>
 );
 
-const VoteList = () => {
+const PoolList = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const voteRefs = useRef<Map<string, (HTMLDivElement | null)>>(new Map());
-  const selectedVoteId = useMemo(() => searchParams.get("voteId"), [searchParams]);
+  const poolRefs = useRef<Map<string, (HTMLDivElement | null)>>(new Map());
+  const selectedPoolId = useMemo(() => searchParams.get("poolId"), [searchParams]);
   const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
-  const [votes, setVotes] = useState<SYesNoVote[]>([]);
+  const [pools, setPools] = useState<SYesNoPool[]>([]);
   const [previous, setPrevious] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const limit = isMobile ? 10 : 16;
@@ -33,26 +33,26 @@ const VoteList = () => {
   const { computeDecay, info } = useProtocolContext();
   const navigate = useNavigate();
 
-  const { call: fetchVotes } = backendActor.unauthenticated.useQueryCall({
-    functionName: "get_votes",
+  const { call: fetchPools } = backendActor.unauthenticated.useQueryCall({
+    functionName: "get_pools",
   });
 
-  const fetchAndSetVotes = async () => {
+  const fetchAndSetPools = async () => {
 
-    const fetchedVotes = await fetchVotes([{
+    const fetchedPools = await fetchPools([{
       previous: toNullable(previous),
       limit: BigInt(limit),
       direction: { backward: null }
     }]);
 
-    if (fetchedVotes && fetchedVotes.length > 0) {
-      setVotes((prevVotes) => {
-        const mergedVotes = [...prevVotes, ...fetchedVotes];
-        const uniqueVotes = Array.from(new Map(mergedVotes.map(v => [v.vote_id, v])).values());
-        return uniqueVotes;
+    if (fetchedPools && fetchedPools.length > 0) {
+      setPools((prevPools) => {
+        const mergedPools = [...prevPools, ...fetchedPools];
+        const uniquePools = Array.from(new Map(mergedPools.map(v => [v.pool_id, v])).values());
+        return uniquePools;
       });
-      setPrevious(fetchedVotes.length === limit ? fetchedVotes[limit - 1].vote_id : undefined);
-      setHasMore(fetchedVotes.length === limit);
+      setPrevious(fetchedPools.length === limit ? fetchedPools[limit - 1].pool_id : undefined);
+      setHasMore(fetchedPools.length === limit);
     } else {
       setHasMore(false);
     }
@@ -60,45 +60,45 @@ const VoteList = () => {
 
   // Initial Fetch on Mount
   useEffect(() => {
-    fetchAndSetVotes();
-  }, [fetchVotes]);
+    fetchAndSetPools();
+  }, [fetchPools]);
 
   useEffect(() => {
-    if (votes && selectedVoteId !== null) {
-      const voteElement = voteRefs.current.get(selectedVoteId);
-      if (voteElement) {
+    if (pools && selectedPoolId !== null) {
+      const poolElement = poolRefs.current.get(selectedPoolId);
+      if (poolElement) {
         setTimeout(() => {
-          voteElement.scrollIntoView({ behavior: "smooth", block: "start" });
+          poolElement.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 50);
       }
     }
-  }, [votes]);
+  }, [pools]);
 
   return (
     <div className="flex flex-col gap-y-1 w-full sm:w-4/5 md:w-11/12 lg:w-5/6 xl:w-4/5 mx-auto rounded-md p-3">
-      {/* Vote Grid */}
+      {/* Pool Grid */}
       <InfiniteScroll
-        dataLength={votes.length}
-        next={fetchAndSetVotes}
+        dataLength={pools.length}
+        next={fetchAndSetPools}
         hasMore={hasMore}
         loader={<SkeletonLoader count={5} />} // Adjust count as needed
         className="w-full flex flex-col min-h-full overflow-auto"
         style={{ height: "auto", overflow: "visible" }}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {votes.map((vote: SYesNoVote, index) => (
-            computeDecay && vote.info.visible && info &&
+          {pools.map((pool: SYesNoPool, index) => (
+            computeDecay && pool.info.visible && info &&
               <div 
                 key={index}
-                ref={(el) => { voteRefs.current.set(vote.vote_id, el); }}
+                ref={(el) => { poolRefs.current.set(pool.pool_id, el); }}
                 className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-3 hover:cursor-pointer border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all duration-200 ease-in-out"
-                onClick={() => { setSearchParams({ voteId: vote.vote_id }); navigate(`/vote/${vote.vote_id}`); }}
+                onClick={() => { setSearchParams({ poolId: pool.pool_id }); navigate(`/pool/${pool.pool_id}`); }}
               >
-                <VoteCard 
-                  tvl={vote.tvl} 
-                  voteDetails={compute_vote_details(vote, computeDecay(info.current_time))} 
-                  text={vote.info.text}
-                  thumbnail={vote.info.thumbnail}
+                <PoolCard 
+                  tvl={pool.tvl} 
+                  poolDetails={compute_pool_details(pool, computeDecay(info.current_time))} 
+                  text={pool.info.text}
+                  thumbnail={pool.info.thumbnail}
                 />
               </div>
           ))}
@@ -108,4 +108,4 @@ const VoteList = () => {
   );
 };
 
-export default VoteList;
+export default PoolList;

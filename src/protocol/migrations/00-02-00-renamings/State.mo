@@ -158,18 +158,18 @@ module {
         };
 
         // Transform VoteType to PoolType
-        func transformVoteToPool(voteType: V0_1_0.VoteType): PoolType {
-            switch(voteType) {
-                case(#YES_NO(vote)) {
+        func transformVoteToPool(poolType: V0_1_0.VoteType): PoolType {
+            switch(poolType) {
+                case(#YES_NO(pool)) {
                     #YES_NO({
-                        pool_id = vote.vote_id;
-                        tx_id = vote.tx_id;
-                        date = vote.date;
-                        origin = vote.origin;
-                        aggregate = vote.aggregate;
-                        positions = vote.ballots;
-                        author = vote.author;
-                        var tvl = vote.tvl;
+                        pool_id = pool.pool_id;
+                        tx_id = pool.tx_id;
+                        date = pool.date;
+                        origin = pool.origin;
+                        aggregate = pool.aggregate;
+                        positions = pool.ballots;
+                        author = pool.author;
+                        var tvl = pool.tvl;
                     });
                 };
             };
@@ -181,7 +181,7 @@ module {
                 case(#YES_NO(ballot)) {
                     #YES_NO({
                         position_id = ballot.ballot_id;
-                        pool_id = ballot.vote_id;
+                        pool_id = ballot.pool_id;
                         timestamp = ballot.timestamp;
                         choice = ballot.choice;
                         amount = ballot.amount;
@@ -201,8 +201,8 @@ module {
 
         // Transform the Maps
         let new_pools = Map.new<UUID, PoolType>();
-        for ((uuid, voteType) in Map.entries(v1_state.vote_register.votes)) {
-            Map.set(new_pools, Map.thash, uuid, transformVoteToPool(voteType));
+        for ((uuid, poolType) in Map.entries(v1_state.pool_register.pools)) {
+            Map.set(new_pools, Map.thash, uuid, transformVoteToPool(poolType));
         };
 
         let new_positions = Map.new<UUID, PositionType>();
@@ -220,8 +220,8 @@ module {
             collateral_twap_price = v1_state.collateral_twap_price;
             pool_register = {
                 pools = new_pools;
-                by_origin = v1_state.vote_register.by_origin;
-                by_author = v1_state.vote_register.by_author;
+                by_origin = v1_state.pool_register.by_origin;
+                by_author = v1_state.pool_register.by_author;
             };
             position_register = {
                 positions = new_positions;
@@ -251,7 +251,7 @@ module {
             switch(poolType) {
                 case(#YES_NO(pool)) {
                     #YES_NO({
-                        vote_id = pool.pool_id;
+                        pool_id = pool.pool_id;
                         tx_id = pool.tx_id;
                         date = pool.date;
                         origin = pool.origin;
@@ -270,7 +270,7 @@ module {
                 case(#YES_NO(position)) {
                     #YES_NO({
                         ballot_id = position.position_id;
-                        vote_id = position.pool_id;
+                        pool_id = position.pool_id;
                         timestamp = position.timestamp;
                         choice = position.choice;
                         amount = position.amount;
@@ -289,9 +289,9 @@ module {
         };
 
         // Transform the Maps back
-        let old_votes = Map.new<UUID, V0_1_0.VoteType>();
+        let old_pools = Map.new<UUID, V0_1_0.VoteType>();
         for ((uuid, poolType) in Map.entries(v2_state.pool_register.pools)) {
-            Map.set(old_votes, Map.thash, uuid, transformPoolToVote(poolType));
+            Map.set(old_pools, Map.thash, uuid, transformPoolToVote(poolType));
         };
 
         let old_ballots = Map.new<UUID, V0_1_0.BallotType>();
@@ -307,8 +307,8 @@ module {
             kong_backend = v2_state.kong_backend;
             xrc = v2_state.xrc;
             collateral_twap_price = v2_state.collateral_twap_price;
-            vote_register = {
-                votes = old_votes;
+            pool_register = {
+                pools = old_pools;
                 by_origin = v2_state.pool_register.by_origin;
                 by_author = v2_state.pool_register.by_author;
             };

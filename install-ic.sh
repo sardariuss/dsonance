@@ -186,9 +186,9 @@ dfx deploy protocol --argument '( variant {
         dissent_steepness = 0.55;
         consent_steepness = 0.1;
       };
-      ballot_half_life = variant { DAYS = 60 };
+      position_half_life = variant { DAYS = 60 };
       duration_scaler = record { a = 1500000000000.0; b = 1.9; };
-      minimum_ballot_amount = 1_000_000;
+      minimum_position_amount = 1_000_000;
       timer_interval_s = 300;
       clock = variant { REAL };
       twap_config = record {

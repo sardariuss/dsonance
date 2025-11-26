@@ -1,7 +1,7 @@
 import { formatDuration } from "../utils/conversions/durationUnit";
 import { get_current } from "../utils/timeline";
-import { unwrapLock } from "../utils/conversions/ballot";
-import { SBallot } from "@/declarations/protocol/protocol.did";
+import { unwrapLock } from "../utils/conversions/position";
+import { SPosition } from "@/declarations/protocol/protocol.did";
 import { aprToApy } from "../utils/lending";
 import { useMemo, useState } from "react";
 import { HiMiniArrowTrendingUp, HiMiniTrophy, HiOutlineArrowTrendingUp, HiOutlineClock, HiTrophy } from "react-icons/hi2";
@@ -9,17 +9,17 @@ import { useMiningRatesContext } from "./context/MiningRatesContext";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import { getTokenLogo, getTokenDecimals } from "../utils/metadata";
 
-interface PutBallotPreviewProps {
-  ballotPreview: SBallot | undefined;
-  ballotPreviewWithoutImpact?: SBallot | undefined;
+interface PutPositionPreviewProps {
+  positionPreview: SPosition | undefined;
+  positionPreviewWithoutImpact?: SPosition | undefined;
   onToggleSupplyImpact?: (enabled: boolean) => void;
   labelSize?: string;
   valueSize?: string;
 }
 
-const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
-  ballotPreview,
-  ballotPreviewWithoutImpact,
+const PutPositionPreview: React.FC<PutPositionPreviewProps> = ({
+  positionPreview,
+  positionPreviewWithoutImpact,
   onToggleSupplyImpact,
   labelSize = "text-base",
   valueSize = "text-xl"
@@ -30,7 +30,7 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
   const { participationLedger } = useFungibleLedgerContext();
   const { miningRates } = useMiningRatesContext();
 
-  const displayedPreview = useSupplyImpact ? ballotPreview : ballotPreviewWithoutImpact;
+  const displayedPreview = useSupplyImpact ? positionPreview : positionPreviewWithoutImpact;
 
   const twvLogo = useMemo(() => {
     return getTokenLogo(participationLedger.metadata);
@@ -112,7 +112,7 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
           {showDetails ? 'Hide Details' : 'Show Details'}
         </button>
 
-        {showDetails && ballotPreviewWithoutImpact && (
+        {showDetails && positionPreviewWithoutImpact && (
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -128,4 +128,4 @@ const PutBallotPreview: React.FC<PutBallotPreviewProps> = ({
   );
 };
 
-export default PutBallotPreview;
+export default PutPositionPreview;

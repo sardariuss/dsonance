@@ -18,7 +18,7 @@ import HealthFactor from "../borrow/HealthFactor";
 import { useMiningRatesContext } from "../context/MiningRatesContext";
 import { aprToApy } from "@/frontend/utils/lending";
 import PositionsTab from "./PositionsTab";
-import { unwrapLock } from "@/frontend/utils/conversions/ballot";
+import { unwrapLock } from "@/frontend/utils/conversions/position";
 import { useBorrowOperations } from "../hooks/useBorrowOperations";
 import { useLendingCalculations } from "../hooks/useLendingCalculations";
 
@@ -60,9 +60,9 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
   const lendingCalcs = useLendingCalculations(loanPosition, collateralLedger, supplyLedger);
 
   // TODO: create query in backend to get whole supply worth
-  // Fetch user's active ballots to calculate locked supply
-  const { data: userBallots, call: refetchUserBallots } = protocolActor.unauthenticated.useQueryCall({
-    functionName: 'get_ballots',
+  // Fetch user's active positions to calculate locked supply
+  const { data: userPositions, call: refetchUserPositions } = protocolActor.unauthenticated.useQueryCall({
+    functionName: 'get_positions',
     args: [{
       account: { owner: connectedUser.principal, subaccount: [] },
       previous: [],
@@ -91,9 +91,9 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
     return fromNullableExt(miningTracker);
   }, [miningTracker]);
 
-  // Calculate locked supply from user's active ballots and weighted average APR
+  // Calculate locked supply from user's active positions and weighted average APR
   const { lockedSupplyWorth, lockedSupplyAmount, positionsInfo } = useMemo(() => {
-    if (!userBallots || !lendingIndexTimeline || !info) {
+    if (!userPositions || !lendingIndexTimeline || !info) {
       return { lockedSupplyWorth: 0, lockedSupplyAmount: 0, positionsInfo: [] };
     }
 
@@ -101,33 +101,33 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
     let totalWorth = 0;
     let totalAmount = 0;
 
-    let positionsInfo = userBallots.map(ballot => {
-      if ('YES_NO' in ballot) {
+    let positionsInfo = userPositions.map(position => {
+      if ('YES_NO' in position) {
         let worth = 0;
         let apy = 0;
-        // Extract ballot data based on type (YES_NO)
-        const yesNoBallot = ballot.YES_NO;
-        const lock = unwrapLock(yesNoBallot);
+        // Extract position data based on type (YES_NO)
+        const yesNoPosition = position.YES_NO;
+        const lock = unwrapLock(yesNoPosition);
         if (lock.release_date > BigInt(info.current_time)) {
-          const foresight = yesNoBallot.foresight;
-          worth = supplyLedger.convertToUsd(yesNoBallot.amount + foresight.reward) || 0;
+          const foresight = yesNoPosition.foresight;
+          worth = supplyLedger.convertToUsd(yesNoPosition.amount + foresight.reward) || 0;
           apy = aprToApy(foresight.apr.current);
         }
         return { worth, apy };
       }
     });
 
-    // Sum up the worth and weighted APR of all active ballots
-    userBallots.forEach(ballot => {
-      // Extract ballot data based on type (YES_NO)
-      if ('YES_NO' in ballot) {
-        const yesNoBallot = ballot.YES_NO;
-        const amount = Number(yesNoBallot.amount);
+    // Sum up the worth and weighted APR of all active positions
+    userPositions.forEach(position => {
+      // Extract position data based on type (YES_NO)
+      if ('YES_NO' in position) {
+        const yesNoPosition = position.YES_NO;
+        const amount = Number(yesNoPosition.amount);
 
         totalAmount += amount;
 
-        const ballotSupplyIndex = yesNoBallot.supply_index;
-        totalWorth += amount * (currentSupplyIndex / ballotSupplyIndex);
+        const positionSupplyIndex = yesNoPosition.supply_index;
+        totalWorth += amount * (currentSupplyIndex / positionSupplyIndex);
       }
     });
 
@@ -136,7 +136,7 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
       lockedSupplyAmount: totalAmount,
       positionsInfo
     };
-  }, [userBallots, lendingIndexTimeline]);
+  }, [userPositions, lendingIndexTimeline]);
 
   const { netWorth, instantNetApy } = useMemo(() => {
 
@@ -361,7 +361,7 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
         <LendingTab
           borrowOps={borrowOps}
           lendingCalcs={lendingCalcs}
-          refetchUserBallots={refetchUserBallots}
+          refetchUserPositions={refetchUserPositions}
         />
       )}
       {activeTab === 'mining' && (

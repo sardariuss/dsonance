@@ -62,7 +62,7 @@ The frontend should be available on localhost:3000
  -> indexer.add_raw_supply or remove_raw_supply
  -> call observers
  -> call foresight updater
-An extra moment the foresight shall be updated is right before the unlock of the ballot. This is why it is called in Controller.run.
+An extra moment the foresight shall be updated is right before the unlock of the position. This is why it is called in Controller.run.
 
 
 When adding a supply position, no need to update the indexes up to that time BEFORE adding, but after (in order for queried elments'APR to be correct).

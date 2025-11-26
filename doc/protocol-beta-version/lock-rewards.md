@@ -33,7 +33,7 @@ $$
 \text{dissent} = \frac{\text{total\_opposit}}{\text{total}}
 $$
 
-where $$\text{total\_opposit}$$ represents the amount of token locked in positions that voted the opposite way.
+where $$\text{total\_opposit}$$ represents the amount of token locked in opposite positions.
 
 To avoid completely disincentivizing opening positions when the consensus is already aligned with the participant's choice, the **dissent** **is adjusted** using a power function controlled by the protocol parameter _**dissent\_steepness**_:
 

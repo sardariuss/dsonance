@@ -494,7 +494,7 @@ module {
     };
 
     public type VoteRegister = {
-        votes: Map<UUID, VoteType>;
+        pools: Map<UUID, VoteType>;
         by_origin: Map<Principal, Set<UUID>>;
         by_author: Map<Account, Set.Set<UUID>>;
     };
@@ -529,7 +529,7 @@ module {
     };
     
     public type Vote<A, B> = {
-        vote_id: UUID;
+        pool_id: UUID;
         tx_id: Nat;
         date: Nat;
         origin: Principal;
@@ -567,7 +567,7 @@ module {
 
     public type Ballot<B> = {
         ballot_id: UUID;
-        vote_id: UUID;
+        pool_id: UUID;
         timestamp: Nat;
         choice: B;
         amount: Nat;
@@ -896,7 +896,7 @@ module {
             var twap_cache: ?Float;
             var last_twap_calculation: Int;
         };
-        vote_register: VoteRegister;
+        pool_register: VoteRegister;
         ballot_register: BallotRegister;
         lock_scheduler_state: LockSchedulerState;
         accounts: ProtocolAccounts;
