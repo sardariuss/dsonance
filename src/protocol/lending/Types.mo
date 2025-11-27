@@ -207,6 +207,7 @@ module {
 
     public type SupplyPosition = SupplyInput and {
         tx: TxIndex;
+        index: Float;
     };
 
     public type Withdrawal = {

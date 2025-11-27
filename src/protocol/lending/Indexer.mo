@@ -40,37 +40,49 @@ module {
             parameters
         };
 
+        public func get_index() : LendingIndex {
+            Timeline.current(index)
+        };
+
         /// Return the precise index *at time = now*, without mutating state.
-        public func get_index(now: Nat) : LendingIndex {
+        public func get_index_now(now: Nat) : LendingIndex {
             let stored = Timeline.current(index);
             compute_index(stored, now)
         };
 
-        public func add_raw_supplied({ amount: Nat; time: Nat }) : LendingIndex {
+        // \return The updated supply index
+        public func add_raw_supplied({ amount: Nat; time: Nat }) : Float {
             let current = Timeline.current(index);
             let newUtilization = UtilizationUpdater.add_raw_supplied(current.utilization, amount);
-            update(?newUtilization, time);
+            update(?newUtilization, time).supply_index.value;
         };
 
-        public func remove_raw_supplied({ amount: Float; time: Nat }) : LendingIndex {
+        // \return The updated supply index
+        public func remove_raw_supplied({ amount: Float; time: Nat }) : Float {
             let current = Timeline.current(index);
             let newUtilization = UtilizationUpdater.remove_raw_supplied(current.utilization, amount);
-            update(?newUtilization, time);
+            update(?newUtilization, time).supply_index.value;
         };
 
-        public func add_raw_borrow({ amount: Nat; time: Nat }) : LendingIndex {
+        // \return The updated borrow index
+        public func add_raw_borrow({ amount: Nat; time: Nat }) : Float {
             let current = Timeline.current(index);
             let newUtilization = switch (UtilizationUpdater.add_raw_borrow(current.utilization, amount)) {
                 case (#ok(u)) u;
                 case (#err(e)) Debug.trap(e);
             };
-            update(?newUtilization, time);
+            update(?newUtilization, time).borrow_index.value;
         };
 
-        public func remove_raw_borrow({ amount: Float; time: Nat }) : LendingIndex {
+        // \return The updated borrow index
+        public func remove_raw_borrow({ amount: Float; time: Nat }) : Float {
             let current = Timeline.current(index);
             let newUtilization = UtilizationUpdater.remove_raw_borrow(current.utilization, amount);
-            update(?newUtilization, time);
+            update(?newUtilization, time).borrow_index.value;
+        };
+
+        public func simple_update(now: Nat) : LendingIndex {
+            update(null, now)
         };
 
         func update(newUtilization: ?Utilization, now: Nat) : LendingIndex {
@@ -98,6 +110,22 @@ module {
             };
 
             new
+        };
+
+        public func scale_supply_up({ principal: Float; past_index: Float; }) : Float {
+            scale_up({ principal; past_index; new_index = get_index().supply_index.value })
+        };
+
+        public func scale_supply_down({ scaled: Float; past_index: Float; }) : Float {
+            scale_down({ scaled; past_index; new_index = get_index().supply_index.value })
+        };
+
+        public func scale_borrow_up({ principal: Float; past_index: Float; }) : Float {
+            scale_up({ principal; past_index; new_index = get_index().borrow_index.value })
+        };
+
+        public func scale_borrow_down({ scaled: Float; past_index: Float; }) : Float {
+            scale_down({ scaled; past_index; new_index = get_index().borrow_index.value })
         };
 
     };
@@ -132,6 +160,16 @@ module {
             supply_index = supplyIndex;
             timestamp;
         }
+    };
+
+    func scale_up({ principal: Float; past_index: Float; new_index: Float }) : Float {
+        if (past_index == 0.0) { Debug.trap("past_index == 0"); };
+        principal * new_index / past_index
+    };
+
+    func scale_down({ scaled: Float; past_index: Float; new_index: Float }) : Float {
+        if (new_index == 0.0) { Debug.trap("new_index == 0"); };
+        scaled * past_index / new_index
     };
 
 };

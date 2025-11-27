@@ -1,6 +1,5 @@
 import Result          "mo:base/Result";
 import Float           "mo:base/Float";
-import Int             "mo:base/Int";
 
 import Map             "mo:map/Map";
 
@@ -21,9 +20,16 @@ module {
     type SupplyInput             = LendingTypes.SupplyInput;
     type SupplyPosition          = LendingTypes.SupplyPosition;
     type Withdrawal              = LendingTypes.Withdrawal;
-    type SupplyRegister          = LendingTypes.SupplyRegister;
+    //type SupplyRegister          = LendingTypes.SupplyRegister;
     type SupplyParameters        = LendingTypes.SupplyParameters;
     type AddSupplyPositionResult = LendingTypes.AddSupplyPositionResult;
+
+    public type SupplyRegister = {
+        supply_positions: Map.Map<Text, SupplyPosition>;
+        var total_supplied: Float; // Total supplied (sum of all positions' supplied, no interests)
+        var total_raw: Float; // Total raw supplied (principal)
+        var index: Float; // Supply index at last update
+    };
 
     // \brief This class allows to redistribute interests accrued by all positions.
     // The interests are added to a common pool and can be redistributed arbitrarily 
@@ -31,7 +37,7 @@ module {
     // Note that the positions' index is meant to be used only in the frontend 
     // for displaying what the base APY is - it is not meant to be used for calculations
     // in any way.
-    public class SupplyRegistry({
+    public class RedistributionHub({
         indexer: Indexer.Indexer;
         register: SupplyRegister;
         supply: SupplyAccount.SupplyAccount;
@@ -88,21 +94,24 @@ module {
 
         // Remove a position from the supply registry.
         // Watchout, the transfer is not done immediately, it is added to the withdrawal queue.
-        public func remove_position({ id: Text; time: Nat; }) : Result<Nat, Text> {
+        public func remove_position({ id: Text; interest_amount: Nat; time: Nat; }) : Result<Nat, Text> {
             
             let position = switch(Map.get(register.supply_positions, Map.thash, id)){
                 case(null) { return #err("The map does not have a position with the ID " # debug_show(id)); };
                 case(?p) { p; };
             };
 
-            // Remove from supply positions
-            remove({ pos = position; time; });
+            let total_interests = get_total_interests(time);
 
-            // Follow a "round-up for debt, round-down for rewards" policy
-            let due = Int.abs(Float.toInt(Float.ceil(indexer.scale_supply_up({
-                principal = Float.fromInt(position.supplied);
-                past_index = position.index;
-            }))));
+            // Make sure the amount is not greater than available supply interests
+            if (Float.fromInt(interest_amount) > total_interests) {
+                return #err("Interest amount " # debug_show(interest_amount) # " is greater than total interests " # debug_show(total_interests));
+            };
+
+            // Remove from supply positions
+            remove({ pos = position; interest_amount; time; });
+
+            let due = position.supplied + interest_amount;
             withdrawal_queue.add({ position; due; time; });
 
             #ok(due);
@@ -110,16 +119,55 @@ module {
 
         func add({ input: SupplyInput; time: Nat; tx_id: TxIndex; }) {
             let { id; supplied; } = input;
+            
+            // Add to total supplied
+            register.total_supplied += Float.fromInt(supplied);
+
+            // Update indexer and total raw
             ignore indexer.simple_update(time);
-            let index = indexer.add_raw_supplied({ amount = supplied; time; });
-            Map.set(register.supply_positions, Map.thash, id, { input with tx = tx_id; index; });
+            register.total_raw := indexer.scale_supply_up({ 
+                principal = register.total_raw; 
+                past_index = register.index; 
+            });
+            
+            // Add new supplied amount
+            register.total_raw += Float.fromInt(supplied);
+            register.index := indexer.add_raw_supplied({ amount = supplied; time; });
+
+            Map.set(register.supply_positions, Map.thash, id, { input with tx = tx_id; index = register.index; });
         };
 
-        func remove({ pos : SupplyPosition; time: Nat; }) {
+        func remove({ pos : SupplyPosition; interest_amount: Nat; time: Nat; }) {
             let { supplied } = pos;
+
+            // Remove from total supplied
+            register.total_supplied -= Float.fromInt(supplied);
+
+            // Update indexer and total raw
             ignore indexer.simple_update(time);
-            ignore indexer.remove_raw_supplied({ amount = Float.fromInt(supplied); time; });
+            register.total_raw := indexer.scale_supply_up({ principal = register.total_raw; past_index = register.index; });
+            
+            // Compute principal portion to remove
+            let scaled_amount = supplied + interest_amount;
+            let raw_amount = indexer.scale_supply_down({ scaled = Float.fromInt(scaled_amount); past_index = register.index; });
+
+            // Remove raw amount from total raw and indexer
+            register.total_raw -= raw_amount;
+            register.index := indexer.remove_raw_supplied({ amount = raw_amount; time; });
+
             Map.delete(register.supply_positions, Map.thash, pos.id);
+        };
+
+        func get_total_worth(time: Nat) : Float {
+            // TODO: should not update state here
+            ignore indexer.simple_update(time);
+            indexer.scale_supply_up({ principal = register.total_raw; past_index = register.index; });
+        };
+
+        func get_total_interests(time: Nat) : Float {
+            // TODO: should not update state here
+            let total_worth = get_total_worth(time);
+            total_worth - register.total_supplied;
         };
 
     };

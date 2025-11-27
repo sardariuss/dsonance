@@ -4,6 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Important**: If, while doing a task, you come across something new, non-obvious, or that you had to figure out (something you "learned"), write it down here. This file is used to store cumulative knowledge and emerging conventions across the project.
 
+## Related Documentation
+
+- **[limit-order.md](./limit-order.md)** - Comprehensive documentation for the limit order feature, including lifecycle, interest accrual mechanisms, and implementation details
+
 ## Development Commands
 
 **Start Development Server**

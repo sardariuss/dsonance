@@ -593,7 +593,6 @@ module {
         tx_id: Nat;
         from: Account;
         decay: Float;
-        supply_index: Float;
         var foresight: Foresight;
         var hotness: Float;
         var lock: ?LockInfo;
@@ -792,6 +791,7 @@ module {
 
     public type SupplyPosition = SupplyInput and {
         tx: TxIndex;
+        index: Float;
     };
 
     public type Withdrawal = {
@@ -828,10 +828,6 @@ module {
         utilization: Utilization;
         borrow_rate: Float; // borrow rate (ratio)
         supply_rate: Float; // supply rate (ratio)
-        accrued_interests: {
-            supply: Float;
-            borrow: Float;
-        };
         borrow_index: Index; // growing value, starts at 1.0
         supply_index: Index; // growing value, starts at 1.0
         timestamp: Nat; // last time the rates were updated

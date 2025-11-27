@@ -237,7 +237,6 @@ module {
 
     func to_supply_info(lending_index: Types.LendingIndex) : ForesightUpdater.SupplyInfo {
         {
-            accrued_interests = lending_index.accrued_interests.supply;
             interests_rate = lending_index.supply_rate;
             timestamp = lending_index.timestamp;
         };

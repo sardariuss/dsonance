@@ -21,6 +21,11 @@ import WithdrawalQueue    "WithdrawalQueue";
 import UtilizationUpdater "UtilizationUpdater";
 import SupplyAccount      "SupplyAccount";
 
+// TODO: make sure the correct sequence is:
+// 1. Indexer.compute_index(now)   // accrue interest
+// 2. Convert real <-> raw         // using updated indices
+// 3. Update raw amounts in reserve
+// 4. Indexer.update(utilization)  // update utilization & rates only
 module {
 
     type Account               = Types.Account;
@@ -212,7 +217,7 @@ module {
             };
 
             // TODO: check how much interests to remove from the index?
-            indexer.remove_raw_borrow({ amount = total_raw_repaid; time; });
+            ignore indexer.remove_raw_borrow({ amount = total_raw_repaid; time; });
 
             // Once positions are liquidated, it might allow the unlock withdrawal of supply
             ignore await* withdrawal_queue.process_pending_withdrawals(time);
@@ -379,7 +384,7 @@ module {
             };
 
             let finalize = func(tx: TxIndex) : BorrowOperation {
-                indexer.add_raw_borrow({ amount; time; }); // TODO: can trap after transfer, not safe!
+                ignore indexer.add_raw_borrow({ amount; time; }); // TODO: can trap after transfer, not safe!
                 common_finalize({
                     account;
                     position = update;
@@ -421,8 +426,7 @@ module {
             let update = { position with borrow = remaining; };
 
             let finalize = func(tx: TxIndex) : BorrowOperation {
-                indexer.remove_raw_borrow({ amount = raw_repaid; time; });
-                indexer.take_borrow_interests({ amount = from_interests; time; });
+                ignore indexer.remove_raw_borrow({ amount = raw_repaid; time; });
                 common_finalize({
                     account;
                     position = update;
