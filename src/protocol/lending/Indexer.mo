@@ -3,7 +3,6 @@ import Float              "mo:base/Float";
 import Nat                "mo:base/Nat";
 import Debug              "mo:base/Debug";
 import Result             "mo:base/Result";
-import Buffer             "mo:base/Buffer";
 
 import LendingTypes       "Types";
 import UtilizationUpdater "UtilizationUpdater";
@@ -21,20 +20,12 @@ module {
     type IndexerParameters     = LendingTypes.IndexerParameters;
     type LendingIndex          = LendingTypes.LendingIndex;
     type Utilization           = LendingTypes.Utilization;
-    
-    type Observer = (LendingIndex) -> ();
 
     public class Indexer({
         index: Timeline.Timeline<LendingIndex>;
         parameters: IndexerParameters;
         interest_rate_curve: InterestRateCurve.InterestRateCurve;
     }) {
-
-        let observers = Buffer.Buffer<Observer>(0);
-
-        public func add_observer(o: Observer) {
-            observers.add(o);
-        };
 
         public func get_parameters() : IndexerParameters {
             parameters
@@ -53,61 +44,54 @@ module {
         // \return The updated supply index
         public func add_raw_supplied({ amount: Nat; time: Nat }) : Float {
             let current = Timeline.current(index);
-            let newUtilization = UtilizationUpdater.add_raw_supplied(current.utilization, amount);
-            update(?newUtilization, time).supply_index.value;
+            let utilization = UtilizationUpdater.add_raw_supplied(current.utilization, amount);
+            update_utilization(utilization, time).supply_index.value;
         };
 
         // \return The updated supply index
         public func remove_raw_supplied({ amount: Float; time: Nat }) : Float {
             let current = Timeline.current(index);
-            let newUtilization = UtilizationUpdater.remove_raw_supplied(current.utilization, amount);
-            update(?newUtilization, time).supply_index.value;
+            let utilization = UtilizationUpdater.remove_raw_supplied(current.utilization, amount);
+            update_utilization(utilization, time).supply_index.value;
         };
 
         // \return The updated borrow index
         public func add_raw_borrow({ amount: Nat; time: Nat }) : Float {
             let current = Timeline.current(index);
-            let newUtilization = switch (UtilizationUpdater.add_raw_borrow(current.utilization, amount)) {
+            let utilization = switch (UtilizationUpdater.add_raw_borrow(current.utilization, amount)) {
                 case (#ok(u)) u;
                 case (#err(e)) Debug.trap(e);
             };
-            update(?newUtilization, time).borrow_index.value;
+            update_utilization(utilization, time).borrow_index.value;
         };
 
         // \return The updated borrow index
         public func remove_raw_borrow({ amount: Float; time: Nat }) : Float {
             let current = Timeline.current(index);
-            let newUtilization = UtilizationUpdater.remove_raw_borrow(current.utilization, amount);
-            update(?newUtilization, time).borrow_index.value;
+            let utilization = UtilizationUpdater.remove_raw_borrow(current.utilization, amount);
+            update_utilization(utilization, time).borrow_index.value;
         };
 
-        public func simple_update(now: Nat) : LendingIndex {
-            update(null, now)
+        public func update(now: Nat) : LendingIndex {
+            let old = Timeline.current(index);
+            let new = compute_index(old, now);
+            Timeline.insert(index, new.timestamp, new);
+            new;
         };
 
-        func update(newUtilization: ?Utilization, now: Nat) : LendingIndex {
+        public func update_utilization(utilization: Utilization, now: Nat) : LendingIndex {
             let old = Timeline.current(index);
 
             // 1. Accrue interest up to now (using stored rates)
             var new = compute_index(old, now);
 
             // 2. Update rates if utilization changed
-            new := switch newUtilization {
-                case (null) new;
-                case (?utilization) {
-                    let borrow_rate = interest_rate_curve.get_apr(utilization.ratio);
-                    let supply_rate = borrow_rate * utilization.ratio * (1.0 - parameters.lending_fee_ratio);
-                    { new with utilization; borrow_rate; supply_rate };
-                };
-            };
+            let borrow_rate = interest_rate_curve.get_apr(utilization.ratio);
+            let supply_rate = borrow_rate * utilization.ratio * (1.0 - parameters.lending_fee_ratio);
+            new := { new with utilization; borrow_rate; supply_rate };
 
             // 3. Insert into timeline
             Timeline.insert(index, new.timestamp, new);
-
-            // 4. Notify observers
-            for (obs in observers.vals()) {
-                obs(new);
-            };
 
             new
         };

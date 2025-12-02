@@ -20,7 +20,6 @@ module {
     type SupplyInput             = LendingTypes.SupplyInput;
     type SupplyPosition          = LendingTypes.SupplyPosition;
     type Withdrawal              = LendingTypes.Withdrawal;
-    //type SupplyRegister          = LendingTypes.SupplyRegister;
     type SupplyParameters        = LendingTypes.SupplyParameters;
     type AddSupplyPositionResult = LendingTypes.AddSupplyPositionResult;
 
@@ -101,7 +100,8 @@ module {
                 case(?p) { p; };
             };
 
-            let total_interests = get_total_interests(time);
+            ignore indexer.update(time);
+            let total_interests = get_total_interests();
 
             // Make sure the amount is not greater than available supply interests
             if (Float.fromInt(interest_amount) > total_interests) {
@@ -124,7 +124,7 @@ module {
             register.total_supplied += Float.fromInt(supplied);
 
             // Update indexer and total raw
-            ignore indexer.simple_update(time);
+            ignore indexer.update(time);
             register.total_raw := indexer.scale_supply_up({ 
                 principal = register.total_raw; 
                 past_index = register.index; 
@@ -134,7 +134,7 @@ module {
             register.total_raw += Float.fromInt(supplied);
             register.index := indexer.add_raw_supplied({ amount = supplied; time; });
 
-            Map.set(register.supply_positions, Map.thash, id, { input with tx = tx_id; index = register.index; });
+            Map.set(register.supply_positions, Map.thash, id, { input with tx = tx_id });
         };
 
         func remove({ pos : SupplyPosition; interest_amount: Nat; time: Nat; }) {
@@ -144,7 +144,7 @@ module {
             register.total_supplied -= Float.fromInt(supplied);
 
             // Update indexer and total raw
-            ignore indexer.simple_update(time);
+            ignore indexer.update(time);
             register.total_raw := indexer.scale_supply_up({ principal = register.total_raw; past_index = register.index; });
             
             // Compute principal portion to remove
@@ -158,15 +158,29 @@ module {
             Map.delete(register.supply_positions, Map.thash, pos.id);
         };
 
-        func get_total_worth(time: Nat) : Float {
-            // TODO: should not update state here
-            ignore indexer.simple_update(time);
+        public type SupplyInfo = { 
+            accrued_interests: Float;
+            interests_rate: Float;
+            timestamp: Nat;
+        };
+
+        public func get_supply_info(time: Nat) : SupplyInfo {
+            let lending_index = indexer.get_index_now(time);
+            let total_worth = get_total_worth();
+            let accrued_interests = total_worth - register.total_supplied;
+            { 
+                accrued_interests;
+                interests_rate = lending_index.supply_rate;
+                timestamp = lending_index.timestamp;
+            };
+        };
+
+        func get_total_worth() : Float {
             indexer.scale_supply_up({ principal = register.total_raw; past_index = register.index; });
         };
 
-        func get_total_interests(time: Nat) : Float {
-            // TODO: should not update state here
-            let total_worth = get_total_worth(time);
+        func get_total_interests() : Float {
+            let total_worth = get_total_worth();
             total_worth - register.total_supplied;
         };
 

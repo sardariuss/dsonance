@@ -1,7 +1,7 @@
 import LendingTypes       "Types";
 import BorrowPositionner  "BorrowPositionner";
 import BorrowRegistry     "BorrowRegistry";
-import SupplyRegistry     "SupplyRegistry";
+import RedistributionHub  "RedistributionHub";
 import InterestRateCurve  "InterestRateCurve";
 import WithdrawalQueue    "WithdrawalQueue";
 import Indexer            "Indexer";
@@ -39,7 +39,7 @@ module {
     }) : {
         indexer: Indexer.Indexer;
         supply: SupplyAccount.SupplyAccount;
-        supply_registry: SupplyRegistry.SupplyRegistry;
+        redistribution_hub: RedistributionHub.RedistributionHub;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
     } {
@@ -81,7 +81,7 @@ module {
             supply;
         });
 
-        let supply_registry = SupplyRegistry.SupplyRegistry({
+        let redistribution_hub = RedistributionHub.RedistributionHub({
             indexer;
             register;
             parameters;
@@ -106,7 +106,7 @@ module {
         {
             indexer;
             supply;
-            supply_registry;
+            redistribution_hub;
             borrow_registry;
             withdrawal_queue;
         };

@@ -6,6 +6,7 @@ import Clock          "../../utils/Clock";
 import RollingTimeline "../../utils/RollingTimeline";
 import Timeline       "../../utils/Timeline";
 
+import Array          "mo:base/Array";
 import Map            "mo:map/Map";
 import Set            "mo:map/Set";
 import BTree          "mo:stableheapbtreemap/BTree";
@@ -120,10 +121,6 @@ module {
                     };
                     borrow_rate = 0.0;
                     supply_rate = 0.0;
-                    accrued_interests = {
-                        supply = 0.0;
-                        borrow = 0.0;
-                    };
                     borrow_index = {
                         value = 1.0;
                         timestamp = now;
@@ -137,8 +134,12 @@ module {
                 register = {
                     borrow_positions = Map.new<Account, BorrowPosition>();
                     supply_positions = Map.new<Text, SupplyPosition>();
+                    var total_supplied = 0.0;
+                    var total_raw = 0.0;
+                    var index = 1.0;
                     withdrawals = Map.new<Text, Withdrawal>();
                     withdraw_queue = Set.new<Text>();
+
                 };
             };
             mining = {
@@ -235,7 +236,23 @@ module {
                 minimum_position_amount = v1_state.parameters.minimum_ballot_amount;
             };
             accounts = v1_state.accounts;
-            lending = v1_state.lending;
+            lending = {
+                index = {
+                    var current = v1_state.lending.index.current;
+                    var history = v1_state.lending.index.history;
+                    var lastCheckpointTimestamp = v1_state.lending.index.lastCheckpointTimestamp;
+                    minIntervalNs = v1_state.lending.index.minIntervalNs;
+                };
+                register = {
+                    borrow_positions = v1_state.lending.register.borrow_positions;
+                    supply_positions = v1_state.lending.register.supply_positions;
+                    var total_supplied = 0.0; // TODO: should come from lendingindex 
+                    var total_raw = 0.0;
+                    var index = 1.0;
+                    withdrawals = v1_state.lending.register.withdrawals;
+                    withdraw_queue = v1_state.lending.register.withdraw_queue;
+                };
+            };
             mining = v1_state.mining;
         });
     };
@@ -324,7 +341,28 @@ module {
                 minimum_ballot_amount = v2_state.parameters.minimum_position_amount;
             };
             accounts = v2_state.accounts;
-            lending = v2_state.lending;
+            lending = {
+                index = {
+                    var current = {
+                        data = downgrade_lending_index(v2_state.lending.index.current.data);
+                        timestamp = v2_state.lending.index.current.timestamp;
+                    };
+                    var history = Array.map<Types.TimedData<LendingIndex>, V0_1_0.TimedData<V0_1_0.LendingIndex>>(v2_state.lending.index.history, func(item) {
+                        {
+                            data = downgrade_lending_index(item.data);
+                            timestamp = item.timestamp;
+                        };
+                    });
+                    var lastCheckpointTimestamp = v2_state.lending.index.lastCheckpointTimestamp;
+                    minIntervalNs = v2_state.lending.index.minIntervalNs;
+                };
+                register = {
+                    borrow_positions = v2_state.lending.register.borrow_positions;
+                    supply_positions = v2_state.lending.register.supply_positions;
+                    withdrawals = v2_state.lending.register.withdrawals;
+                    withdraw_queue = v2_state.lending.register.withdraw_queue;
+                };
+            };
             mining = v2_state.mining;
         });
     };
@@ -377,6 +415,19 @@ module {
         };
 
         #v0_2_0({ v2_state with parameters = protocol_parameters; });
+    };
+
+    func downgrade_lending_index(index: LendingIndex): V0_1_0.LendingIndex {
+        {
+            utilization = index.utilization;
+            borrow_rate = index.borrow_rate;
+            supply_rate = index.supply_rate;
+            // accrued_interests field removed, use default values
+            accrued_interests = { supply = 0.0; borrow = 0.0; };
+            borrow_index = index.borrow_index;
+            supply_index = index.supply_index;
+            timestamp = index.timestamp;
+        };
     };
 
 };

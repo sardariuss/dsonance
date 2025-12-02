@@ -207,7 +207,6 @@ module {
 
     public type SupplyPosition = SupplyInput and {
         tx: TxIndex;
-        index: Float;
     };
 
     public type Withdrawal = {
@@ -225,6 +224,9 @@ module {
 
     public type SupplyRegister = {
         supply_positions: Map.Map<Text, SupplyPosition>;
+        var total_supplied: Float;
+        var total_raw: Float;
+        var index: Float;
     };
 
     public type WithdrawalRegister = {
@@ -242,10 +244,6 @@ module {
         utilization: Utilization;
         borrow_rate: Float;
         supply_rate: Float;
-        accrued_interests: {
-            supply: Float;
-            borrow: Float;
-        };
         borrow_index: Index;
         supply_index: Index;
         timestamp: Nat;

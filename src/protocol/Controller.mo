@@ -5,13 +5,13 @@ import MapUtils                "utils/Map";
 import RollingTimeline         "utils/RollingTimeline";
 import Clock                   "utils/Clock";
 import SharedConversions       "shared/SharedConversions";
-import PositionUtils             "pools/PositionUtils";
+import PositionUtils           "pools/PositionUtils";
 import PoolTypeController      "pools/PoolTypeController";
 import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
 import LedgerTypes             "ledger/Types";
 import LendingTypes            "lending/Types";
-import SupplyRegistry          "lending/SupplyRegistry";
+import RedistributionHub       "lending/RedistributionHub";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
 import SupplyAccount           "lending/SupplyAccount";
@@ -105,7 +105,7 @@ module {
         lock_scheduler: LockScheduler.LockScheduler;
         pool_type_controller: PoolTypeController.PoolTypeController;
         supply: SupplyAccount.SupplyAccount;
-        supply_registry: SupplyRegistry.SupplyRegistry;
+        redistribution_hub: RedistributionHub.RedistributionHub;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         collateral_price_tracker: IPriceTracker;
@@ -162,7 +162,7 @@ module {
                 if (args.with_supply_apy_impact) args.amount else 0;
             };
 
-            let preview_result = supply_registry.add_position_without_transfer({
+            let preview_result = redistribution_hub.add_position_without_transfer({
                 id = position_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
                 supplied;
@@ -197,7 +197,7 @@ module {
             // Capture timestamp before the transfer for the indexer
             let timestamp_before_transfer = clock.get_time();
 
-            let transfer = await* supply_registry.add_position({
+            let transfer = await* redistribution_hub.add_position({
                 id = position_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
                 supplied = args.amount;
@@ -245,15 +245,15 @@ module {
             // Capture timestamp before the transfer for the indexer
             let timestamp_before_transfer = clock.get_time();
 
-            let transfer = await* supply_registry.add_position({
+            let transfer = await* redistribution_hub.add_position({
                 id = order_id;
                 account = account;
                 supplied = amount;
             }, timestamp_before_transfer);
 
-            let { tx_id; supply_index; } = switch(transfer){
+            switch(transfer){
                 case(#err(err)) { return #err(err); };
-                case(#ok(ok)) { ok; };
+                case(_) {};
             };
 
             // Recapture timestamp after the async operation for the position
@@ -299,7 +299,7 @@ module {
         // it should only log errors
         public func run() : async* () {
 
-            let time = clock.get_time();
+            var time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
 
             // 1. Fetch USD prices
@@ -323,8 +323,11 @@ module {
                 };
             };
 
+            // Time might have advanced during async calls
+            time := clock.get_time();
+
             // 3. Update foresights before unlocking, so the rewards are up-to-date
-            foresight_updater.update_foresights();
+            foresight_updater.update_foresights(time);
 
             // 4. Unlock expired locks and process them
             let unlocked_ids = lock_scheduler.try_unlock(time);
@@ -352,7 +355,7 @@ module {
                 pool_type_controller.unlock_position({ pool_type; position_id; });
                 
                 // Remove supply position using the position's foresight reward
-                switch(supply_registry.remove_position({
+                switch(redistribution_hub.remove_position({
                     id = position_id;
                     interest_amount = Int.abs(position.foresight.reward);
                     time;
@@ -473,7 +476,7 @@ module {
                 )
             );
             // Need to update the foresights after adding the new lock
-            foresight_updater.update_foresights();
+            foresight_updater.update_foresights(timestamp);
 
             MapUtils.putInnerSet(position_register.by_account, MapUtils.acchash, from, Map.thash, position_id);
 

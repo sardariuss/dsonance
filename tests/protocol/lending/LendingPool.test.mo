@@ -132,7 +132,7 @@ await suite("LendingPool", func(): async() {
         });
 
         // Build the lending system
-        let { indexer; supply; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { indexer; supply; redistribution_hub; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             protocol_info;
             parameters;
@@ -155,7 +155,7 @@ await suite("LendingPool", func(): async() {
         let supplied = 1000;
 
         // Lender supplies 1000 tokens — this should increase raw_supplied
-        let supply_1_result = await* supply_registry.add_position({
+        let supply_1_result = await* redistribution_hub.add_position({
             id = "supply1";
             account = lender;
             supplied;
@@ -237,7 +237,7 @@ await suite("LendingPool", func(): async() {
         // === Lender Withdrawal ===
 
         let interest_amount = Int.abs(Float.toInt(Timeline.current(index).accrued_interests.supply));
-        let withdraw_result = supply_registry.remove_position({
+        let withdraw_result = redistribution_hub.remove_position({
             id = "supply1";
             interest_amount;
             time = clock.get_time();
@@ -348,7 +348,7 @@ await suite("LendingPool", func(): async() {
         });
 
         // Build the lending system
-        let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { indexer; redistribution_hub; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             collateral_price_tracker;
             protocol_info;
@@ -365,7 +365,7 @@ await suite("LendingPool", func(): async() {
         verify(indexer.get_index(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // Lender supplies 1000 tokens
-        let supply_1_result = await* supply_registry.add_position({
+        let supply_1_result = await* redistribution_hub.add_position({
             id = "supply1";
             account = lender;
             supplied = 1000;
@@ -419,7 +419,7 @@ await suite("LendingPool", func(): async() {
         verify(supply_accounting.balances(), [ (dex, 1_682), (protocol, 818), (lender, 9_000), (borrower, 10_500) ], equal_balances);
 
         // Lender withdraws their supply
-        let withdraw_result = supply_registry.remove_position({
+        let withdraw_result = redistribution_hub.remove_position({
             id = "supply1";
             interest_amount = 10; // Arbitrarily take 10 tokens as interest
             time = clock.get_time();
@@ -502,7 +502,7 @@ await suite("LendingPool", func(): async() {
         });
 
         // Build the lending system
-        let { supply; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { supply; redistribution_hub; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             collateral_price_tracker;
             protocol_info;
@@ -515,7 +515,7 @@ await suite("LendingPool", func(): async() {
         });
 
         // Lender supplies 1000 tokens
-        ignore await* supply_registry.add_position({
+        ignore await* redistribution_hub.add_position({
             id = "supply1";
             account = lender;
             supplied = 1000;
@@ -534,7 +534,7 @@ await suite("LendingPool", func(): async() {
 
         // Lender tries to withdraw full position
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
-        let withdraw_result = supply_registry.remove_position({
+        let withdraw_result = redistribution_hub.remove_position({
             id = "supply1";
             interest_amount = 1; // Adjusted for corrected utilization ratio - less interest accrued
             time = clock.get_time();
@@ -696,7 +696,7 @@ await suite("LendingPool", func(): async() {
         });
 
         // Build the lending system
-        let { supply_registry; borrow_registry; } = LendingFactory.build({
+        let { redistribution_hub; borrow_registry; } = LendingFactory.build({
             admin;
             protocol_info;
             parameters;
@@ -718,7 +718,7 @@ await suite("LendingPool", func(): async() {
         // === Test Scenario ===
         
         // Lender supplies 1M USDT
-        let supply_1_result = await* supply_registry.add_position({
+        let supply_1_result = await* redistribution_hub.add_position({
             id = "supply1";
             account = lender;
             supplied = 1_000_000_000_000; // 1M USDT in micro-USDT

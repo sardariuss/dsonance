@@ -26,14 +26,14 @@ const SupplyDashboard = () => {
   const indexerState = lendingIndexTimeline?.current.data;
 
   // @todo: need to also get the actual liquidity from the ledger and show both in a detail panel that can be expanded
-  const realLiquidity = useMemo(() => {
-    if (!indexerState) {
-      return undefined;
-    }
-    const realSupplied = indexerState.utilization.raw_supplied + indexerState.accrued_interests.supply;
-    const realBorrowed = indexerState.utilization.raw_borrowed + indexerState.accrued_interests.borrow;
-    return realSupplied - realBorrowed;
-  }, [indexerState]);
+  //const realLiquidity = useMemo(() => {
+  //  if (!indexerState) {
+  //    return undefined;
+  //  }
+  //  const realSupplied = indexerState.utilization.raw_supplied + indexerState.accrued_interests.supply;
+  //  const realBorrowed = indexerState.utilization.raw_borrowed + indexerState.accrued_interests.borrow;
+  //  return realSupplied - realBorrowed;
+  //}, [indexerState]);
 
   if (!parameters || !indexerState) {
     return <div className="text-center text-gray-500">Loading...</div>;

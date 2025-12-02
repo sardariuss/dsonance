@@ -13,7 +13,6 @@ import IterUtils          "../utils/Iter";
 import Math               "../utils/Math";
 import LedgerTypes        "../ledger/Types";
 import Borrow             "./primitives/Borrow";
-import Owed               "./primitives/Owed";
 import BorrowPositionner  "BorrowPositionner";
 import LendingTypes       "Types";
 import Indexer            "Indexer";
@@ -132,7 +131,8 @@ module {
         public func check_all_positions_and_liquidate(time: Nat) : async* Result<(), Text> {
 
             // @index_todo: need current index
-            let index = indexer.get_index(time).borrow_index;
+
+            let index = indexer.update(time).borrow_index;
             let loans = get_loans(time);
 
             let total_to_liquidate = IterUtils.fold_left(Map.vals(loans), 0, func (sum: Nat, loan: Loan): Nat {
@@ -227,7 +227,7 @@ module {
 
         public func get_loan_position(time: Nat, account: Account) : LoanPosition {
 
-            let index = indexer.get_index(time).borrow_index;
+            let index = indexer.get_index_now(time).borrow_index;
 
             switch (Map.get(register.borrow_positions, MapUtils.acchash, account)){
                 case(null) { 
@@ -245,7 +245,7 @@ module {
 
         public func get_loans_info(time: Nat) : { positions: [Loan]; max_ltv: Float } {
 
-            let index = indexer.get_index(time).borrow_index;
+            let index = indexer.get_index_now(time).borrow_index;
 
             var max_ltv : Float = 0.0;
             let positions : [Loan] = Map.toArrayMap<Account, BorrowPosition, Loan>(register.borrow_positions, func (account: Account, position: BorrowPosition) : ?Loan {
@@ -260,7 +260,7 @@ module {
 
         func get_loans(time: Nat) : Map.Map<Account, Loan> {
 
-            let index = indexer.get_index(time).borrow_index;
+            let index = indexer.get_index_now(time).borrow_index;
 
             Map.mapFilter<Account, BorrowPosition, Loan>(register.borrow_positions, MapUtils.acchash, func (account: Account, position: BorrowPosition) : ?Loan {
                 borrow_positionner.to_loan_position({ position; index; }).loan;
@@ -287,7 +287,7 @@ module {
             // Add the transaction to the position
             let update = BorrowPositionner.add_tx({ position; tx; });
             Map.set(register.borrow_positions, MapUtils.acchash, account, update);
-            let index = indexer.get_index(time);
+            let index = indexer.update(time);
             {
                 position = borrow_positionner.to_loan_position({ position = update; index = index.borrow_index; });
                 index;
@@ -326,7 +326,7 @@ module {
                 case(?p) { p; };
             };
 
-            let index = indexer.get_index(time).borrow_index;
+            let index = indexer.update(time).borrow_index;
 
             // Remove the collateral from the borrow position
             let update = switch(borrow_positionner.withdraw_collateral({ position; amount; index; })){
@@ -352,7 +352,7 @@ module {
             time: Nat;
         }) : Result<PreparedOperation, Text> {
 
-            let index = indexer.get_index(time);
+            let index = indexer.update(time);
 
             // @todo: should add to a map of <Account, Nat> the amount concurrent borrows that could 
             // increase the utilization ratio more than 1.
@@ -408,7 +408,7 @@ module {
                 case(?p) { p; };
             };
 
-            let index = indexer.get_index(time).borrow_index;
+            let index = indexer.update(time).borrow_index;
 
             let repay_result = borrow_positionner.repay_supply({ position; index; amount; max_slippage_amount; });
             let { repaid; raw_repaid; remaining; from_interests; } = switch(repay_result){
