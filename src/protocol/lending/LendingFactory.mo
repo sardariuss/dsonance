@@ -83,20 +83,25 @@ module {
             supply;
         });
 
-        let redistribution_hub = RedistributionHub.RedistributionHub({
-            indexer;
-            register;
-            parameters;
-            withdrawal_queue;
-            supply;
-        });
-
+        // Create SupplyRegistry first
         let supply_registry = SupplyRegistry.SupplyRegistry({
             register;
             supply;
             indexer;
             withdrawal_queue;
             parameters;
+        });
+
+        // Then create RedistributionHub with reference to SupplyRegistry
+        let redistribution_hub = RedistributionHub.RedistributionHub({
+            indexer;
+            redistribution = register;
+            supply;
+            parameters;
+            supply_registry = {
+                add_supply_without_pull = supply_registry.add_supply_without_pull;
+                remove_supply_without_transfer = supply_registry.remove_supply_without_transfer;
+            };
         });
 
         let borrow_registry = BorrowRegistry.BorrowRegistry({

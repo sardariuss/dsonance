@@ -98,6 +98,67 @@ module {
             #ok(finalize(0)); // TxIndex is arbitrarily set to 0 for preview
         };
 
+        // Add supply directly to an account's position without pulling tokens
+        // Used when moving funds from RedistributionHub to SupplyRegistry
+        // Does NOT call indexer.add_raw_supplied since funds are already in the system
+        public func add_supply_without_pull({
+            account: Account;
+            amount: Float;
+            time: Nat;
+        }) : Result<(), Text> {
+
+            let index = indexer.update(time).supply_index;
+            let position = get_position({ account; });
+
+            // Scale up existing position (if any) and add new amount
+            let new_position = add_supply({
+                position;
+                account;
+                index;
+                amount = Int.abs(Math.floor_to_int(amount));
+            });
+
+            Map.set(register.supply_positions, MapUtils.acchash, account, new_position);
+
+            #ok(());
+        };
+
+        // Remove supply from an account's position without transferring tokens
+        // Used when moving funds from SupplyRegistry to RedistributionHub
+        // Does NOT call indexer.remove_raw_supplied since funds stay in the system
+        // Returns the raw amount removed
+        public func remove_supply_without_transfer({
+            account: Account;
+            amount: Nat;
+            max_slippage_amount: Nat;
+            time: Nat;
+        }) : Result<Float, Text> {
+
+            let position = switch(get_position({ account; })){
+                case(null) { return #err("No supply position found for account"); };
+                case(?p) { p; };
+            };
+
+            ignore indexer.update(time);
+
+            let withdraw_result = withdraw_supply({ position; amount; max_slippage_amount; });
+            let { withdrawn; remaining; } = switch(withdraw_result){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
+
+            let update = { position with raw_amount = remaining; };
+
+            // If position is empty after withdrawal, delete it
+            if (remaining == 0.0) {
+                Map.delete(register.supply_positions, MapUtils.acchash, account);
+            } else {
+                Map.set(register.supply_positions, MapUtils.acchash, account, update);
+            };
+
+            #ok(withdrawn);
+        };
+
         public func get_supply_info(time: Nat, account: Account) : SupplyInfo {
 
             let index = indexer.get_index_now(time).supply_index;

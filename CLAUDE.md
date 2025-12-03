@@ -345,6 +345,78 @@ The protocol follows a strict parameter architecture to maintain clean separatio
 - Since parameter updates are infrequent operations, this approach maintains clean architecture
 - All objects requiring parameters receive them via injection from Factory.mo
 
+## Supply and Redistribution Flow
+
+### Current Architecture (v0.2.0)
+
+The protocol now supports seamless movement of funds between **SupplyRegistry** (account-based supply positions) and **RedistributionHub** (pool-based redistribution positions).
+
+**Key Flow:**
+```
+User Wallet ←→ SupplyRegistry ←→ RedistributionHub
+            transfer         no transfer (accounting only)
+```
+
+**Adding Positions:**
+1. **From Wallet to SupplyRegistry**: `run_operation` with `#SUPPLY` kind
+   - Pulls tokens from user wallet
+   - Updates indexer: `add_raw_supplied`
+
+2. **From Wallet to RedistributionHub**: `add_position`
+   - Pulls tokens from user wallet
+   - Updates indexer: `add_raw_supplied`
+
+3. **From SupplyRegistry to RedistributionHub**: `add_position_from_supply`
+   - NO token transfer (accounting only)
+   - Does NOT update indexer (funds already tracked)
+   - Scales position with current index before moving
+
+**Removing Positions:**
+1. **From SupplyRegistry to Wallet**: `run_operation` with `#WITHDRAW` kind
+   - Transfers tokens to user wallet
+   - Updates indexer: `remove_raw_supplied`
+
+2. **From RedistributionHub to SupplyRegistry**: `remove_position`
+   - NO token transfer (accounting only)
+   - Does NOT update indexer (funds stay in system)
+   - Adds supplied + interest to user's SupplyPosition
+
+**Indexer Accounting Rules:**
+- **Only call `add_raw_supplied` when funds ENTER the protocol** (wallet → protocol)
+- **Only call `remove_raw_supplied` when funds LEAVE the protocol** (protocol → wallet)
+- **Never call indexer methods when funds move between registries** (already tracked)
+
+**Index Scaling:**
+- When moving between registries, positions are always scaled with **current index**
+- This preserves continuous interest accrual across both systems
+- Example: RedistributionHub → SupplyRegistry adds `supplied + interest` at current index
+
+### Future Refactor (Option B - Not Yet Implemented)
+
+For cleaner architecture, consider splitting into position managers and registry wrappers:
+
+```
+SupplyPositionManager (pure accounting, no transfers)
+  ├─ add_amount(account, amount, index)
+  ├─ remove_amount(account, amount, index)
+  └─ scale_up/down with index
+
+SupplyRegistry (wraps SupplyPositionManager + transfers)
+  ├─ supply() → pull tokens + manager.add_amount()
+  ├─ withdraw() → manager.remove_amount() + push tokens
+
+RedistributionPositionManager (pure accounting, no transfers)
+  ├─ add_position(id, amount, index)
+  ├─ remove_position(id) → returns amount
+
+RedistributionHub (wraps RedistributionPositionManager + transfers)
+  ├─ add_from_wallet() → pull + manager.add()
+  ├─ add_from_supply() → supply_manager.remove() + manager.add()
+  ├─ remove_to_supply() → manager.remove() + supply_manager.add()
+```
+
+This separation would eliminate duplicate indexer logic and make cross-registry transfers even cleaner.
+
 ## Test Files
 - Motoko tests: `tests/protocol/`
 - TypeScript tests: `src/frontend/tests/`
