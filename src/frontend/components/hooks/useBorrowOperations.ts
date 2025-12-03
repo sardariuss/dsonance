@@ -33,7 +33,7 @@ export const useBorrowOperations = (user: NonNullable<ReturnType<typeof useAuth>
 
   const previewOperation = (amount: bigint, kind: OperationKind): Promise<Result_1 | undefined> => {
     try {
-      return previewBorrowOperation([{ subaccount: [], amount, kind }]);
+      return previewBorrowOperation([{ subaccount: [], amount, kind }]) as Promise<Result_1 | undefined>;
     } catch (error) {
       console.error("Error previewing borrow operation:", error);
       showErrorToast(extractErrorMessage(error), "Preview operation");
@@ -62,7 +62,7 @@ export const useBorrowOperations = (user: NonNullable<ReturnType<typeof useAuth>
             supplyLedger.refreshUserBalance();
             collateralLedger.refreshUserBalance();
           }
-          return result;
+          return result as Result_1 | undefined;
         });
       });
     } catch (error) {

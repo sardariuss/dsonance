@@ -3,7 +3,7 @@ import Modal from "../common/Modal";
 import { TokenLabel } from "../common/TokenLabel";
 import { fromFixedPoint, toFixedPoint } from "../../utils/conversions/token";
 import { getTokenName, getTokenLogo } from "../../utils/metadata";
-import { Result_1 } from "@/declarations/protocol/protocol.did";
+import { Result_1, Result_2 } from "@/declarations/protocol/protocol.did";
 import Spinner from "../Spinner";
 import useBorrowOperationPreview from "../hooks/useBorrowOperationPreview";
 import { FungibleLedger } from "../hooks/useFungibleLedger";
@@ -13,11 +13,13 @@ import { useMiningRatesContext } from "../context/MiningRatesContext";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 import { HiMiniTrophy } from "react-icons/hi2";
 
+type OperationResult = Result_1 | Result_2;
+
 interface BorrowButtonProps {
   ledger: FungibleLedger;
   title: string;
-  previewOperation: (amount: bigint) => Promise<Result_1 | undefined>;
-  runOperation: (amount: bigint) => Promise<Result_1 | undefined>;
+  previewOperation: (amount: bigint) => Promise<OperationResult | undefined>;
+  runOperation: (amount: bigint) => Promise<OperationResult | undefined>;
   maxLabel: string;
   maxAmount: bigint;
   disabled?: boolean;
@@ -97,7 +99,10 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
 
   const loanPositionPreview = useMemo(() => {
     if (preview !== undefined && "ok" in preview) {
-      return preview.ok.position;
+      // Check if this is a borrow operation result (has 'position' field)
+      if ("position" in preview.ok) {
+        return preview.ok.position;
+      }
     }
     return undefined;
   }, [preview]);
@@ -191,37 +196,41 @@ const BorrowButton: React.FC<BorrowButtonProps> = ({
               </div>
             </div>
           </div>
-          <div className="flex flex-col w-full space-y-1">
-            <span className="text-gray-600 dark:text-gray-400 text-sm">Transaction overview</span>
-            <div className="flex flex-col border border-gray-300 dark:border-gray-700 rounded-md p-2 gap-2">
-              <div className="grid grid-cols-[auto_auto]">
-                <span className="text-base">Health factor</span>
-                <div className="flex flex-col items-end justify-self-end">
-                  { loadingPreview ? <Spinner size={"25px"}/> : <HealthFactor loanPosition={loanPositionPreview}/> }
-                  <span className="text-xs text-gray-400 dark:text-gray-500">Liquidation at &lt;1.0</span>
-                </div>
-              </div>
-              {isBorrowOperation && miningRates && amount > 0n && (
-                <>
+          {(loanPositionPreview !== undefined || (isBorrowOperation && miningRates && amount > 0n)) && (
+            <div className="flex flex-col w-full space-y-1">
+              <span className="text-gray-600 dark:text-gray-400 text-sm">Transaction overview</span>
+              <div className="flex flex-col border border-gray-300 dark:border-gray-700 rounded-md p-2 gap-2">
+                {loanPositionPreview !== undefined && (
                   <div className="grid grid-cols-[auto_auto]">
-                    <div className="flex items-center gap-2">
-                      {twvLogo ? (
-                        <img src={twvLogo} alt="TWV" className="w-5 h-5" />
-                      ) : (
-                        <HiMiniTrophy className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                      )}
-                      <span className="text-base">Mining rewards</span>
-                    </div>
+                    <span className="text-base">Health factor</span>
                     <div className="flex flex-col items-end justify-self-end">
-                      <span className="text-base font-semibold">
-                        {participationLedger.formatAmount(miningRewardsPerDay)} TWV/day
-                      </span>
+                      { loadingPreview ? <Spinner size={"25px"}/> : <HealthFactor loanPosition={loanPositionPreview}/> }
+                      <span className="text-xs text-gray-400 dark:text-gray-500">Liquidation at &lt;1.0</span>
                     </div>
                   </div>
-                </>
-              )}
+                )}
+                {isBorrowOperation && miningRates && amount > 0n && (
+                  <>
+                    <div className="grid grid-cols-[auto_auto]">
+                      <div className="flex items-center gap-2">
+                        {twvLogo ? (
+                          <img src={twvLogo} alt="TWV" className="w-5 h-5" />
+                        ) : (
+                          <HiMiniTrophy className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        )}
+                        <span className="text-base">Mining rewards</span>
+                      </div>
+                      <div className="flex flex-col items-end justify-self-end">
+                        <span className="text-base font-semibold">
+                          {participationLedger.formatAmount(miningRewardsPerDay)} TWV/day
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
           <button
             className={`button-blue text-base w-full`}
             onClick={() => onClick()}

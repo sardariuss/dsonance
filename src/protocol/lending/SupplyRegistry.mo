@@ -292,8 +292,11 @@ module {
                 return #err("Requested withdrawal " # debug_show(requested) # " exceeds available balance " # debug_show(current_value) # " plus slippage tolerance " # debug_show(max_slippage_amount));
             };
 
-            // Cap withdrawal at available balance
-            let withdrawn = Float.min(requested, current_value);
+            // If requested amount + slippage is close to the full balance, withdraw everything to avoid tiny leftovers
+            var withdrawn = requested;
+            if (Float.fromInt(amount + max_slippage_amount) >= current_value) {
+                withdrawn := current_value;
+            };
 
             // Calculate raw amount to remove
             let raw_withdrawn = indexer.scale_supply_down({
