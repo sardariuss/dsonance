@@ -26,11 +26,10 @@ await suite("LendingPool", func(): async() {
 
     type Account = LedgerTypes.Account;
     type BorrowPosition = LendingTypes.BorrowPosition;
-    type SupplyPosition = LendingTypes.SupplyPosition;
+    type RedistributionPosition = LendingTypes.RedistributionPosition;
     type Withdrawal = LendingTypes.Withdrawal;
-    type SupplyRegister = LendingTypes.SupplyRegister;
     type BorrowRegister = LendingTypes.BorrowRegister;
-    type SupplyInput = LendingTypes.SupplyInput;
+    type RedistributionInput = LendingTypes.RedistributionInput;
 
     let fuzz = Fuzz.fromSeed(0);
     let equal_balances = LedgerAccounting.testify_balances.equal;
@@ -95,7 +94,7 @@ await suite("LendingPool", func(): async() {
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();
-            supply_positions = Map.new<Text, SupplyPosition>();
+            supply_positions = Map.new<Text, RedistributionPosition>();
             withdrawals = Map.new<Text, Withdrawal>();
             withdraw_queue = Set.new<Text>();
         };
@@ -301,7 +300,7 @@ await suite("LendingPool", func(): async() {
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();
-            supply_positions = Map.new<Text, SupplyPosition>();
+            supply_positions = Map.new<Text, RedistributionPosition>();
             withdrawals = Map.new<Text, Withdrawal>();
             withdraw_queue = Set.new<Text>();
         };
@@ -465,7 +464,7 @@ await suite("LendingPool", func(): async() {
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();
-            supply_positions = Map.new<Text, SupplyPosition>();
+            supply_positions = Map.new<Text, RedistributionPosition>();
             withdrawals = Map.new<Text, Withdrawal>();
             withdraw_queue = Set.new<Text>();
         };
@@ -621,7 +620,7 @@ await suite("LendingPool", func(): async() {
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();
-            supply_positions = Map.new<Text, SupplyPosition>();
+            supply_positions = Map.new<Text, RedistributionPosition>();
             withdrawals = Map.new<Text, Withdrawal>();
             withdraw_queue = Set.new<Text>();
         };

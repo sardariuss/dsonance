@@ -9,13 +9,6 @@ import BTree "mo:stableheapbtreemap/BTree";
 // you should also avoid importing these types anywhere in your project directly from here
 // use MigrationTypes.Current property instead
 
-// Version 0.2.0 introduced:
-// - Renaming VoteType to PoolType
-// - Renaming BallotType to PositionType
-// - Removing accrued_interests from LendingIndex
-// - Add total_supplied, total_raw and index to SupplyRegister
-// TODO: get total_supplied, total_raw and index values from Indexer instead 
-// of setting them to 0 and vice-versa in the downgrade
 module {
 
     type Map<K, V> = Map.Map<K, V>;
@@ -792,13 +785,13 @@ module {
         value: Float;
     };
 
-    public type SupplyInput = {
+    public type RedistributionInput = {
         id: Text;
         account: Account;
         supplied: Nat;
     };
 
-    public type SupplyPosition = SupplyInput and {
+    public type RedistributionPosition = RedistributionInput and {
         tx: TxIndex;
     };
 
@@ -815,8 +808,8 @@ module {
         borrow_positions: Map.Map<Account, BorrowPosition>;
     };
 
-    public type SupplyRegister = {
-        supply_positions: Map.Map<Text, SupplyPosition>;
+    public type RedistributionRegister = {
+        supply_positions: Map.Map<Text, RedistributionPosition>;
         var total_supplied: Float; // Total supplied (sum of all positions' supplied, no interests)
         var total_raw: Float; // Total raw supplied (principal)
         var index: Float; // Supply index at last update
@@ -827,7 +820,7 @@ module {
         withdraw_queue: Set.Set<Text>;
     };
 
-    public type LendingRegister = BorrowRegister and SupplyRegister and WithdrawalRegister;
+    public type LendingRegister = BorrowRegister and RedistributionRegister and WithdrawalRegister;
 
     public type Utilization = {
         raw_supplied: Float;

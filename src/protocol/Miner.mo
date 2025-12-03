@@ -17,7 +17,7 @@ module {
 
     type Duration = Types.Duration;
     type Account = Types.Account;
-    type SupplyPosition = LendingTypes.SupplyPosition;
+    type RedistributionPosition = LendingTypes.RedistributionPosition;
     type BorrowPosition = LendingTypes.BorrowPosition;
     type LendingIndex = LendingTypes.LendingIndex;
     type Borrow = LendingTypes.Borrow;
@@ -37,7 +37,7 @@ module {
         genesis_time: Nat;
         parameters: MiningParameters;
         minting_account: ILedgerAccount;
-        supply_positions: Map.Map<Text, SupplyPosition>;
+        supply_positions: Map.Map<Text, RedistributionPosition>;
         borrow_positions: Map.Map<Account, BorrowPosition>;
         lending_index: Timeline.Timeline<LendingIndex>;
         register: {

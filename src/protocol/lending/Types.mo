@@ -199,13 +199,56 @@ module {
         value: Float;
     };
 
-    public type SupplyInput = {
+    // ------------------------------ SUPPLY POSITION TYPES ------------------------------
+
+    public type SupplyPositionTx = {
+        #SUPPLIED: TxIndex;
+        #WITHDRAWN: TxIndex;
+    };
+
+    public type SupplyPosition = {
+        account: Account;
+        tx: [SupplyPositionTx];
+        raw_amount: Float;
+        index: Float;
+    };
+
+    public type SupplyInfo = {
+        account: Account;
+        supplied: Float;
+        accrued_amount: Float;
+        supply_index: Index;
+    };
+
+    public type SupplyOperationKind = {
+        #SUPPLY;
+        #WITHDRAW: { max_slippage_amount: Nat; };
+    };
+
+    public type SupplyOperationArgs = {
+        account: Account;
+        amount: Nat;
+        kind: SupplyOperationKind;
+    };
+
+    public type SupplyOperation = {
+        info: SupplyInfo;
+        index: LendingIndex;
+    };
+
+    public type SupplyRegister = {
+        supply_positions: Map.Map<Account, SupplyPosition>;
+    };
+
+    // ------------------------------ REDISTRIBUTION POSITION TYPES ------------------------------
+
+    public type RedistributionInput = {
         id: Text;
         account: Account;
         supplied: Nat;
     };
 
-    public type SupplyPosition = SupplyInput and {
+    public type RedistributionPosition = RedistributionInput and {
         tx: TxIndex;
     };
 
@@ -222,8 +265,8 @@ module {
         borrow_positions: Map.Map<Account, BorrowPosition>;
     };
 
-    public type SupplyRegister = {
-        supply_positions: Map.Map<Text, SupplyPosition>;
+    public type RedistributionRegister = {
+        supply_positions: Map.Map<Text, RedistributionPosition>;
         var total_supplied: Float;
         var total_raw: Float;
         var index: Float;
@@ -249,7 +292,7 @@ module {
         timestamp: Nat;
     };
 
-    public type LendingRegister = BorrowRegister and SupplyRegister and WithdrawalRegister;
+    public type LendingRegister = BorrowRegister and RedistributionRegister and WithdrawalRegister;
 
     // A point on the interest rate curve
     public type CurvePoint = {
@@ -257,8 +300,8 @@ module {
         rate: Float; // Annual Percentage Rate (APR) at this utilization (e.g., 0.05 for 5%)
     };
 
-    public type AddSupplyPositionResult = {
-        #ok: { 
+    public type AddRedistributionPositionResult = {
+        #ok: {
             supply_index: Float;
             tx_id: TxIndex;
         };

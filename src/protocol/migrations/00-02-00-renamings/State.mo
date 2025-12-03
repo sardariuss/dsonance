@@ -17,6 +17,14 @@ import Debug          "mo:base/Debug";
 import Int            "mo:base/Int";
 import Text           "mo:base/Text";
 
+// Version 0.2.0 introduced:
+// - Renaming VoteType to PoolType
+// - Renaming BallotType to PositionType
+// - Removing accrued_interests from LendingIndex
+// - Add total_supplied, total_raw and index to SupplyRegister
+// Migration notes:
+// - Upgrade: Extract total_supplied, total_raw, and index from LendingIndex utilization/supply_index
+// - Downgrade: Discard SupplyRegister fields
 module {
 
     type Time               = Int;
@@ -35,9 +43,9 @@ module {
     type YesNoChoice        = Types.YesNoChoice;
     type PoolType           = Types.PoolType;
     type PositionType       = Types.PositionType;
-    type BorrowPosition     = Types.BorrowPosition;
-    type SupplyPosition     = Types.SupplyPosition;
-    type Withdrawal         = Types.Withdrawal;
+    type BorrowPosition         = Types.BorrowPosition;
+    type RedistributionPosition = Types.RedistributionPosition;
+    type Withdrawal             = Types.Withdrawal;
     type KongBackendActor   = Types.KongBackendActor;
     type XrcActor           = Types.XrcActor;
     type TrackedPrice       = Types.TrackedPrice;
@@ -45,6 +53,7 @@ module {
     type InitParameters     = Types.InitParameters;
     type LendingIndex       = Types.LendingIndex;
     type LimitOrderBTreeKey = Types.LimitOrderBTreeKey;
+    type LendingRegister    = Types.LendingRegister;
     type Set<K>             = Set.Set<K>;
 
     let BTREE_ORDER = 8;
@@ -133,7 +142,7 @@ module {
                 });
                 register = {
                     borrow_positions = Map.new<Account, BorrowPosition>();
-                    supply_positions = Map.new<Text, SupplyPosition>();
+                    supply_positions = Map.new<Text, RedistributionPosition>();
                     var total_supplied = 0.0;
                     var total_raw = 0.0;
                     var index = 1.0;
@@ -246,9 +255,9 @@ module {
                 register = {
                     borrow_positions = v1_state.lending.register.borrow_positions;
                     supply_positions = v1_state.lending.register.supply_positions;
-                    var total_supplied = 0.0; // TODO: should come from lendingindex 
-                    var total_raw = 0.0;
-                    var index = 1.0;
+                    var total_supplied = v1_state.lending.index.current.data.utilization.raw_supplied;
+                    var total_raw = v1_state.lending.index.current.data.utilization.raw_supplied + v1_state.lending.index.current.data.accrued_interests.supply;
+                    var index = v1_state.lending.index.current.data.supply_index.value;
                     withdrawals = v1_state.lending.register.withdrawals;
                     withdraw_queue = v1_state.lending.register.withdraw_queue;
                 };
@@ -344,12 +353,12 @@ module {
             lending = {
                 index = {
                     var current = {
-                        data = downgrade_lending_index(v2_state.lending.index.current.data);
+                        data = downgrade_lending_index(v2_state.lending.index.current.data, v2_state.lending.register);
                         timestamp = v2_state.lending.index.current.timestamp;
                     };
                     var history = Array.map<Types.TimedData<LendingIndex>, V0_1_0.TimedData<V0_1_0.LendingIndex>>(v2_state.lending.index.history, func(item) {
                         {
-                            data = downgrade_lending_index(item.data);
+                            data = downgrade_lending_index(item.data, v2_state.lending.register);
                             timestamp = item.timestamp;
                         };
                     });
@@ -417,13 +426,15 @@ module {
         #v0_2_0({ v2_state with parameters = protocol_parameters; });
     };
 
-    func downgrade_lending_index(index: LendingIndex): V0_1_0.LendingIndex {
+    func downgrade_lending_index(index: LendingIndex, register: LendingRegister): V0_1_0.LendingIndex {
         {
             utilization = index.utilization;
             borrow_rate = index.borrow_rate;
             supply_rate = index.supply_rate;
-            // accrued_interests field removed, use default values
-            accrued_interests = { supply = 0.0; borrow = 0.0; };
+            accrued_interests = { 
+                supply = register.total_raw * index.supply_index.value / register.index - register.total_supplied;
+                borrow = 0.0; // Borrow accrued interests cannot be recovered, they're not used anyway
+            };
             borrow_index = index.borrow_index;
             supply_index = index.supply_index;
             timestamp = index.timestamp;

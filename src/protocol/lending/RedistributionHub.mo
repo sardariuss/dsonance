@@ -17,14 +17,14 @@ module {
     type TransferError = Types.TransferError;
     type TxIndex = Types.TxIndex;
 
-    type SupplyInput             = LendingTypes.SupplyInput;
-    type SupplyPosition          = LendingTypes.SupplyPosition;
-    type Withdrawal              = LendingTypes.Withdrawal;
-    type SupplyParameters        = LendingTypes.SupplyParameters;
-    type AddSupplyPositionResult = LendingTypes.AddSupplyPositionResult;
+    type RedistributionInput              = LendingTypes.RedistributionInput;
+    type RedistributionPosition           = LendingTypes.RedistributionPosition;
+    type Withdrawal                       = LendingTypes.Withdrawal;
+    type SupplyParameters                 = LendingTypes.SupplyParameters;
+    type AddRedistributionPositionResult  = LendingTypes.AddRedistributionPositionResult;
 
     public type SupplyRegister = {
-        supply_positions: Map.Map<Text, SupplyPosition>;
+        supply_positions: Map.Map<Text, RedistributionPosition>;
         var total_supplied: Float; // Total supplied (sum of all positions' supplied, no interests)
         var total_raw: Float; // Total raw supplied (principal)
         var index: Float; // Supply index at last update
@@ -44,7 +44,7 @@ module {
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
     }){
 
-        public func get_position({ id: Text }) : ?SupplyPosition {
+        public func get_position({ id: Text }) : ?RedistributionPosition {
             Map.get(register.supply_positions, Map.thash, id);
         };
 
@@ -53,7 +53,7 @@ module {
         // No check are done to ensure that the supply cap is not reached.
         // It is required to do the add_raw_supplied to update the indexer in order to notify the
         // foresight updater which is an observer of the indexer.
-        public func add_position_without_transfer(input: SupplyInput, time: Nat) : AddSupplyPositionResult {
+        public func add_position_without_transfer(input: RedistributionInput, time: Nat) : AddRedistributionPositionResult {
 
             let tx_id = 0; // Tx set arbitrarily to 0, as no transfer is done
 
@@ -64,7 +64,7 @@ module {
             #ok({ supply_index; tx_id; });
         };
 
-        public func add_position(input: SupplyInput, time: Nat) : async* AddSupplyPositionResult {
+        public func add_position(input: RedistributionInput, time: Nat) : async* AddRedistributionPositionResult {
 
             let { id; account; supplied; } = input;
 
@@ -117,19 +117,19 @@ module {
             #ok(due);
         };
 
-        func add({ input: SupplyInput; time: Nat; tx_id: TxIndex; }) {
+        func add({ input: RedistributionInput; time: Nat; tx_id: TxIndex; }) {
             let { id; supplied; } = input;
-            
+
             // Add to total supplied
             register.total_supplied += Float.fromInt(supplied);
 
             // Update indexer and total raw
             ignore indexer.update(time);
-            register.total_raw := indexer.scale_supply_up({ 
-                principal = register.total_raw; 
-                past_index = register.index; 
+            register.total_raw := indexer.scale_supply_up({
+                principal = register.total_raw;
+                past_index = register.index;
             });
-            
+
             // Add new supplied amount
             register.total_raw += Float.fromInt(supplied);
             register.index := indexer.add_raw_supplied({ amount = supplied; time; });
@@ -137,7 +137,7 @@ module {
             Map.set(register.supply_positions, Map.thash, id, { input with tx = tx_id });
         };
 
-        func remove({ pos : SupplyPosition; interest_amount: Nat; time: Nat; }) {
+        func remove({ pos : RedistributionPosition; interest_amount: Nat; time: Nat; }) {
             let { supplied } = pos;
 
             // Remove from total supplied

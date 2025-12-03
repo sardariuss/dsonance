@@ -19,9 +19,9 @@ module {
     type Result<Ok, Err>    = Result.Result<Ok, Err>;
     type TransferResult     = Types.TransferResult;
 
-    type SupplyPosition     = LendingTypes.SupplyPosition;
-    type Withdrawal         = LendingTypes.Withdrawal;
-    type WithdrawalRegister = LendingTypes.WithdrawalRegister;
+    type RedistributionPosition = LendingTypes.RedistributionPosition;
+    type Withdrawal             = LendingTypes.Withdrawal;
+    type WithdrawalRegister     = LendingTypes.WithdrawalRegister;
 
     // @todo: need functions to retry if transfer failed.
     // @todo: need queries to retrieve the transfers and withdrawals (union of the two maps)
@@ -34,7 +34,7 @@ module {
 
         var awaiting_transfer = false;
 
-        public func add({ position: SupplyPosition; due: Nat; time: Nat; }) {
+        public func add({ position: RedistributionPosition; due: Nat; time: Nat; }) {
 
             let { id; account; supplied; } = position;
 
