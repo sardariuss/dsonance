@@ -809,7 +809,7 @@ module {
     };
 
     public type RedistributionRegister = {
-        supply_positions: Map.Map<Text, RedistributionPosition>;
+        redistribution_positions: Map.Map<Text, RedistributionPosition>;
         var total_supplied: Float; // Total supplied (sum of all positions' supplied, no interests)
         var total_raw: Float; // Total raw supplied (principal)
         var index: Float; // Supply index at last update

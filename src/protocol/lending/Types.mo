@@ -266,7 +266,7 @@ module {
     };
 
     public type RedistributionRegister = {
-        supply_positions: Map.Map<Text, RedistributionPosition>;
+        redistribution_positions: Map.Map<Text, RedistributionPosition>;
         var total_supplied: Float;
         var total_raw: Float;
         var index: Float;

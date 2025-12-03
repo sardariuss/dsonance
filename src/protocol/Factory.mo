@@ -127,7 +127,7 @@ module {
             parameters = parameters.mining;
             minting_account = participation_account;
             register = mining;
-            supply_positions = lending.register.supply_positions;
+            redistribution_positions = lending.register.redistribution_positions;
             borrow_positions = lending.register.borrow_positions;
             lending_index = lending.index;
         });

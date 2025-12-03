@@ -17,14 +17,11 @@ import Debug          "mo:base/Debug";
 import Int            "mo:base/Int";
 import Text           "mo:base/Text";
 
-// Version 0.2.0 introduced:
+// Version 0.2.0 changes:
 // - Renaming VoteType to PoolType
 // - Renaming BallotType to PositionType
-// - Removing accrued_interests from LendingIndex
-// - Add total_supplied, total_raw and index to SupplyRegister
-// Migration notes:
-// - Upgrade: Extract total_supplied, total_raw, and index from LendingIndex utilization/supply_index
-// - Downgrade: Discard SupplyRegister fields
+// - SupplyPosition becomes RedistributionPosition and SupplyRegister becomes RedistributionRegister
+// - Add total_supplied, total_raw and index to RedistributionRegister, remove interests from LendingIndex
 module {
 
     type Time               = Int;
@@ -142,7 +139,7 @@ module {
                 });
                 register = {
                     borrow_positions = Map.new<Account, BorrowPosition>();
-                    supply_positions = Map.new<Text, RedistributionPosition>();
+                    redistribution_positions = Map.new<Text, RedistributionPosition>();
                     var total_supplied = 0.0;
                     var total_raw = 0.0;
                     var index = 1.0;
@@ -254,7 +251,7 @@ module {
                 };
                 register = {
                     borrow_positions = v1_state.lending.register.borrow_positions;
-                    supply_positions = v1_state.lending.register.supply_positions;
+                    redistribution_positions = v1_state.lending.register.supply_positions;
                     var total_supplied = v1_state.lending.index.current.data.utilization.raw_supplied;
                     var total_raw = v1_state.lending.index.current.data.utilization.raw_supplied + v1_state.lending.index.current.data.accrued_interests.supply;
                     var index = v1_state.lending.index.current.data.supply_index.value;
@@ -367,7 +364,7 @@ module {
                 };
                 register = {
                     borrow_positions = v2_state.lending.register.borrow_positions;
-                    supply_positions = v2_state.lending.register.supply_positions;
+                    supply_positions = v2_state.lending.register.redistribution_positions;
                     withdrawals = v2_state.lending.register.withdrawals;
                     withdraw_queue = v2_state.lending.register.withdraw_queue;
                 };

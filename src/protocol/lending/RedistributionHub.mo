@@ -24,7 +24,7 @@ module {
     type AddRedistributionPositionResult  = LendingTypes.AddRedistributionPositionResult;
 
     public type SupplyRegister = {
-        supply_positions: Map.Map<Text, RedistributionPosition>;
+        redistribution_positions: Map.Map<Text, RedistributionPosition>;
         var total_supplied: Float; // Total supplied (sum of all positions' supplied, no interests)
         var total_raw: Float; // Total raw supplied (principal)
         var index: Float; // Supply index at last update
@@ -45,7 +45,7 @@ module {
     }){
 
         public func get_position({ id: Text }) : ?RedistributionPosition {
-            Map.get(register.supply_positions, Map.thash, id);
+            Map.get(register.redistribution_positions, Map.thash, id);
         };
 
         // ⚠️ This function is only for preview purposes, it does not perform the transfer.
@@ -68,7 +68,7 @@ module {
 
             let { id; account; supplied; } = input;
 
-            if (Map.has(register.supply_positions, Map.thash, id)){
+            if (Map.has(register.redistribution_positions, Map.thash, id)){
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
@@ -95,7 +95,7 @@ module {
         // Watchout, the transfer is not done immediately, it is added to the withdrawal queue.
         public func remove_position({ id: Text; interest_amount: Nat; time: Nat; }) : Result<Nat, Text> {
             
-            let position = switch(Map.get(register.supply_positions, Map.thash, id)){
+            let position = switch(Map.get(register.redistribution_positions, Map.thash, id)){
                 case(null) { return #err("The map does not have a position with the ID " # debug_show(id)); };
                 case(?p) { p; };
             };
@@ -134,7 +134,7 @@ module {
             register.total_raw += Float.fromInt(supplied);
             register.index := indexer.add_raw_supplied({ amount = supplied; time; });
 
-            Map.set(register.supply_positions, Map.thash, id, { input with tx = tx_id });
+            Map.set(register.redistribution_positions, Map.thash, id, { input with tx = tx_id });
         };
 
         func remove({ pos : RedistributionPosition; interest_amount: Nat; time: Nat; }) {
@@ -155,7 +155,7 @@ module {
             register.total_raw -= raw_amount;
             register.index := indexer.remove_raw_supplied({ amount = raw_amount; time; });
 
-            Map.delete(register.supply_positions, Map.thash, pos.id);
+            Map.delete(register.redistribution_positions, Map.thash, pos.id);
         };
 
         public type SupplyInfo = { 

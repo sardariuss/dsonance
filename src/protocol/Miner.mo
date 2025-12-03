@@ -37,7 +37,7 @@ module {
         genesis_time: Nat;
         parameters: MiningParameters;
         minting_account: ILedgerAccount;
-        supply_positions: Map.Map<Text, RedistributionPosition>;
+        redistribution_positions: Map.Map<Text, RedistributionPosition>;
         borrow_positions: Map.Map<Account, BorrowPosition>;
         lending_index: Timeline.Timeline<LendingIndex>;
         register: {
@@ -176,14 +176,14 @@ module {
 
         func accumulate_supplier_owed(total_amount: Float, raw_supplied: Float) {
             
-            for ((position_id, supply_position) in Map.entries(supply_positions)) {
-                let supplied = Float.fromInt(supply_position.supplied);
+            for ((position_id, position) in Map.entries(redistribution_positions)) {
+                let supplied = Float.fromInt(position.supplied);
                 let share = supplied / raw_supplied;
                 let participation_amount = total_amount * share;
                 let participation_nat = Float.toInt(participation_amount);
                 
                 if (participation_nat > 0) {
-                    add_owed(supply_position.account, Int.abs(participation_nat));
+                    add_owed(position.account, Int.abs(participation_nat));
                 };
             };
         };
