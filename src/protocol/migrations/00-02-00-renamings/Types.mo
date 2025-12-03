@@ -785,6 +785,26 @@ module {
         value: Float;
     };
 
+    // ------------------------------ SUPPLY POSITION TYPES ------------------------------
+
+    public type SupplyPositionTx = {
+        #SUPPLIED: TxIndex;
+        #WITHDRAWN: TxIndex;
+    };
+
+    public type SupplyPosition = {
+        account: Account;
+        tx: [SupplyPositionTx];
+        raw_amount: Float;
+        index: Float;
+    };
+
+    public type SupplyRegister = {
+        supply_positions: Map.Map<Account, SupplyPosition>;
+    };
+
+    // ------------------------------ REDISTRIBUTION POSITION TYPES ------------------------------
+
     public type RedistributionInput = {
         id: Text;
         account: Account;
@@ -820,7 +840,7 @@ module {
         withdraw_queue: Set.Set<Text>;
     };
 
-    public type LendingRegister = BorrowRegister and RedistributionRegister and WithdrawalRegister;
+    public type LendingRegister = BorrowRegister and SupplyRegister and RedistributionRegister and WithdrawalRegister;
 
     public type Utilization = {
         raw_supplied: Float;

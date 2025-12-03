@@ -292,7 +292,7 @@ module {
         timestamp: Nat;
     };
 
-    public type LendingRegister = BorrowRegister and RedistributionRegister and WithdrawalRegister;
+    public type LendingRegister = BorrowRegister and SupplyRegister and RedistributionRegister and WithdrawalRegister;
 
     // A point on the interest rate curve
     public type CurvePoint = {

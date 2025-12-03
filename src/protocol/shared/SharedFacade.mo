@@ -38,6 +38,9 @@ module {
     type Loan = LendingTypes.Loan;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type OperationKind = LendingTypes.OperationKind;
+    type SupplyOperation = LendingTypes.SupplyOperation;
+    type SupplyOperationKind = LendingTypes.SupplyOperationKind;
+    type SupplyInfo = LendingTypes.SupplyInfo;
     type TransferResult = Types.TransferResult;
     type ProtocolInfo = Types.ProtocolInfo;
     type MiningTracker = Types.MiningTracker;
@@ -165,6 +168,32 @@ module {
 
         public func get_loans_info() : { positions: [Loan]; max_ltv: Float } {
             controller.get_loans_info();
+        };
+
+        public func run_supply_operation({
+            caller: Principal;
+            subaccount: ?Blob;
+            amount: Nat;
+            kind: SupplyOperationKind;
+        }) : async* Result<SupplyOperation, Text> {
+            await* controller.run_supply_operation( { account = { owner = caller; subaccount; }; amount; kind; } );
+        };
+
+        public func run_supply_operation_for_free({
+            caller: Principal;
+            subaccount: ?Blob;
+            amount: Nat;
+            kind: SupplyOperationKind;
+        }) : Result<SupplyOperation, Text> {
+            controller.run_supply_operation_for_free( { account = { owner = caller; subaccount; }; amount; kind; } );
+        };
+
+        public func get_supply_info(account: Account) : SupplyInfo {
+            controller.get_supply_info(account);
+        };
+
+        public func get_all_supply_info() : { positions: [SupplyInfo]; total_supplied: Float } {
+            controller.get_all_supply_info();
         };
 
         public func get_available_liquidities() : async* Nat {

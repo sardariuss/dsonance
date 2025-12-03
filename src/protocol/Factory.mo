@@ -91,7 +91,7 @@ module {
             ledger = supply_ledger;
         });
 
-        let { supply; redistribution_hub; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { supply; supply_registry; redistribution_hub; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             lending with
             parameters = parameters.lending;
             collateral_price_tracker;
@@ -151,6 +151,7 @@ module {
             lock_scheduler;
             pool_type_controller;
             supply;
+            supply_registry;
             redistribution_hub;
             borrow_registry;
             withdrawal_queue;

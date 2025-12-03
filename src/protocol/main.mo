@@ -189,6 +189,33 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         getFacade().run_borrow_operation_for_free({ caller; subaccount; amount; kind; });
     };
 
+    public shared({caller}) func run_supply_operation({
+        subaccount: ?Blob;
+        amount: Nat;
+        kind: LendingTypes.SupplyOperationKind;
+    }) : async Result.Result<LendingTypes.SupplyOperation, Text> {
+        await* getFacade().run_supply_operation({ caller; subaccount; amount; kind; });
+    };
+
+    // ⚠️ THIS IS INTENTIONALLY A QUERY FUNCTION
+    // DO NOT CHANGE IT TO A SHARED FUNCTION OTHERWISE
+    // THE PREVIEW WILL ACTUALLY RUN THE SUPPLY OPERATION
+    public query({caller}) func preview_supply_operation({
+        subaccount: ?Blob;
+        amount: Nat;
+        kind: LendingTypes.SupplyOperationKind;
+    }) : async Result.Result<LendingTypes.SupplyOperation, Text> {
+        getFacade().run_supply_operation_for_free({ caller; subaccount; amount; kind; });
+    };
+
+    public query func get_supply_info(account: Types.Account) : async LendingTypes.SupplyInfo {
+        getFacade().get_supply_info(account);
+    };
+
+    public query func get_all_supply_info() : async { positions: [LendingTypes.SupplyInfo]; total_supplied: Float } {
+        getFacade().get_all_supply_info();
+    };
+
     func getFacade() : SharedFacade.SharedFacade {
         switch(facade){
             case (null) { Debug.trap("The facade is not initialized"); };

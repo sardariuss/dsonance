@@ -12,6 +12,7 @@ import IterUtils               "utils/Iter";
 import LedgerTypes             "ledger/Types";
 import LendingTypes            "lending/Types";
 import RedistributionHub       "lending/RedistributionHub";
+import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
 import SupplyAccount           "lending/SupplyAccount";
@@ -52,6 +53,9 @@ module {
     type Loan = LendingTypes.Loan;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type BorrowOperationArgs = LendingTypes.BorrowOperationArgs;
+    type SupplyOperation = LendingTypes.SupplyOperation;
+    type SupplyOperationArgs = LendingTypes.SupplyOperationArgs;
+    type SupplyInfo = LendingTypes.SupplyInfo;
     type TransferResult = LendingTypes.TransferResult;
     type IPriceTracker = LedgerTypes.IPriceTracker;
     type MiningTracker = Types.MiningTracker;
@@ -105,6 +109,7 @@ module {
         lock_scheduler: LockScheduler.LockScheduler;
         pool_type_controller: PoolTypeController.PoolTypeController;
         supply: SupplyAccount.SupplyAccount;
+        supply_registry: SupplyRegistry.SupplyRegistry;
         redistribution_hub: RedistributionHub.RedistributionHub;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
@@ -281,6 +286,22 @@ module {
 
         public func get_loans_info() : { positions: [Loan]; max_ltv: Float } {
             borrow_registry.get_loans_info(clock.get_time());
+        };
+
+        public func run_supply_operation(args: SupplyOperationArgs) : async* Result<SupplyOperation, Text> {
+            await* supply_registry.run_operation(clock.get_time(), args);
+        };
+
+        public func run_supply_operation_for_free(args: SupplyOperationArgs) : Result<SupplyOperation, Text> {
+            supply_registry.run_operation_for_free(clock.get_time(), args);
+        };
+
+        public func get_supply_info(account: Account) : SupplyInfo {
+            supply_registry.get_supply_info(clock.get_time(), account);
+        };
+
+        public func get_all_supply_info() : { positions: [SupplyInfo]; total_supplied: Float } {
+            supply_registry.get_all_supply_info(clock.get_time());
         };
 
         public func get_available_liquidities() : async* Nat {

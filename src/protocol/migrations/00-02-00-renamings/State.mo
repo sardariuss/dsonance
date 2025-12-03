@@ -22,6 +22,7 @@ import Text           "mo:base/Text";
 // - Renaming BallotType to PositionType
 // - SupplyPosition becomes RedistributionPosition and SupplyRegister becomes RedistributionRegister
 // - Add total_supplied, total_raw and index to RedistributionRegister, remove interests from LendingIndex
+// - Add new account-based SupplyPosition and SupplyRegister for indexed supply positions
 module {
 
     type Time               = Int;
@@ -41,6 +42,7 @@ module {
     type PoolType           = Types.PoolType;
     type PositionType       = Types.PositionType;
     type BorrowPosition         = Types.BorrowPosition;
+    type SupplyPosition         = Types.SupplyPosition;
     type RedistributionPosition = Types.RedistributionPosition;
     type Withdrawal             = Types.Withdrawal;
     type KongBackendActor   = Types.KongBackendActor;
@@ -139,6 +141,7 @@ module {
                 });
                 register = {
                     borrow_positions = Map.new<Account, BorrowPosition>();
+                    supply_positions = Map.new<Account, SupplyPosition>();
                     redistribution_positions = Map.new<Text, RedistributionPosition>();
                     var total_supplied = 0.0;
                     var total_raw = 0.0;
@@ -251,6 +254,7 @@ module {
                 };
                 register = {
                     borrow_positions = v1_state.lending.register.borrow_positions;
+                    supply_positions = Map.new<Account, SupplyPosition>();
                     redistribution_positions = v1_state.lending.register.supply_positions;
                     var total_supplied = v1_state.lending.index.current.data.utilization.raw_supplied;
                     var total_raw = v1_state.lending.index.current.data.utilization.raw_supplied + v1_state.lending.index.current.data.accrued_interests.supply;
