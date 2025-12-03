@@ -14,6 +14,7 @@ import Indexer            "Indexer";
 import WithdrawalQueue    "WithdrawalQueue";
 import UtilizationUpdater "UtilizationUpdater";
 import SupplyAccount      "SupplyAccount";
+import SupplyPositionManager "SupplyPositionManager";
 
 module {
 
@@ -44,12 +45,17 @@ module {
         parameters: SupplyParameters;
     }) {
 
+        let position_manager = SupplyPositionManager.SupplyPositionManager({
+            register;
+            indexer;
+        });
+
         public func get_position({ account: Account; }) : ?SupplyPosition {
-            Map.get(register.supply_positions, MapUtils.acchash, account);
+            position_manager.get_position({ account; });
         };
 
         public func get_positions() : Map.Iter<SupplyPosition> {
-            Map.vals(register.supply_positions);
+            position_manager.get_positions();
         };
 
         public func run_operation(time: Nat, args: SupplyOperationArgs) : async* Result<SupplyOperation, Text> {
@@ -106,95 +112,28 @@ module {
             amount: Float;
             time: Nat;
         }) : Result<(), Text> {
-
-            let index = indexer.update(time).supply_index;
-            let position = get_position({ account; });
-
-            // Scale up existing position (if any) and add new amount
-            let new_position = add_supply({
-                position;
-                account;
-                index;
-                amount = Int.abs(Math.floor_to_int(amount));
-            });
-
-            Map.set(register.supply_positions, MapUtils.acchash, account, new_position);
-
-            #ok(());
+            position_manager.add_amount({ account; amount; time; });
         };
 
         // Remove supply from an account's position without transferring tokens
         // Used when moving funds from SupplyRegistry to RedistributionHub
         // Does NOT call indexer.remove_raw_supplied since funds stay in the system
-        // Returns the raw amount removed
+        // Returns the withdrawn amount
         public func remove_supply_without_transfer({
             account: Account;
             amount: Nat;
             max_slippage_amount: Nat;
             time: Nat;
         }) : Result<Float, Text> {
-
-            let position = switch(get_position({ account; })){
-                case(null) { return #err("No supply position found for account"); };
-                case(?p) { p; };
-            };
-
-            ignore indexer.update(time);
-
-            let withdraw_result = withdraw_supply({ position; amount; max_slippage_amount; });
-            let { withdrawn; remaining; } = switch(withdraw_result){
-                case(#err(err)) { return #err(err); };
-                case(#ok(p)) { p; };
-            };
-
-            let update = { position with raw_amount = remaining; };
-
-            // If position is empty after withdrawal, delete it
-            if (remaining == 0.0) {
-                Map.delete(register.supply_positions, MapUtils.acchash, account);
-            } else {
-                Map.set(register.supply_positions, MapUtils.acchash, account, update);
-            };
-
-            #ok(withdrawn);
+            position_manager.remove_amount({ account; amount; max_slippage_amount; time; });
         };
 
         public func get_supply_info(time: Nat, account: Account) : SupplyInfo {
-
-            let index = indexer.get_index_now(time).supply_index;
-
-            switch (Map.get(register.supply_positions, MapUtils.acchash, account)){
-                case(null) {
-                    {
-                        account;
-                        supplied = 0.0;
-                        accrued_amount = 0.0;
-                        supply_index = index;
-                    };
-                };
-                case(?position) {
-                    to_supply_info({ position; index; });
-                };
-            };
+            position_manager.get_supply_info(time, account);
         };
 
         public func get_all_supply_info(time: Nat) : { positions: [SupplyInfo]; total_supplied: Float } {
-
-            let index = indexer.get_index_now(time).supply_index;
-
-            let positions : [SupplyInfo] = Map.toArrayMap<Account, SupplyPosition, SupplyInfo>(register.supply_positions, func (account: Account, position: SupplyPosition) : ?SupplyInfo {
-                ?to_supply_info({ position; index; });
-            });
-
-            var total_supplied : Float = 0.0;
-            for (info in positions.vals()) {
-                total_supplied += info.accrued_amount;
-            };
-
-            {
-                positions;
-                total_supplied;
-            };
+            position_manager.get_all_supply_info(time);
         };
 
         func prepare_operation(time: Nat, args: SupplyOperationArgs) : Result<PreparedOperation, Text> {

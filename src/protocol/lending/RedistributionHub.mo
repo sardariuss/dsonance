@@ -7,6 +7,7 @@ import Types           "../Types";
 import LendingTypes    "Types";
 import Indexer         "Indexer";
 import SupplyAccount   "SupplyAccount";
+import RedistributionPositionManager "RedistributionPositionManager";
 
 module {
 
@@ -23,15 +24,10 @@ module {
     type AddRedistributionPositionResult  = LendingTypes.AddRedistributionPositionResult;
     type RedistributionRegister           = LendingTypes.RedistributionRegister;
 
-    type SupplyInfo = { 
+    public type SupplyInfo = {
         accrued_interests: Float;
         interests_rate: Float;
         timestamp: Nat;
-    };
-
-    type AmountOrigin = {
-        #FROM_SUPPLY_ACCOUNT;
-        #FROM_USER_WALLET;
     };
 
     // \brief This class allows to redistribute interests accrued by all positions.
@@ -51,8 +47,13 @@ module {
         };
     }){
 
+        let position_manager = RedistributionPositionManager.RedistributionPositionManager({
+            redistribution;
+            indexer;
+        });
+
         public func get_position({ id: Text }) : ?RedistributionPosition {
-            Map.get(redistribution.redistribution_positions, Map.thash, id);
+            position_manager.get_position({ id; });
         };
 
         // ⚠️ This function is only for preview purposes, it does not perform the transfer.
@@ -64,9 +65,8 @@ module {
 
             let tx_id = 0; // Tx set arbitrarily to 0, as no transfer is done
 
-            add({ input; time; tx_id; origin = #FROM_USER_WALLET; });
-
-            let supply_index = indexer.get_index_now(time).supply_index.value;
+            ignore indexer.add_raw_supplied({ amount = input.supplied; time; });
+            let supply_index = position_manager.add_position({ input; tx_id; time; });
 
             #ok({ supply_index; tx_id; });
         };
@@ -93,9 +93,11 @@ module {
             // TODO: small risk here that a user call add_position twice in parallel, two transfer succeed,
             // and only one position is set
 
-            add({ input; time; tx_id; origin = #FROM_USER_WALLET; });
+            // Add with wallet origin (updates indexer)
+            ignore indexer.add_raw_supplied({ amount = supplied; time; });
+            let supply_index = position_manager.add_position({ input; tx_id; time; });
 
-            #ok({ supply_index = lending_index.supply_index.value; tx_id; });
+            #ok({ supply_index; tx_id; });
         };
 
         // Add redistribution position from SupplyRegistry (no token transfer)
@@ -112,11 +114,7 @@ module {
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
-            let lending_index = indexer.get_index_now(time);
-
-            if (lending_index.utilization.raw_supplied + Float.fromInt(supplied) > Float.fromInt(parameters.supply_cap)){
-                return #err("Cannot add position, the supply cap of " # debug_show(parameters.supply_cap) # " is reached");
-            };
+            // ⚠️ Do not check supply cap here, as funds are already in the system
 
             // Remove from SupplyRegistry (no transfer, just accounting)
             switch(supply_registry.remove_supply_without_transfer({
@@ -129,30 +127,21 @@ module {
                 case(#ok(_)) {};
             };
 
-            // Add to RedistributionHub without calling indexer.add_raw_supplied
-            add({ input; time; tx_id = 0; origin = #FROM_SUPPLY_ACCOUNT; });
+            // Add to RedistributionHub (no indexer update, funds already in system)
+            let supply_index = position_manager.add_position({ input; tx_id = 0; time; });
 
-            #ok({ supply_index = lending_index.supply_index.value; tx_id = 0; });
+            #ok({ supply_index; tx_id = 0; });
         };
 
         // Remove a position from the redistribution registry.
         // The funds (supplied + interest) are added to the account's SupplyPosition in SupplyRegistry.
         public func remove_position({ id: Text; interest_amount: Nat; time: Nat; }) : Result<Nat, Text> {
 
-            let position = switch(Map.get(redistribution.redistribution_positions, Map.thash, id)){
-                case(null) { return #err("The map does not have a position with the ID " # debug_show(id)); };
-                case(?p) { p; };
+            // Remove position using position_manager
+            let { position; due; } = switch(position_manager.remove_position({ id; interest_amount; time; })){
+                case(#err(err)) { return #err(err); };
+                case(#ok(result)) { result; };
             };
-
-            ignore indexer.update(time);
-            let total_interests = get_total_interests();
-
-            // Make sure the amount is not greater than available supply interests
-            if (Float.fromInt(interest_amount) > total_interests) {
-                return #err("Interest amount " # debug_show(interest_amount) # " is greater than total interests " # debug_show(total_interests));
-            };
-
-            let due = position.supplied + interest_amount;
 
             // Add to the account's SupplyPosition (no transfer, just accounting)
             switch(supply_registry.add_supply_without_pull({
@@ -164,82 +153,11 @@ module {
                 case(#ok(_)) {};
             };
 
-            // Remove from redistribution positions (does NOT call indexer.remove_raw_supplied)
-            remove({ pos = position; interest_amount; time; });
-
             #ok(due);
         };
 
-        func add({ input: RedistributionInput; time: Nat; tx_id: TxIndex; origin: AmountOrigin; }) {
-            let { id; supplied; } = input;
-
-            // Update indexer and total raw
-            let supply_index = switch(origin){
-                case(#FROM_SUPPLY_ACCOUNT) {
-                    // Funds are already in the system, just update the index
-                    indexer.get_index_now(time).supply_index.value;
-                };
-                case(#FROM_USER_WALLET) {
-                    // New funds coming from user, need to be added
-                    indexer.add_raw_supplied({ amount = supplied; time; });
-                };
-            };
-            
-            // Update total raw to current index
-            redistribution.total_raw := indexer.scale_supply_up({
-                principal = redistribution.total_raw;
-                past_index = redistribution.index;
-            });
-            redistribution.index := supply_index;
-
-            // Add to total raw and total supplied
-            redistribution.total_supplied += Float.fromInt(supplied);
-            redistribution.total_raw += Float.fromInt(supplied);
-            
-            Map.set(redistribution.redistribution_positions, Map.thash, id, { input with tx = tx_id });
-        };
-
-        // Remove position without calling indexer.remove_raw_supplied
-        // Used when funds stay in the system (moved to SupplyRegistry)
-        func remove({ pos : RedistributionPosition; interest_amount: Nat; time: Nat; }) {
-            let { supplied } = pos;
-
-            // Update total raw to current value
-            let supply_index = indexer.update(time).supply_index.value;
-            redistribution.total_raw := indexer.scale_supply_up({ 
-                principal = redistribution.total_raw;
-                past_index = redistribution.index; 
-            });
-            redistribution.index := supply_index;
-
-            // Remove supplied + interest from total raw
-            redistribution.total_raw -= Float.fromInt(supplied);
-            redistribution.total_raw -= Float.fromInt(interest_amount);
-
-            // Remove supplied from total supplied
-            redistribution.total_supplied -= Float.fromInt(supplied);
-
-            Map.delete(redistribution.redistribution_positions, Map.thash, pos.id);
-        };
-
         public func get_supply_info(time: Nat) : SupplyInfo {
-            let lending_index = indexer.get_index_now(time);
-            let total_worth = get_total_worth();
-            let accrued_interests = total_worth - redistribution.total_supplied;
-            { 
-                accrued_interests;
-                interests_rate = lending_index.supply_rate;
-                timestamp = lending_index.timestamp;
-            };
-        };
-
-        func get_total_worth() : Float {
-            indexer.scale_supply_up({ principal = redistribution.total_raw; past_index = redistribution.index; });
-        };
-
-        func get_total_interests() : Float {
-            let total_worth = get_total_worth();
-            total_worth - redistribution.total_supplied;
+            position_manager.get_supply_info(time);
         };
 
     };
