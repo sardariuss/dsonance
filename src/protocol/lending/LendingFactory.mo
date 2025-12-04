@@ -13,8 +13,6 @@ import LedgerTypes                   "../ledger/Types";
 import LedgerAccount                 "../ledger/LedgerAccount";
 import Timeline                      "../utils/Timeline";
 
-import Result             "mo:base/Result";
-
 module {
 
     type LendingIndex        = LendingTypes.LendingIndex;
@@ -27,7 +25,6 @@ module {
     type ILedgerFungible     = LedgerTypes.ILedgerFungible;
     type ProtocolInfo        = LedgerTypes.ProtocolInfo;
     type IPriceTracker       = LedgerTypes.IPriceTracker;
-    type Result<Ok, Err>     = Result.Result<Ok, Err>;
 
     public func build({
         parameters: LendingParameters;
@@ -85,7 +82,6 @@ module {
             supply;
         });
 
-        // Create position managers first
         let supply_position_manager = SupplyPositionManager.SupplyPositionManager({
             register;
             indexer;
@@ -96,7 +92,6 @@ module {
             indexer;
         });
 
-        // Then inject them into registries/hubs
         let supply_registry = SupplyRegistry.SupplyRegistry({
             supply;
             indexer;
