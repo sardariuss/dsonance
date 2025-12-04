@@ -8,6 +8,7 @@ import LendingTypes    "Types";
 import Indexer         "Indexer";
 import SupplyAccount   "SupplyAccount";
 import RedistributionPositionManager "RedistributionPositionManager";
+import SupplyPositionManager "SupplyPositionManager";
 
 module {
 
@@ -38,19 +39,11 @@ module {
     // in any way.
     public class RedistributionHub({
         indexer: Indexer.Indexer;
-        redistribution: RedistributionRegister;
         supply: SupplyAccount.SupplyAccount;
         parameters: SupplyParameters;
-        supply_registry: {
-            add_supply_without_pull: ({ account: Account; amount: Float; time: Nat; }) -> Result<(), Text>;
-            remove_supply_without_transfer: ({ account: Account; amount: Nat; max_slippage_amount: Nat; time: Nat; }) -> Result<Float, Text>;
-        };
+        supply_position_manager: SupplyPositionManager.SupplyPositionManager;
+        position_manager: RedistributionPositionManager.RedistributionPositionManager;
     }){
-
-        let position_manager = RedistributionPositionManager.RedistributionPositionManager({
-            redistribution;
-            indexer;
-        });
 
         public func get_position({ id: Text }) : ?RedistributionPosition {
             position_manager.get_position({ id; });
@@ -75,7 +68,7 @@ module {
 
             let { id; account; supplied; } = input;
 
-            if (Map.has(redistribution.redistribution_positions, Map.thash, id)){
+            if (position_manager.has_position({ id })){
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
@@ -100,7 +93,7 @@ module {
             #ok({ supply_index; tx_id; });
         };
 
-        // Add redistribution position from SupplyRegistry (no token transfer)
+        // Add redistribution position from SupplyPositionManager (no token transfer)
         // Takes funds from the user's SupplyPosition and moves them to RedistributionHub
         public func add_position_from_supply({
             input: RedistributionInput;
@@ -110,14 +103,14 @@ module {
 
             let { id; account; supplied; } = input;
 
-            if (Map.has(redistribution.redistribution_positions, Map.thash, id)){
+            if (position_manager.has_position({ id })){
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
             // ⚠️ Do not check supply cap here, as funds are already in the system
 
-            // Remove from SupplyRegistry (no transfer, just accounting)
-            switch(supply_registry.remove_supply_without_transfer({
+            // Remove from SupplyPositionManager (no transfer, just accounting)
+            switch(supply_position_manager.remove_amount({
                 account;
                 amount = supplied;
                 max_slippage_amount;
@@ -134,7 +127,7 @@ module {
         };
 
         // Remove a position from the redistribution registry.
-        // The funds (supplied + interest) are added to the account's SupplyPosition in SupplyRegistry.
+        // The funds (supplied + interest) are added to the account's SupplyPosition via SupplyPositionManager.
         public func remove_position({ id: Text; interest_amount: Nat; time: Nat; }) : Result<Nat, Text> {
 
             // Remove position using position_manager
@@ -144,7 +137,7 @@ module {
             };
 
             // Add to the account's SupplyPosition (no transfer, just accounting)
-            switch(supply_registry.add_supply_without_pull({
+            switch(supply_position_manager.add_amount({
                 account = position.account;
                 amount = Float.fromInt(due);
                 time;

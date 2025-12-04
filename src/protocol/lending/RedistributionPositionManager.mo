@@ -26,12 +26,16 @@ module {
     // No token transfers, no indexer updates (raw_supplied)
     // Just position management with index scaling
     public class RedistributionPositionManager({
-        redistribution: RedistributionRegister;
+        register: RedistributionRegister;
         indexer: Indexer.Indexer;
     }) {
 
+        public func has_position({ id: Text }) : Bool {
+            Map.has(register.redistribution_positions, Map.thash, id);
+        };
+
         public func get_position({ id: Text }) : ?RedistributionPosition {
-            Map.get(redistribution.redistribution_positions, Map.thash, id);
+            Map.get(register.redistribution_positions, Map.thash, id);
         };
 
         // Add a redistribution position
@@ -45,17 +49,17 @@ module {
 
             // Update total raw to current index
             let supply_index = indexer.update(time).supply_index.value;
-            redistribution.total_raw := indexer.scale_supply_up({
-                principal = redistribution.total_raw;
-                past_index = redistribution.index;
+            register.total_raw := indexer.scale_supply_up({
+                principal = register.total_raw;
+                past_index = register.index;
             });
-            redistribution.index := supply_index;
+            register.index := supply_index;
 
             // Add to total raw and total supplied
-            redistribution.total_supplied += Float.fromInt(supplied);
-            redistribution.total_raw += Float.fromInt(supplied);
+            register.total_supplied += Float.fromInt(supplied);
+            register.total_raw += Float.fromInt(supplied);
 
-            Map.set(redistribution.redistribution_positions, Map.thash, id, { input with tx = tx_id });
+            Map.set(register.redistribution_positions, Map.thash, id, { input with tx = tx_id });
 
             supply_index;
         };
@@ -68,7 +72,7 @@ module {
             time: Nat;
         }) : Result<{ position: RedistributionPosition; due: Nat; }, Text> {
 
-            let position = switch(Map.get(redistribution.redistribution_positions, Map.thash, id)){
+            let position = switch(Map.get(register.redistribution_positions, Map.thash, id)){
                 case(null) { return #err("The map does not have a position with the ID " # debug_show(id)); };
                 case(?p) { p; };
             };
@@ -86,21 +90,21 @@ module {
 
             // Update total raw to current value
             let supply_index = indexer.update(time).supply_index.value;
-            redistribution.total_raw := indexer.scale_supply_up({
-                principal = redistribution.total_raw;
-                past_index = redistribution.index;
+            register.total_raw := indexer.scale_supply_up({
+                principal = register.total_raw;
+                past_index = register.index;
             });
-            redistribution.index := supply_index;
+            register.index := supply_index;
 
             let due = supplied + interest_amount;
 
             // Remove due from total raw
-            redistribution.total_raw -= Float.fromInt(due);
+            register.total_raw -= Float.fromInt(due);
 
             // Remove supplied from total supplied
-            redistribution.total_supplied -= Float.fromInt(supplied);
+            register.total_supplied -= Float.fromInt(supplied);
 
-            Map.delete(redistribution.redistribution_positions, Map.thash, position.id);
+            Map.delete(register.redistribution_positions, Map.thash, position.id);
             
             #ok({ position; due; });
         };
@@ -109,7 +113,7 @@ module {
             // Update index to have accurate worth calculation
             let lending_index = indexer.get_index_now(time);
             let total_worth = get_total_worth();
-            let accrued_interests = total_worth - redistribution.total_supplied;
+            let accrued_interests = total_worth - register.total_supplied;
             {
                 accrued_interests;
                 interests_rate = lending_index.supply_rate;
@@ -118,12 +122,12 @@ module {
         };
 
         func get_total_worth() : Float {
-            indexer.scale_supply_up({ principal = redistribution.total_raw; past_index = redistribution.index; });
+            indexer.scale_supply_up({ principal = register.total_raw; past_index = register.index; });
         };
 
         func get_total_interests() : Float {
             let total_worth = get_total_worth();
-            total_worth - redistribution.total_supplied;
+            total_worth - register.total_supplied;
         };
 
     };

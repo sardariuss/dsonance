@@ -4,6 +4,7 @@ import Result             "mo:base/Result";
 import Float              "mo:base/Float";
 import Int                "mo:base/Int";
 import Array              "mo:base/Array";
+import Iter               "mo:base/Iter";
 
 import Types              "../Types";
 import MapUtils           "../utils/Map";
@@ -37,6 +38,28 @@ module {
 
         public func get_positions() : Map.Iter<SupplyPosition> {
             Map.vals(register.supply_positions);
+        };
+
+        // Set a position
+        public func set_position({
+            account: Account;
+            position: SupplyPosition;
+        }) {
+            Map.set(register.supply_positions, MapUtils.acchash, account, position);
+        };
+
+        // Delete a position
+        public func delete_position({ account: Account; }) {
+            Map.delete(register.supply_positions, MapUtils.acchash, account);
+        };
+
+        // Add a transaction to a position (used for recording supply/withdraw txs)
+        public func add_tx({
+            position: SupplyPosition;
+            tx: SupplyPositionTx;
+        }) : SupplyPosition {
+            let new_tx = Array.append(position.tx, [tx]);
+            { position with tx = new_tx; };
         };
 
         // Add amount to a supply position (scales up existing position with current index)
@@ -120,7 +143,7 @@ module {
             var total_supplied = 0.0;
 
             let positions = Array.map<SupplyPosition, SupplyInfo>(
-                Array.fromIter(Map.vals(register.supply_positions)),
+                Iter.toArray(Map.vals(register.supply_positions)),
                 func (position: SupplyPosition) : SupplyInfo {
                     let info = to_supply_info({ position; index; });
                     total_supplied += info.accrued_amount;
@@ -131,9 +154,9 @@ module {
             { positions; total_supplied; };
         };
 
-        // Internal helpers
+        // Public helpers for SupplyRegistry to use
 
-        func add_supply({
+        public func add_supply({
             position: ?SupplyPosition;
             account: Account;
             index: LendingTypes.Index;
@@ -166,13 +189,15 @@ module {
             };
         };
 
-        func withdraw_supply({
+        public func withdraw_supply({
             position: SupplyPosition;
             amount: Nat;
             max_slippage_amount: Nat;
         }) : Result<{
             withdrawn: Float;
+            raw_withdrawn: Float;
             remaining: Float;
+            from_interests: Float;
         }, Text> {
 
             // Scale up to current value
@@ -205,9 +230,14 @@ module {
                 return #err("Remaining raw amount would be negative: " # debug_show(remaining));
             };
 
+            // Calculate interest portion
+            let from_interests = Float.max(0.0, withdrawn - position.raw_amount);
+
             #ok({
                 withdrawn;
+                raw_withdrawn;
                 remaining;
+                from_interests;
             });
         };
 

@@ -1,15 +1,17 @@
-import LendingTypes       "Types";
-import BorrowPositionner  "BorrowPositionner";
-import BorrowRegistry     "BorrowRegistry";
-import SupplyRegistry     "SupplyRegistry";
-import RedistributionHub  "RedistributionHub";
-import InterestRateCurve  "InterestRateCurve";
-import WithdrawalQueue    "WithdrawalQueue";
-import Indexer            "Indexer";
-import SupplyAccount      "SupplyAccount";
-import LedgerTypes        "../ledger/Types";
-import LedgerAccount      "../ledger/LedgerAccount";
-import Timeline           "../utils/Timeline";
+import LendingTypes                  "Types";
+import BorrowPositionner             "BorrowPositionner";
+import BorrowRegistry                "BorrowRegistry";
+import SupplyRegistry                "SupplyRegistry";
+import RedistributionHub             "RedistributionHub";
+import InterestRateCurve             "InterestRateCurve";
+import WithdrawalQueue               "WithdrawalQueue";
+import Indexer                       "Indexer";
+import SupplyAccount                 "SupplyAccount";
+import SupplyPositionManager         "SupplyPositionManager";
+import RedistributionPositionManager "RedistributionPositionManager";
+import LedgerTypes                   "../ledger/Types";
+import LedgerAccount                 "../ledger/LedgerAccount";
+import Timeline                      "../utils/Timeline";
 
 import Result             "mo:base/Result";
 
@@ -83,25 +85,32 @@ module {
             supply;
         });
 
-        // Create SupplyRegistry first
-        let supply_registry = SupplyRegistry.SupplyRegistry({
+        // Create position managers first
+        let supply_position_manager = SupplyPositionManager.SupplyPositionManager({
             register;
+            indexer;
+        });
+
+        let redistribution_position_manager = RedistributionPositionManager.RedistributionPositionManager({
+            register;
+            indexer;
+        });
+
+        // Then inject them into registries/hubs
+        let supply_registry = SupplyRegistry.SupplyRegistry({
             supply;
             indexer;
             withdrawal_queue;
             parameters;
+            position_manager = supply_position_manager;
         });
 
-        // Then create RedistributionHub with reference to SupplyRegistry
         let redistribution_hub = RedistributionHub.RedistributionHub({
             indexer;
-            redistribution = register;
             supply;
             parameters;
-            supply_registry = {
-                add_supply_without_pull = supply_registry.add_supply_without_pull;
-                remove_supply_without_transfer = supply_registry.remove_supply_without_transfer;
-            };
+            supply_position_manager;
+            position_manager = redistribution_position_manager;
         });
 
         let borrow_registry = BorrowRegistry.BorrowRegistry({
