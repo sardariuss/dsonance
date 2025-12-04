@@ -1,8 +1,6 @@
 import Result          "mo:base/Result";
 import Float           "mo:base/Float";
 
-import Map             "mo:map/Map";
-
 import Types           "../Types";
 import LendingTypes    "Types";
 import Indexer         "Indexer";
@@ -24,6 +22,7 @@ module {
     type SupplyParameters                 = LendingTypes.SupplyParameters;
     type AddRedistributionPositionResult  = LendingTypes.AddRedistributionPositionResult;
     type RedistributionRegister           = LendingTypes.RedistributionRegister;
+    type AmountOrigin                     = LendingTypes.AmountOrigin;
 
     public type SupplyInfo = {
         accrued_interests: Float;
@@ -64,7 +63,7 @@ module {
             #ok({ supply_index; tx_id; });
         };
 
-        public func add_position(input: RedistributionInput, time: Nat) : async* AddRedistributionPositionResult {
+        public func add_position(input: RedistributionInput, time: Nat, origin: AmountOrigin) : async* AddRedistributionPositionResult {
 
             let { id; account; supplied; } = input;
 
@@ -72,58 +71,42 @@ module {
                 return #err("The map already has a position with the ID " # debug_show(id));
             };
 
-            let lending_index = indexer.get_index_now(time);
+            let tx_id = switch(origin){
+                case(#FROM_WALLET) {
+                    
+                    let lending_index = indexer.get_index_now(time);
+                    if (indexer.get_index_now(time).utilization.raw_supplied + Float.fromInt(supplied) > Float.fromInt(parameters.supply_cap)){
+                        return #err("Cannot add position, the supply cap of " # debug_show(parameters.supply_cap) # " is reached");
+                    };
 
-            if (lending_index.utilization.raw_supplied + Float.fromInt(supplied) > Float.fromInt(parameters.supply_cap)){
-                return #err("Cannot add position, the supply cap of " # debug_show(parameters.supply_cap) # " is reached");
+                    let tx = switch(await* supply.pull({ from = account; amount = supplied; protocol_fees = null; })){
+                        case(#err(err)) { return #err(err); };
+                        case(#ok(tx_index)) { tx_index; };
+                    };
+
+                    // Add in raw supplied
+                    ignore indexer.add_raw_supplied({ amount = supplied; time; });
+
+                    tx;
+                };
+                case(#FROM_SUPPLY({ max_slippage_amount })) {
+
+                    // Remove from SupplyPositionManager (no transfer, just accounting)
+                    switch(supply_position_manager.remove_amount({
+                        account;
+                        amount = supplied;
+                        max_slippage_amount;
+                        time;
+                    })){
+                        case(#err(err)) { return #err("Failed to remove from supply position: " # err); };
+                        case(#ok(_)) { 0; }; // Tx set arbitrarily to 0, as no transfer is done
+                    };
+                };
             };
-
-            let tx_id = switch(await* supply.pull({ from = account; amount = supplied; protocol_fees = null; })) {
-                case(#err(err)) { return #err(err); };
-                case(#ok(tx_index)) { tx_index; };
-            };
-
-            // TODO: small risk here that a user call add_position twice in parallel, two transfer succeed,
-            // and only one position is set
-
-            // Add with wallet origin (updates indexer)
-            ignore indexer.add_raw_supplied({ amount = supplied; time; });
+            
             let supply_index = position_manager.add_position({ input; tx_id; time; });
 
             #ok({ supply_index; tx_id; });
-        };
-
-        // Add redistribution position from SupplyPositionManager (no token transfer)
-        // Takes funds from the user's SupplyPosition and moves them to RedistributionHub
-        public func add_position_from_supply({
-            input: RedistributionInput;
-            max_slippage_amount: Nat;
-            time: Nat;
-        }) : AddRedistributionPositionResult {
-
-            let { id; account; supplied; } = input;
-
-            if (position_manager.has_position({ id })){
-                return #err("The map already has a position with the ID " # debug_show(id));
-            };
-
-            // ⚠️ Do not check supply cap here, as funds are already in the system
-
-            // Remove from SupplyPositionManager (no transfer, just accounting)
-            switch(supply_position_manager.remove_amount({
-                account;
-                amount = supplied;
-                max_slippage_amount;
-                time;
-            })){
-                case(#err(err)) { return #err("Failed to remove from supply position: " # err); };
-                case(#ok(_)) {};
-            };
-
-            // Add to RedistributionHub (no indexer update, funds already in system)
-            let supply_index = position_manager.add_position({ input; tx_id = 0; time; });
-
-            #ok({ supply_index; tx_id = 0; });
         };
 
         // Remove a position from the redistribution registry.

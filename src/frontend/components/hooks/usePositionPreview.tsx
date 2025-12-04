@@ -15,7 +15,8 @@ export const usePositionPreview = (pool_id: string, position: PositionInfo, with
       from_subaccount: [],
       amount: debouncedPosition.amount,
       choice_type: { YES_NO: toCandid(debouncedPosition.choice) },
-      with_supply_apy_impact
+      with_supply_apy_impact,
+      origin: { FROM_WALLET: null }
     };
   }, [debouncedPosition, pool_id, with_supply_apy_impact]);
 

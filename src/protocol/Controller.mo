@@ -84,6 +84,7 @@ module {
         caller: Principal;
         from_subaccount: ?Blob;
         amount: Nat;
+        origin: LendingTypes.AmountOrigin;
     };
 
     type PutLimitOrderArgs = {
@@ -206,7 +207,7 @@ module {
                 id = position_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
                 supplied = args.amount;
-            }, timestamp_before_transfer);
+            }, timestamp_before_transfer, args.origin);
 
             let { tx_id; supply_index; } = switch(transfer){
                 case(#err(err)) { return #err(err); };
@@ -254,7 +255,7 @@ module {
                 id = order_id;
                 account = account;
                 supplied = amount;
-            }, timestamp_before_transfer);
+            }, timestamp_before_transfer, #FROM_WALLET);
 
             switch(transfer){
                 case(#err(err)) { return #err(err); };

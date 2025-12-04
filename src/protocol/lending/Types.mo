@@ -308,4 +308,9 @@ module {
         #err: Text;
     };
 
+    public type AmountOrigin = {
+        #FROM_WALLET;
+        #FROM_SUPPLY: { max_slippage_amount: Nat; };
+    };
+
 };

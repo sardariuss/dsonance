@@ -108,12 +108,18 @@ module {
         pool_id: UUID;
     };
 
+    public type AmountOrigin = {
+        #FROM_WALLET;
+        #FROM_SUPPLY: { max_slippage_amount: Nat; };
+    };
+
     public type PutPositionArgs = {
         id: UUID;
         pool_id: UUID;
         choice_type: ChoiceType;
         from_subaccount: ?Blob;
         amount: Nat;
+        origin: AmountOrigin;
     };
 
     public type PutPositionPreview = PutPositionArgs and {
