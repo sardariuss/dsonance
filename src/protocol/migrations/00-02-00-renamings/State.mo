@@ -1,19 +1,15 @@
-import Types          "Types";
+import V0_2_0         "Types";
 import V0_1_0         "../00-01-00-initial/Types";
-import MigrationTypes "../Types";
 import Duration       "../../duration/Duration";
-import Clock          "../../utils/Clock";
 import RollingTimeline "../../utils/RollingTimeline";
 import Timeline       "../../utils/Timeline";
 
-import Array          "mo:base/Array";
 import Map            "mo:map/Map";
 import Set            "mo:map/Set";
 import BTree          "mo:stableheapbtreemap/BTree";
 
 import Principal      "mo:base/Principal";
 import Time           "mo:base/Time";
-import Debug          "mo:base/Debug";
 import Int            "mo:base/Int";
 import Text           "mo:base/Text";
 
@@ -25,35 +21,34 @@ import Text           "mo:base/Text";
 // - Add new account-based SupplyPosition and SupplyRegister for indexed supply positions
 module {
 
-    type Time               = Int;
-    type State              = MigrationTypes.State;
-    type Account            = Types.Account;
-    type ICRC1              = Types.ICRC1;
-    type ICRC2              = Types.ICRC2;
-    type MiningTracker      = Types.MiningTracker;
-    type InitArgs           = Types.InitArgs;
-    type UpgradeArgs        = Types.UpgradeArgs;
-    type DowngradeArgs      = Types.DowngradeArgs;
-    type UUID               = Types.UUID;
-    type Lock               = Types.Lock;
-    type DebtInfo           = Types.DebtInfo;
-    type Position<B>        = Types.Position<B>;
-    type YesNoChoice        = Types.YesNoChoice;
-    type PoolType           = Types.PoolType;
-    type PositionType       = Types.PositionType;
-    type BorrowPosition         = Types.BorrowPosition;
-    type SupplyPosition         = Types.SupplyPosition;
-    type RedistributionPosition = Types.RedistributionPosition;
-    type Withdrawal             = Types.Withdrawal;
-    type KongBackendActor   = Types.KongBackendActor;
-    type XrcActor           = Types.XrcActor;
-    type TrackedPrice       = Types.TrackedPrice;
-    type Parameters         = Types.Parameters;
-    type InitParameters     = Types.InitParameters;
-    type LendingIndex       = Types.LendingIndex;
-    type LimitOrderBTreeKey = Types.LimitOrderBTreeKey;
-    type LendingRegister    = Types.LendingRegister;
-    type Set<K>             = Set.Set<K>;
+    type Time                   = Int;
+    type Account                = V0_2_0.Account;
+    type ICRC1                  = V0_2_0.ICRC1;
+    type ICRC2                  = V0_2_0.ICRC2;
+    type MiningTracker          = V0_2_0.MiningTracker;
+    type UUID                   = V0_2_0.UUID;
+    type Lock                   = V0_2_0.Lock;
+    type DebtInfo               = V0_2_0.DebtInfo;
+    type Position<B>            = V0_2_0.Position<B>;
+    type YesNoChoice            = V0_2_0.YesNoChoice;
+    type PoolType               = V0_2_0.PoolType;
+    type PositionType           = V0_2_0.PositionType;
+    type BorrowPosition         = V0_2_0.BorrowPosition;
+    type SupplyPosition         = V0_2_0.SupplyPosition;
+    type RedistributionPosition = V0_2_0.RedistributionPosition;
+    type Withdrawal             = V0_2_0.Withdrawal;
+    type KongBackendActor       = V0_2_0.KongBackendActor;
+    type XrcActor               = V0_2_0.XrcActor;
+    type TrackedPrice           = V0_2_0.TrackedPrice;
+    type Parameters             = V0_2_0.Parameters;
+    type InitParameters         = V0_2_0.InitParameters;
+    type LendingIndex           = V0_2_0.LendingIndex;
+    type LimitOrderBTreeKey     = V0_2_0.LimitOrderBTreeKey;
+    type LendingRegister        = V0_2_0.LendingRegister;
+    type Set<K>                 = Set.Set<K>;
+
+    public type State           = V0_2_0.State;
+    public type InitArgs        = V0_2_0.InitArgs;
 
     let BTREE_ORDER = 8;
 
@@ -62,7 +57,7 @@ module {
         let { canister_ids; parameters; } = args;
         let now = Int.abs(Time.now());
 
-        #v0_2_0({
+        {
             genesis_time = now;
             supply_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.supply_ledger));
             collateral_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.collateral_ledger));
@@ -97,7 +92,7 @@ module {
                     emission_half_life_s = Duration.toSeconds(parameters.mining.emission_half_life);
                 };
                 position_half_life_ns = Duration.toTime(parameters.position_half_life);
-                clock : Types.ClockParameters = switch(parameters.clock) {
+                clock : V0_2_0.ClockParameters = switch(parameters.clock) {
                     case(#REAL) { #REAL; };
                     case(#SIMULATED({ dilation_factor; })) {
                         #SIMULATED({
@@ -121,7 +116,7 @@ module {
                 };
             };
             lending = {
-                index = Timeline.make1h<Types.LendingIndex>(now, {
+                index = Timeline.make1h<V0_2_0.LendingIndex>(now, {
                     utilization = {
                         raw_supplied = 0.0;
                         raw_borrowed = 0.0;
@@ -157,15 +152,16 @@ module {
                 total_allocated = RollingTimeline.make1h4y<Nat>(now, 0);
                 total_claimed = RollingTimeline.make1h4y<Nat>(now, 0);
             };
-        });
+        };
     };
 
     // From 0.1.0 to 0.2.0
-    public func upgrade(state: State, _: UpgradeArgs): State {
+    // The previous migration pattern used to be meant to be used for classical orthogonal persistence.
+    // But now enhanced orthogonal persistence is used, so the wrapping in a variant does not apply anymore.
+    public func migration(old : { var state : { #v0_1_0: V0_1_0.State } }) : { var state : State  } {
 
-        let v1_state = switch(state) {
+        let v1_state = switch(old.state) {
             case(#v0_1_0(inner)) { inner; };
-            case(_) { Debug.trap("Cannot upgrade from non-v0.1.0 state"); };
         };
 
         // Transform VoteType to PoolType
@@ -222,223 +218,50 @@ module {
             Map.set(new_positions, Map.thash, uuid, transformBallotToPosition(ballotType));
         };
 
-        #v0_2_0({
-            genesis_time = v1_state.genesis_time;
-            supply_ledger = v1_state.supply_ledger;
-            collateral_ledger = v1_state.collateral_ledger;
-            participation_ledger = v1_state.participation_ledger;
-            kong_backend = v1_state.kong_backend;
-            xrc = v1_state.xrc;
-            collateral_twap_price = v1_state.collateral_twap_price;
-            pool_register = {
-                pools = new_pools;
-                by_origin = v1_state.pool_register.by_origin;
-                by_author = v1_state.pool_register.by_author;
-            };
-            position_register = {
-                positions = new_positions;
-                by_account = v1_state.ballot_register.by_account;
-            };
-            lock_scheduler_state = v1_state.lock_scheduler_state;
-            parameters = { v1_state.parameters with
-                position_half_life_ns = v1_state.parameters.ballot_half_life_ns;
-                minimum_position_amount = v1_state.parameters.minimum_ballot_amount;
-            };
-            accounts = v1_state.accounts;
-            lending = {
-                index = {
-                    var current = v1_state.lending.index.current;
-                    var history = v1_state.lending.index.history;
-                    var lastCheckpointTimestamp = v1_state.lending.index.lastCheckpointTimestamp;
-                    minIntervalNs = v1_state.lending.index.minIntervalNs;
-                };
-                register = {
-                    borrow_positions = v1_state.lending.register.borrow_positions;
-                    supply_positions = Map.new<Account, SupplyPosition>();
-                    redistribution_positions = v1_state.lending.register.supply_positions;
-                    var total_supplied = v1_state.lending.index.current.data.utilization.raw_supplied;
-                    var total_raw = v1_state.lending.index.current.data.utilization.raw_supplied + v1_state.lending.index.current.data.accrued_interests.supply;
-                    var index = v1_state.lending.index.current.data.supply_index.value;
-                    withdrawals = v1_state.lending.register.withdrawals;
-                    withdraw_queue = v1_state.lending.register.withdraw_queue;
-                };
-            };
-            mining = v1_state.mining;
-        });
-    };
-
-    // From 0.2.0 to 0.1.0
-    public func downgrade(state: State, _: DowngradeArgs): State {
-
-        let v2_state = switch(state) {
-            case(#v0_2_0(inner)) { inner; };
-            case(_) { Debug.trap("Cannot downgrade from non-v0.2.0 state"); };
-        };
-
-        // Transform PoolType back to VoteType
-        func transformPoolToVote(poolType: PoolType): V0_1_0.VoteType {
-            switch(poolType) {
-                case(#YES_NO(pool)) {
-                    #YES_NO({
-                        pool_id = pool.pool_id;
-                        tx_id = pool.tx_id;
-                        date = pool.date;
-                        origin = pool.origin;
-                        aggregate = pool.aggregate;
-                        ballots = pool.positions;
-                        author = pool.author;
-                        var tvl = pool.tvl;
-                    });
-                };
-            };
-        };
-
-        // Transform PositionType back to BallotType
-        func transformPositionToBallot(positionType: PositionType): V0_1_0.BallotType {
-            switch(positionType) {
-                case(#YES_NO(position)) {
-                    #YES_NO({
-                        ballot_id = position.position_id;
-                        pool_id = position.pool_id;
-                        timestamp = position.timestamp;
-                        choice = position.choice;
-                        amount = position.amount;
-                        dissent = position.dissent;
-                        consent = position.consent;
-                        tx_id = position.tx_id;
-                        from = position.from;
-                        decay = position.decay;
-                        supply_index = position.supply_index;
-                        var foresight = position.foresight;
-                        var hotness = position.hotness;
-                        var lock = position.lock;
-                    });
-                };
-            };
-        };
-
-        // Transform the Maps back
-        let old_pools = Map.new<UUID, V0_1_0.VoteType>();
-        for ((uuid, poolType) in Map.entries(v2_state.pool_register.pools)) {
-            Map.set(old_pools, Map.thash, uuid, transformPoolToVote(poolType));
-        };
-
-        let old_ballots = Map.new<UUID, V0_1_0.BallotType>();
-        for ((uuid, positionType) in Map.entries(v2_state.position_register.positions)) {
-            Map.set(old_ballots, Map.thash, uuid, transformPositionToBallot(positionType));
-        };
-
-        #v0_1_0({
-            genesis_time = v2_state.genesis_time;
-            supply_ledger = v2_state.supply_ledger;
-            collateral_ledger = v2_state.collateral_ledger;
-            participation_ledger = v2_state.participation_ledger;
-            kong_backend = v2_state.kong_backend;
-            xrc = v2_state.xrc;
-            collateral_twap_price = v2_state.collateral_twap_price;
-            pool_register = {
-                pools = old_pools;
-                by_origin = v2_state.pool_register.by_origin;
-                by_author = v2_state.pool_register.by_author;
-            };
-            ballot_register = {
-                ballots = old_ballots;
-                by_account = v2_state.position_register.by_account;
-            };
-            lock_scheduler_state = v2_state.lock_scheduler_state;
-            parameters = { v2_state.parameters with
-                ballot_half_life_ns = v2_state.parameters.position_half_life_ns;
-                minimum_ballot_amount = v2_state.parameters.minimum_position_amount;
-            };
-            accounts = v2_state.accounts;
-            lending = {
-                index = {
-                    var current = {
-                        data = downgrade_lending_index(v2_state.lending.index.current.data, v2_state.lending.register);
-                        timestamp = v2_state.lending.index.current.timestamp;
-                    };
-                    var history = Array.map<Types.TimedData<LendingIndex>, V0_1_0.TimedData<V0_1_0.LendingIndex>>(v2_state.lending.index.history, func(item) {
-                        {
-                            data = downgrade_lending_index(item.data, v2_state.lending.register);
-                            timestamp = item.timestamp;
-                        };
-                    });
-                    var lastCheckpointTimestamp = v2_state.lending.index.lastCheckpointTimestamp;
-                    minIntervalNs = v2_state.lending.index.minIntervalNs;
-                };
-                register = {
-                    borrow_positions = v2_state.lending.register.borrow_positions;
-                    supply_positions = v2_state.lending.register.redistribution_positions;
-                    withdrawals = v2_state.lending.register.withdrawals;
-                    withdraw_queue = v2_state.lending.register.withdraw_queue;
-                };
-            };
-            mining = v2_state.mining;
-        });
-    };
-
-    // From 0.2.0 to 0.2.0, with new parameters
-    public func update(state: State, parameters: InitParameters): State {
-
-        let v2_state = switch(state) {
-            case(#v0_2_0(inner)) { inner; };
-            case(_) { Debug.trap("Cannot update non-v0.2.0 state"); };
-        };
-
-        let protocol_parameters = { parameters with
-            twap_config = {
-                window_duration_ns = Duration.toTime(parameters.twap_config.window_duration);
-                max_observations = parameters.twap_config.max_observations;
-            };
-            position_half_life_ns = Duration.toTime(parameters.position_half_life);
-            mining = { parameters.mining with
-                emission_half_life_s = Duration.toSeconds(parameters.mining.emission_half_life);
-            };
-            clock : Types.ClockParameters = switch(parameters.clock) {
-                case(#REAL) { #REAL; };
-                case(#SIMULATED({ dilation_factor; })) {
-                    let now = Int.abs(Time.now());
-                    // ⚠️ Watchout: If the previous clock was simulated, we need to keep the time reference and offset
-                    // from the original parameters, otherwise there might be a gap or interesction in the time.
-                    switch(v2_state.parameters.clock) {
-                        case(#REAL) {
-                            #SIMULATED({
-                                var time_ref = now;
-                                var offset_ns = 0;
-                                var dilation_factor = dilation_factor;
-                            });
-                        };
-                        case(#SIMULATED(previous_clock)) {
-                            // If the previous clock was simulated, we need to compute the new offset
-                            // based on the current time and the previous time reference and dilation factor.
-                            let offset_ns = previous_clock.offset_ns
-                                + Clock.compute_dilatation(now, previous_clock.time_ref, previous_clock.dilation_factor);
-                            #SIMULATED({
-                                var time_ref = previous_clock.time_ref;
-                                var offset_ns = offset_ns;
-                                var dilation_factor = dilation_factor;
-                            });
-                        };
-                    };
-                };
-            };
-        };
-
-        #v0_2_0({ v2_state with parameters = protocol_parameters; });
-    };
-
-    func downgrade_lending_index(index: LendingIndex, register: LendingRegister): V0_1_0.LendingIndex {
         {
-            utilization = index.utilization;
-            borrow_rate = index.borrow_rate;
-            supply_rate = index.supply_rate;
-            accrued_interests = { 
-                supply = register.total_raw * index.supply_index.value / register.index - register.total_supplied;
-                borrow = 0.0; // Borrow accrued interests cannot be recovered, they're not used anyway
+            var state = {
+                genesis_time = v1_state.genesis_time;
+                supply_ledger = v1_state.supply_ledger;
+                collateral_ledger = v1_state.collateral_ledger;
+                participation_ledger = v1_state.participation_ledger;
+                kong_backend = v1_state.kong_backend;
+                xrc = v1_state.xrc;
+                collateral_twap_price = v1_state.collateral_twap_price;
+                pool_register = {
+                    pools = new_pools;
+                    by_origin = v1_state.pool_register.by_origin;
+                    by_author = v1_state.pool_register.by_author;
+                };
+                position_register = {
+                    positions = new_positions;
+                    by_account = v1_state.ballot_register.by_account;
+                };
+                lock_scheduler_state = v1_state.lock_scheduler_state;
+                parameters = { v1_state.parameters with
+                    position_half_life_ns = v1_state.parameters.ballot_half_life_ns;
+                    minimum_position_amount = v1_state.parameters.minimum_ballot_amount;
+                };
+                accounts = v1_state.accounts;
+                lending = {
+                    index = {
+                        var current = v1_state.lending.index.current;
+                        var history = v1_state.lending.index.history;
+                        var lastCheckpointTimestamp = v1_state.lending.index.lastCheckpointTimestamp;
+                        minIntervalNs = v1_state.lending.index.minIntervalNs;
+                    };
+                    register = {
+                        borrow_positions = v1_state.lending.register.borrow_positions;
+                        supply_positions = Map.new<Account, SupplyPosition>();
+                        redistribution_positions = v1_state.lending.register.supply_positions;
+                        var total_supplied = v1_state.lending.index.current.data.utilization.raw_supplied;
+                        var total_raw = v1_state.lending.index.current.data.utilization.raw_supplied + v1_state.lending.index.current.data.accrued_interests.supply;
+                        var index = v1_state.lending.index.current.data.supply_index.value;
+                        withdrawals = v1_state.lending.register.withdrawals;
+                        withdraw_queue = v1_state.lending.register.withdraw_queue;
+                    };
+                };
+                mining = v1_state.mining;
             };
-            borrow_index = index.borrow_index;
-            supply_index = index.supply_index;
-            timestamp = index.timestamp;
         };
     };
 

@@ -1,4 +1,5 @@
-import ProtocolTypes "../protocol/Types";
+import ProtocolTypes     "../protocol/Types";
+import ProtocolInterface "../protocol/Interface";
 
 import Map           "mo:map/Map";
 import Array         "mo:base/Array";
@@ -8,9 +9,7 @@ import Option        "mo:base/Option";
 import Debug         "mo:base/Debug";
 import Time          "mo:base/Time";
 
-import Protocol      "canister:protocol";
-
-shared({ caller = admin }) persistent actor class Backend() = this {
+shared({ caller = admin }) persistent actor class Backend({ protocol_id : Principal }) = this {
 
     type YesNoAggregate = ProtocolTypes.YesNoAggregate;
     type YesNoChoice = ProtocolTypes.YesNoChoice;
@@ -35,6 +34,8 @@ shared({ caller = admin }) persistent actor class Backend() = this {
     type GetPoolsByAuthorArgs = ProtocolTypes.GetPoolsByAuthorArgs;
     type SNewPoolResult = Result.Result<SYesNoPool, Text>;
 
+    let protocol : ProtocolInterface.ProtocolActor = actor(Principal.toText(protocol_id));
+
     let _infos = Map.new<UUID, PoolInfo>();
     let _users = Map.new<Principal, User>();
 
@@ -47,7 +48,7 @@ shared({ caller = admin }) persistent actor class Backend() = this {
         if (Principal.isAnonymous(caller)){
             return #err("Anonymous users cannot create a pool");
         };
-        let new_result = await Protocol.new_pool({ type_enum = #YES_NO; id; account = { owner = caller; subaccount = from_subaccount; } });
+        let new_result = await protocol.new_pool({ type_enum = #YES_NO; id; account = { owner = caller; subaccount = from_subaccount; } });
         Result.mapOk(new_result, func(pool_type: SPoolType) : SYesNoPool {
             switch(pool_type) {
                 case(#YES_NO(pool)) {
@@ -60,7 +61,7 @@ shared({ caller = admin }) persistent actor class Backend() = this {
     };
 
     public composite query func get_pool({ pool_id: UUID }) : async ?SYesNoPool {
-        let pool = await Protocol.find_pool({ pool_id; });
+        let pool = await protocol.find_pool({ pool_id; });
         Option.map(pool, func(pool_type: SPoolType) : SYesNoPool {
             with_info(pool_type);
         });
@@ -69,7 +70,7 @@ shared({ caller = admin }) persistent actor class Backend() = this {
     public composite query func get_pools({ previous: ?UUID; limit: Nat; direction: QueryDirection; }) : async [SYesNoPool] {
 
         // Fetch pools using the collected `filter_ids`
-        let pools = await Protocol.get_pools({ origin = Principal.fromActor(this); previous; limit; direction; });
+        let pools = await protocol.get_pools({ origin = Principal.fromActor(this); previous; limit; direction; });
 
         // Process and return pools
         Array.map(pools, func(pool_type: SPoolType) : SYesNoPool {
@@ -78,7 +79,7 @@ shared({ caller = admin }) persistent actor class Backend() = this {
     };
 
     public composite query func get_pools_by_author(args: GetPoolsByAuthorArgs) : async [SYesNoPool] {
-        let pools = await Protocol.get_pools_by_author(args);
+        let pools = await protocol.get_pools_by_author(args);
         Array.map(pools, func(pool_type: SPoolType) : SYesNoPool {
             with_info(pool_type);
         });
@@ -132,7 +133,7 @@ shared({ caller = admin }) persistent actor class Backend() = this {
     };
 
     public composite query func get_pool_positions(pool_id: Text) : async [SYesNoPositionWithUser] {
-        let positions = await Protocol.get_pool_positions(pool_id);
+        let positions = await protocol.get_pool_positions(pool_id);
         Array.map(positions, func(position: ProtocolTypes.SPositionType) : SYesNoPositionWithUser {
             switch(position) {
                 case(#YES_NO(b)) {

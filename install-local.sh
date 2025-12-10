@@ -162,8 +162,11 @@ dfx deploy faucet --argument '( record {
   ckbtc_mint_amount = 100_000_000 : nat;
   ckusdt_mint_amount = 100_000_000_000 : nat;
 })' &
-wait
-
+dfx deploy backend --argument '(
+  record {
+    protocol_id = principal "'${PROTOCOL_PRINCIPAL}'";
+  }
+)' &
 # Deploy protocol canister
 #
 # Dissent and consent parameters (see https://www.desmos.com/calculator/8iww2wlp2t)
@@ -178,8 +181,8 @@ wait
 # 216 seconds timer interval, with a 100x dilation factor, means 6 hours in simulated time
 #
 # Supply cap is set to 1M ckUSDT and borrow cap to 800k ckUSDT
-dfx deploy protocol --argument '( variant { 
-  init = record {
+dfx deploy protocol --argument '(
+  record {
     canister_ids = record {
       supply_ledger = principal "'${CKUSDT_LEDGER_PRINCIPAL}'";
       collateral_ledger = principal "'${CKBTC_LEDGER_PRINCIPAL}'";
@@ -225,10 +228,8 @@ dfx deploy protocol --argument '( variant {
       };
     };
   }
-})'
-
-# Deploy other canisters
-dfx deploy backend
+)' &
+wait
 
 # Internet Identity
 dfx deps pull
@@ -328,9 +329,11 @@ dfx generate ckbtc_ledger &
 dfx generate ckusdt_ledger &
 dfx generate twv_ledger &
 dfx generate kong_backend &
-dfx generate backend & # Will generate protocol as well
-dfx generate internet_identity &
+dfx generate backend &
+dfx generate xrc_stub &
 dfx generate faucet &
+dfx generate protocol &
+dfx generate internet_identity &
 wait
 
 dfx deploy frontend

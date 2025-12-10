@@ -4,7 +4,7 @@
       "type": "custom",
       "candid": "https://github.com/dfinity/ic/releases/download/ledger-suite-icrc-2025-04-14/ledger.did",
       "wasm": "https://github.com/dfinity/ic/releases/download/ledger-suite-icrc-2025-04-14/ic-icrc1-ledger.wasm.gz",
-      "specified_id": "hnved-eyaaa-aaaap-anxfa-cai",
+      "specified_id": "bonrn-uqaaa-aaaau-acuiq-cai",
       "metadata": [
         {
           "name": "candid:service"
@@ -15,7 +15,7 @@
       "type": "custom",
       "candid": "https://github.com/dfinity/ic/releases/download/ledger-suite-icrc-2025-04-14/ledger.did",
       "wasm": "https://github.com/dfinity/ic/releases/download/ledger-suite-icrc-2025-04-14/ic-icrc1-ledger.wasm.gz",
-      "specified_id": "hewp7-sqaaa-aaaap-anxeq-cai",
+      "specified_id": "bjmxz-ziaaa-aaaau-acuia-cai",
       "metadata": [
         {
           "name": "candid:service"
@@ -48,11 +48,7 @@
     },
     "backend": {
       "main": "src/backend/main.mo",
-      "type": "motoko",
-      "dependencies": ["protocol"],
-      "declarations": {
-        "node_compatibility": true
-      }
+      "type": "motoko"
     },
     "frontend": {
       "frontend": {

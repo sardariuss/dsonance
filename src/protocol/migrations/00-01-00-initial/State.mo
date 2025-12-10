@@ -1,5 +1,4 @@
 import Types          "Types";
-import MigrationTypes "../Types";
 import Duration       "../../duration/Duration";
 import Clock          "../../utils/Clock";
 import RollingTimeline "../../utils/RollingTimeline";
@@ -18,7 +17,6 @@ import Text           "mo:base/Text";
 module {
 
     type Time             = Int;
-    type State            = MigrationTypes.State;
     type Account          = Types.Account;
     type ICRC1            = Types.ICRC1;
     type ICRC2            = Types.ICRC2;
@@ -43,6 +41,11 @@ module {
     type InitParameters   = Types.InitParameters;
     type LendingIndex     = Types.LendingIndex;
     type Set<K>           = Set.Set<K>;
+
+    // Used to come from ../Types.mo when old migration pattern (meant for classical orthogonal persistence) was used
+    type State = {
+        #v0_1_0: Types.State;
+    };
 
     let BTREE_ORDER = 8;
 

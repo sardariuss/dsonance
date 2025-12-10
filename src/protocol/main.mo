@@ -1,19 +1,17 @@
-import Types          "Types";
-import LendingTypes   "lending/Types";
-import SharedFacade   "shared/SharedFacade";
 import Factory        "Factory";
-import MigrationTypes "migrations/Types";
-import Migrations     "migrations/Migrations";
+import Interface      "Interface";
+import SharedFacade   "shared/SharedFacade";
+import V0_2_0         "migrations/00-02-00-renamings/State";
 
 import Principal      "mo:base/Principal";
 import Debug          "mo:base/Debug";
 import Option         "mo:base/Option";
 import Result         "mo:base/Result";
 
-shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.Args) = this {
+(with migration = V0_2_0.migration)
+shared({ caller = admin }) persistent actor class Protocol(args: V0_2_0.InitArgs) : async Interface.ProtocolActor = this {
 
-    var state: MigrationTypes.State = Migrations.install(args);
-    state := Migrations.migrate(state, args);
+    var state: V0_2_0.State = V0_2_0.init(args);
 
     transient var facade : ?SharedFacade.SharedFacade = null;
 
@@ -30,12 +28,8 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
             return #err("The facade is already initialized");
         };
 
-        let statev2 = switch(state){
-            case(#v0_2_0(s)) { s; };
-            case(_){ Debug.trap("Unsupported state version, v0_2_0 expected"); };
-        };
         let { controller; queries; initialize; } = Factory.build({
-            state = statev2;
+            state;
             protocol = Principal.fromActor(this);
             admin;
         });
@@ -49,31 +43,31 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
     };
 
     // Create a new pool
-    public shared({caller}) func new_pool(args: Types.NewPoolArgs) : async Types.SNewPoolResult {
+    public shared({caller}) func new_pool(args: Interface.NewPoolArgs) : async Interface.SNewPoolResult {
         await* getFacade().new_pool({ args with origin = caller; });
     };
 
     // Get the pools of the given origin
-    public query func get_pools(args: Types.GetPoolsArgs) : async [Types.SPoolType] {
+    public query func get_pools(args: Interface.GetPoolsArgs) : async [Interface.SPoolType] {
         getFacade().get_pools(args);
     };
 
-    public query func get_pools_by_author(args: Types.GetPoolsByAuthorArgs) : async [Types.SPoolType] {
+    public query func get_pools_by_author(args: Interface.GetPoolsByAuthorArgs) : async [Interface.SPoolType] {
         getFacade().get_pools_by_author(args);
     };
 
-    public query func find_pool(args: Types.FindPoolArgs) : async ?Types.SPoolType {
+    public query func find_pool(args: Interface.FindPoolArgs) : async ?Interface.SPoolType {
         getFacade().find_pool(args);
     };
 
     // ⚠️ THIS IS INTENTIONALLY A QUERY FUNCTION
     // DO NOT CHANGE IT TO A SHARED FUNCTION OTHERWISE THE PREVIEW WILL PUT AN ACTUAL POSITION
-    public query({caller}) func preview_position(args: Types.PutPositionPreview) : async Types.PutPositionResult {
+    public query({caller}) func preview_position(args: Interface.PutPositionPreview) : async Interface.PutPositionResult {
         getFacade().put_position_for_free({ args with caller; });
     };
 
     // Add a position on the given pool identified by its pool_id
-    public shared({caller}) func put_position(args: Types.PutPositionArgs) : async Types.PutPositionResult {
+    public shared({caller}) func put_position(args: Interface.PutPositionArgs) : async Interface.PutPositionResult {
         await* getFacade().put_position({ args with caller; });
     };
 
@@ -87,42 +81,42 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         await* getFacade().claim_mining_rewards({ owner = caller; subaccount; });
     };
 
-    public query func get_mining_trackers() : async [(Types.Account, Types.MiningTracker)] {
+    public query func get_mining_trackers() : async [(Interface.Account, Interface.MiningTracker)] {
         getFacade().get_mining_trackers();
     };
 
-    public query({caller}) func get_mining_tracker(subaccount: ?Blob) : async ?Types.MiningTracker {
+    public query({caller}) func get_mining_tracker(subaccount: ?Blob) : async ?Interface.MiningTracker {
         getFacade().get_mining_tracker({ owner = caller; subaccount; });
     };
 
-    public query func get_mining_total_allocated() : async Types.SRollingTimeline<Nat> {
+    public query func get_mining_total_allocated() : async Interface.SRollingTimeline<Nat> {
         getFacade().get_mining_total_allocated();
     };
 
-    public query func get_mining_total_claimed() : async Types.SRollingTimeline<Nat> {
+    public query func get_mining_total_claimed() : async Interface.SRollingTimeline<Nat> {
         getFacade().get_mining_total_claimed();
     };
 
     // Get the positions of the given account
-    public query func get_positions(args: Types.GetPositionArgs) : async [Types.SPositionType] {
+    public query func get_positions(args: Interface.GetPositionArgs) : async [Interface.SPositionType] {
         getFacade().get_positions(args);
     };
 
-    public query func get_user_supply({ account: Types.Account; }) : async Types.UserSupply {
+    public query func get_user_supply({ account: Interface.Account; }) : async Interface.UserSupply {
         getFacade().get_user_supply({ account; });
     };
 
     // Get the positions of the given pool
-    public query func get_pool_positions(pool_id: Types.UUID) : async [Types.SPositionType] {
+    public query func get_pool_positions(pool_id: Interface.UUID) : async [Interface.SPositionType] {
         getFacade().get_pool_positions(pool_id);
     };
 
     // Find a position by its pool_id and position_id
-    public query func find_position(position_id: Types.UUID) : async ?Types.SPositionType {
+    public query func find_position(position_id: Interface.UUID) : async ?Interface.SPositionType {
         getFacade().find_position(position_id);
     };
 
-    public shared func add_clock_offset(duration: Types.Duration) : async Result.Result<(), Text> {
+    public shared func add_clock_offset(duration: Interface.Duration) : async Result.Result<(), Text> {
         getFacade().add_clock_offset(duration);
     };
 
@@ -130,11 +124,11 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         getFacade().set_clock_dilation_factor(dilation_factor);
     };
 
-    public query func get_info() : async Types.ProtocolInfo {
+    public query func get_info() : async Interface.ProtocolInfo {
         getFacade().get_info();
     };
 
-    public query func get_parameters() : async Types.SParameters {
+    public query func get_parameters() : async Interface.SParameters {
         getFacade().get_parameters();
     };
 
@@ -146,15 +140,15 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         getFacade().get_supply_token_price_usd();
     };
 
-    public query func get_lending_index() : async Types.STimeline<Types.LendingIndex> {
+    public query func get_lending_index() : async Interface.STimeline<Interface.LendingIndex> {
         getFacade().get_lending_index();
     };
 
-    public query func get_loan_position(account: Types.Account) : async LendingTypes.LoanPosition {
+    public query func get_loan_position(account: Interface.Account) : async Interface.LoanPosition {
         getFacade().get_loan_position(account);
     };
 
-    public query func get_loans_info() : async { positions: [LendingTypes.Loan]; max_ltv: Float } {
+    public query func get_loans_info() : async { positions: [Interface.Loan]; max_ltv: Float } {
         getFacade().get_loans_info();
     };
 
@@ -166,15 +160,15 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
         getFacade().get_unclaimed_fees();
     };
 
-    public shared({caller}) func withdraw_fees({ to: Types.Account; amount: Nat; }) : async LendingTypes.TransferResult {
+    public shared({caller}) func withdraw_fees({ to: Interface.Account; amount: Nat; }) : async Interface.TransferResult {
         await* getFacade().withdraw_fees({ caller; to; amount; });
     };
 
     public shared({caller}) func run_borrow_operation({ 
         subaccount: ?Blob;
         amount: Nat;
-        kind: LendingTypes.OperationKind;
-    }) : async Result.Result<LendingTypes.BorrowOperation, Text> {
+        kind: Interface.OperationKind;
+    }) : async Result.Result<Interface.BorrowOperation, Text> {
         await* getFacade().run_borrow_operation({ caller; subaccount; amount; kind; });
     };
 
@@ -184,16 +178,16 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
     public query({caller}) func preview_borrow_operation({
         subaccount: ?Blob;
         amount: Nat;
-        kind: LendingTypes.OperationKind;
-    }) : async Result.Result<LendingTypes.BorrowOperation, Text> {
+        kind: Interface.OperationKind;
+    }) : async Result.Result<Interface.BorrowOperation, Text> {
         getFacade().run_borrow_operation_for_free({ caller; subaccount; amount; kind; });
     };
 
     public shared({caller}) func run_supply_operation({
         subaccount: ?Blob;
         amount: Nat;
-        kind: LendingTypes.SupplyOperationKind;
-    }) : async Result.Result<LendingTypes.SupplyOperation, Text> {
+        kind: Interface.SupplyOperationKind;
+    }) : async Result.Result<Interface.SupplyOperation, Text> {
         await* getFacade().run_supply_operation({ caller; subaccount; amount; kind; });
     };
 
@@ -203,16 +197,16 @@ shared({ caller = admin }) persistent actor class Protocol(args: MigrationTypes.
     public query({caller}) func preview_supply_operation({
         subaccount: ?Blob;
         amount: Nat;
-        kind: LendingTypes.SupplyOperationKind;
-    }) : async Result.Result<LendingTypes.SupplyOperation, Text> {
+        kind: Interface.SupplyOperationKind;
+    }) : async Result.Result<Interface.SupplyOperation, Text> {
         getFacade().run_supply_operation_for_free({ caller; subaccount; amount; kind; });
     };
 
-    public query func get_supply_info(account: Types.Account) : async LendingTypes.SupplyInfo {
+    public query func get_supply_info(account: Interface.Account) : async Interface.SupplyInfo {
         getFacade().get_supply_info(account);
     };
 
-    public query func get_all_supply_info() : async { positions: [LendingTypes.SupplyInfo]; total_supplied: Float } {
+    public query func get_all_supply_info() : async { positions: [Interface.SupplyInfo]; total_supplied: Float } {
         getFacade().get_all_supply_info();
     };
 

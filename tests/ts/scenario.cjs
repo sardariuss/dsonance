@@ -252,7 +252,8 @@ async function callCanisterMethod() {
                             id: uuidv4(),
                             from_subaccount: [],
                             amount: BigInt(Math.floor(exponentialRandom(meanPositionAmount))),
-                            choice_type: { 'YES_NO': Math.random() < yesProbability ? { 'YES': null } : { 'NO': null } }
+                            choice_type: { 'YES_NO': Math.random() < yesProbability ? { 'YES': null } : { 'NO': null } },
+                            origin: { 'FROM_WALLET': null },
                         }).then((result) => {
                             if (!result) {
                                 console.error('Put position result is null');

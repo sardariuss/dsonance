@@ -878,14 +878,6 @@ module {
         twap_config: TWAPConfig;
     };
 
-    public type Args = {
-        #init: InitArgs;
-        #upgrade: UpgradeArgs;
-        #downgrade: DowngradeArgs;
-        #update: InitParameters;
-        #none;
-    };
-
     public type InitParameters = {
         position_half_life: Duration;
         duration_scaler: DurationScalerParameters;
@@ -913,10 +905,6 @@ module {
             xrc: Principal;
         };
         parameters: InitParameters;
-    };
-    public type UpgradeArgs = {
-    };
-    public type DowngradeArgs = {
     };
 
     public type State = {
