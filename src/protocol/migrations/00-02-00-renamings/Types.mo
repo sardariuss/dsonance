@@ -907,6 +907,11 @@ module {
         parameters: InitParameters;
     };
 
+    public type Args = {
+        #init: InitArgs;
+        #migrate;
+    };
+
     public type State = {
         genesis_time: Nat;
         supply_ledger: ICRC1 and ICRC2;

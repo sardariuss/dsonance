@@ -9,7 +9,7 @@ import Option         "mo:base/Option";
 import Result         "mo:base/Result";
 
 (with migration = V0_2_0.migration)
-shared({ caller = admin }) persistent actor class Protocol(args: V0_2_0.InitArgs) : async Interface.ProtocolActor = this {
+shared({ caller = admin }) persistent actor class Protocol(args: V0_2_0.Args) : async Interface.ProtocolActor = this {
 
     var state: V0_2_0.State = V0_2_0.init(args);
 

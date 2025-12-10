@@ -181,8 +181,8 @@ dfx deploy backend --argument '(
 # 216 seconds timer interval, with a 100x dilation factor, means 6 hours in simulated time
 #
 # Supply cap is set to 1M ckUSDT and borrow cap to 800k ckUSDT
-dfx deploy protocol --argument '(
-  record {
+dfx deploy protocol --argument '( variant {
+  init = record {
     canister_ids = record {
       supply_ledger = principal "'${CKUSDT_LEDGER_PRINCIPAL}'";
       collateral_ledger = principal "'${CKBTC_LEDGER_PRINCIPAL}'";
@@ -228,7 +228,7 @@ dfx deploy protocol --argument '(
       };
     };
   }
-)' &
+})' &
 wait
 
 # Internet Identity

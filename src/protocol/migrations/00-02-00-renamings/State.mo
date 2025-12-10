@@ -12,6 +12,7 @@ import Principal      "mo:base/Principal";
 import Time           "mo:base/Time";
 import Int            "mo:base/Int";
 import Text           "mo:base/Text";
+import Debug          "mo:base/Debug";
 
 // Version 0.2.0 changes:
 // - Renaming VoteType to PoolType
@@ -48,13 +49,18 @@ module {
     type Set<K>                 = Set.Set<K>;
 
     public type State           = V0_2_0.State;
-    public type InitArgs        = V0_2_0.InitArgs;
+    public type Args            = V0_2_0.Args;
 
     let BTREE_ORDER = 8;
 
-    public func init(args: InitArgs) : State {
+    public func init(args: Args) : State {
 
-        let { canister_ids; parameters; } = args;
+        let init_args = switch(args) {
+            case(#init(inner)) { inner; };
+            case(#migrate) { Debug.trap("Migrate args not supported in init"); };
+        };
+
+        let { canister_ids; parameters; } = init_args;
         let now = Int.abs(Time.now());
 
         {
@@ -169,7 +175,7 @@ module {
             switch(poolType) {
                 case(#YES_NO(pool)) {
                     #YES_NO({
-                        pool_id = pool.pool_id;
+                        pool_id = pool.vote_id;
                         tx_id = pool.tx_id;
                         date = pool.date;
                         origin = pool.origin;
@@ -189,7 +195,7 @@ module {
                 case(#YES_NO(ballot)) {
                     #YES_NO({
                         position_id = ballot.ballot_id;
-                        pool_id = ballot.pool_id;
+                        pool_id = ballot.vote_id;
                         timestamp = ballot.timestamp;
                         choice = ballot.choice;
                         amount = ballot.amount;
@@ -209,7 +215,7 @@ module {
 
         // Transform the Maps
         let new_pools = Map.new<UUID, PoolType>();
-        for ((uuid, poolType) in Map.entries(v1_state.pool_register.pools)) {
+        for ((uuid, poolType) in Map.entries(v1_state.vote_register.votes)) {
             Map.set(new_pools, Map.thash, uuid, transformVoteToPool(poolType));
         };
 
@@ -229,8 +235,8 @@ module {
                 collateral_twap_price = v1_state.collateral_twap_price;
                 pool_register = {
                     pools = new_pools;
-                    by_origin = v1_state.pool_register.by_origin;
-                    by_author = v1_state.pool_register.by_author;
+                    by_origin = v1_state.vote_register.by_origin;
+                    by_author = v1_state.vote_register.by_author;
                 };
                 position_register = {
                     positions = new_positions;

@@ -68,7 +68,7 @@ module {
                 var last_twap_calculation = 0;
             };
             pool_register = { 
-                pools = Map.new<UUID, VoteType>();
+                votes = Map.new<UUID, VoteType>();
                 by_origin = Map.new<Principal, Set<UUID>>();
                 by_author = Map.new<Account, Set<UUID>>();
             };
