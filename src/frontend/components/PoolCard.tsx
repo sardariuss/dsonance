@@ -17,7 +17,8 @@ const PoolCard: React.FC<PoolCardProps> = ({ tvl, poolDetails, text, thumbnail }
   const thumbnailUrl = useMemo(() => createThumbnailUrl(thumbnail), [thumbnail]);
 
   return (
-    <div className="relative flex flex-col h-full min-h-28">
+    <div className="relative flex flex-col h-full min-h-40 bg-white dark:bg-slate-800 rounded-lg shadow-md p-4
+                    hover:cursor-pointer border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all duration-200 ease-in-out">
       {/* Top Row: Image, Text, and Consensus */}
       <div className="flex items-center gap-3">
         {/* Thumbnail Image */}
@@ -53,18 +54,6 @@ export default PoolCard;
 
 export const PoolCardSkeleton: React.FC = () => {
   return (
-    <div className="flex flex-col h-full">
-      {/* Top Row: Image and Text */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gray-300 dark:bg-gray-700 rounded-md animate-pulse"></div>
-        <div className="flex-grow h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
-      </div>
-
-      {/* Bottom Row: CDV and TVL */}
-      <div className="mt-auto flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 pt-4">
-        <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
-        <div className="w-16 h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"></div>
-      </div>
-    </div>
+    <div className="bg-gray-300 dark:bg-gray-700 rounded-lg shadow-md p-4 animate-pulse h-40"/>
   );
 };
