@@ -19,9 +19,9 @@ module {
     type Result<Ok, Err>    = Result.Result<Ok, Err>;
     type TransferResult     = Types.TransferResult;
 
-    type SupplyPosition     = LendingTypes.SupplyPosition;
-    type Withdrawal         = LendingTypes.Withdrawal;
-    type WithdrawalRegister = LendingTypes.WithdrawalRegister;
+    type RedistributionPosition = LendingTypes.RedistributionPosition;
+    type Withdrawal             = LendingTypes.Withdrawal;
+    type WithdrawalRegister     = LendingTypes.WithdrawalRegister;
 
     // @todo: need functions to retry if transfer failed.
     // @todo: need queries to retrieve the transfers and withdrawals (union of the two maps)
@@ -34,7 +34,7 @@ module {
 
         var awaiting_transfer = false;
 
-        public func add({ position: SupplyPosition; due: Nat; time: Nat; }) {
+        public func add({ position: RedistributionPosition; due: Nat; time: Nat; }) {
 
             let { id; account; supplied; } = position;
 
@@ -55,7 +55,7 @@ module {
                 Set.add(register.withdraw_queue, Set.thash, id);
             } else {
                 // If not, no transfer to be done, so we can remove the supplied amount right away!
-                indexer.remove_raw_supplied({ amount = Float.fromInt(supplied); time; });
+                ignore indexer.remove_raw_supplied({ amount = Float.fromInt(supplied); time; });
             };
         };
 
@@ -130,7 +130,7 @@ module {
                     let new_raw_withdrawn = compute_raw_withdrawn(withdrawal);
 
                     // Remove the amount from the raw supply
-                    indexer.remove_raw_supplied({ amount = new_raw_withdrawn - prev_raw_withdrawn; time; });
+                    ignore indexer.remove_raw_supplied({ amount = new_raw_withdrawn - prev_raw_withdrawn; time; });
 
                     // Delete from the queue if all due has been transferred
                     if (withdrawal.transferred >= withdrawal.due) {

@@ -27,10 +27,10 @@ await suite("LendingPool", func(): async() {
     type Account = LedgerTypes.Account;
     type BorrowPosition = LendingTypes.BorrowPosition;
     type SupplyPosition = LendingTypes.SupplyPosition;
+    type RedistributionPosition = LendingTypes.RedistributionPosition;
     type Withdrawal = LendingTypes.Withdrawal;
-    type SupplyRegister = LendingTypes.SupplyRegister;
     type BorrowRegister = LendingTypes.BorrowRegister;
-    type SupplyInput = LendingTypes.SupplyInput;
+    type RedistributionInput = LendingTypes.RedistributionInput;
 
     let fuzz = Fuzz.fromSeed(0);
     let equal_balances = LedgerAccounting.testify_balances.equal;
@@ -73,10 +73,6 @@ await suite("LendingPool", func(): async() {
         let index = Timeline.make1h<LendingTypes.LendingIndex>(now, {
             borrow_rate = 0.0;
             supply_rate = 0.0;
-            accrued_interests = {
-                supply = 0.0;
-                borrow = 0.0;
-            };
             borrow_index = {
                 value = 1.0;
                 timestamp = now;
@@ -95,7 +91,11 @@ await suite("LendingPool", func(): async() {
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();
-            supply_positions = Map.new<Text, SupplyPosition>();
+            supply_positions = Map.new<Account, SupplyPosition>();
+            redistribution_positions = Map.new<Text, RedistributionPosition>();
+            var total_supplied = 0.0;
+            var total_raw = 0.0;
+            var index = 1.0;
             withdrawals = Map.new<Text, Withdrawal>();
             withdraw_queue = Set.new<Text>();
         };
@@ -125,14 +125,14 @@ await suite("LendingPool", func(): async() {
         let dex = DexMock.DexMock();
 
         let collateral_price_tracker = PriceTracker.SpotPriceTracker({
-            dex;
+            price_source = #Dex(dex);
             tracked_price = collateral_price_in_supply;
             pay_ledger = collateral_ledger;
             receive_ledger = supply_ledger;
         });
 
         // Build the lending system
-        let { indexer; supply; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { indexer; supply; redistribution_hub; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             protocol_info;
             parameters;
@@ -146,7 +146,7 @@ await suite("LendingPool", func(): async() {
 
         // === Initial Assertions ===
         
-        verify(indexer.get_index(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index_now(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
         verify(supply_accounting.balances(), [ (protocol, 0), (lender, 1_000), (borrower, 1_000) ], equal_balances);
         verify(collateral_accounting.balances(), [ (protocol, 0), (lender, 0), (borrower, 5_000) ], equal_balances);
 
@@ -155,19 +155,19 @@ await suite("LendingPool", func(): async() {
         let supplied = 1000;
 
         // Lender supplies 1000 tokens — this should increase raw_supplied
-        let supply_1_result = await* supply_registry.add_position({
+        let supply_1_result = await* redistribution_hub.add_position({
             id = "supply1";
             account = lender;
             supplied;
         }, clock.get_time());
-        verify(supply_1_result, #ok(1), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
+        verify(Result.isOk(supply_1_result), true, Testify.bool.equal);
 
         // Expect raw_supplied to reflect the supply
-        verify(indexer.get_index(clock.get_time()).utilization.raw_supplied, Float.fromInt(supplied), Testify.float.equalEpsilon9);
+        verify(indexer.get_index_now(clock.get_time()).utilization.raw_supplied, Float.fromInt(supplied), Testify.float.equalEpsilon9);
 
         // No interest has accrued yet (same timestamp), so indexes should be unchanged
-        verify(indexer.get_index(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
-        verify(indexer.get_index(clock.get_time()).supply_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index_now(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index_now(clock.get_time()).supply_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // Tokens moved into the pool
         verify(supply_accounting.balances(), [ (protocol, supplied), (lender, 0), (borrower, 1_000) ], equal_balances);
@@ -195,14 +195,14 @@ await suite("LendingPool", func(): async() {
         // === Post-borrow Expectations ===
 
         // Still 0 because no time has passed yet
-        verify(indexer.get_index(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
-        verify(indexer.get_index(clock.get_time()).supply_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index_now(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index_now(clock.get_time()).supply_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // === Advance Time to Day 100 (interest should accrue) ===
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(100)))), #repeatedly);
 
         // Trigger an index update by reading state
-        let state_day100 = indexer.get_index(clock.get_time());
+        let state_day100 = indexer.get_index_now(clock.get_time());
 
         // Borrow index should have increased more due to time and utilization
         verify(state_day100.borrow_index.value, 1.0, Testify.float.greaterThan);
@@ -214,7 +214,8 @@ await suite("LendingPool", func(): async() {
         // No fee accrued before repayment
         verify(supply.get_unclaimed_fees(), 0, Testify.nat.equal);
         Debug.print("Unclaimed fees: " # debug_show(protocol_info.supply.unclaimed_fees.value));
-        Debug.print("Accrued interests: " # debug_show(Timeline.current(index).accrued_interests));
+        let supply_info_before = redistribution_hub.get_supply_info(clock.get_time());
+        Debug.print("Accrued interests: " # debug_show(supply_info_before.accrued_interests));
 
         // Borrower repays full amount, got to 201 tokens to account for accrued interest
         let { current_owed } = unwrap(borrow_registry.get_loan_position(clock.get_time(), borrower).loan);
@@ -227,30 +228,32 @@ await suite("LendingPool", func(): async() {
 
         verify(supply_accounting.balances(), [ (protocol, 1_004), (lender, 0), (borrower, 996) ], equal_balances);
         Debug.print("Unclaimed fees: " # debug_show(protocol_info.supply.unclaimed_fees.value));
-        Debug.print("Accrued interests: " # debug_show(Timeline.current(index).accrued_interests));
+        let supply_info_after = redistribution_hub.get_supply_info(clock.get_time());
+        Debug.print("Accrued interests: " # debug_show(supply_info_after.accrued_interests));
         verify(supply.get_unclaimed_fees(), 1, Testify.nat.equal);
 
         // Utilization should return to 0
-        verify(indexer.get_index(clock.get_time()).utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
-        verify(indexer.get_index(clock.get_time()).utilization.ratio, 0.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index_now(clock.get_time()).utilization.raw_borrowed, 0.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index_now(clock.get_time()).utilization.ratio, 0.0, Testify.float.equalEpsilon9);
 
         // === Lender Withdrawal ===
 
-        let interest_amount = Int.abs(Float.toInt(Timeline.current(index).accrued_interests.supply));
-        let withdraw_result = supply_registry.remove_position({
+        let supply_info_withdraw = redistribution_hub.get_supply_info(clock.get_time());
+        let interest_amount = Int.abs(Float.toInt(supply_info_withdraw.accrued_interests));
+        let withdraw_result = redistribution_hub.remove_position({
             id = "supply1";
             interest_amount;
             time = clock.get_time();
         });
         verify(withdraw_result, #ok(supplied + interest_amount), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
 
-        Debug.print("Accrued interests: " # debug_show(Timeline.current(index).accrued_interests));
+        Debug.print("Accrued interests: " # debug_show(supply_info_withdraw.accrued_interests));
         
         ignore await* withdrawal_queue.process_pending_withdrawals(clock.get_time());
         verify(supply_accounting.balances(), [ (protocol, 2), (lender, supplied + interest_amount), (borrower, 996) ], equal_balances);
 
         // Final state checks: indexes still increasing, no liquidation, clean balances
-        let final_state = indexer.get_index(clock.get_time());
+        let final_state = indexer.get_index_now(clock.get_time());
         verify(final_state.borrow_index.value, 1.0, Testify.float.greaterThan);
         verify(final_state.supply_index.value, 1.0, Testify.float.greaterThan);
         // Collateral is untouched, since no liquidation
@@ -279,10 +282,6 @@ await suite("LendingPool", func(): async() {
         let index = Timeline.make1h<LendingTypes.LendingIndex>(now, {
             borrow_rate = 0.0;
             supply_rate = 0.0;
-            accrued_interests = {
-                supply = 0.0;
-                borrow = 0.0;
-            };
             borrow_index = {
                 value = 1.0;
                 timestamp = now;
@@ -301,7 +300,11 @@ await suite("LendingPool", func(): async() {
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();
-            supply_positions = Map.new<Text, SupplyPosition>();
+            supply_positions = Map.new<Account, SupplyPosition>();
+            redistribution_positions = Map.new<Text, RedistributionPosition>();
+            var total_supplied = 0.0;
+            var total_raw = 0.0;
+            var index = 1.0;
             withdrawals = Map.new<Text, Withdrawal>();
             withdraw_queue = Set.new<Text>();
         };
@@ -341,14 +344,14 @@ await suite("LendingPool", func(): async() {
         });
 
         let collateral_price_tracker = PriceTracker.SpotPriceTracker({
-            dex = dex_fake;
+            price_source = #Dex(dex_fake);
             tracked_price = collateral_price_in_supply;
             pay_ledger = collateral_ledger;
             receive_ledger = supply_ledger;
         });
 
         // Build the lending system
-        let { indexer; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { indexer; redistribution_hub; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             collateral_price_tracker;
             protocol_info;
@@ -362,15 +365,15 @@ await suite("LendingPool", func(): async() {
 
         // === Initial Assertions ===
         
-        verify(indexer.get_index(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
+        verify(indexer.get_index_now(clock.get_time()).borrow_index.value, 1.0, Testify.float.equalEpsilon9);
 
         // Lender supplies 1000 tokens
-        let supply_1_result = await* supply_registry.add_position({
+        let supply_1_result = await* redistribution_hub.add_position({
             id = "supply1";
             account = lender;
             supplied = 1000;
         }, clock.get_time());
-        verify(supply_1_result, #ok(1), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
+        verify(Result.isOk(supply_1_result), true, Testify.bool.equal);
         verify(supply_accounting.balances(), [ (dex, 2_000), (protocol, 1_000), (lender, 9_000), (borrower, 10_000) ], equal_balances);
         
         // Borrower supplies 2000 worth of collateral
@@ -385,7 +388,7 @@ await suite("LendingPool", func(): async() {
 
         // Advance time to accrue some interest
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(100)))), #repeatedly);
-        ignore indexer.get_index(clock.get_time());
+        ignore indexer.get_index_now(clock.get_time());
 
         // Check health before price crash (should be healthy)
         verify(unwrap(borrow_registry.get_loan_position(clock.get_time(), borrower).loan).health, 1.0, Testify.float.greaterThan);
@@ -398,7 +401,7 @@ await suite("LendingPool", func(): async() {
 
         // Advance time to ensure state update uses new price
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(101)))), #repeatedly);
-        ignore indexer.get_index(clock.get_time());
+        ignore indexer.get_index_now(clock.get_time());
 
         // Check health after price crash (should be unhealthy)
         verify(unwrap(borrow_registry.get_loan_position(clock.get_time(), borrower).loan).health, 1.0, Testify.float.lessThan);
@@ -419,7 +422,7 @@ await suite("LendingPool", func(): async() {
         verify(supply_accounting.balances(), [ (dex, 1_682), (protocol, 818), (lender, 9_000), (borrower, 10_500) ], equal_balances);
 
         // Lender withdraws their supply
-        let withdraw_result = supply_registry.remove_position({
+        let withdraw_result = redistribution_hub.remove_position({
             id = "supply1";
             interest_amount = 10; // Arbitrarily take 10 tokens as interest
             time = clock.get_time();
@@ -443,10 +446,6 @@ await suite("LendingPool", func(): async() {
         let index = Timeline.make1h<LendingTypes.LendingIndex>(now, {
             borrow_rate = 0.0;
             supply_rate = 0.0;
-            accrued_interests = {
-                supply = 0.0;
-                borrow = 0.0;
-            };
             borrow_index = {
                 value = 1.0;
                 timestamp = now;
@@ -465,7 +464,11 @@ await suite("LendingPool", func(): async() {
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();
-            supply_positions = Map.new<Text, SupplyPosition>();
+            supply_positions = Map.new<Account, SupplyPosition>();
+            redistribution_positions = Map.new<Text, RedistributionPosition>();
+            var total_supplied = 0.0;
+            var total_raw = 0.0;
+            var index = 1.0;
             withdrawals = Map.new<Text, Withdrawal>();
             withdraw_queue = Set.new<Text>();
         };
@@ -495,14 +498,14 @@ await suite("LendingPool", func(): async() {
         let dex = DexMock.DexMock();
 
         let collateral_price_tracker = PriceTracker.SpotPriceTracker({
-            dex;
+            price_source = #Dex(dex);
             tracked_price = collateral_price_in_supply;
             pay_ledger = collateral_ledger;
             receive_ledger = supply_ledger;
         });
 
         // Build the lending system
-        let { supply; supply_registry; borrow_registry; withdrawal_queue; } = LendingFactory.build({
+        let { supply; redistribution_hub; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             admin;
             collateral_price_tracker;
             protocol_info;
@@ -515,7 +518,7 @@ await suite("LendingPool", func(): async() {
         });
 
         // Lender supplies 1000 tokens
-        ignore await* supply_registry.add_position({
+        ignore await* redistribution_hub.add_position({
             id = "supply1";
             account = lender;
             supplied = 1000;
@@ -534,7 +537,7 @@ await suite("LendingPool", func(): async() {
 
         // Lender tries to withdraw full position
         clock.expect_call(#get_time(#returns(Duration.toTime(#DAYS(2)))), #repeatedly);
-        let withdraw_result = supply_registry.remove_position({
+        let withdraw_result = redistribution_hub.remove_position({
             id = "supply1";
             interest_amount = 1; // Adjusted for corrected utilization ratio - less interest accrued
             time = clock.get_time();
@@ -599,10 +602,6 @@ await suite("LendingPool", func(): async() {
         let index = Timeline.make1h<LendingTypes.LendingIndex>(now, {
             borrow_rate = 0.0;
             supply_rate = 0.0;
-            accrued_interests = {
-                supply = 0.0;
-                borrow = 0.0;
-            };
             borrow_index = {
                 value = 1.0;
                 timestamp = now;
@@ -621,7 +620,11 @@ await suite("LendingPool", func(): async() {
 
         let register = {
             borrow_positions = Map.new<Account, BorrowPosition>();
-            supply_positions = Map.new<Text, SupplyPosition>();
+            supply_positions = Map.new<Account, SupplyPosition>();
+            redistribution_positions = Map.new<Text, RedistributionPosition>();
+            var total_supplied = 0.0;
+            var total_raw = 0.0;
+            var index = 1.0;
             withdrawals = Map.new<Text, Withdrawal>();
             withdraw_queue = Set.new<Text>();
         };
@@ -689,14 +692,14 @@ await suite("LendingPool", func(): async() {
         });
 
         let collateral_price_tracker = PriceTracker.SpotPriceTracker({
-            dex = dex_fake;
+            price_source = #Dex(dex_fake);
             tracked_price = collateral_price_in_supply;
             pay_ledger = collateral_ledger;
             receive_ledger = supply_ledger;
         });
 
         // Build the lending system
-        let { supply_registry; borrow_registry; } = LendingFactory.build({
+        let { redistribution_hub; borrow_registry; } = LendingFactory.build({
             admin;
             protocol_info;
             parameters;
@@ -718,12 +721,12 @@ await suite("LendingPool", func(): async() {
         // === Test Scenario ===
         
         // Lender supplies 1M USDT
-        let supply_1_result = await* supply_registry.add_position({
+        let supply_1_result = await* redistribution_hub.add_position({
             id = "supply1";
             account = lender;
             supplied = 1_000_000_000_000; // 1M USDT in micro-USDT
         }, clock.get_time());
-        verify(supply_1_result, #ok(1), Testify.result(Testify.nat.equal, Testify.text.equal).equal);
+        verify(Result.isOk(supply_1_result), true, Testify.bool.equal);
 
         // Borrower provides 1 BTC collateral (100M satoshis)
         let collateral_1_result = await* borrow_registry.run_operation(clock.get_time(), { 

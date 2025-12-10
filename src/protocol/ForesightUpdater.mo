@@ -6,6 +6,7 @@ import Float "mo:base/Float";
 import Nat "mo:base/Nat";
 
 import Map "mo:map/Map";
+import RedistributionHub "lending/RedistributionHub";
 
 module {
 
@@ -49,20 +50,13 @@ module {
     public type ContribItem = ForesightItem and { contrib: Contrib };
 
     public class ForesightUpdater({
-        initial_supply_info: SupplyInfo;
+        redistribution_hub: RedistributionHub.RedistributionHub;
         get_items: () -> Iter<ForesightItem>;
     }) {
 
-        var supply_info = initial_supply_info;
+        public func update_foresights(time: Nat) {
 
-        public func set_supply_info(new_supply_info: SupplyInfo) {
-            supply_info := new_supply_info;
-            update_foresights();
-        };
-
-        public func update_foresights() {
-
-            let { accrued_interests; interests_rate; timestamp = now; } = supply_info;
+            let { accrued_interests; interests_rate; timestamp = now; } = redistribution_hub.get_supply_info(time);
 
             let active_items = get_items();
             

@@ -1,6 +1,7 @@
 import Types                  "Types";
 import Controller             "Controller";
 import Queries                "Queries";
+import Miner                  "Miner";
 import Decay                  "duration/Decay";
 import DurationScaler         "duration/DurationScaler";
 import PoolFactory            "pools/PoolFactory";
@@ -18,7 +19,6 @@ import LedgerFungible         "ledger/LedgerFungible";
 import LedgerAccount          "ledger/LedgerAccount";
 import Dex                    "ledger/Dex";
 import PriceTracker           "ledger/PriceTracker";
-import Miner     "Miner";
 
 import Debug                  "mo:base/Debug";
 import Int                    "mo:base/Int";
@@ -91,7 +91,7 @@ module {
             ledger = supply_ledger;
         });
 
-        let { supply; supply_registry; borrow_registry; withdrawal_queue; indexer; } = LendingFactory.build({
+        let { supply; supply_registry; redistribution_hub; borrow_registry; withdrawal_queue; } = LendingFactory.build({
             lending with
             parameters = parameters.lending;
             collateral_price_tracker;
@@ -106,16 +106,11 @@ module {
         });
 
         let foresight_updater = ForesightUpdater.ForesightUpdater({
-            initial_supply_info = to_supply_info(indexer.get_index(clock.get_time()));
+            redistribution_hub;
             get_items = func() : Iter<ForesightUpdater.ForesightItem> {
                 // Map the positions to foresight items
                 get_foresight_items(Map.keys(lock_scheduler_state.map), position_register.positions);
             };
-        });
-
-        // Update the foresights when the indexer state is updated
-        indexer.add_observer(func(lending_index: Types.LendingIndex) {
-            foresight_updater.set_supply_info(to_supply_info(lending_index));
         });
         
         let lock_scheduler = LockScheduler.LockScheduler({
@@ -132,7 +127,7 @@ module {
             parameters = parameters.mining;
             minting_account = participation_account;
             register = mining;
-            supply_positions = lending.register.supply_positions;
+            redistribution_positions = lending.register.redistribution_positions;
             borrow_positions = lending.register.borrow_positions;
             lending_index = lending.index;
         });
@@ -157,6 +152,7 @@ module {
             pool_type_controller;
             supply;
             supply_registry;
+            redistribution_hub;
             borrow_registry;
             withdrawal_queue;
             collateral_price_tracker;
@@ -233,14 +229,6 @@ module {
                 };
             };
         });
-    };
-
-    func to_supply_info(lending_index: Types.LendingIndex) : ForesightUpdater.SupplyInfo {
-        {
-            accrued_interests = lending_index.accrued_interests.supply;
-            interests_rate = lending_index.supply_rate;
-            timestamp = lending_index.timestamp;
-        };
     };
 
 };

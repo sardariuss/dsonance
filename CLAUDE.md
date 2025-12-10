@@ -4,6 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Important**: If, while doing a task, you come across something new, non-obvious, or that you had to figure out (something you "learned"), write it down here. This file is used to store cumulative knowledge and emerging conventions across the project.
 
+## Related Documentation
+
+- **[limit-order.md](./limit-order.md)** - Comprehensive documentation for the limit order feature, including lifecycle, interest accrual mechanisms, and implementation details
+
 ## Development Commands
 
 **Start Development Server**
@@ -340,6 +344,44 @@ The protocol follows a strict parameter architecture to maintain clean separatio
 - This design choice avoids saturating code with parameter update logic across all objects
 - Since parameter updates are infrequent operations, this approach maintains clean architecture
 - All objects requiring parameters receive them via injection from Factory.mo
+
+## Supply and Redistribution Flow
+
+### Circular Flow Architecture (v0.2.0)
+
+The protocol implements a **circular flow** where funds can seamlessly move between the user's wallet, supply position, and pool positions without leaving the protocol.
+
+**Flow Diagram:**
+```
+User Wallet ←→ SupplyRegistry ←→ RedistributionHub → (on unlock) → SupplyRegistry
+            transfer         no transfer             no transfer
+```
+
+**Put Position (Adding to RedistributionHub):**
+- Users can fund positions from **two sources** via `AmountOrigin` parameter:
+  - `FROM_WALLET`: Pull tokens from wallet (requires approval, updates indexer)
+  - `FROM_SUPPLY`: Use existing supply balance (no token transfer, no indexer update)
+- **Implementation**: `RedistributionHub.add_position()` in `src/protocol/lending/RedistributionHub.mo`
+- **Frontend**: 2-step modal in `src/frontend/components/PutPositionModal.tsx`
+  - Step 1: Choose funding source (wallet or supply)
+  - Step 2: Confirm position details
+
+**Position Unlock (Redistribution → Supply):**
+- When positions are removed, funds **always go to SupplyRegistry**
+- `RedistributionHub.remove_position()` adds `supplied + interest` to user's SupplyPosition
+- NO token transfer, NO indexer update (funds stay in protocol)
+- **Implementation**: Uses `SupplyPositionManager.add_amount()` for accounting only
+
+**Architecture:**
+- **Position Managers** (pure accounting): `SupplyPositionManager`, `RedistributionPositionManager`
+- **Registries/Hubs** (accounting + transfers): `SupplyRegistry`, `RedistributionHub`
+- Position managers are created in `LendingFactory` and injected into registries
+- Direct manager-to-manager communication for internal fund transfers
+
+**Indexer Rules:**
+- `add_raw_supplied`: Only when funds ENTER protocol (wallet → protocol)
+- `remove_raw_supplied`: Only when funds LEAVE protocol (protocol → wallet)
+- NO indexer calls when funds move internally (already tracked)
 
 ## Test Files
 - Motoko tests: `tests/protocol/`

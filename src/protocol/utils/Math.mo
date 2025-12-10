@@ -30,5 +30,9 @@ module {
         if (x == Float.floor(x)) { Float.toInt(x) }
         else { Float.toInt(x) + 1 };
     };
+
+    public func floor_to_int(x: Float) : Int {
+        Float.toInt(Float.floor(x));
+    };
     
 };

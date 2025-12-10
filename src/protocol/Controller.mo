@@ -5,12 +5,13 @@ import MapUtils                "utils/Map";
 import RollingTimeline         "utils/RollingTimeline";
 import Clock                   "utils/Clock";
 import SharedConversions       "shared/SharedConversions";
-import PositionUtils             "pools/PositionUtils";
+import PositionUtils           "pools/PositionUtils";
 import PoolTypeController      "pools/PoolTypeController";
 import IdFormatter             "IdFormatter";
 import IterUtils               "utils/Iter";
 import LedgerTypes             "ledger/Types";
 import LendingTypes            "lending/Types";
+import RedistributionHub       "lending/RedistributionHub";
 import SupplyRegistry          "lending/SupplyRegistry";
 import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
@@ -52,6 +53,9 @@ module {
     type Loan = LendingTypes.Loan;
     type BorrowOperation = LendingTypes.BorrowOperation;
     type BorrowOperationArgs = LendingTypes.BorrowOperationArgs;
+    type SupplyOperation = LendingTypes.SupplyOperation;
+    type SupplyOperationArgs = LendingTypes.SupplyOperationArgs;
+    type SupplyInfo = LendingTypes.SupplyInfo;
     type TransferResult = LendingTypes.TransferResult;
     type IPriceTracker = LedgerTypes.IPriceTracker;
     type MiningTracker = Types.MiningTracker;
@@ -80,6 +84,16 @@ module {
         caller: Principal;
         from_subaccount: ?Blob;
         amount: Nat;
+        origin: LendingTypes.AmountOrigin;
+    };
+
+    type PutLimitOrderArgs = {
+        order_id: Types.UUID;
+        pool_id: Types.UUID;
+        account: Account;
+        amount: Nat;
+        choice: Types.ChoiceType;
+        limit_dissent: Float;
     };
 
     public type PutPositionPreviewArgs = PutPositionArgs and {
@@ -97,6 +111,7 @@ module {
         pool_type_controller: PoolTypeController.PoolTypeController;
         supply: SupplyAccount.SupplyAccount;
         supply_registry: SupplyRegistry.SupplyRegistry;
+        redistribution_hub: RedistributionHub.RedistributionHub;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
         collateral_price_tracker: IPriceTracker;
@@ -153,7 +168,7 @@ module {
                 if (args.with_supply_apy_impact) args.amount else 0;
             };
 
-            let preview_result = supply_registry.add_position_without_transfer({
+            let preview_result = redistribution_hub.add_position_without_transfer({
                 id = position_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
                 supplied;
@@ -188,11 +203,11 @@ module {
             // Capture timestamp before the transfer for the indexer
             let timestamp_before_transfer = clock.get_time();
 
-            let transfer = await* supply_registry.add_position({
+            let transfer = await* redistribution_hub.add_position({
                 id = position_id;
                 account = { owner = args.caller; subaccount = args.from_subaccount; };
                 supplied = args.amount;
-            }, timestamp_before_transfer);
+            }, timestamp_before_transfer, args.origin);
 
             let { tx_id; supply_index; } = switch(transfer){
                 case(#err(err)) { return #err(err); };
@@ -212,6 +227,52 @@ module {
             });
         };
 
+        public func put_limit_order(args: PutLimitOrderArgs) : async Result<(), Text> {
+
+            let { order_id; pool_id; account; amount; limit_dissent; } = args;
+
+            if (Principal.isAnonymous(account.owner)) {
+                return #err("Anonymous caller cannot put a position");
+            };
+
+            let pool_type = switch(Map.get(pool_register.pools, Map.thash, pool_id)){
+                case(null) return #err("Pool not found: " # pool_id);
+                case(?v) v;
+            };
+
+            if (limit_dissent < 0.0 or limit_dissent > 1.0) {
+                return #err("Limit dissent must be between 0.0 and 1.0");
+            };
+
+            if (amount < parameters.minimum_position_amount){
+                return #err("Insufficient amount: " # debug_show(amount) # " (minimum: " # debug_show(parameters.minimum_position_amount) # ")");
+            };
+
+            // Capture timestamp before the transfer for the indexer
+            let timestamp_before_transfer = clock.get_time();
+
+            let transfer = await* redistribution_hub.add_position({
+                id = order_id;
+                account = account;
+                supplied = amount;
+            }, timestamp_before_transfer, #FROM_WALLET);
+
+            switch(transfer){
+                case(#err(err)) { return #err(err); };
+                case(_) {};
+            };
+
+            // Recapture timestamp after the async operation for the position
+            let timestamp = clock.get_time();
+
+            pool_type_controller.put_limit_order({
+                pool_type;
+                args = { args with timestamp; };
+            });
+
+            #ok;
+        };
+
         public func run_borrow_operation(args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {
             await* borrow_registry.run_operation(clock.get_time(), args);
         };
@@ -226,6 +287,22 @@ module {
 
         public func get_loans_info() : { positions: [Loan]; max_ltv: Float } {
             borrow_registry.get_loans_info(clock.get_time());
+        };
+
+        public func run_supply_operation(args: SupplyOperationArgs) : async* Result<SupplyOperation, Text> {
+            await* supply_registry.run_operation(clock.get_time(), args);
+        };
+
+        public func run_supply_operation_for_free(args: SupplyOperationArgs) : Result<SupplyOperation, Text> {
+            supply_registry.run_operation_for_free(clock.get_time(), args);
+        };
+
+        public func get_supply_info(account: Account) : SupplyInfo {
+            supply_registry.get_supply_info(clock.get_time(), account);
+        };
+
+        public func get_all_supply_info() : { positions: [SupplyInfo]; total_supplied: Float } {
+            supply_registry.get_all_supply_info(clock.get_time());
         };
 
         public func get_available_liquidities() : async* Nat {
@@ -244,7 +321,7 @@ module {
         // it should only log errors
         public func run() : async* () {
 
-            let time = clock.get_time();
+            var time = clock.get_time();
             Debug.print("Running controller at time: " # debug_show(time));
 
             // 1. Fetch USD prices
@@ -268,8 +345,11 @@ module {
                 };
             };
 
+            // Time might have advanced during async calls
+            time := clock.get_time();
+
             // 3. Update foresights before unlocking, so the rewards are up-to-date
-            foresight_updater.update_foresights();
+            foresight_updater.update_foresights(time);
 
             // 4. Unlock expired locks and process them
             let unlocked_ids = lock_scheduler.try_unlock(time);
@@ -297,7 +377,7 @@ module {
                 pool_type_controller.unlock_position({ pool_type; position_id; });
                 
                 // Remove supply position using the position's foresight reward
-                switch(supply_registry.remove_position({
+                switch(redistribution_hub.remove_position({
                     id = position_id;
                     interest_amount = Int.abs(position.foresight.reward);
                     time;
@@ -418,7 +498,7 @@ module {
                 )
             );
             // Need to update the foresights after adding the new lock
-            foresight_updater.update_foresights();
+            foresight_updater.update_foresights(timestamp);
 
             MapUtils.putInnerSet(position_register.by_account, MapUtils.acchash, from, Map.thash, position_id);
 

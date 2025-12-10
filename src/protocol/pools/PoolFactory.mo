@@ -68,6 +68,17 @@ module {
         
         PoolController.PoolController<YesNoAggregate, YesNoChoice>({
             empty_aggregate = { total_yes = 0; total_no = 0; current_yes = #DECAYED(0.0); current_no = #DECAYED(0.0); };
+            choice_hash = ( 
+                func(choice) = switch (choice) {
+                    case (#YES) { 0; };
+                    case (#NO) { 1; };
+                },
+                func(a, b) = switch (a, b) {
+                    case (#YES, #YES) { true; };
+                    case (#NO,  #NO)  { true; };
+                    case (_,    _)    { false; };
+                }
+            );
             position_aggregator;
             lock_info_updater;
             decay_model;

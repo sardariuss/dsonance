@@ -7,15 +7,17 @@ import { getTokenLogo } from "../../utils/metadata";
 import { useMemo } from "react";
 import { HiMiniTrophy } from "react-icons/hi2";
 import { useBorrowOperations } from "../hooks/useBorrowOperations";
+import { useSupplyOperations } from "../hooks/useSupplyOperations";
 import { useLendingCalculations } from "../hooks/useLendingCalculations";
 
 type LendingTabProps = {
   borrowOps: ReturnType<typeof useBorrowOperations>;
+  supplyOps: ReturnType<typeof useSupplyOperations>;
   lendingCalcs: ReturnType<typeof useLendingCalculations>;
   refetchUserPositions: () => Promise<any>;
 };
 
-export const LendingTab = ({ borrowOps, lendingCalcs, refetchUserPositions }: LendingTabProps) => {
+export const LendingTab = ({ borrowOps, supplyOps, lendingCalcs, refetchUserPositions }: LendingTabProps) => {
 
   const {
     previewOperation,
@@ -24,11 +26,28 @@ export const LendingTab = ({ borrowOps, lendingCalcs, refetchUserPositions }: Le
     collateralLedger,
   } = borrowOps;
 
+  const {
+    supplyInfo,
+    previewOperation: previewSupplyOp,
+    runOperation: baseRunSupplyOp,
+    WITHDRAW_SLIPPAGE_RATIO,
+  } = supplyOps;
+
   const { collateral, currentOwed, maxWithdrawable, maxBorrowable } = lendingCalcs;
 
   // Wrap runOperation to refetch user positions after successful operations
   const runOperation: typeof baseRunOperation = async (amount, kind) => {
     const result = await baseRunOperation(amount, kind);
+    if (result !== undefined && "ok" in result) {
+      // Refetch positions to update positions data in Profile
+      await refetchUserPositions();
+    }
+    return result;
+  };
+
+  // Wrap supply operation as well
+  const runSupplyOperation: typeof baseRunSupplyOp = async (amount, kind) => {
+    const result = await baseRunSupplyOp(amount, kind);
     if (result !== undefined && "ok" in result) {
       // Refetch positions to update positions data in Profile
       await refetchUserPositions();
@@ -46,20 +65,15 @@ export const LendingTab = ({ borrowOps, lendingCalcs, refetchUserPositions }: Le
 
   const currentBorrowRatePerToken = miningRates?.currentBorrowRatePerToken || 0;
 
+  // Convert Float (accrued_amount) to bigint for display
+  const supplyAccruedAmount = useMemo(() => {
+    if (!supplyInfo?.accrued_amount) return 0n;
+    return BigInt(Math.floor(supplyInfo.accrued_amount));
+  }, [supplyInfo?.accrued_amount]);
+
   return (
     <div className="bg-white dark:bg-slate-800 shadow-md rounded-md p-2 sm:p-4 md:p-6 border border-slate-300 dark:border-slate-700 space-y-6">
       <div className="flex flex-col w-full gap-4">
-        {/* Work in progress notice */}
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-lg">
-          <div className="flex items-center gap-3">
-            <span className="text-amber-600 dark:text-amber-400 text-xl mt-0.5">ℹ️</span>
-            <div className="flex-1">
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                <span className="font-semibold">Work in progress:</span> Resolved positions are currently sent directly to your wallet upon resolution. Soon, they'll remain in the supply pool to continue earning the base supply APR and can be withdrawn at any time.
-              </p>
-            </div>
-          </div>
-        </div>
         {miningRates && currentBorrowRatePerToken > 0 && (
           <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-lg">
             {twvLogo ? (
@@ -80,18 +94,28 @@ export const LendingTab = ({ borrowOps, lendingCalcs, refetchUserPositions }: Le
             <div className="flex flex-row items-center gap-4">
               <TokenLabel metadata={supplyLedger.metadata}/>
               <div className="flex flex-col">
-                <span className="text-lg font-bold"> { supplyLedger.formatAmount(0) } </span>
-                <span className="text-xs text-gray-400"> { supplyLedger.formatAmountUsd(0) } </span>
+                <span className="text-lg font-bold"> { supplyLedger.formatAmount(supplyAccruedAmount) } </span>
+                <span className="text-xs text-gray-400"> { supplyLedger.formatAmountUsd(supplyAccruedAmount) } </span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 w-full lg:w-[320px]">
-              <div></div>
-              <button
-                className="px-4 py-2 bg-gray-400 text-white font-medium rounded-md transition-colors shadow-sm cursor-not-allowed hover:bg-gray-400"
-                disabled
-              >
-                Withdraw
-              </button>
+              <BorrowButton
+                title="Supply"
+                ledger={supplyLedger}
+                previewOperation={(amount) => previewSupplyOp(amount, { "SUPPLY": null })}
+                runOperation={(amount) => runSupplyOperation(amount, { "SUPPLY": null })}
+                maxLabel="Wallet balance"
+                maxAmount={supplyLedger.userBalance ?? 0n}
+              />
+              <BorrowButton
+                title="Withdraw"
+                ledger={supplyLedger}
+                previewOperation={(amount) => previewSupplyOp(amount, { "WITHDRAW": { max_slippage_amount: BigInt(Math.ceil(WITHDRAW_SLIPPAGE_RATIO * Number(amount))) } })}
+                runOperation={(amount) => runSupplyOperation(amount, { "WITHDRAW": { max_slippage_amount: BigInt(Math.ceil(WITHDRAW_SLIPPAGE_RATIO * Number(amount))) } })}
+                maxLabel="Available"
+                maxAmount={supplyAccruedAmount}
+                disabled={supplyAccruedAmount === 0n}
+              />
             </div>
           </div>
         </div>

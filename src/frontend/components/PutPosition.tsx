@@ -11,14 +11,8 @@ import { PutPositionPreview as PreviewArgs, SPosition } from '@/declarations/pro
 import { useFungibleLedgerContext } from './context/FungibleLedgerContext';
 import { getTokenLogo, getTokenSymbol } from '../utils/metadata';
 import { showErrorToast, showSuccessToast, extractErrorMessage } from '../utils/toasts';
-import Modal from './common/Modal';
-import { formatDuration } from '../utils/conversions/durationUnit';
-import { get_current } from '../utils/timeline';
-import { unwrapLock } from '../utils/conversions/position';
-import { aprToApy } from '../utils/lending';
-import { HiMiniArrowTrendingUp, HiOutlineClock, HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import { SYesNoPool } from '@/declarations/backend/backend.did';
-import { createThumbnailUrl } from '../utils/thumbnail';
+import PutPositionModal from './PutPositionModal';
 
 const PREDEFINED_PERCENTAGES = [0.1, 0.25, 0.5, 1.0];
 
@@ -48,7 +42,8 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
     from_subaccount: [],
     amount: 1_000_000n,
     choice_type: { YES_NO: toCandid(EYesNoChoice.Yes) },
-    with_supply_apy_impact: false
+    with_supply_apy_impact: false,
+    origin: { FROM_WALLET: null }
   }), [id]);
   const { data: yesPositionPreview } = protocolActor.unauthenticated.useQueryCall({
     functionName: "preview_position",
@@ -60,7 +55,8 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
     from_subaccount: [],
     amount: 1_000_000n,
     choice_type: { YES_NO: toCandid(EYesNoChoice.No) },
-    with_supply_apy_impact: false
+    with_supply_apy_impact: false,
+    origin: { FROM_WALLET: null }
   }), [id]);
   const { data: noPositionPreview } = protocolActor.unauthenticated.useQueryCall({
     functionName: "preview_position",
@@ -68,8 +64,6 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
   });
   const navigate = useNavigate();
 
-  const thumbnail = useMemo(() => createThumbnailUrl(pool.info.thumbnail), [pool]);
-  
   const { call: putPosition } = protocolActor.authenticated.useUpdateCall({
     functionName: "put_position",
   });
@@ -86,20 +80,21 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
     setShowConfirmModal(true);
   };
 
-  const executePool = () => {
-    
+  const executePool = (origin: import('@/declarations/protocol/protocol.did').AmountOrigin) => {
+
     setPutPositionLoading(true);
-    
-    approveIfNeeded(position.amount).then(({tokenFee, approveCalled}) => {
-      // Subtract the token fee from the amount if an approval was executed.
-      // Second token fee is for the tranfer_from operation that will be executed by the protocol.
-      const finalAmount = position.amount - tokenFee * (approveCalled ? 2n : 1n);
+
+    // Only approve if pulling from wallet
+    const needsApproval = 'FROM_WALLET' in origin;
+
+    const executePut = (finalAmount: bigint) => {
       putPosition([{
         pool_id: id,
         id: uuidv4(),
         from_subaccount: [],
         amount: finalAmount,
         choice_type: { YES_NO: toCandid(position.choice) },
+        origin
       }]).then((result) => {
         if (result === undefined) {
           throw new Error("Lock position returned undefined result");
@@ -114,12 +109,28 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
         setPutPositionLoading(false);
         // Position successfully put, navigate to the user's profile page
         navigate(`/user/${user?.principal.toString()}`);
+      }).catch((error) => {
+        console.error("Error during Lock position:", error);
+        showErrorToast(extractErrorMessage(error), "Lock position");
+        setPutPositionLoading(false);
       });
-    }).catch((error) => {
-      console.error("Error during Lock position:", error);
-      showErrorToast(extractErrorMessage(error), "Lock position");
-      setPutPositionLoading(false);
-    });
+    };
+
+    if (needsApproval) {
+      approveIfNeeded(position.amount).then(({tokenFee, approveCalled}) => {
+        // Subtract the token fee from the amount if an approval was executed.
+        // Second token fee is for the tranfer_from operation that will be executed by the protocol.
+        const finalAmount = position.amount - tokenFee * (approveCalled ? 2n : 1n);
+        executePut(finalAmount);
+      }).catch((error) => {
+        console.error("Error during approval:", error);
+        showErrorToast(extractErrorMessage(error), "Approval");
+        setPutPositionLoading(false);
+      });
+    } else {
+      // No approval needed when using supply
+      executePut(position.amount);
+    }
   };
 
   useEffect(() => {
@@ -268,93 +279,15 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
       </button>
 
       {/* Confirmation Modal */}
-      <Modal
+      <PutPositionModal
         isVisible={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
-        title="Confirm Lock Position"
-      >
-        <div className="flex flex-col w-full text-black dark:text-white space-y-4">
-          {/* Pool Information */}
-          <div className="w-full flex flex-row items-center gap-4">
-            {/* Thumbnail */}
-            <img
-              className="w-16 h-16 bg-contain bg-no-repeat bg-center rounded-md flex-shrink-0"
-              src={thumbnail}
-            />
-            {/* Pool Text */}
-            <div className="flex-grow text-gray-800 dark:text-gray-200 text-lg font-bold line-clamp-3 overflow-hidden">
-              {pool.info.text}
-            </div>
-          </div>
-
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 dark:text-gray-300">Choice</span>
-              <span className={`font-semibold px-2 rounded text-white ${
-                position.choice === EYesNoChoice.Yes
-                  ? 'bg-brand-true dark:bg-brand-true-dark'
-                  : 'bg-brand-false'
-              }`}>
-                {position.choice === EYesNoChoice.Yes ? 'True' : 'False'}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 dark:text-gray-300">Amount</span>
-              <div className="text-right flex flex-row space-x-1 items-center">
-                <div className="font-semibold">
-                  {formatAmount(position.amount)} {getTokenSymbol(metadata)}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {`(${formatAmountUsd(position.amount)})`}
-                </div>
-              </div>
-            </div>
-
-            {positionPreview && (
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700 dark:text-gray-300">Dissent</span>
-                <span className="font-semibold px-2 rounded">
-                  {positionPreview.dissent.toFixed(2)}
-                </span>
-              </div>
-            )}
-
-            { /* spacer */ }
-            <div className="border-t border-gray-300 dark:border-gray-600"></div>
-
-            <PutPositionPreview
-              positionPreview={positionPreview}
-              labelSize="text-sm"
-              valueSize="text-base"
-            />
-          </div>
-
-          <div className="flex flex-row items-center space-x-2">
-            <HiOutlineExclamationTriangle className="w-6 h-6 text-orange-500 flex-shrink-0" />
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              By confirming, your tokens will be locked for a duration that can be no less than the minimum duration shown above.
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
-              onClick={() => setShowConfirmModal(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors
-              disabled:bg-gray-500 disabled:dark:bg-gray-700 disabled:bg-none"
-              onClick={executePool}
-              disabled={putPositionLoading}
-            >
-              {putPositionLoading ? 'Processing...' : 'Confirm Lock'}
-            </button>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={executePool}
+        position={position}
+        positionPreview={positionPreview}
+        pool={pool}
+        putPositionLoading={putPositionLoading}
+      />
     </div>
 
 	);

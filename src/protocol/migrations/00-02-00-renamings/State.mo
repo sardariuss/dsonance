@@ -6,6 +6,7 @@ import Clock          "../../utils/Clock";
 import RollingTimeline "../../utils/RollingTimeline";
 import Timeline       "../../utils/Timeline";
 
+import Array          "mo:base/Array";
 import Map            "mo:map/Map";
 import Set            "mo:map/Set";
 import BTree          "mo:stableheapbtreemap/BTree";
@@ -16,34 +17,43 @@ import Debug          "mo:base/Debug";
 import Int            "mo:base/Int";
 import Text           "mo:base/Text";
 
+// Version 0.2.0 changes:
+// - Renaming VoteType to PoolType
+// - Renaming BallotType to PositionType
+// - SupplyPosition becomes RedistributionPosition and SupplyRegister becomes RedistributionRegister
+// - Add total_supplied, total_raw and index to RedistributionRegister, remove interests from LendingIndex
+// - Add new account-based SupplyPosition and SupplyRegister for indexed supply positions
 module {
 
-    type Time             = Int;
-    type State            = MigrationTypes.State;
-    type Account          = Types.Account;
-    type ICRC1            = Types.ICRC1;
-    type ICRC2            = Types.ICRC2;
-    type MiningTracker    = Types.MiningTracker;
-    type InitArgs         = Types.InitArgs;
-    type UpgradeArgs      = Types.UpgradeArgs;
-    type DowngradeArgs    = Types.DowngradeArgs;
-    type UUID             = Types.UUID;
-    type Lock             = Types.Lock;
-    type DebtInfo         = Types.DebtInfo;
-    type Position<B>      = Types.Position<B>;
-    type YesNoChoice      = Types.YesNoChoice;
-    type PoolType         = Types.PoolType;
-    type PositionType     = Types.PositionType;
-    type BorrowPosition   = Types.BorrowPosition;
-    type SupplyPosition   = Types.SupplyPosition;
-    type Withdrawal       = Types.Withdrawal;
-    type KongBackendActor = Types.KongBackendActor;
-    type XrcActor         = Types.XrcActor;
-    type TrackedPrice     = Types.TrackedPrice;
-    type Parameters       = Types.Parameters;
-    type InitParameters   = Types.InitParameters;
-    type LendingIndex     = Types.LendingIndex;
-    type Set<K>           = Set.Set<K>;
+    type Time               = Int;
+    type State              = MigrationTypes.State;
+    type Account            = Types.Account;
+    type ICRC1              = Types.ICRC1;
+    type ICRC2              = Types.ICRC2;
+    type MiningTracker      = Types.MiningTracker;
+    type InitArgs           = Types.InitArgs;
+    type UpgradeArgs        = Types.UpgradeArgs;
+    type DowngradeArgs      = Types.DowngradeArgs;
+    type UUID               = Types.UUID;
+    type Lock               = Types.Lock;
+    type DebtInfo           = Types.DebtInfo;
+    type Position<B>        = Types.Position<B>;
+    type YesNoChoice        = Types.YesNoChoice;
+    type PoolType           = Types.PoolType;
+    type PositionType       = Types.PositionType;
+    type BorrowPosition         = Types.BorrowPosition;
+    type SupplyPosition         = Types.SupplyPosition;
+    type RedistributionPosition = Types.RedistributionPosition;
+    type Withdrawal             = Types.Withdrawal;
+    type KongBackendActor   = Types.KongBackendActor;
+    type XrcActor           = Types.XrcActor;
+    type TrackedPrice       = Types.TrackedPrice;
+    type Parameters         = Types.Parameters;
+    type InitParameters     = Types.InitParameters;
+    type LendingIndex       = Types.LendingIndex;
+    type LimitOrderBTreeKey = Types.LimitOrderBTreeKey;
+    type LendingRegister    = Types.LendingRegister;
+    type Set<K>             = Set.Set<K>;
 
     let BTREE_ORDER = 8;
 
@@ -119,10 +129,6 @@ module {
                     };
                     borrow_rate = 0.0;
                     supply_rate = 0.0;
-                    accrued_interests = {
-                        supply = 0.0;
-                        borrow = 0.0;
-                    };
                     borrow_index = {
                         value = 1.0;
                         timestamp = now;
@@ -135,9 +141,14 @@ module {
                 });
                 register = {
                     borrow_positions = Map.new<Account, BorrowPosition>();
-                    supply_positions = Map.new<Text, SupplyPosition>();
+                    supply_positions = Map.new<Account, SupplyPosition>();
+                    redistribution_positions = Map.new<Text, RedistributionPosition>();
+                    var total_supplied = 0.0;
+                    var total_raw = 0.0;
+                    var index = 1.0;
                     withdrawals = Map.new<Text, Withdrawal>();
                     withdraw_queue = Set.new<Text>();
+
                 };
             };
             mining = {
@@ -169,6 +180,7 @@ module {
                         aggregate = pool.aggregate;
                         positions = pool.ballots;
                         author = pool.author;
+                        descending_orders = Map.new<YesNoChoice, BTree.BTree<LimitOrderBTreeKey, UUID>>();
                         var tvl = pool.tvl;
                     });
                 };
@@ -233,7 +245,24 @@ module {
                 minimum_position_amount = v1_state.parameters.minimum_ballot_amount;
             };
             accounts = v1_state.accounts;
-            lending = v1_state.lending;
+            lending = {
+                index = {
+                    var current = v1_state.lending.index.current;
+                    var history = v1_state.lending.index.history;
+                    var lastCheckpointTimestamp = v1_state.lending.index.lastCheckpointTimestamp;
+                    minIntervalNs = v1_state.lending.index.minIntervalNs;
+                };
+                register = {
+                    borrow_positions = v1_state.lending.register.borrow_positions;
+                    supply_positions = Map.new<Account, SupplyPosition>();
+                    redistribution_positions = v1_state.lending.register.supply_positions;
+                    var total_supplied = v1_state.lending.index.current.data.utilization.raw_supplied;
+                    var total_raw = v1_state.lending.index.current.data.utilization.raw_supplied + v1_state.lending.index.current.data.accrued_interests.supply;
+                    var index = v1_state.lending.index.current.data.supply_index.value;
+                    withdrawals = v1_state.lending.register.withdrawals;
+                    withdraw_queue = v1_state.lending.register.withdraw_queue;
+                };
+            };
             mining = v1_state.mining;
         });
     };
@@ -322,7 +351,28 @@ module {
                 minimum_ballot_amount = v2_state.parameters.minimum_position_amount;
             };
             accounts = v2_state.accounts;
-            lending = v2_state.lending;
+            lending = {
+                index = {
+                    var current = {
+                        data = downgrade_lending_index(v2_state.lending.index.current.data, v2_state.lending.register);
+                        timestamp = v2_state.lending.index.current.timestamp;
+                    };
+                    var history = Array.map<Types.TimedData<LendingIndex>, V0_1_0.TimedData<V0_1_0.LendingIndex>>(v2_state.lending.index.history, func(item) {
+                        {
+                            data = downgrade_lending_index(item.data, v2_state.lending.register);
+                            timestamp = item.timestamp;
+                        };
+                    });
+                    var lastCheckpointTimestamp = v2_state.lending.index.lastCheckpointTimestamp;
+                    minIntervalNs = v2_state.lending.index.minIntervalNs;
+                };
+                register = {
+                    borrow_positions = v2_state.lending.register.borrow_positions;
+                    supply_positions = v2_state.lending.register.redistribution_positions;
+                    withdrawals = v2_state.lending.register.withdrawals;
+                    withdraw_queue = v2_state.lending.register.withdraw_queue;
+                };
+            };
             mining = v2_state.mining;
         });
     };
@@ -375,6 +425,21 @@ module {
         };
 
         #v0_2_0({ v2_state with parameters = protocol_parameters; });
+    };
+
+    func downgrade_lending_index(index: LendingIndex, register: LendingRegister): V0_1_0.LendingIndex {
+        {
+            utilization = index.utilization;
+            borrow_rate = index.borrow_rate;
+            supply_rate = index.supply_rate;
+            accrued_interests = { 
+                supply = register.total_raw * index.supply_index.value / register.index - register.total_supplied;
+                borrow = 0.0; // Borrow accrued interests cannot be recovered, they're not used anyway
+            };
+            borrow_index = index.borrow_index;
+            supply_index = index.supply_index;
+            timestamp = index.timestamp;
+        };
     };
 
 };

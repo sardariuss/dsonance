@@ -42,6 +42,14 @@ module {
             };
         };
 
+        public func put_limit_order({ pool_type: PoolType; args: PoolController.PutLimitOrderArgs<ChoiceType>; }) : () {
+            switch(pool_type, args.choice){
+                case(#YES_NO(pool), #YES_NO(c)) { 
+                    yes_no_controller.put_limit_order(pool, { args with choice = c; });
+                };
+            };
+        };
+
         public func unlock_position({ pool_type: PoolType; position_id: UUID; }) {
             switch(pool_type){
                 case(#YES_NO(pool)){

@@ -1,16 +1,17 @@
-import LendingTypes       "Types";
-import BorrowPositionner  "BorrowPositionner";
-import BorrowRegistry     "BorrowRegistry";
-import SupplyRegistry     "SupplyRegistry";
-import InterestRateCurve  "InterestRateCurve";
-import WithdrawalQueue    "WithdrawalQueue";
-import Indexer            "Indexer";
-import SupplyAccount      "SupplyAccount";
-import LedgerTypes        "../ledger/Types";
-import LedgerAccount      "../ledger/LedgerAccount";
-import Timeline           "../utils/Timeline";
-
-import Result             "mo:base/Result";
+import LendingTypes                  "Types";
+import BorrowPositionner             "BorrowPositionner";
+import BorrowRegistry                "BorrowRegistry";
+import SupplyRegistry                "SupplyRegistry";
+import RedistributionHub             "RedistributionHub";
+import InterestRateCurve             "InterestRateCurve";
+import WithdrawalQueue               "WithdrawalQueue";
+import Indexer                       "Indexer";
+import SupplyAccount                 "SupplyAccount";
+import SupplyPositionManager         "SupplyPositionManager";
+import RedistributionPositionManager "RedistributionPositionManager";
+import LedgerTypes                   "../ledger/Types";
+import LedgerAccount                 "../ledger/LedgerAccount";
+import Timeline                      "../utils/Timeline";
 
 module {
 
@@ -24,7 +25,6 @@ module {
     type ILedgerFungible     = LedgerTypes.ILedgerFungible;
     type ProtocolInfo        = LedgerTypes.ProtocolInfo;
     type IPriceTracker       = LedgerTypes.IPriceTracker;
-    type Result<Ok, Err>     = Result.Result<Ok, Err>;
 
     public func build({
         parameters: LendingParameters;
@@ -40,6 +40,7 @@ module {
         indexer: Indexer.Indexer;
         supply: SupplyAccount.SupplyAccount;
         supply_registry: SupplyRegistry.SupplyRegistry;
+        redistribution_hub: RedistributionHub.RedistributionHub;
         borrow_registry: BorrowRegistry.BorrowRegistry;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
     } {
@@ -81,12 +82,30 @@ module {
             supply;
         });
 
-        let supply_registry = SupplyRegistry.SupplyRegistry({
-            indexer;
+        let supply_position_manager = SupplyPositionManager.SupplyPositionManager({
             register;
-            parameters;
-            withdrawal_queue;
+            indexer;
+        });
+
+        let redistribution_position_manager = RedistributionPositionManager.RedistributionPositionManager({
+            register;
+            indexer;
+        });
+
+        let supply_registry = SupplyRegistry.SupplyRegistry({
             supply;
+            indexer;
+            withdrawal_queue;
+            parameters;
+            position_manager = supply_position_manager;
+        });
+
+        let redistribution_hub = RedistributionHub.RedistributionHub({
+            indexer;
+            supply;
+            parameters;
+            supply_position_manager;
+            position_manager = redistribution_position_manager;
         });
 
         let borrow_registry = BorrowRegistry.BorrowRegistry({
@@ -107,6 +126,7 @@ module {
             indexer;
             supply;
             supply_registry;
+            redistribution_hub;
             borrow_registry;
             withdrawal_queue;
         };

@@ -1,121 +1,202 @@
-import Debug           "mo:base/Debug";
-import Result          "mo:base/Result";
-import Int             "mo:base/Int";
-import Float           "mo:base/Float";
+import Nat                "mo:base/Nat";
+import Map                "mo:map/Map";
+import Result             "mo:base/Result";
+import Float              "mo:base/Float";
+import Int                "mo:base/Int";
+import Principal          "mo:base/Principal";
 
-import Map             "mo:map/Map";
-
-import Types           "../Types";
-import LendingTypes    "Types";
-import Indexer         "Indexer";
-import WithdrawalQueue "WithdrawalQueue";
-import SupplyAccount   "SupplyAccount";
+import Types              "../Types";
+import Math               "../utils/Math";
+import LendingTypes       "Types";
+import Indexer            "Indexer";
+import WithdrawalQueue    "WithdrawalQueue";
+import UtilizationUpdater "UtilizationUpdater";
+import SupplyAccount      "SupplyAccount";
+import SupplyPositionManager "SupplyPositionManager";
 
 module {
 
-    type Account = Types.Account;
-    type Result<Ok, Err> = Result.Result<Ok, Err>;
-    type Transfer = Types.Transfer;
-    type TransferError = Types.TransferError;
-    type TxIndex = Types.TxIndex;
+    type Account               = Types.Account;
+    type TxIndex               = Types.TxIndex;
+    type Result<Ok, Err>       = Result.Result<Ok, Err>;
 
-    type SupplyInput             = LendingTypes.SupplyInput;
-    type SupplyPosition          = LendingTypes.SupplyPosition;
-    type Withdrawal              = LendingTypes.Withdrawal;
-    type SupplyRegister          = LendingTypes.SupplyRegister;
-    type SupplyParameters        = LendingTypes.SupplyParameters;
-    type AddSupplyPositionResult = LendingTypes.AddSupplyPositionResult;
+    type SupplyPosition        = LendingTypes.SupplyPosition;
+    type SupplyPositionTx      = LendingTypes.SupplyPositionTx;
+    type SupplyParameters      = LendingTypes.SupplyParameters;
+    type LendingIndex          = LendingTypes.LendingIndex;
+    type SupplyInfo            = LendingTypes.SupplyInfo;
+    type SupplyOperation       = LendingTypes.SupplyOperation;
+    type SupplyOperationArgs   = LendingTypes.SupplyOperationArgs;
 
-    // @todo: need functions to retry if transfer failed.
-    // @todo: need queries to retrieve the transfers and withdrawals (union of the two maps)
-    // @todo: function to delete withdrawals that are too old
+    type PreparedOperation = {
+        to_transfer: Nat;
+        finalize: (TxIndex) -> SupplyOperation;
+    };
+
     public class SupplyRegistry({
-        indexer: Indexer.Indexer;
-        register: SupplyRegister;
         supply: SupplyAccount.SupplyAccount;
-        parameters: SupplyParameters;
+        indexer: Indexer.Indexer;
         withdrawal_queue: WithdrawalQueue.WithdrawalQueue;
-    }){
+        parameters: SupplyParameters;
+        position_manager: SupplyPositionManager.SupplyPositionManager;
+    }) {
 
-        public func get_position({ id: Text }) : ?SupplyPosition {
-            Map.get(register.supply_positions, Map.thash, id);
+        public func get_position({ account: Account; }) : ?SupplyPosition {
+            position_manager.get_position({ account; });
         };
 
-        // ⚠️ This function is only for preview purposes, it does not perform the transfer.
-        // It is intended to be used in a query for previewing the supply position.
-        // No check are done to ensure that the supply cap is not reached.
-        // It is required to do the add_raw_supplied to update the indexer in order to notify the
-        // foresight updater which is an observer of the indexer.
-        public func add_position_without_transfer(input: SupplyInput, time: Nat) : AddSupplyPositionResult {
-
-            let { id; supplied; } = input;
-
-            let tx = 0; // Tx set arbitrarily to 0, as no transfer is done
-
-            Map.set(register.supply_positions, Map.thash, id, { input with tx; });
-            indexer.add_raw_supplied({ amount = supplied; time; });
-
-            let supply_index = indexer.get_index(time).supply_index.value;
-
-            #ok({ supply_index; tx_id = tx; });
+        public func get_positions() : Map.Iter<SupplyPosition> {
+            position_manager.get_positions();
         };
 
-        public func add_position(input: SupplyInput, time: Nat) : async* AddSupplyPositionResult {
+        public func run_operation(time: Nat, args: SupplyOperationArgs) : async* Result<SupplyOperation, Text> {
 
-            let { id; account; supplied; } = input;
+            let { account; } = args;
 
-            if (Map.has(register.supply_positions, Map.thash, id)){
-                return #err("The map already has a position with the ID " # debug_show(id));
+            if (Principal.isAnonymous(account.owner)) {
+                return #err("Anonymous account cannot perform supply operations");
             };
 
-            let lending_index = indexer.get_index(time);
-
-            if (lending_index.utilization.raw_supplied + Float.fromInt(supplied) > Float.fromInt(parameters.supply_cap)){
-                return #err("Cannot add position, the supply cap of " # debug_show(parameters.supply_cap) # " is reached");
-            };
-
-            let tx = switch(await* supply.pull({ from = account; amount = supplied; protocol_fees = null; })) {
+            let { to_transfer; finalize; } = switch(prepare_operation(time, args)){
                 case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
+
+            let transfer = switch(args.kind){
+                case(#SUPPLY) {  await* supply.pull({ from = account; amount = to_transfer; protocol_fees = null; }); };
+                case(#WITHDRAW(_)) {  await* supply.transfer({ to = account; amount = to_transfer; }); };
+            };
+
+            let tx = switch(transfer){
+                case(#err(err)) { return #err("Failed to perform transfer: " # debug_show(err)); };
                 case(#ok(tx_index)) { tx_index; };
             };
 
-            // TODO: small risk here that a user call add_position twice in parallel, two transfer succeed,
-            // and only one position is set
+            let to_return = finalize(tx);
 
-            Map.set(register.supply_positions, Map.thash, id, { input with tx; });
-            indexer.add_raw_supplied({ amount = supplied; time; });
+            switch(args.kind){
+                case(#WITHDRAW(_)) {
+                    // Once a position is withdrawn, it might allow to process pending withdrawals
+                    ignore await* withdrawal_queue.process_pending_withdrawals(time);
+                };
+                case(_) {}; // No need to process pending withdrawals for supply
+            };
 
-            #ok({ supply_index = lending_index.supply_index.value; tx_id = tx; });
+            #ok(to_return);
         };
 
-        // Remove a position from the supply registry.
-        // Watchout, the transfer is not done immediately, it is added to the withdrawal queue.
-        public func remove_position({ id: Text; interest_amount: Nat; time: Nat; }) : Result<Nat, Text> {
-            
-            let position = switch(Map.get(register.supply_positions, Map.thash, id)){
-                case(null) { return #err("The map does not have a position with the ID " # debug_show(id)); };
+        public func run_operation_for_free(time: Nat, args: SupplyOperationArgs) : Result<SupplyOperation, Text> {
+
+            let { finalize; } = switch(prepare_operation(time, args)){
+                case(#err(err)) { return #err(err); };
+                case(#ok(p)) { p; };
+            };
+
+            #ok(finalize(0)); // TxIndex is arbitrarily set to 0 for preview
+        };
+
+        public func get_supply_info(time: Nat, account: Account) : SupplyInfo {
+            position_manager.get_supply_info(time, account);
+        };
+
+        public func get_all_supply_info(time: Nat) : { positions: [SupplyInfo]; total_supplied: Float } {
+            position_manager.get_all_supply_info(time);
+        };
+
+        func prepare_operation(time: Nat, args: SupplyOperationArgs) : Result<PreparedOperation, Text> {
+
+            let { amount; account; } = args;
+            switch(args.kind){
+                case(#SUPPLY) { prepare_supply({ time; amount; account; }) };
+                case(#WITHDRAW({max_slippage_amount})) { prepare_withdraw({ time; amount; account; max_slippage_amount; }) };
+            };
+        };
+
+        func common_finalize({
+            account: Account;
+            position: SupplyPosition;
+            tx: SupplyPositionTx;
+            time: Nat;
+        }) : SupplyOperation {
+            // Add the transaction to the position
+            let update = position_manager.add_tx({ position; tx; });
+            position_manager.set_position({ account; position = update; });
+            let index = indexer.update(time);
+            {
+                info = position_manager.get_supply_info(time, account);
+                index;
+            };
+        };
+
+        func prepare_supply({
+            account: Account;
+            amount: Nat;
+            time: Nat;
+        }) : Result<PreparedOperation, Text> {
+
+            let index = indexer.update(time);
+
+            // Check supply cap constraint
+            let utilization = switch(UtilizationUpdater.add_raw_supplied(index.utilization, amount)){
+                case(u) { u; };
+            };
+
+            if (utilization.raw_supplied > Float.fromInt(parameters.supply_cap)){
+                return #err("Supply cap of " # debug_show(parameters.supply_cap) # " exceeded with current utilization " # debug_show(utilization));
+            };
+
+            let position = position_manager.get_position({ account; });
+            let update = position_manager.add_supply({ position; account; index = index.supply_index; amount; });
+
+            let finalize = func(tx: TxIndex) : SupplyOperation {
+                ignore indexer.add_raw_supplied({ amount; time; });
+                common_finalize({
+                    account;
+                    position = update;
+                    tx = #SUPPLIED(tx);
+                    time;
+                });
+            };
+
+            #ok({ to_transfer = amount; finalize; });
+        };
+
+        func prepare_withdraw({
+            account: Account;
+            amount: Nat;
+            max_slippage_amount: Nat;
+            time: Nat;
+        }) : Result<PreparedOperation, Text> {
+
+            let position = switch(position_manager.get_position({ account; })){
+                case(null) { return #err("No supply position found for account " # debug_show(account)); };
                 case(?p) { p; };
             };
 
-            // Remove from supply positions
-            Map.delete(register.supply_positions, Map.thash, id);
+            ignore indexer.update(time).supply_index;
 
-            // Take the specified amount from supply interests
-            switch(indexer.take_supply_interests({ amount = Float.fromInt(interest_amount); time; })){
+            let withdraw_result = position_manager.withdraw_supply({ position; amount; max_slippage_amount; });
+            let { withdrawn; raw_withdrawn; remaining; } = switch(withdraw_result){
                 case(#err(err)) { return #err(err); };
-                case(#ok(_)) {};
-            };
-            let due = do {
-                let sum : Int = position.supplied + interest_amount;
-                if (sum < 0) {
-                    Debug.trap("Logic error: supply + interest amount shall never be negative");
-                };
-                Int.abs(sum);
+                case(#ok(p)) { p; };
             };
 
-            withdrawal_queue.add({ position; due; time; });
+            // Follow a "round-up for debt, round-down for rewards" policy
+            let withdrawn_nat = Int.abs(Math.floor_to_int(withdrawn));
 
-            #ok(due);
+            let update = { position with raw_amount = remaining; };
+
+            let finalize = func(tx: TxIndex) : SupplyOperation {
+                ignore indexer.remove_raw_supplied({ amount = raw_withdrawn; time; });
+                common_finalize({
+                    account;
+                    position = update;
+                    tx = #WITHDRAWN(tx);
+                    time;
+                });
+            };
+
+            #ok({ to_transfer = withdrawn_nat; finalize; });
         };
 
     };

@@ -20,6 +20,7 @@ import { aprToApy } from "@/frontend/utils/lending";
 import PositionsTab from "./PositionsTab";
 import { unwrapLock } from "@/frontend/utils/conversions/position";
 import { useBorrowOperations } from "../hooks/useBorrowOperations";
+import { useSupplyOperations } from "../hooks/useSupplyOperations";
 import { useLendingCalculations } from "../hooks/useLendingCalculations";
 
 const Profile = () => {
@@ -55,6 +56,10 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
   // Borrow operations hook - provides loan position data and operation handlers
   const borrowOps = useBorrowOperations(connectedUser);
   const { loanPosition } = borrowOps;
+
+  // Supply operations hook - provides supply position data and operation handlers
+  const supplyOps = useSupplyOperations(connectedUser);
+  const { supplyInfo } = supplyOps;
 
   // Lending calculations hook - provides calculated values based on loan position
   const lendingCalcs = useLendingCalculations(loanPosition, collateralLedger, supplyLedger);
@@ -150,9 +155,11 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
     // Get current APYs
     const supplyApy = aprToApy(lendingIndexTimeline.current.data.supply_rate);
     const borrowApy = aprToApy(lendingIndexTimeline.current.data.borrow_rate);
-    
+
     // Calculate net worth components in USD
-    const supplyWorth = positionsInfo.reduce((acc, pos) => acc + Number(pos?.worth), 0);
+    const positionsWorth = positionsInfo.reduce((acc, pos) => acc + Number(pos?.worth), 0);
+    const supplyAccruedAmount = supplyInfo?.accrued_amount ? BigInt(Math.floor(supplyInfo.accrued_amount)) : 0n;
+    const supplyWorth = supplyLedger.convertToUsd(supplyAccruedAmount) || 0;
     const borrowWorth = supplyLedger.convertToUsd(loanPosition?.loan[0]?.current_owed || 0n) || 0;
     const collateralWorth = collateralLedger.convertToUsd(loanPosition?.collateral || 0n) || 0;
     const miningWorth = participationLedger.convertToUsd(tracker?.allocated || 0n) || 0;
@@ -160,22 +167,24 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
     // Sum up for total net worth
     // TODO: it is confusing if the mining worth is included in net worth,
     // the user might think the net APY applies to the mining worth as well
-    netWorth = supplyWorth + collateralWorth - borrowWorth + miningWorth;
+    netWorth = positionsWorth + supplyWorth + collateralWorth - borrowWorth + miningWorth;
 
-    // Calculate instant net APY
-    const equity = supplyWorth + collateralWorth - borrowWorth;
+    // Calculate instant net APY (exclude collateral as it doesn't generate yield)
+    const equity = positionsWorth + supplyWorth - borrowWorth;
     const supplyApyWeight = positionsInfo.reduce((acc, pos) => {
       if (pos) {
         return acc + (Number(pos.worth) * pos.apy);
       }
       return acc;
     }, 0);
+    // Add supply APY contribution
+    const totalSupplyApyWeight = supplyApyWeight + (supplyWorth * supplyApy);
     if (equity > 0) {
-      instantNetApy = (supplyApyWeight - borrowWorth * borrowApy) / equity;
+      instantNetApy = (totalSupplyApyWeight - borrowWorth * borrowApy) / equity;
     }
 
     return { netWorth, instantNetApy };
-  }, [lendingIndexTimeline, loanPosition, lockedSupplyWorth, supplyLedger, collateralLedger, participationLedger, tracker]);
+  }, [lendingIndexTimeline, loanPosition, supplyInfo, lockedSupplyWorth, supplyLedger, collateralLedger, participationLedger, tracker]);
 
   const netMiningRate = useMemo(() => {
     if (!miningRates) {
@@ -308,7 +317,7 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
               <div className="flex justify-between">
                 <div className="text-sm text-gray-600 dark:text-gray-400">Supply</div>
                 <div className="text-sm text-gray-900 dark:text-white font-medium">
-                  {supplyLedger.formatAmountUsd(0n)} { /* TODO: use real value when implemented */ }
+                  {supplyLedger.formatAmountUsd(supplyInfo?.accrued_amount ? BigInt(Math.floor(supplyInfo.accrued_amount)) : 0n)}
                 </div>
               </div>
               {/* Collateral */}
@@ -360,6 +369,7 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
       {activeTab === 'lending' && (
         <LendingTab
           borrowOps={borrowOps}
+          supplyOps={supplyOps}
           lendingCalcs={lendingCalcs}
           refetchUserPositions={refetchUserPositions}
         />

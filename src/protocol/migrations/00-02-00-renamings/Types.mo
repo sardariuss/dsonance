@@ -8,6 +8,7 @@ import BTree "mo:stableheapbtreemap/BTree";
 // it can lead to bugs when you change those types later, because migration types should not be changed
 // you should also avoid importing these types anywhere in your project directly from here
 // use MigrationTypes.Current property instead
+
 module {
 
     type Map<K, V> = Map.Map<K, V>;
@@ -527,13 +528,30 @@ module {
         #YES;
         #NO;
     };
+
+    public type LimitOrder<C> = {
+        order_id: UUID;
+        account: Account;
+        choice: C;
+        limit_dissent: Float;
+        var raw_amount: Nat;
+        supply_index: Float;
+        tx_id: Nat;
+        timestamp: Nat;
+    };
+
+    public type LimitOrderBTreeKey = {
+        limit_dissent: Float;
+        timestamp: Nat;
+    };
     
-    public type Pool<A, B> = {
+    public type Pool<A, C> = {
         pool_id: UUID;
         tx_id: Nat;
         date: Nat;
         origin: Principal;
         aggregate: RollingTimeline<A>;
+        descending_orders: Map<C, BTree<LimitOrderBTreeKey, UUID>>;
         positions: Set<UUID>;
         author: Account;
         var tvl: Int;
@@ -767,13 +785,33 @@ module {
         value: Float;
     };
 
-    public type SupplyInput = {
+    // ------------------------------ SUPPLY POSITION TYPES ------------------------------
+
+    public type SupplyPositionTx = {
+        #SUPPLIED: TxIndex;
+        #WITHDRAWN: TxIndex;
+    };
+
+    public type SupplyPosition = {
+        account: Account;
+        tx: [SupplyPositionTx];
+        raw_amount: Float;
+        index: Float;
+    };
+
+    public type SupplyRegister = {
+        supply_positions: Map.Map<Account, SupplyPosition>;
+    };
+
+    // ------------------------------ REDISTRIBUTION POSITION TYPES ------------------------------
+
+    public type RedistributionInput = {
         id: Text;
         account: Account;
         supplied: Nat;
     };
 
-    public type SupplyPosition = SupplyInput and {
+    public type RedistributionPosition = RedistributionInput and {
         tx: TxIndex;
     };
 
@@ -790,8 +828,11 @@ module {
         borrow_positions: Map.Map<Account, BorrowPosition>;
     };
 
-    public type SupplyRegister = {
-        supply_positions: Map.Map<Text, SupplyPosition>;
+    public type RedistributionRegister = {
+        redistribution_positions: Map.Map<Text, RedistributionPosition>;
+        var total_supplied: Float; // Total supplied (sum of all positions' supplied, no interests)
+        var total_raw: Float; // Total raw supplied (principal)
+        var index: Float; // Supply index at last update
     };
 
     public type WithdrawalRegister = {
@@ -799,7 +840,7 @@ module {
         withdraw_queue: Set.Set<Text>;
     };
 
-    public type LendingRegister = BorrowRegister and SupplyRegister and WithdrawalRegister;
+    public type LendingRegister = BorrowRegister and SupplyRegister and RedistributionRegister and WithdrawalRegister;
 
     public type Utilization = {
         raw_supplied: Float;
@@ -811,10 +852,6 @@ module {
         utilization: Utilization;
         borrow_rate: Float; // borrow rate (ratio)
         supply_rate: Float; // supply rate (ratio)
-        accrued_interests: {
-            supply: Float;
-            borrow: Float;
-        };
         borrow_index: Index; // growing value, starts at 1.0
         supply_index: Index; // growing value, starts at 1.0
         timestamp: Nat; // last time the rates were updated
