@@ -9,9 +9,9 @@ import PoolTypeController     "pools/PoolTypeController";
 import LockInfoUpdater        "locks/LockInfoUpdater";
 import LockScheduler          "LockScheduler";
 import Clock                  "utils/Clock";
-import RollingTimeline        "utils/RollingTimeline"; 
 import IterUtils              "utils/Iter";
 import MapUtils               "utils/Map";
+import UUID                   "utils/Uuid";
 import ForesightUpdater       "ForesightUpdater";
 import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
@@ -70,6 +70,8 @@ module {
         let { duration_scaler; twap_config; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
+
+        let uuid = UUID.UUIDv7(UUID.PRNG(clock.get_time()));
 
         let supply_ledger = LedgerFungible.LedgerFungible(state.supply_ledger);
         let collateral_ledger = LedgerFungible.LedgerFungible(state.collateral_ledger);
@@ -148,6 +150,7 @@ module {
             limit_order_register;
             decay_model = Decay.DecayModel({ half_life_ns = parameters.position_half_life_ns; genesis_time; });
             lock_info_updater = LockInfoUpdater.LockInfoUpdater({duration_scaler = duration_scaler_instance});
+            uuid;
         });
 
         let pool_type_controller = PoolTypeController.PoolTypeController({

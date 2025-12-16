@@ -1,5 +1,5 @@
-import Types    "../Types";
-import Math     "../utils/Math";
+import Types    "../../Types";
+import Math     "../../utils/Math";
 
 import Float  "mo:base/Float";
 import Debug  "mo:base/Debug";

@@ -11,8 +11,8 @@ import Text "mo:base/Text";
 module {
     /// Simple deterministic 64-bit PRNG (XorShift64*)
     /// Must store seed in stable var if you want continuity across upgrades.
-    public class PRNG(seed0 : Nat64) {
-        private var seed = seed0;
+    public class PRNG(seed0 : Nat) {
+        private var seed = Nat64.fromNat(seed0);
 
         public func next64() : Nat64 {
             var x = seed;

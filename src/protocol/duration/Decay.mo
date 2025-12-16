@@ -2,7 +2,6 @@ import Types    "../Types";
 
 import Float    "mo:base/Float";
 import Int      "mo:base/Int";
-import Debug    "mo:base/Debug";
 
 module {
 
@@ -11,13 +10,9 @@ module {
     type Decayed = Types.Decayed;
 
     public func add(a: Decayed, b: Decayed) : Decayed {
-        switch(a) {
-            case (#DECAYED(a_value)) {
-                switch(b) {
-                    case (#DECAYED(b_value)) {
-                        #DECAYED(a_value + b_value);
-                    };
-                };
+        switch(a, b) {
+            case (#DECAYED(a_value), #DECAYED(b_value)) {
+                #DECAYED(a_value + b_value);
             };
         };
     };
@@ -33,13 +28,10 @@ module {
             #DECAYED(value * compute_decay(time)); // @todo: avoid multiplication and potential overflow ?
         };
 
-        public func unwrap_decayed(decayed: Decayed, now: Time) : Float {
-            if (now < 0) {
-                Debug.trap("Unwrap decay error: invalid time, must be positive");
-            };
+        public func unwrap_decayed(decayed: Decayed, now: Nat) : Float {
             switch(decayed) {
                 case (#DECAYED(value)) {
-                    value / compute_decay(Int.abs(now));
+                    value / compute_decay(now);
                 };
             };
         };

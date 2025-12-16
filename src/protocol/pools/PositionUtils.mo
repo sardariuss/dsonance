@@ -1,5 +1,4 @@
 import Types  "../Types";
-import RollingTimeline "../utils/RollingTimeline";
 
 import Debug "mo:base/Debug";
 
@@ -7,9 +6,9 @@ module {
 
     type PoolType             = Types.PoolType;
     type Account              = Types.Account;
-    type PositionType           = Types.PositionType;
+    type PositionType         = Types.PositionType;
     type DebtInfo             = Types.DebtInfo;
-    type YesNoPosition          = Types.YesNoPosition;
+    type YesNoPosition        = Types.YesNoPosition;
     type LockInfo             = Types.LockInfo;
     type Lock                 = Types.Lock;
     type Time                 = Int;

@@ -11,7 +11,7 @@ module {
 
     type Iter<T> = Map.Iter<T>;
 
-    type Elem = {
+    public type Elem = {
         timestamp: Nat;
         amount: Nat;
         decay: Float;

@@ -1,8 +1,7 @@
 import PositionAggregator   "PositionAggregator";
 import Types              "../Types";
 import RollingTimeline    "../utils/RollingTimeline";
-import LockInfoUpdater    "../locks/LockInfoUpdater";
-import Decay              "../duration/Decay";
+import Interfaces         "../Interfaces";
 import IterUtils          "../utils/Iter";
 
 import Set                "mo:map/Set";
@@ -28,6 +27,8 @@ module {
     type Foresight = Types.Foresight;
     type LimitOrder<C> = Types.LimitOrder<C>;
     type LimitOrderBTreeKey = Types.LimitOrderBTreeKey;
+    type IDecayModel = Interfaces.IDecayModel;
+    type ILockInfoUpdater = Interfaces.ILockInfoUpdater;
 
     type Iter<T> = Map.Iter<T>;
     type BTree<K, V> = BTree.BTree<K, V>;
@@ -60,8 +61,8 @@ module {
         empty_aggregate: A;
         choice_hash: Map.HashUtils<C>;
         position_aggregator: PositionAggregator.PositionAggregator<A, C>;
-        decay_model: Decay.DecayModel;
-        lock_info_updater: LockInfoUpdater.LockInfoUpdater;
+        decay_model: IDecayModel;
+        lock_info_updater: ILockInfoUpdater;
         get_position: UUID -> Position<C>;
         add_position: (UUID, Position<C>) -> ();
         get_order: UUID -> LimitOrder<C>;

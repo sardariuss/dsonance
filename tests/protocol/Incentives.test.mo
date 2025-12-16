@@ -1,4 +1,4 @@
-import Incentives "../../src/protocol/pools/Incentives";
+import Incentives "../../src/protocol/pools/yesno/Incentives";
 
 import { test; suite; } "mo:test";
 import Float "mo:base/Float";
