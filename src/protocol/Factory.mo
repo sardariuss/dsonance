@@ -58,8 +58,8 @@ module {
         let { 
             genesis_time; 
             pool_register; 
-            position_register; 
-            limit_order_register;
+            positions; 
+            limit_orders;
             lock_scheduler_state; 
             parameters; 
             accounts; 
@@ -121,7 +121,7 @@ module {
             redistribution_hub;
             get_items = func() : Iter<ForesightUpdater.ForesightItem> {
                 // Map the positions to foresight items
-                get_foresight_items(Map.keys(lock_scheduler_state.map), position_register.positions);
+                get_foresight_items(Map.keys(lock_scheduler_state.map), positions);
             };
         });
         
@@ -146,8 +146,8 @@ module {
 
         let yes_no_controller = PoolFactory.build_yes_no({
             parameters;
-            position_register;
-            limit_order_register;
+            positions;
+            limit_orders;
             decay_model = Decay.DecayModel({ half_life_ns = parameters.position_half_life_ns; genesis_time; });
             lock_info_updater = LockInfoUpdater.LockInfoUpdater({duration_scaler = duration_scaler_instance});
             uuid;
@@ -161,7 +161,7 @@ module {
             genesis_time;
             clock;
             pool_register;
-            position_register;
+            positions;
             lock_scheduler;
             pool_type_controller;
             supply;

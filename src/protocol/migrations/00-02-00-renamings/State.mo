@@ -82,14 +82,8 @@ module {
                 by_origin = Map.new<Principal, Set<UUID>>();
                 by_author = Map.new<Account, Set<UUID>>();
             };
-            position_register = {
-                positions = Map.new<UUID, PositionType>();
-                by_account = Map.new<Account, Set<UUID>>();
-            };
-            limit_order_register = {
-                orders = Map.new<UUID, LimitOrderType>();
-                by_account = Map.new<Account, Set<UUID>>();
-            };
+            positions = Map.new<UUID, PositionType>();
+            limit_orders = Map.new<UUID, LimitOrderType>();
             lock_scheduler_state = {
                 btree = BTree.init<Lock, ()>(?BTREE_ORDER);
                 map = Map.new<Text, Lock>();
@@ -243,15 +237,9 @@ module {
                     by_origin = v1_state.vote_register.by_origin;
                     by_author = v1_state.vote_register.by_author;
                 };
-                position_register = {
-                    positions = new_positions;
-                    by_account = v1_state.ballot_register.by_account;
-                };
+                positions = new_positions;
                 // Limit orders have been introduced in this version
-                limit_order_register = {
-                    orders = Map.new<UUID, LimitOrderType>();
-                    by_account = Map.new<Account, Set<UUID>>();
-                };
+                limit_orders = Map.new<UUID, LimitOrderType>();
                 lock_scheduler_state = v1_state.lock_scheduler_state;
                 parameters = { v1_state.parameters with
                     position_half_life_ns = v1_state.parameters.ballot_half_life_ns;

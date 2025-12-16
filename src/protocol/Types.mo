@@ -50,8 +50,9 @@ module {
     public type PositionType             = Types.PositionType;
     public type LimitOrder<C>            = Types.LimitOrder<C>;
     public type LimitOrderBTreeKey       = Types.LimitOrderBTreeKey;
-    public type PositionRegister         = Types.PositionRegister;
-    public type LimitOrderRegister       = Types.LimitOrderRegister;
+    public type LimitOrderType           = Types.LimitOrderType;
+    public type PositionMap              = Types.PositionMap;
+    public type LimitOrderMap            = Types.LimitOrderMap;
     public type Parameters               = Types.Parameters;
     public type LendingParameters        = Types.LendingParameters;
     public type DurationScalerParameters = Types.DurationScalerParameters;
@@ -102,6 +103,13 @@ module {
         previous: ?UUID;
         limit: Nat;
         filter_active: Bool;
+        direction: QueryDirection;
+    };
+
+    public type GetLimitOrderArgs = {
+        account: Account;
+        previous: ?UUID;
+        limit: Nat;
         direction: QueryDirection;
     };
 
@@ -166,6 +174,10 @@ module {
         #YES_NO: SPosition<YesNoChoice>;
     };
 
+    public type SLimitOrderType = {
+        #YES_NO: SLimitOrder<YesNoChoice>;
+    };
+
     public type SDebtInfo = {
         id: UUID;
         account: Account;
@@ -187,11 +199,11 @@ module {
         minIntervalNs: Nat;
     };
 
-    public type SPosition<B> = {
+    public type SPosition<C> = {
         position_id: UUID;
         pool_id: UUID;
         timestamp: Nat;
-        choice: B;
+        choice: C;
         amount: Nat;
         dissent: Float;
         consent: Float;
@@ -204,12 +216,22 @@ module {
         lock: ?SLockInfo;
     };
 
+    public type SLimitOrder<C> = {
+        order_id: UUID;
+        pool_id: UUID;
+        timestamp: Nat;
+        account: Account;
+        choice: C;
+        amount: Float;
+        limit_consensus: Float;
+    };
+
     public type SLockInfo = {
         duration_ns: SRollingTimeline<Nat>;
         release_date: Nat;
     };
 
-    public type SPool<A, B> = {
+    public type SPool<A, C> = {
         pool_id: UUID;
         date: Nat;
         origin: Principal;
@@ -265,9 +287,9 @@ module {
         #LOCK_REMOVED: Lock;
     };
 
-    public type UpdateAggregate<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Nat;}) -> A;
-    public type ComputeDissent<A, B> = ({aggregate: A; choice: B; amount: Nat; time: Nat;}) -> Float;
-    public type ComputeConsent<A, B> = ({aggregate: A; choice: B; time: Nat;}) -> Float;
+    public type UpdateAggregate<A, C> = ({aggregate: A; choice: C; amount: Nat; time: Nat;}) -> A;
+    public type ComputeDissent<A, C> = ({aggregate: A; choice: C; amount: Nat; time: Nat;}) -> Float;
+    public type ComputeConsent<A, C> = ({aggregate: A; choice: C; time: Nat;}) -> Float;
 
     public type PositionAggregatorOutcome<A> = {
         aggregate: {

@@ -36,6 +36,10 @@ module {
     type SPoolType = Types.SPoolType;
     type YieldState = Types.YieldState;
     type SYieldState = Types.SYieldState;
+    type LimitOrder<C> = Types.LimitOrder<C>;
+    type SLimitOrder<C> = Types.SLimitOrder<C>;
+    type LimitOrderType = Types.LimitOrderType;
+    type SLimitOrderType = Types.SLimitOrderType;
 
     public func shareOpt<T, S>(opt: ?T, f: T -> S) : ?S {
         Option.map(opt, f);
@@ -68,6 +72,24 @@ module {
                     release_date = lock.release_date;
                 }
             });
+        };
+    };
+
+    public func shareLimitOrderType(limit_order: LimitOrderType) : SLimitOrderType {
+        switch(limit_order){
+            case(#YES_NO(order)) { #YES_NO(shareLimitOrder(order)); };
+        };
+    };
+
+    func shareLimitOrder<C>(limit_order: LimitOrder<C>) : SLimitOrder<C> {
+        {
+            order_id = limit_order.order_id;
+            pool_id = limit_order.pool_id;
+            timestamp = limit_order.timestamp;
+            account = limit_order.account;
+            choice = limit_order.choice;
+            amount = limit_order.amount;
+            limit_consensus = limit_order.limit_consensus;
         };
     };
 

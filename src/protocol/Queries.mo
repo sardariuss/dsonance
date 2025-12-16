@@ -12,6 +12,7 @@ import Buffer      "mo:base/Buffer";
 import Iter        "mo:base/Iter";
 import Debug       "mo:base/Debug";
 import Float       "mo:base/Float";
+import BTree       "mo:stableheapbtreemap/BTree";
 
 module {
 
@@ -20,11 +21,12 @@ module {
     type PoolType = Types.PoolType;
     type PositionType = Types.PositionType;
     type SPositionType = Types.SPositionType;
+    type SLimitOrderType = Types.SLimitOrderType;
     type SPoolType = Types.SPoolType;
     type Account = Types.Account;
     type UUID = Types.UUID;
     type YesNoPool = Types.YesNoPool;
-    type PositionRegister = Types.PositionRegister;
+    type PositionMap = Types.PositionMap;
     type DebtRegister = Types.DebtRegister;
     type Iter<T> = Iter.Iter<T>;
     type DebtInfo = Types.DebtInfo;
@@ -36,46 +38,76 @@ module {
     type STimeline<T> = Types.STimeline<T>;
     type LendingIndex = Types.LendingIndex;
     type QueryDirection = Types.QueryDirection;
+    type ChoiceType = Types.ChoiceType;
 
     public class Queries({
         clock: Clock.Clock;
-        state: State; 
+        state: State;
     }){
 
         public func get_positions({ account: Account; previous: ?UUID; limit: Nat; filter_active: Bool; direction: QueryDirection; }) : [SPositionType] {
             let buffer = Buffer.Buffer<SPositionType>(limit);
-            Option.iterate(Map.get(state.position_register.by_account, MapUtils.acchash, account), func(ids: Set.Set<UUID>) {
-                let iter = Set.keysFrom(ids, Set.thash, previous);
-                label limit_loop while (buffer.size() < limit) {
-                    let next_id = switch(direction) {
-                        case(#forward) { iter.next(); };
-                        case(#backward) { iter.prev(); };
-                    };
-                    switch (next_id) {
-                        case (null) { break limit_loop; };
-                        case (?id) {
-                            Option.iterate(Map.get(state.position_register.positions, Map.thash, id), func(position_type: PositionType) {
-                                switch(position_type){
-                                    case(#YES_NO(position)) {
-                                        let lock = PositionUtils.unwrap_lock_info(position);
-                                        if (filter_active and lock.release_date >= clock.get_time()){
-                                            buffer.add(SharedConversions.sharePositionType(position_type));
-                                        } else if (not filter_active and lock.release_date < clock.get_time()) {
-                                            buffer.add(SharedConversions.sharePositionType(position_type));
-                                        };
-                                    };
-                                };
-                            });
+
+            let iter = switch(direction) {
+                case(#forward) { Map.valsFrom(state.positions, Map.thash, previous); };
+                case(#backward) { Map.valsFromDesc(state.positions, Map.thash, previous); };
+            };
+
+            label limit_loop for (position_type in iter) {
+                if (buffer.size() >= limit) {
+                    break limit_loop;
+                };
+
+                switch(position_type){
+                    case(#YES_NO(position)) {
+                        // Filter by account
+                        if (position.from.owner != account.owner or position.from.subaccount != account.subaccount) {
+                            continue limit_loop;
+                        };
+
+                        let lock = PositionUtils.unwrap_lock_info(position);
+                        if (filter_active and lock.release_date >= clock.get_time()){
+                            buffer.add(SharedConversions.sharePositionType(position_type));
+                        } else if (not filter_active and lock.release_date < clock.get_time()) {
+                            buffer.add(SharedConversions.sharePositionType(position_type));
                         };
                     };
                 };
-            });
+            };
+
+            Buffer.toArray(buffer);
+        };
+
+        public func get_limit_orders({ account: Account; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [SLimitOrderType] {
+            let buffer = Buffer.Buffer<SLimitOrderType>(limit);
+
+            let iter = switch(direction) {
+                case(#forward) { Map.valsFrom(state.limit_orders, Map.thash, previous); };
+                case(#backward) { Map.valsFromDesc(state.limit_orders, Map.thash, previous); };
+            };
+
+            label limit_loop for (limit_order in iter) {
+                if (buffer.size() >= limit) {
+                    break limit_loop;
+                };
+
+                switch(limit_order){
+                    case(#YES_NO(position)) {
+                        // Filter by account
+                        if (position.account.owner != account.owner or position.account.subaccount != account.subaccount) {
+                            continue limit_loop;
+                        };
+
+                        buffer.add(SharedConversions.shareLimitOrderType(limit_order));
+                    };
+                };
+            };
 
             Buffer.toArray(buffer);
         };
 
         public func find_position(position_id: UUID) : ?SPositionType {
-            Option.map<PositionType, SPositionType>(Map.get(state.position_register.positions, Map.thash, position_id), SharedConversions.sharePositionType);
+            Option.map<PositionType, SPositionType>(Map.get(state.positions, Map.thash, position_id), SharedConversions.sharePositionType);
         };
 
         public func find_pool(pool_id: UUID) : ?SPoolType {
@@ -84,33 +116,29 @@ module {
 
         public func get_user_supply({ account: Account; }) : UserSupply {
             let timestamp = clock.get_time();
-            switch(Map.get(state.position_register.by_account, MapUtils.acchash, account)){
-                case(null) {};
-                case(?ids) { 
-                    var amount = 0;
-                    var sum_apr = 0.0;
-                    for (position_id in Set.keys(ids)){
-                        switch(Map.get(state.position_register.positions, Map.thash, position_id)){
-                            case(null) {};
-                            case(?position) {
-                                switch(position){
-                                    case(#YES_NO(b)) {
-                                        let lock = PositionUtils.unwrap_lock_info(b);
-                                        if (lock.release_date > timestamp){
-                                            amount += b.amount;
-                                            sum_apr += (b.foresight.apr.current * Float.fromInt(b.amount));
-                                        };
-                                    };
-                                };
+            var amount = 0;
+            var sum_apr = 0.0;
+
+            for (position in Map.vals(state.positions)){
+                switch(position){
+                    case(#YES_NO(b)) {
+                        // Filter by account
+                        if (b.from.owner == account.owner and b.from.subaccount == account.subaccount) {
+                            let lock = PositionUtils.unwrap_lock_info(b);
+                            if (lock.release_date > timestamp){
+                                amount += b.amount;
+                                sum_apr += (b.foresight.apr.current * Float.fromInt(b.amount));
                             };
                         };
                     };
-                    if (amount > 0){
-                        return { amount; apr = sum_apr / Float.fromInt(amount); };
-                    };
                 };
             };
-            return { amount = 0; apr = 0.0; }; 
+
+            if (amount > 0){
+                return { amount; apr = sum_apr / Float.fromInt(amount); };
+            };
+
+            return { amount = 0; apr = 0.0; };
         };
 
         public func get_pools({origin: Principal; previous: ?UUID; limit: Nat; direction: QueryDirection;}) : [SPoolType] {
@@ -164,7 +192,7 @@ module {
             };
             let buffer = Buffer.Buffer<SPositionType>(0);
             for (id in Set.keys(pool.positions)){
-                switch(Map.get(state.position_register.positions, Map.thash, id)){
+                switch(Map.get(state.positions, Map.thash, id)){
                     case(null) { Debug.trap("Position not found"); };
                     case(?position) {
                         buffer.add(SharedConversions.sharePositionType(position));
@@ -172,6 +200,26 @@ module {
                 };
             };
             Buffer.toArray(buffer);
+        };
+
+        public func get_pool_limit_orders(pool_id: UUID) : [(ChoiceType, [SLimitOrderType])] {
+            let pool = switch(Map.get(state.pool_register.pools, Map.thash, pool_id)){
+                case(null) { return []; };
+                case(?#YES_NO(v)) { v; };
+            };
+            
+            let result = Buffer.Buffer<(ChoiceType, [SLimitOrderType])>(0);
+
+            for ((choice, limit_orders) in Map.entries(pool.descending_orders)){
+
+                let orders_buffer = Buffer.Buffer<SLimitOrderType>(0);
+                for((_, order_id) in BTree.entries(limit_orders)){
+                    let order = MapUtils.getOrTrap(state.limit_orders, Map.thash, order_id);
+                    orders_buffer.add(SharedConversions.shareLimitOrderType(order));
+                };
+                result.add((#YES_NO(choice), Buffer.toArray(orders_buffer)));
+            };
+            Buffer.toArray(result);
         };
 
         public func get_parameters() : Parameters {

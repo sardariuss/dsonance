@@ -15,8 +15,8 @@ module {
     type YesNoPosition        = Types.YesNoPosition;
     type Duration             = Types.Duration;
     type UUID                 = Types.UUID;
-    type PositionRegister     = Types.PositionRegister;
-    type LimitOrderRegister   = Types.LimitOrderRegister;
+    type PositionMap     = Types.PositionMap;
+    type LimitOrderMap   = Types.LimitOrderMap;
     type IDecayModel          = Interfaces.IDecayModel;
     type ILockInfoUpdater     = Interfaces.ILockInfoUpdater;
 

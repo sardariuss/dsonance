@@ -18,8 +18,8 @@ module {
     type YesNoPosition        = Types.YesNoPosition;
     type Duration             = Types.Duration;
     type UUID                 = Types.UUID;
-    type PositionRegister     = Types.PositionRegister;
-    type LimitOrderRegister   = Types.LimitOrderRegister;
+    type PositionMap     = Types.PositionMap;
+    type LimitOrderMap        = Types.LimitOrderMap;
     type IDecayModel          = Interfaces.IDecayModel;
     type ILockInfoUpdater     = Interfaces.ILockInfoUpdater;
 
@@ -35,8 +35,8 @@ module {
 
     public func build_yes_no({
         parameters: Parameters;
-        position_register: PositionRegister;
-        limit_order_register: LimitOrderRegister;
+        positions: PositionMap;
+        limit_orders: LimitOrderMap;
         decay_model: IDecayModel;
         lock_info_updater: ILockInfoUpdater;
         uuid: UUID.UUIDv7;
@@ -48,25 +48,25 @@ module {
             lock_info_updater;
             uuid;
             get_position = func(id: UUID) : YesNoPosition {
-                switch(Map.get(position_register.positions, Map.thash, id)){
+                switch(Map.get(positions, Map.thash, id)){
                     case(null) { Debug.trap("Position not found"); };
                     case(?(#YES_NO(b))) { b; };
                 };
             };
             add_position = func(id: UUID, position: YesNoPosition) {
-                Map.set(position_register.positions, Map.thash, id, #YES_NO(position));
+                Map.set(positions, Map.thash, id, #YES_NO(position));
             };
             get_order = func(id: UUID) : YesNoLimitOrder {
-                switch(Map.get(limit_order_register.orders, Map.thash, id)){
+                switch(Map.get(limit_orders, Map.thash, id)){
                     case(null) { Debug.trap("Limit order not found"); };
                     case(?(#YES_NO(order))) { order; };
                 };
             };
             add_order = func(id: UUID, order: YesNoLimitOrder) {
-                Map.set(limit_order_register.orders, Map.thash, id, #YES_NO(order));
+                Map.set(limit_orders, Map.thash, id, #YES_NO(order));
             };
             delete_order = func(id: UUID) {
-                Map.delete(limit_order_register.orders, Map.thash, id);
+                Map.delete(limit_orders, Map.thash, id);
             };
         });
     };

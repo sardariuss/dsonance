@@ -38,7 +38,7 @@ module {
     type Account = Types.Account;
     type UUID = Types.UUID;
     type SNewPoolResult = Types.SNewPoolResult;
-    type PositionRegister = Types.PositionRegister;
+    type PositionMap = Types.PositionMap;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type Parameters = Types.Parameters;
     type RollingTimeline<T> = Types.RollingTimeline<T>;
@@ -107,7 +107,7 @@ module {
         genesis_time: Nat;
         clock: Clock.Clock;
         pool_register: PoolRegister;
-        position_register: PositionRegister;
+        positions: PositionMap;
         lock_scheduler: LockScheduler.LockScheduler;
         pool_type_controller: PoolTypeController.PoolTypeController;
         supply: SupplyAccount.SupplyAccount;
@@ -372,7 +372,7 @@ module {
             // 5. Process each unlocked position
             label unlock_supply for (position_id in Set.keys(unlocked_ids)) {
 
-                let position = switch(Map.get(position_register.positions, Map.thash, position_id)) {
+                let position = switch(Map.get(positions, Map.thash, position_id)) {
                     case(null) { 
                         Debug.print("Position " # debug_show(position_id) # " not found");
                         continue unlock_supply;
@@ -470,7 +470,7 @@ module {
                 case(?v) v;
             };
 
-            switch(Map.get(position_register.positions, Map.thash, position_id)){
+            switch(Map.get(positions, Map.thash, position_id)){
                 case(?_) return #err("Position already exists: " # position_id);
                 case(null) {};
             };
@@ -514,8 +514,6 @@ module {
             );
             // Need to update the foresights after adding the new lock
             foresight_updater.update_foresights(timestamp);
-
-            MapUtils.putInnerSet(position_register.by_account, MapUtils.acchash, from, Map.thash, position_id);
 
             #ok(SharedConversions.sharePutPositionSuccess(put_position));
         };

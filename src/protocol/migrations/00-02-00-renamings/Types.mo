@@ -500,10 +500,7 @@ module {
         by_author: Map<Account, Set.Set<UUID>>;
     };
 
-    public type PositionRegister = {
-        positions: Map<UUID, PositionType>;
-        by_account: Map<Account, Set<UUID>>;
-    };
+    public type PositionMap = Map<UUID, PositionType>;
 
     public type PoolType = {
         #YES_NO: Pool<YesNoAggregate, YesNoChoice>;
@@ -533,10 +530,7 @@ module {
         #YES_NO: LimitOrder<YesNoChoice>;
     };
 
-    public type LimitOrderRegister = {
-        orders: Map<UUID, LimitOrderType>;
-        by_account: Map<Account, Set<UUID>>;
-    };
+    public type LimitOrderMap = Map<UUID, LimitOrderType>;
 
     public type LimitOrder<C> = {
         order_id: UUID;
@@ -871,8 +865,8 @@ module {
     };
 
     public type Parameters = {
-        foresight: ForesightParameters;
         duration_scaler: DurationScalerParameters;
+        foresight: ForesightParameters;
         minimum_position_amount: Nat;
         mining: {
             emission_half_life_s: Float;
@@ -935,8 +929,8 @@ module {
             var last_twap_calculation: Int;
         };
         pool_register: PoolRegister;
-        position_register: PositionRegister;
-        limit_order_register: LimitOrderRegister;
+        positions: PositionMap;
+        limit_orders: LimitOrderMap;
         lock_scheduler_state: LockSchedulerState;
         accounts: ProtocolAccounts;
         lending: {
