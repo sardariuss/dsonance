@@ -11,6 +11,8 @@ module {
         update_aggregate: UpdateAggregate<A, B>;
         compute_dissent: ComputeDissent<A, B>;
         compute_consent: ComputeConsent<A, B>;
+        compute_resistance: (A, B, Float, Nat) -> Float;
+        compute_opposite_worth: (A, B, Float, Nat) -> Float;
     }){
 
         public func compute_outcome({
@@ -33,6 +35,24 @@ module {
                 aggregate = { update };
                 position = { dissent; consent };
             };
+        };
+
+        public func get_resistance({
+            aggregate: A;
+            choice: B;
+            target_consensus: Float;
+            time: Nat;
+        }) : Float {
+            compute_resistance(aggregate, choice, target_consensus, time);
+        };
+
+        public func get_opposite_worth({
+            aggregate: A;
+            choice: B;
+            amount: Float;
+            time: Nat;
+        }) : Float {
+            compute_opposite_worth(aggregate, choice, amount, time);
         };
 
         public func get_consent({

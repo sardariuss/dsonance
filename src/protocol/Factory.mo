@@ -56,7 +56,18 @@ module {
         admin: Principal;
     }) : BuildOutput {
 
-        let { genesis_time; pool_register; position_register; lock_scheduler_state; parameters; accounts; lending; collateral_twap_price; mining; } = state;
+        let { 
+            genesis_time; 
+            pool_register; 
+            position_register; 
+            limit_order_register;
+            lock_scheduler_state; 
+            parameters; 
+            accounts; 
+            lending; 
+            collateral_twap_price; 
+            mining; 
+        } = state;
         let { duration_scaler; twap_config; } = parameters;
 
         let clock = Clock.Clock(parameters.clock);
@@ -135,6 +146,7 @@ module {
         let yes_no_controller = PoolFactory.build_yes_no({
             parameters;
             position_register;
+            limit_order_register;
             decay_model = Decay.DecayModel({ half_life_ns = parameters.position_half_life_ns; genesis_time; });
             lock_info_updater = LockInfoUpdater.LockInfoUpdater({duration_scaler = duration_scaler_instance});
         });
@@ -214,14 +226,14 @@ module {
                     };
                     let discernment = Incentives.compute_discernment({
                         dissent = b.dissent;
-                        consent = RollingTimeline.current(b.consent);
+                        consent = b.consent;
                     });
                     {
                         timestamp = b.timestamp;
                         amount = b.amount;
                         release_date;
                         discernment;
-                        consent = RollingTimeline.current(b.consent);
+                        consent = b.consent;
                         update_foresight = func(foresight: Types.Foresight) { 
                             b.foresight := foresight;
                         };

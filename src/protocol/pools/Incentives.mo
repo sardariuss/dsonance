@@ -2,8 +2,11 @@ import Types    "../Types";
 import Math     "../utils/Math";
 
 import Float  "mo:base/Float";
+import Debug  "mo:base/Debug";
 
 module {
+
+    let EPSILON = 1e-6;
 
     type YesNoChoice = Types.YesNoChoice;
     type ForesightParameters = Types.ForesightParameters;
@@ -13,6 +16,61 @@ module {
         consent: Float;
     }) : Float {
         dissent * consent;
+    };
+
+    public func compute_consensus({
+        total_yes: Float;
+        total_no: Float;
+    }) : Float {
+        let total = total_yes + total_no;
+        if (Float.equalWithin(total, 0.0, EPSILON)) {
+            0.5;
+        } else {
+            total_yes / total;
+        };
+    };
+
+    public func compute_resistance({
+        choice: YesNoChoice;
+        total_yes: Float;
+        total_no: Float;
+        target_consensus: Float;
+    }) : Float {
+
+        if (Float.equalWithin(target_consensus, 0.0, EPSILON) or
+            Float.equalWithin(target_consensus, 1.0, EPSILON)) {
+            Debug.trap("Target consensus cannot be 0 or 1");
+        };
+
+        switch(choice){
+            case(#YES) {
+                ((total_yes + total_no) * target_consensus - total_yes) / (1.0 - target_consensus);
+            };
+            case(#NO) {
+                (total_yes - (total_yes + total_no) * target_consensus) / target_consensus;
+            };
+        };
+    };
+
+    public func compute_opposite_worth({
+        choice: YesNoChoice;
+        amount: Float;
+        consensus: Float;
+    }) : Float {
+
+        if (Float.equalWithin(consensus, 0.0, EPSILON) or
+            Float.equalWithin(consensus, 1.0, EPSILON)) {
+            Debug.trap("Target consensus cannot be 0 or 1");
+        };
+
+        switch(choice){
+            case(#YES) {
+                amount * (1.0 - consensus) / consensus;
+            };
+            case(#NO) {
+                amount * consensus / (1.0 - consensus);
+            };
+        };
     };
     
     public func compute_consent({

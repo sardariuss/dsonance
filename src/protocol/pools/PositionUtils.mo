@@ -47,12 +47,6 @@ module {
         };
     };
 
-    public func get_consent(position: PositionType): Float {
-        switch(position){
-            case(#YES_NO(b)) { RollingTimeline.current(b.consent); };
-        };
-    };
-
     public func unwrap_lock_info(position: YesNoPosition) : LockInfo {
         switch(position.lock){
             case(null) { Debug.trap("Lock not found"); };

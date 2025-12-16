@@ -46,6 +46,7 @@ module {
     type LendingIndex           = V0_2_0.LendingIndex;
     type LimitOrderBTreeKey     = V0_2_0.LimitOrderBTreeKey;
     type LendingRegister        = V0_2_0.LendingRegister;
+    type LimitOrderType         = V0_2_0.LimitOrderType;
     type Set<K>                 = Set.Set<K>;
 
     public type State           = V0_2_0.State;
@@ -83,6 +84,10 @@ module {
             };
             position_register = {
                 positions = Map.new<UUID, PositionType>();
+                by_account = Map.new<Account, Set<UUID>>();
+            };
+            limit_order_register = {
+                orders = Map.new<UUID, LimitOrderType>();
                 by_account = Map.new<Account, Set<UUID>>();
             };
             lock_scheduler_state = {
@@ -200,11 +205,11 @@ module {
                         choice = ballot.choice;
                         amount = ballot.amount;
                         dissent = ballot.dissent;
-                        consent = ballot.consent;
                         tx_id = ballot.tx_id;
                         from = ballot.from;
                         decay = ballot.decay;
                         supply_index = ballot.supply_index;
+                        var consent = ballot.consent.current.data; // Extract current consent value
                         var foresight = ballot.foresight;
                         var hotness = ballot.hotness;
                         var lock = ballot.lock;
@@ -241,6 +246,11 @@ module {
                 position_register = {
                     positions = new_positions;
                     by_account = v1_state.ballot_register.by_account;
+                };
+                // Limit orders have been introduced in this version
+                limit_order_register = {
+                    orders = Map.new<UUID, LimitOrderType>();
+                    by_account = Map.new<Account, Set<UUID>>();
                 };
                 lock_scheduler_state = v1_state.lock_scheduler_state;
                 parameters = { v1_state.parameters with

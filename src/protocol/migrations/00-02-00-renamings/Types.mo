@@ -529,19 +529,27 @@ module {
         #NO;
     };
 
+    public type LimitOrderType = {
+        #YES_NO: LimitOrder<YesNoChoice>;
+    };
+
+    public type LimitOrderRegister = {
+        orders: Map<UUID, LimitOrderType>;
+        by_account: Map<Account, Set<UUID>>;
+    };
+
     public type LimitOrder<C> = {
         order_id: UUID;
+        pool_id: UUID;
+        timestamp: Nat;
         account: Account;
         choice: C;
-        limit_dissent: Float;
-        var raw_amount: Nat;
-        supply_index: Float;
-        tx_id: Nat;
-        timestamp: Nat;
+        limit_consensus: Float;
+        var amount: Float;
     };
 
     public type LimitOrderBTreeKey = {
-        limit_dissent: Float;
+        limit_consensus: Float;
         timestamp: Nat;
     };
     
@@ -590,11 +598,11 @@ module {
         choice: C;
         amount: Nat;
         dissent: Float;
-        consent: RollingTimeline<Float>;
         tx_id: Nat;
         from: Account;
         decay: Float;
         supply_index: Float;
+        var consent: Float;
         var foresight: Foresight;
         var hotness: Float;
         var lock: ?LockInfo;
@@ -928,6 +936,7 @@ module {
         };
         pool_register: PoolRegister;
         position_register: PositionRegister;
+        limit_order_register: LimitOrderRegister;
         lock_scheduler_state: LockSchedulerState;
         accounts: ProtocolAccounts;
         lending: {

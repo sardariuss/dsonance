@@ -55,11 +55,11 @@ module {
             choice = position.choice;
             amount = position.amount;
             dissent = position.dissent;
-            consent = shareRollingTimeline(position.consent);
             foresight = position.foresight;
             tx_id = position.tx_id;
             supply_index = position.supply_index;
             from = position.from;
+            consent = position.consent;
             hotness = position.hotness;
             decay = position.decay;
             lock = Option.map(position.lock, func(lock: LockInfo) : SLockInfo {

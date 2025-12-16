@@ -93,7 +93,8 @@ module {
         account: Account;
         amount: Nat;
         choice: Types.ChoiceType;
-        limit_dissent: Float;
+        limit_consensus: Float;
+        from_origin: LendingTypes.AmountOrigin;
     };
 
     public type PutPositionPreviewArgs = PutPositionArgs and {
@@ -229,7 +230,7 @@ module {
 
         public func put_limit_order(args: PutLimitOrderArgs) : async Result<(), Text> {
 
-            let { order_id; pool_id; account; amount; limit_dissent; } = args;
+            let { pool_id; account; amount; limit_consensus; from_origin; } = args;
 
             if (Principal.isAnonymous(account.owner)) {
                 return #err("Anonymous caller cannot put a position");
@@ -240,7 +241,7 @@ module {
                 case(?v) v;
             };
 
-            if (limit_dissent < 0.0 or limit_dissent > 1.0) {
+            if (limit_consensus < 0.0 or limit_consensus > 1.0) {
                 return #err("Limit dissent must be between 0.0 and 1.0");
             };
 
@@ -251,15 +252,28 @@ module {
             // Capture timestamp before the transfer for the indexer
             let timestamp_before_transfer = clock.get_time();
 
-            let transfer = await* redistribution_hub.add_position({
-                id = order_id;
-                account = account;
-                supplied = amount;
-            }, timestamp_before_transfer, #FROM_WALLET);
+            switch(from_origin){
+                case(#FROM_WALLET) {
+                    
+                    // If from wallet, transfer to supply_registry
+                    let transfer = await* supply_registry.run_operation(timestamp_before_transfer, {
+                        kind = #SUPPLY;
+                        account;
+                        amount;
+                    });
 
-            switch(transfer){
-                case(#err(err)) { return #err(err); };
-                case(_) {};
+                    switch(transfer){
+                        case(#err(err)) { return #err("Failed to transfer to supply registry: " # debug_show(err)); };
+                        case(#ok(_)) {};
+                    };
+                };
+                case(#FROM_SUPPLY(_)) {
+                    // Verify user lending position has enough funds
+                    let supply_info = supply_registry.get_supply_info(timestamp_before_transfer, account);
+                    if (supply_info.accrued_amount < Float.fromInt(amount)){
+                        return #err("Insufficient funds in supply position: " # debug_show(supply_info.accrued_amount) # " (required: " # debug_show(Float.fromInt(amount)) # ")");
+                    };
+                }; 
             };
 
             // Recapture timestamp after the async operation for the position

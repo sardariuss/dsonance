@@ -51,6 +51,7 @@ module {
     public type LimitOrder<C>            = Types.LimitOrder<C>;
     public type LimitOrderBTreeKey       = Types.LimitOrderBTreeKey;
     public type PositionRegister         = Types.PositionRegister;
+    public type LimitOrderRegister       = Types.LimitOrderRegister;
     public type Parameters               = Types.Parameters;
     public type LendingParameters        = Types.LendingParameters;
     public type DurationScalerParameters = Types.DurationScalerParameters;
@@ -183,7 +184,7 @@ module {
         choice: B;
         amount: Nat;
         dissent: Float;
-        consent: SRollingTimeline<Float>;
+        consent: Float;
         tx_id: Nat;
         supply_index: Float;
         from: Account;
