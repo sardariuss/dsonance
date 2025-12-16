@@ -10,8 +10,14 @@ module {
 
     type A           = Types.YesNoAggregate;
     type C           = Types.YesNoChoice;
-    type Parameters  = Types.Parameters;
     type IDecayModel = Interfaces.IDecayModel;
+    type Parameters  = {
+        minimum_position_amount: Nat;
+        foresight: {
+            dissent_steepness: Float;
+            consent_steepness: Float;
+        };
+    };
 
     public func build({
         parameters: Parameters;

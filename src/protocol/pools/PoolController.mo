@@ -3,6 +3,7 @@ import Types              "../Types";
 import RollingTimeline    "../utils/RollingTimeline";
 import Interfaces         "../Interfaces";
 import IterUtils          "../utils/Iter";
+import UUID               "../utils/Uuid";
 
 import Set                "mo:map/Set";
 import Map                "mo:map/Map";
@@ -63,12 +64,13 @@ module {
         position_aggregator: PositionAggregator.PositionAggregator<A, C>;
         decay_model: IDecayModel;
         lock_info_updater: ILockInfoUpdater;
+        uuid: UUID.UUIDv7;
+        // TODO: would be clever to have a generic map interface for positions and orders
         get_position: UUID -> Position<C>;
         add_position: (UUID, Position<C>) -> ();
         get_order: UUID -> LimitOrder<C>;
         add_order: (UUID, LimitOrder<C>) -> ();
         delete_order: UUID -> ();
-        generate_uuid: () -> Text;
     }){
 
         public func new_pool({
@@ -152,7 +154,7 @@ module {
                 // Use 0 as amount because the execution of the limit order does not change the aggregate
                 let { dissent; consent; } = position_aggregator.compute_outcome({ aggregate = new_aggregate; choice = order.choice; amount = 0; time; }).position;
                 new_positions.add({
-                    position_id = generate_uuid();
+                    position_id = uuid.new();
                     pool_id;
                     timestamp;
                     choice = order.choice;
