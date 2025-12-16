@@ -13,7 +13,6 @@ import RollingTimeline        "utils/RollingTimeline";
 import IterUtils              "utils/Iter";
 import MapUtils               "utils/Map";
 import ForesightUpdater       "ForesightUpdater";
-import Incentives             "pools/Incentives";
 import LendingFactory         "lending/LendingFactory";
 import LedgerFungible         "ledger/LedgerFungible";
 import LedgerAccount          "ledger/LedgerAccount";
@@ -224,15 +223,11 @@ module {
                         case(null) { Debug.trap("The position does not have a lock"); };
                         case(?lock) { lock.release_date; };
                     };
-                    let discernment = Incentives.compute_discernment({
-                        dissent = b.dissent;
-                        consent = b.consent;
-                    });
                     {
                         timestamp = b.timestamp;
                         amount = b.amount;
                         release_date;
-                        discernment;
+                        discernment = b.dissent * b.consent;
                         consent = b.consent;
                         update_foresight = func(foresight: Types.Foresight) { 
                             b.foresight := foresight;

@@ -11,13 +11,6 @@ module {
     type YesNoChoice = Types.YesNoChoice;
     type ForesightParameters = Types.ForesightParameters;
 
-    public func compute_discernment({
-        dissent: Float;
-        consent: Float;
-    }) : Float {
-        dissent * consent;
-    };
-
     public func compute_consensus({
         total_yes: Float;
         total_no: Float;
@@ -121,6 +114,7 @@ module {
         dissent / amount;
     };
 
+    // TODO: not used anywhere, remove?
     public func compute_amount({
         target_dissent: Float;
         parameters: ForesightParameters;
