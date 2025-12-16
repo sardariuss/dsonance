@@ -15,6 +15,7 @@ module {
     type PutPositionResult = Types.PutPositionResult;
     type NewPoolArgs = Types.NewPoolArgs;
     type PutPositionArgs = Types.PutPositionArgs;
+    type PutLimitOrderArgs = Types.PutLimitOrderArgs;
     type PutPositionPreview = Types.PutPositionPreview;
     type GetPositionArgs = Types.GetPositionArgs;
     type Account = Types.Account;
@@ -62,6 +63,10 @@ module {
 
         public func put_position(args: PutPositionArgs and { caller: Principal; }) : async* PutPositionResult {
             await* controller.put_position(args);
+        };
+
+        public func put_limit_order(args: PutLimitOrderArgs and { caller: Principal; }) : async* Result<(), Text> {
+            await* controller.put_limit_order(args);
         };
 
         public func run() : async* () {

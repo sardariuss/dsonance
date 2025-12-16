@@ -71,6 +71,11 @@ shared({ caller = admin }) persistent actor class Protocol(args: V0_2_0.Args) : 
         await* getFacade().put_position({ args with caller; });
     };
 
+    // Add a limit order on the given pool identified by its pool_id
+    public shared({caller}) func put_limit_order(args: Interface.PutLimitOrderArgs) : async Interface.PutLimitOrderResult {
+        await* getFacade().put_limit_order({ args with caller; });
+    };
+
     // Run the protocol
     // TODO: should be restricted to the admin
     public func run() : async () {

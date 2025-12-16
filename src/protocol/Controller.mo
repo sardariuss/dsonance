@@ -70,14 +70,14 @@ module {
         weight: Float;
     };
 
-    public type NewPoolArgs = {
+    type NewPoolArgs = {
         id: UUID;
         origin: Principal;
         type_enum: Types.PoolTypeEnum;
         account: Account;
     };
 
-    public type PutPositionArgs = {
+    type PutPositionArgs = {
         id: UUID;
         pool_id: UUID;
         choice_type: ChoiceType;
@@ -92,7 +92,7 @@ module {
         pool_id: Types.UUID;
         account: Account;
         amount: Nat;
-        choice: Types.ChoiceType;
+        choice_type: Types.ChoiceType;
         limit_consensus: Float;
         from_origin: LendingTypes.AmountOrigin;
     };
@@ -228,7 +228,7 @@ module {
             });
         };
 
-        public func put_limit_order(args: PutLimitOrderArgs) : async Result<(), Text> {
+        public func put_limit_order(args: PutLimitOrderArgs) : async* Result<(), Text> {
 
             let { pool_id; account; amount; limit_consensus; from_origin; } = args;
 
@@ -282,6 +282,7 @@ module {
             pool_type_controller.put_limit_order({
                 pool_type;
                 args = { args with timestamp; };
+                choice_type = args.choice_type;
             });
 
             #ok;

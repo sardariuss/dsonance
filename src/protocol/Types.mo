@@ -127,6 +127,16 @@ module {
         with_supply_apy_impact: Bool;
     };
 
+    public type PutLimitOrderArgs = {
+        order_id: UUID;
+        pool_id: UUID;
+        choice_type: ChoiceType;
+        account: Account;
+        amount: Nat;
+        limit_consensus: Float;
+        from_origin: AmountOrigin;
+    };
+
     public type FindPositionArgs = {
         pool_id: UUID;
         position_id: UUID;
@@ -302,6 +312,7 @@ module {
     public type PositionAlreadyExistsError = { #PositionAlreadyExists: { position_id: UUID; }; };
     public type PutPositionError           = PoolNotFoundError or InsuficientAmountError or PositionAlreadyExistsError or TransferFromError;
     public type PutPositionResult          = Result<SPutPositionSuccess, Text>;
+    public type PutLimitOrderResult       = Result<(), Text>;
     public type NewPoolResult            = Result<PoolType, Text>;
     public type SNewPoolResult           = Result<SPoolType, Text>;
 

@@ -21,7 +21,8 @@ module {
     type Iter<T>           = Map.Iter<T>;
 
     // TODO: put in Types.mo
-    public type PutPositionArgs = PoolController.PutPositionArgs;
+    type PutPositionArgs = PoolController.PutPositionArgs;
+    type PutLimitOrderArgs = PoolController.PutLimitOrderArgs;
 
     public class PoolTypeController({
         yes_no_controller: PoolController.PoolController<YesNoAggregate, YesNoChoice>;
@@ -42,10 +43,10 @@ module {
             };
         };
 
-        public func put_limit_order({ pool_type: PoolType; args: PoolController.PutLimitOrderArgs<ChoiceType>; }) : () {
-            switch(pool_type, args.choice){
-                case(#YES_NO(pool), #YES_NO(c)) { 
-                    yes_no_controller.put_limit_order(pool, { args with choice = c; });
+        public func put_limit_order({ pool_type: PoolType; choice_type: ChoiceType; args: PutLimitOrderArgs; }) : () {
+            switch(pool_type, choice_type){
+                case(#YES_NO(pool), #YES_NO(choice)) { 
+                    yes_no_controller.put_limit_order(pool, args, choice);
                 };
             };
         };

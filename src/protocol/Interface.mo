@@ -29,6 +29,8 @@ module {
     public type SParameters          = Types.SParameters;
     public type PutPositionPreview   = Types.PutPositionPreview;
     public type PutPositionArgs      = Types.PutPositionArgs;
+    public type PutLimitOrderArgs    = Types.PutLimitOrderArgs;
+    public type PutLimitOrderResult  = Types.PutLimitOrderResult;
 
     // --- From LendingTypes ---
     public type LoanPosition        = LendingTypes.LoanPosition;

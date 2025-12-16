@@ -48,11 +48,10 @@ module {
         previous: [Position<C>];
     };
 
-    public type PutLimitOrderArgs<C> = {
+    public type PutLimitOrderArgs = {
         order_id: UUID;
         account: Account;
         timestamp: Nat;
-        choice: C;
         limit_consensus: Float;
         amount: Nat;
     };
@@ -216,11 +215,11 @@ module {
             { new; previous = Iter.toArray(pool_positions(pool)); };
         };
 
-        public func put_limit_order(pool: Pool<A, C>, args: PutLimitOrderArgs<C>) {
+        public func put_limit_order(pool: Pool<A, C>, args: PutLimitOrderArgs, choice: C) {
 
             // TODO: should we check for existing order_id?
 
-            let { order_id; choice; limit_consensus; timestamp; } = args;
+            let { order_id; limit_consensus; timestamp; } = args;
 
             // @order: should change sign based on choice
             // @order: should be checked beforehand ?
@@ -255,29 +254,6 @@ module {
 
         public func pool_positions(pool: Pool<A, C>) : Iter<Position<C>> {
             IterUtils.map(Set.keys(pool.positions), get_position);
-        };
-
-        public func pool_positions_copy(pool: Pool<A, C>) : Iter<Position<C>> {
-            let copy_position = func(position_id: UUID): Position<C> {
-                let position = get_position(position_id);
-                return {
-                    position_id = position.position_id;
-                    pool_id = position.pool_id;
-                    timestamp = position.timestamp;
-                    choice = position.choice;
-                    amount = position.amount;
-                    dissent = position.dissent;
-                    tx_id = position.tx_id;
-                    supply_index = position.supply_index;
-                    from = position.from;
-                    decay = position.decay;
-                    var consent = position.consent;
-                    var foresight = position.foresight;
-                    var hotness = position.hotness;
-                    var lock = position.lock;
-                };
-            };
-            IterUtils.map(Set.keys(pool.positions), copy_position);
         };
 
         func get_descending_orders(pool: Pool<A, C>, choice: C) : BTree<LimitOrderBTreeKey, UUID> {
