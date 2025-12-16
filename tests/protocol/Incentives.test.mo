@@ -64,24 +64,42 @@ suite("Incentives", func(){
     });
 
     test("Resistance", func(){
-        // Test YES choice - how much NO needed to reach 0.5 consensus
+        // Test NO choice - how much NO needed to reach 0.5 consensus
         var resistance = Incentives.compute_resistance({
-            choice = #YES;
+            choice = #NO;
             total_yes = 75.0;
             total_no = 25.0;
             target_consensus = 0.5;
         });
         // 75 / (75 + 25 + 50) = 75 / 150 = 0.5
+        verify<Float>(resistance, 50.0, Testify.float.equalEpsilon9);
+
+        // Make sure the opposite choice returns the same magnitude but negative
+        resistance := Incentives.compute_resistance({
+            choice = #YES;
+            total_yes = 75.0;
+            total_no = 25.0;
+            target_consensus = 0.5;
+        });
         verify<Float>(resistance, -50.0, Testify.float.equalEpsilon9);
 
-        // Test NO choice - how much YES needed to reach 0.6 consensus
+        // Test YES choice - how much YES needed to reach 0.6 consensus
+        resistance := Incentives.compute_resistance({
+            choice = #YES;
+            total_yes = 30.0;
+            total_no = 70.0;
+            target_consensus = 0.6;
+        });
+        // (30 + 75) / (30 + 75 + 70) = 105 / 175 = 0.6
+        verify<Float>(resistance, 75.0, Testify.float.equalEpsilon9);
+
+        // Make sure the opposite choice returns the same magnitude but negative
         resistance := Incentives.compute_resistance({
             choice = #NO;
             total_yes = 30.0;
             total_no = 70.0;
             target_consensus = 0.6;
         });
-        // (30 + 75) / (30 + 75 + 70) = 105 / 175 = 0.6
         verify<Float>(resistance, -75.0, Testify.float.equalEpsilon9);
 
         // Test with balanced votes targeting higher consensus

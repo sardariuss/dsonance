@@ -35,14 +35,25 @@ module {
             Debug.trap("Target consensus cannot be 0 or 1");
         };
 
-        switch(choice){
-            case(#YES) {
-                ((total_yes + total_no) * target_consensus - total_yes) / (1.0 - target_consensus);
-            };
-            case(#NO) {
-                (total_yes - (total_yes + total_no) * target_consensus) / target_consensus;
-            };
+        let consensus = compute_consensus({ total_yes; total_no; });
+
+        let actual_choice = switch(choice){
+            case(#YES) { if (target_consensus >= consensus) { #YES; } else { #NO;  }; };
+            case(#NO) {  if (target_consensus <= consensus) { #NO;  } else { #YES; }; };
         };
+        
+        let sign = switch(choice, actual_choice){
+            case(#YES, #YES) {  1.0; };
+            case(#NO,  #NO)  {  1.0; };
+            case(_  ,    _)  { -1.0; };
+        };
+
+        let amount = switch(actual_choice){
+            case(#YES) { ( (total_yes + total_no) * target_consensus - total_yes) / (1.0 - target_consensus); };
+            case(#NO) {  (-(total_yes + total_no) * target_consensus + total_yes) /        target_consensus;  };
+        };
+
+        sign * amount;
     };
 
     public func compute_opposite_worth({
