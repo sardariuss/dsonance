@@ -8,7 +8,7 @@ import { PositionInfo } from "./types";
 import { add_position, compute_pool_details } from "../utils/conversions/pooldetails";
 import { useProtocolContext } from "./context/ProtocolContext";
 import { useMediaQuery } from "react-responsive";
-import { MOBILE_MAX_WIDTH_QUERY } from "../constants";
+import { MOBILE_MAX_WIDTH_QUERY, PREVIEW_POOL_IMPACT } from "../constants";
 import PoolFigures, { PoolFiguresSkeleton } from "./PoolFigures";
 import { interpolate_now, map_timeline } from "../utils/timeline";
 import ConsensusChart from "./charts/ConsensusChart";
@@ -67,7 +67,7 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
       info.current_time
     );
   
-    if (liveDetails.cursor !== undefined) {
+    if (liveDetails.cursor !== undefined && PREVIEW_POOL_IMPACT) {
       timeline = {
         history: [...timeline.history, timeline.current],
         current: {
@@ -145,13 +145,17 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
                 <div className="w-full flex flex-col items-center justify-between space-y-2">
                   <div className="w-full h-[250px]">
                     {selectedChart === ChartType.CDV ?
-                      (poolDetails.total > 0 && <CdvChart pool={pool} position={position} durationWindow={duration} />)
+                      (poolDetails.total > 0 && 
+                        <CdvChart pool={pool} position={position} durationWindow={duration} />
+                      )
                       : selectedChart === ChartType.Consensus ?
                       (consensusTimeline !== undefined && liveDetails?.cursor !== undefined &&
                         <ConsensusChart timeline={consensusTimeline} format_value={(value: number) => (value * 100).toFixed(0) + "%"} durationWindow={duration}/> 
                       ) 
                       : selectedChart === ChartType.TVL ?
-                      (poolPositions !== undefined && <LockChart positions={poolPositions.map(position => position.YES_NO)} positionPreview={positionPreview} durationWindow={duration}/>)
+                      (poolPositions !== undefined && 
+                        <LockChart positions={poolPositions.map(position => position.YES_NO)} positionPreview={PREVIEW_POOL_IMPACT ? positionPreview : undefined} durationWindow={duration}/>
+                      )
                       : <></>
                     }
                   </div>
@@ -161,12 +165,12 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
                   </div>
                 </div>
               }
-              <PoolSlider
+              { PREVIEW_POOL_IMPACT && <PoolSlider
                 id={pool.pool_id}
                 position={position}
                 setPosition={setPosition}
                 poolDetails={poolDetails}
-              />
+              /> }
               <PoolPositions poolId={pool.pool_id} />
             </div>
           )}

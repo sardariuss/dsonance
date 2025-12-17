@@ -4,10 +4,10 @@ import { unwrapLock } from "../utils/conversions/position";
 import { SPosition } from "@/declarations/protocol/protocol.did";
 import { aprToApy } from "../utils/lending";
 import { useMemo, useState } from "react";
-import { HiMiniArrowTrendingUp, HiMiniTrophy, HiOutlineArrowTrendingUp, HiOutlineClock, HiTrophy } from "react-icons/hi2";
+import { HiMiniArrowTrendingUp, HiMiniTrophy, HiOutlineArrowTrendingUp, HiOutlineClock } from "react-icons/hi2";
 import { useMiningRatesContext } from "./context/MiningRatesContext";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
-import { getTokenLogo, getTokenDecimals } from "../utils/metadata";
+import { getTokenLogo } from "../utils/metadata";
 
 interface PutPositionPreviewProps {
   positionPreview: SPosition | undefined;
@@ -15,6 +15,7 @@ interface PutPositionPreviewProps {
   onToggleSupplyImpact?: (enabled: boolean) => void;
   labelSize?: string;
   valueSize?: string;
+  isLimitOrder?: boolean;
 }
 
 const PutPositionPreview: React.FC<PutPositionPreviewProps> = ({
@@ -22,7 +23,8 @@ const PutPositionPreview: React.FC<PutPositionPreviewProps> = ({
   positionPreviewWithoutImpact,
   onToggleSupplyImpact,
   labelSize = "text-base",
-  valueSize = "text-xl"
+  valueSize = "text-xl",
+  isLimitOrder = false
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [useSupplyImpact, setUseSupplyImpact] = useState(true);
@@ -53,18 +55,21 @@ const PutPositionPreview: React.FC<PutPositionPreviewProps> = ({
     : 0;
 
   const basicFields = [
-    {
-      label: "Min duration",
-      icon: <HiOutlineClock className="w-5 h-5" />,
-      value: formatDuration(get_current(unwrapLock(displayedPreview).duration_ns).data),
-      textColor: ""
-    },
-    {
-      label: "Win APY",
-      icon: <HiMiniArrowTrendingUp className="w-5 h-5" />,
-      value: (aprToApy(displayedPreview.foresight.apr.potential) * 100).toFixed(2) + "%",
-      textColor: "text-green-600 dark:text-green-400"
-    },
+    // Only show Min duration and Win APY for market orders
+    ...(!isLimitOrder ? [
+      {
+        label: "Min duration",
+        icon: <HiOutlineClock className="w-5 h-5" />,
+        value: formatDuration(get_current(unwrapLock(displayedPreview).duration_ns).data),
+        textColor: ""
+      },
+      {
+        label: "Win APY",
+        icon: <HiMiniArrowTrendingUp className="w-5 h-5" />,
+        value: (aprToApy(displayedPreview.foresight.apr.potential) * 100).toFixed(2) + "%",
+        textColor: "text-green-600 dark:text-green-400"
+      },
+    ] : []),
     {
       label: "Mining rewards",
       icon: twvLogo ? <img src={twvLogo} alt="TWV" className="w-5 h-5" /> : <HiMiniTrophy className="w-5 h-5" />,

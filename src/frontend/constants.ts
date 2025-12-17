@@ -24,4 +24,6 @@ export const BRAND_TRUE_COLOR = "oklch(62.7% 0.194 149.214)";
 export const BRAND_TRUE_COLOR_DARK = "oklch(72.3% 0.219 149.579)";
 export const BRAND_FALSE_COLOR = "oklch(63.7% 0.237 25.331)";
 export const BRAND_BASE_COLOR = "oklch(62.3% 0.214 259.815)"; // blue-500
+// Pool preview constants
+export const PREVIEW_POOL_IMPACT = false; // Enable/disable position preview impact on pool figures
 

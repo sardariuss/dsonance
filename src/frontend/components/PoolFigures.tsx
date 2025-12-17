@@ -5,9 +5,8 @@ import { useProtocolContext } from "./context/ProtocolContext";
 import { formatDate, niceFormatDate, timeToDate } from "../utils/conversions/date";
 import InfoIcon from "./icons/InfoIcon";
 import { Link } from "react-router-dom";
-import { DOCS_CDV_URL, DOCS_TVL_URL, MOBILE_MAX_WIDTH_QUERY } from "../constants";
+import { DOCS_CDV_URL, DOCS_TVL_URL, PREVIEW_POOL_IMPACT } from "../constants";
 import ConsensusIndicator from "./ConsensusIndicator";
-import { useMediaQuery } from "react-responsive";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 
 interface PoolFiguresProps {
@@ -17,62 +16,91 @@ interface PoolFiguresProps {
   position?: PositionInfo;
 }
 
+// Helper component for figure display
+interface FigureProps {
+  label: string;
+  value: React.ReactNode;
+  docUrl?: string;
+  shouldPulse?: boolean;
+}
+
+const Figure: React.FC<FigureProps> = ({ label, value, docUrl, shouldPulse = false }) => (
+  <div className="grid grid-rows-2 justify-items-end h-16 gap-y-1">
+    <span className="self-center flex flex-row gap-x-1 items-center">
+      <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+      {docUrl && (
+        <Link className="w-full hover:cursor-pointer" to={docUrl} target="_blank" rel="noopener">
+          <InfoIcon />
+        </Link>
+      )}
+    </span>
+    <span className={`self-center ${shouldPulse ? "animate-pulse" : ""}`}>
+      {value}
+    </span>
+  </div>
+);
+
 const PoolFigures: React.FC<PoolFiguresProps> = ({ timestamp, poolDetails, tvl, position }) => {
 
   const { supplyLedger : { formatAmountUsd } } = useFungibleLedgerContext();
   const { info, refreshInfo } = useProtocolContext();
-  const isMobile = useMediaQuery({ query: MOBILE_MAX_WIDTH_QUERY });
 
+  // Check if position has impact (should trigger pulse animation)
+  const hasPositionImpact = useMemo(() =>
+    PREVIEW_POOL_IMPACT && position !== undefined && position.amount > 0n,
+    [position]
+  );
+
+  // Calculate live details with position impact
   const liveDetails = useMemo(() => {
-    if (position) {
+    if (PREVIEW_POOL_IMPACT && position && position.amount > 0n) {
       return add_position(poolDetails, position);
     }
     return poolDetails;
   }, [poolDetails, position]);
+
+  // Calculate live TVL with position impact
+  const liveTvl = useMemo(() =>
+    PREVIEW_POOL_IMPACT ? tvl + (position?.amount ?? 0n) : tvl,
+    [tvl, position]
+  );
 
   const date = useMemo(() => {
     if (info === undefined) {
       return formatDate(timeToDate(timestamp));
     }
     return niceFormatDate(timeToDate(timestamp), timeToDate(info.current_time))
-  }
-  , [timestamp, info]);
+  }, [timestamp, info]);
 
   useEffect(() => {
     refreshInfo();
-  }
-  , [timestamp]);
+  }, [timestamp]);
 
   return (
     <div className="grid grid-cols-4 gap-x-2 gap-y-2 justify-items-center items-center w-full sm:w-2/3">
-      <div className="grid grid-rows-2 justify-items-end h-16 gap-y-1">
-        <span className="self-center text-sm text-gray-600 dark:text-gray-400">Opened</span>
-        <span className="self-center">{ date } </span>
-      </div>
-      <div className="grid grid-rows-2 justify-items-end h-16 gap-y-1">
-        <span className="self-center flex flex-row gap-x-1 items-center">
-          <span className="text-sm text-gray-600 dark:text-gray-400">CDV</span>
-          <Link className="w-full hover:cursor-pointer" to={DOCS_CDV_URL} target="_blank" rel="noopener">
-            <InfoIcon/>
-          </Link>
-        </span>
-        <span className={`self-center ${position && position?.amount > 0n ? "animate-pulse" : ""}`}>{formatAmountUsd(liveDetails.total)}</span>
-      </div>
-      <div className="grid grid-rows-2 justify-items-end h-16 gap-y-1">
-        <span className="self-center flex flex-row gap-x-1 items-center">
-          <span className="text-sm text-gray-600 dark:text-gray-400">TVL</span>
-          <Link className="w-full hover:cursor-pointer" to={DOCS_TVL_URL} target="_blank" rel="noopener">
-            <InfoIcon/>
-          </Link>
-        </span>
-        <span className={`self-center ${position && position?.amount > 0n ? "animate-pulse" : ""}`}>{ formatAmountUsd(tvl + (position?.amount ?? 0n)) }</span>
-      </div>
-      <div className="grid grid-rows-2 justify-items-end h-16 gap-y-1">
-        <span className="self-center text-sm text-gray-600 dark:text-gray-400">Consensus</span>
-        <span className="self-center">
-          { liveDetails.cursor === undefined ? <></> : <ConsensusIndicator cursor={liveDetails.cursor} pulse={position && position?.amount > 0n}/> }
-        </span>
-      </div>
+      <Figure
+        label="Opened"
+        value={date}
+      />
+      <Figure
+        label="CDV"
+        value={formatAmountUsd(liveDetails.total)}
+        docUrl={DOCS_CDV_URL}
+        shouldPulse={hasPositionImpact}
+      />
+      <Figure
+        label="TVL"
+        value={formatAmountUsd(liveTvl)}
+        docUrl={DOCS_TVL_URL}
+        shouldPulse={hasPositionImpact}
+      />
+      <Figure
+        label="Consensus"
+        value={
+          liveDetails.cursor === undefined ? <></> :
+          <ConsensusIndicator cursor={liveDetails.cursor} pulse={hasPositionImpact} />
+        }
+      />
     </div>
   );
 };

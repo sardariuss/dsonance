@@ -9,9 +9,9 @@ import { CHART_CONFIGURATIONS, chartTheme, computeInterval, DurationParameters }
 import { ThemeContext }                                     from "../App";
 import { useProtocolContext }                               from "../context/ProtocolContext";
 import { useMediaQuery }                                    from "react-responsive";
-import { BRAND_FALSE_COLOR, BRAND_TRUE_COLOR, BRAND_TRUE_COLOR_DARK, 
+import { BRAND_FALSE_COLOR, BRAND_TRUE_COLOR, BRAND_TRUE_COLOR_DARK,
   MOBILE_MAX_WIDTH_QUERY, TICK_TEXT_COLOR_DARK, TICK_TEXT_COLOR_LIGHT,
-  CHART_MOBILE_HORIZONTAL_MARGIN } from "../../constants";
+  CHART_MOBILE_HORIZONTAL_MARGIN, PREVIEW_POOL_IMPACT } from "../../constants";
 import { useContainerSize } from "../hooks/useContainerSize";
 import { useFungibleLedgerContext } from "../context/FungibleLedgerContext";
 
@@ -150,6 +150,12 @@ const CdvChart: React.FC<CdvChartrops> = ({ pool, position, durationWindow }) =>
   [info, parameters, computeDecay, durationWindow, pool.aggregate]);
 
   const { chartData, total, priceLevels, dateTicks, dateFormat } = useMemo<ChartProperties>(() => {
+    // If preview is disabled, return pool data without position impact
+    if (!PREVIEW_POOL_IMPACT) {
+      return poolData;
+    }
+
+    // Calculate chart data with position impact
     const newTotal = { maximum : poolData.total.maximum, current: poolData.total.current + Number(position.amount) };
     return {
       chartData : poolData.chartData.slice().map((serie) => {
@@ -189,7 +195,7 @@ const CdvChart: React.FC<CdvChartrops> = ({ pool, position, durationWindow }) =>
   }
 
   const pulseArea = useMemo(() => {
-    if (parameters !== undefined && position.amount > parameters.minimum_position_amount){
+    if (PREVIEW_POOL_IMPACT && parameters !== undefined && position.amount > parameters.minimum_position_amount){
       if (position.choice === EYesNoChoice.Yes){
         return "pulse-area-true";
       } else {

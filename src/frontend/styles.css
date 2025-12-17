@@ -18,7 +18,7 @@
 
 /* Custom slider track and thumb styles */
 
-/* For WebKit browsers (Chrome, Edge, Safari) */
+/* Default range styles (transparent) */
 input[type="range"]::-webkit-slider-thumb {
   appearance: none; /* Override native styling */
   width: 20px; /* Thumb width */
@@ -45,6 +45,45 @@ input[type="range"]::-moz-range-thumb {
 input[type="range"]::-moz-range-track {
   height: 1.3rem; /* Track height */
   background-color: #ffffff00; /* Track color */
+}
+
+/* Limit consensus range slider - no thumb */
+.limit-consensus-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+}
+
+.limit-consensus-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.limit-consensus-range::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.limit-consensus-range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background: transparent;
+}
+
+.limit-consensus-range::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: transparent;
 }
 
 * {

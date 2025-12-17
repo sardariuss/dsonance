@@ -13,8 +13,12 @@ import { getTokenLogo, getTokenSymbol } from '../utils/metadata';
 import { showErrorToast, showSuccessToast, extractErrorMessage } from '../utils/toasts';
 import { SYesNoPool } from '@/declarations/backend/backend.did';
 import PutPositionModal from './PutPositionModal';
+import { TabButton } from './TabButton';
+import { get_current } from '../utils/timeline';
 
 const PREDEFINED_PERCENTAGES = [0.1, 0.25, 0.5, 1.0];
+
+type OrderType = 'market' | 'limit';
 
 type Props = {
   id: string;
@@ -27,14 +31,42 @@ type Props = {
 
 const PutPosition = ({id, position, setPosition, positionPreview, positionPreviewWithoutImpact, pool}: Props) => {
 
-  const { supplyLedger: { formatAmount, formatAmountUsd, metadata, 
-    convertToFixedPoint, approveIfNeeded, userBalance, refreshUserBalance, tokenDecimals } } = useFungibleLedgerContext();
+  const { supplyLedger: { formatAmount, formatAmountUsd, metadata,
+    convertToFixedPoint, approveIfNeeded, userBalance, refreshUserBalance } } = useFungibleLedgerContext();
   const { user, connect } = useAuth();
   const authenticated = !!user;
   const { parameters } = useProtocolContext();
   const [putPositionLoading, setPutPositionLoading] = useState(false);
   const [selectedPredefined, setSelectedPredefined] = useState<number | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [orderType, setOrderType] = useState<OrderType>('market');
+
+  // Calculate initial consensus from pool
+  const initialConsensus = useMemo(() => {
+    const currentAggregate = get_current(pool.aggregate).data;
+    const totalYes = Number(currentAggregate.total_yes);
+    const totalNo = Number(currentAggregate.total_no);
+    const total = totalYes + totalNo;
+
+    if (total === 0) {
+      return 50; // Default to 50% if no votes yet
+    }
+
+    const consensus = (totalYes / total) * 100;
+    return Math.round(consensus * 10) / 10; // Round to one decimal place
+  }, [pool.aggregate]);
+
+  const [limitConsensus, setLimitConsensus] = useState<number>(initialConsensus);
+  const [limitConsensusInput, setLimitConsensusInput] = useState<string>(initialConsensus.toFixed(1));
+  const [isEditingLimitConsensus, setIsEditingLimitConsensus] = useState<boolean>(false);
+
+  // Update limit consensus when pool changes
+  useEffect(() => {
+    setLimitConsensus(initialConsensus);
+    if (!isEditingLimitConsensus) {
+      setLimitConsensusInput(initialConsensus.toFixed(1));
+    }
+  }, [initialConsensus, isEditingLimitConsensus]);
 
   const yesArgs : PreviewArgs = useMemo(() => ({
     id: uuidv4(),
@@ -167,6 +199,24 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
 
 	return (
     <div className="flex flex-col items-center w-full gap-y-2 rounded-lg shadow-sm border dark:border-gray-700 border-gray-300 bg-slate-200 dark:bg-gray-800 p-4">
+      {/* Order Type Tabs */}
+      <ul className="flex flex-wrap gap-x-6 gap-y-2 w-full mb-2">
+        <li className="min-w-max text-center">
+          <TabButton
+            label="Market"
+            setIsCurrent={() => setOrderType('market')}
+            isCurrent={orderType === 'market'}
+          />
+        </li>
+        <li className="min-w-max text-center">
+          <TabButton
+            label="Limit"
+            setIsCurrent={() => setOrderType('limit')}
+            isCurrent={orderType === 'limit'}
+          />
+        </li>
+      </ul>
+
       <div className="flex flex-row w-full justify-between space-x-2">
         <button className={`w-1/2 h-10 text-lg rounded-lg 
           ${position.choice === EYesNoChoice.Yes ? 
@@ -174,7 +224,7 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
             "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`
           } onClick={() => setPosition({ amount: position.amount, choice: EYesNoChoice.Yes })}
         >
-          {`True ${(yesPositionPreview && "ok" in yesPositionPreview) ? `${yesPositionPreview.ok.new.YES_NO.dissent.toFixed(2)}` : ''}`}
+          True
         </button>
         <button className={`w-1/2 h-10 text-lg rounded-lg 
           ${position.choice === EYesNoChoice.No ? 
@@ -182,7 +232,7 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
             "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`
           } onClick={() => setPosition({ amount: position.amount, choice: EYesNoChoice.No })}
         >
-          {`False ${(noPositionPreview && "ok" in noPositionPreview) ? `${noPositionPreview.ok.new.YES_NO.dissent.toFixed(2)}` : ''}`}
+          False
         </button>
       </div>
       <div className={`flex flex-col items-center w-full space-y-2`}>
@@ -247,9 +297,9 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
         <div className="flex flex-row items-center self-end space-x-1 w-3/4">
           {
             PREDEFINED_PERCENTAGES.map((percentage, index) => (
-              <button 
-                key={percentage} 
-                className={`rounded-lg h-8 text-base justify-center flex-grow ${selectedPredefined === index ? "bg-blue-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`} 
+              <button
+                key={percentage}
+                className={`rounded-lg h-8 text-base justify-center flex-grow ${selectedPredefined === index ? "bg-blue-700 text-white font-bold" : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"}`}
                 onClick={() => { if(!authenticated) { connect() } else { setPosition({ amount: BigInt(Math.floor(percentage * Number(userBalance))), choice: position.choice }), setSelectedPredefined(index); }}}
                 disabled={putPositionLoading}
               >
@@ -258,6 +308,113 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
             ))
           }
         </div>
+
+        {orderType === 'limit' && <span className="w-full border-b border-gray-300 dark:border-gray-700">
+          {/* Divider */}
+        </span>}
+
+        {/* Limit Consensus Input - Only show for limit orders */}
+        {orderType === 'limit' && (
+          <div className="flex flex-col w-full mt-2">
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-base">
+                Limit Consensus
+              </label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={limitConsensusInput}
+                  onFocus={() => setIsEditingLimitConsensus(true)}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9.]/g, '');
+                    // Prevent multiple decimal points
+                    const parts = value.split('.');
+                    let sanitizedValue = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : value;
+
+                    // Limit to one decimal place
+                    if (parts.length === 2 && parts[1].length > 1) {
+                      sanitizedValue = `${parts[0]}.${parts[1].charAt(0)}`;
+                    }
+
+                    // Handle empty or just decimal point
+                    if (sanitizedValue === '' || sanitizedValue === '.') {
+                      setLimitConsensusInput(sanitizedValue);
+                      setLimitConsensus(0);
+                      return;
+                    }
+
+                    // Prevent values > 100
+                    const numValue = Number(sanitizedValue);
+                    if (!isNaN(numValue) && numValue > 100) {
+                      return; // Don't update if value exceeds 100
+                    }
+
+                    // Update input field with validated value
+                    setLimitConsensusInput(sanitizedValue);
+
+                    // Update the actual consensus value if valid
+                    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                      setLimitConsensus(numValue);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    setIsEditingLimitConsensus(false);
+                    // Ensure value is within bounds and properly formatted on blur
+                    let numValue = Number(e.target.value);
+
+                    if (isNaN(numValue) || numValue < 0) {
+                      numValue = 0;
+                    } else if (numValue > 100) {
+                      numValue = 100;
+                    }
+
+                    // Round to one decimal place
+                    const roundedValue = Math.round(numValue * 10) / 10;
+                    setLimitConsensus(roundedValue);
+                    setLimitConsensusInput(roundedValue.toFixed(1));
+                  }}
+                  className="w-16 text-right text-3xl bg-transparent text-gray-900 dark:text-white outline-none focus:border-blue-500 dark:focus:border-blue-400"
+                  disabled={putPositionLoading}
+                />
+                <span className="text-base text-gray-700 dark:text-gray-300">%</span>
+              </div>
+            </div>
+            <div className="relative w-full">
+              <style>
+                {`
+                  .limit-consensus-range-yes {
+                    background: linear-gradient(to right, oklch(62.7% 0.194 149.214) 0%, oklch(62.7% 0.194 149.214) ${limitConsensus}%, #d1d5db ${limitConsensus}%, #d1d5db 100%) !important;
+                  }
+                  .limit-consensus-range-no {
+                    background: linear-gradient(to right, #d1d5db 0%, #d1d5db ${limitConsensus}%, oklch(63.7% 0.237 25.331) ${limitConsensus}%, oklch(63.7% 0.237 25.331) 100%) !important;
+                  }
+                  .dark .limit-consensus-range-yes {
+                    background: linear-gradient(to right, oklch(72.3% 0.219 149.579) 0%, oklch(72.3% 0.219 149.579) ${limitConsensus}%, #d1d5db ${limitConsensus}%, #d1d5db 100%) !important;
+                  }
+                `}
+              </style>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="0.1"
+                value={limitConsensus}
+                onChange={(e) => {
+                  const roundedValue = Math.round(Number(e.target.value) * 10) / 10;
+                  setLimitConsensus(roundedValue);
+                  if (!isEditingLimitConsensus) {
+                    setLimitConsensusInput(roundedValue.toFixed(1));
+                  }
+                }}
+                className={`limit-consensus-range w-full rounded-lg cursor-pointer ${
+                  position.choice === EYesNoChoice.Yes ? 'limit-consensus-range-yes' : 'limit-consensus-range-no'
+                }`}
+                disabled={putPositionLoading}
+              />
+            </div>
+          </div>
+        )}
       </div>
       <span className="w-full border-b border-gray-300 dark:border-gray-700">
         {/* Divider */}
@@ -267,6 +424,7 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
           <PutPositionPreview
             positionPreview={positionPreview}
             positionPreviewWithoutImpact={positionPreviewWithoutImpact}
+            isLimitOrder={orderType === 'limit'}
           />
         </div>
       )}
@@ -275,7 +433,7 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
         disabled={authenticated && (putPositionLoading || errorMsg !== undefined || position.amount === 0n)}
         onClick={() => { if (!authenticated) { connect() } else { showConfirmation() } }}
       >
-        <span>Lock Position</span>
+        <span>{orderType === 'limit' ? 'Place Order' : 'Lock Position'}</span>
       </button>
 
       {/* Confirmation Modal */}
