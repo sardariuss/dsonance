@@ -11,6 +11,7 @@ module {
     type A           = Types.YesNoAggregate;
     type C           = Types.YesNoChoice;
     type IDecayModel = Interfaces.IDecayModel;
+    type Decayed     = Types.Decayed;
     type Parameters  = {
         minimum_position_amount: Nat;
         foresight: {
@@ -62,6 +63,14 @@ module {
                     choice;
                     total_yes = decay_model.unwrap_decayed(aggregate.current_yes, time);
                     total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
+                    target_consensus = target_consensus;
+                });
+            };
+            compute_decayed_resistance = func(aggregate: A, choice: C, target_consensus: Float) : Decayed {
+                Incentives.compute_decayed_resistance({
+                    choice;
+                    total_yes = aggregate.current_yes;
+                    total_no = aggregate.current_no;
                     target_consensus = target_consensus;
                 });
             };

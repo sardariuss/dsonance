@@ -6,12 +6,14 @@ module {
     type ComputeDissent<A, B>       = Types.ComputeDissent<A, B>;
     type ComputeConsent<A, B>       = Types.ComputeConsent<A, B>;
     type PositionAggregatorOutcome<A> = Types.PositionAggregatorOutcome<A>;
+    type Decayed = Types.Decayed;
    
     public class PositionAggregator<A, B>({
         update_aggregate: UpdateAggregate<A, B>;
         compute_dissent: ComputeDissent<A, B>;
         compute_consent: ComputeConsent<A, B>;
         compute_resistance: (A, B, Float, Nat) -> Float;
+        compute_decayed_resistance: (A, B, Float) -> Decayed;
         compute_opposite_worth: (A, B, Float, Nat) -> Float;
     }){
 
@@ -44,6 +46,14 @@ module {
             time: Nat;
         }) : Float {
             compute_resistance(aggregate, choice, target_consensus, time);
+        };
+
+        public func get_decayed_resistance({
+            aggregate: A;
+            choice: B;
+            target_consensus: Float;
+        }) : Decayed {
+            compute_decayed_resistance(aggregate, choice, target_consensus);
         };
 
         public func get_opposite_worth({

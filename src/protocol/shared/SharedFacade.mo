@@ -147,7 +147,11 @@ module {
         public func get_limit_orders(args: GetLimitOrderArgs) : [SLimitOrderType] {
             queries.get_limit_orders(args);
         };
-        
+
+        public func get_available_supply(account: Account) : Float {
+            controller.get_available_supply(account);
+        };
+
         public func get_user_supply({ account: Account; }) : UserSupply {
             queries.get_user_supply({account});
         };

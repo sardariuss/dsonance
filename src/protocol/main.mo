@@ -84,6 +84,10 @@ shared({ caller = admin }) persistent actor class Protocol(args: V0_2_0.Args) : 
         getFacade().get_limit_orders(args);
     };
 
+    public query func get_available_supply(account: Interface.Account) : async Float {
+        getFacade().get_available_supply(account);
+    };
+
     // Run the protocol
     // TODO: should be restricted to the admin
     public func run() : async () {

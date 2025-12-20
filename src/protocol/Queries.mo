@@ -3,6 +3,7 @@ import MapUtils    "utils/Map";
 import Clock       "utils/Clock";
 import PositionUtils "pools/PositionUtils";
 import SharedConversions "shared/SharedConversions";
+import LimitOrders "LimitOrders";
 
 import Map         "mo:map/Map";
 import Set         "mo:map/Set";
@@ -12,6 +13,7 @@ import Buffer      "mo:base/Buffer";
 import Iter        "mo:base/Iter";
 import Debug       "mo:base/Debug";
 import Float       "mo:base/Float";
+import Array       "mo:base/Array";
 import BTree       "mo:stableheapbtreemap/BTree";
 
 module {
@@ -79,31 +81,14 @@ module {
         };
 
         public func get_limit_orders({ account: Account; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [SLimitOrderType] {
-            let buffer = Buffer.Buffer<SLimitOrderType>(limit);
-
-            let iter = switch(direction) {
-                case(#forward) { Map.valsFrom(state.limit_orders, Map.thash, previous); };
-                case(#backward) { Map.valsFromDesc(state.limit_orders, Map.thash, previous); };
-            };
-
-            label limit_loop for (limit_order in iter) {
-                if (buffer.size() >= limit) {
-                    break limit_loop;
-                };
-
-                switch(limit_order){
-                    case(#YES_NO(position)) {
-                        // Filter by account
-                        if (position.account.owner != account.owner or position.account.subaccount != account.subaccount) {
-                            continue limit_loop;
-                        };
-
-                        buffer.add(SharedConversions.shareLimitOrderType(limit_order));
-                    };
-                };
-            };
-
-            Buffer.toArray(buffer);
+            let account_orders = LimitOrders.get_account_orders({
+                limit_orders = state.limit_orders;
+                account;
+                previous;
+                limit;
+                direction;
+            });
+            Array.map(account_orders, SharedConversions.shareLimitOrderType);
         };
 
         public func find_position(position_id: UUID) : ?SPositionType {

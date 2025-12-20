@@ -162,6 +162,7 @@ module {
             clock;
             pool_register;
             positions;
+            limit_orders;
             lock_scheduler;
             pool_type_controller;
             supply;

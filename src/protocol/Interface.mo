@@ -94,6 +94,10 @@ module {
             query GetLimitOrderArgs ->
             async [SLimitOrderType];
 
+        get_available_supply :
+            query Account ->
+            async Float;
+
         // --- Mining ---
         claim_mining_rewards :
             shared (subaccount : ?Blob) ->

@@ -17,6 +17,7 @@ import BorrowRegistry          "lending/BorrowRegistry";
 import WithdrawalQueue         "lending/WithdrawalQueue";
 import SupplyAccount           "lending/SupplyAccount";
 import ForesightUpdater        "ForesightUpdater";
+import LimitOrders             "LimitOrders";
 
 import Map                     "mo:map/Map";
 import Set                     "mo:map/Set";
@@ -39,6 +40,7 @@ module {
     type UUID = Types.UUID;
     type SNewPoolResult = Types.SNewPoolResult;
     type PositionMap = Types.PositionMap;
+    type LimitOrderMap = Types.LimitOrderMap;
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     type Parameters = Types.Parameters;
     type RollingTimeline<T> = Types.RollingTimeline<T>;
@@ -108,6 +110,7 @@ module {
         clock: Clock.Clock;
         pool_register: PoolRegister;
         positions: PositionMap;
+        limit_orders: LimitOrderMap;
         lock_scheduler: LockScheduler.LockScheduler;
         pool_type_controller: PoolTypeController.PoolTypeController;
         supply: SupplyAccount.SupplyAccount;
@@ -268,10 +271,12 @@ module {
                     };
                 };
                 case(#FROM_SUPPLY(_)) {
-                    // Verify user lending position has enough funds
-                    let supply_info = supply_registry.get_supply_info(timestamp_before_transfer, account);
-                    if (supply_info.accrued_amount < Float.fromInt(amount)){
-                        return #err("Insufficient funds in supply position: " # debug_show(supply_info.accrued_amount) # " (required: " # debug_show(Float.fromInt(amount)) # ")");
+                    // Verify that the account has enough available supply
+                    let available_supply = LimitOrders.get_available_supply(
+                        limit_orders, supply_registry, timestamp_before_transfer, account);
+
+                    if (Int.abs(Float.toInt(available_supply)) < amount){
+                        return #err("Insufficient available supply: " # debug_show(available_supply) # " (needed: " # debug_show(amount) # ")");
                     };
                 }; 
             };
@@ -286,6 +291,17 @@ module {
             });
 
             #ok;
+        };
+
+        public func get_available_supply(account: Account) : Float {
+
+            let timestamp = clock.get_time();
+
+            LimitOrders.get_available_supply(
+                limit_orders,
+                supply_registry,
+                timestamp,
+                account);
         };
 
         public func run_borrow_operation(args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {

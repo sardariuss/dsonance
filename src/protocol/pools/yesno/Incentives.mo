@@ -9,6 +9,7 @@ module {
     let EPSILON = 1e-6;
 
     type YesNoChoice = Types.YesNoChoice;
+    type Decayed = Types.Decayed;
     type ForesightParameters = Types.ForesightParameters;
 
     public func compute_consensus({
@@ -54,6 +55,42 @@ module {
         };
 
         sign * amount;
+    };
+
+    public func compute_decayed_resistance({
+        choice: YesNoChoice;
+        total_yes: Decayed;
+        total_no: Decayed;
+        target_consensus: Float;
+    }) : Decayed {
+
+        if (Float.equalWithin(target_consensus, 0.0, EPSILON) or
+            Float.equalWithin(target_consensus, 1.0, EPSILON)) {
+            Debug.trap("Target consensus cannot be 0 or 1");
+        };
+
+        let #DECAYED(yes) = total_yes;
+        let #DECAYED(no)  = total_no;
+
+        let consensus = compute_consensus({ total_yes = yes; total_no = no; });
+
+        let actual_choice = switch(choice){
+            case(#YES) { if (target_consensus >= consensus) { #YES; } else { #NO;  }; };
+            case(#NO) {  if (target_consensus <= consensus) { #NO;  } else { #YES; }; };
+        };
+        
+        let sign = switch(choice, actual_choice){
+            case(#YES, #YES) {  1.0; };
+            case(#NO,  #NO)  {  1.0; };
+            case(_  ,    _)  { -1.0; };
+        };
+
+        let amount = switch(actual_choice){
+            case(#YES) { ( (yes + no) * target_consensus - yes) / (1.0 - target_consensus); };
+            case(#NO) {  (-(yes + no) * target_consensus + yes) /        target_consensus;  };
+        };
+
+        #DECAYED(sign * amount);
     };
 
     public func compute_opposite_worth({
