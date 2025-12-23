@@ -13,6 +13,7 @@ import Time           "mo:base/Time";
 import Int            "mo:base/Int";
 import Text           "mo:base/Text";
 import Debug          "mo:base/Debug";
+import Nat64          "mo:base/Nat64";
 
 // Version 0.2.0 changes:
 // - Renaming VoteType to PoolType
@@ -66,6 +67,7 @@ module {
 
         {
             genesis_time = now;
+            prng = { var seed = Nat64.fromNat(now); };
             supply_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.supply_ledger));
             collateral_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.collateral_ledger));
             participation_ledger : ICRC1 and ICRC2 = actor(Principal.toText(canister_ids.participation_ledger));
@@ -226,6 +228,7 @@ module {
         {
             var state = {
                 genesis_time = v1_state.genesis_time;
+                prng = { var seed = Nat64.fromNat(v1_state.genesis_time); };
                 supply_ledger = v1_state.supply_ledger;
                 collateral_ledger = v1_state.collateral_ledger;
                 participation_ledger = v1_state.participation_ledger;

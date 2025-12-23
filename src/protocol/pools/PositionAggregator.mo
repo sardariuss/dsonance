@@ -2,24 +2,26 @@ import Types              "../Types";
 
 module {
 
-    type UpdateAggregate<A, B>      = Types.UpdateAggregate<A, B>;
-    type ComputeDissent<A, B>       = Types.ComputeDissent<A, B>;
-    type ComputeConsent<A, B>       = Types.ComputeConsent<A, B>;
+    type UpdateAggregate<A, C>      = Types.UpdateAggregate<A, C>;
+    type ComputeDissent<A, C>       = Types.ComputeDissent<A, C>;
+    type ComputeConsent<A, C>       = Types.ComputeConsent<A, C>;
     type PositionAggregatorOutcome<A> = Types.PositionAggregatorOutcome<A>;
     type Decayed = Types.Decayed;
    
-    public class PositionAggregator<A, B>({
-        update_aggregate: UpdateAggregate<A, B>;
-        compute_dissent: ComputeDissent<A, B>;
-        compute_consent: ComputeConsent<A, B>;
-        compute_resistance: (A, B, Float, Nat) -> Float;
-        compute_decayed_resistance: (A, B, Float) -> Decayed;
-        compute_opposite_worth: (A, B, Float, Nat) -> Float;
+    public class PositionAggregator<A, C>({
+        update_aggregate: UpdateAggregate<A, C>;
+        compute_dissent: ComputeDissent<A, C>;
+        compute_consent: ComputeConsent<A, C>;
+        compute_consensus: (A) -> Float;
+        compute_resistance: (A, C, Float, Nat) -> Float;
+        compute_decayed_resistance: (A, C, Float) -> Decayed;
+        compute_opposite_worth: (A, C, Float, Nat) -> Float;
+        get_opposite_choice: C -> C;
+        consensus_direction: (C) -> Int;
     }){
-
         public func compute_outcome({
             aggregate: A;
-            choice: B;
+            choice: C;
             amount: Nat;
             time: Nat;
         }) : PositionAggregatorOutcome<A> {
@@ -41,7 +43,7 @@ module {
 
         public func get_resistance({
             aggregate: A;
-            choice: B;
+            choice: C;
             target_consensus: Float;
             time: Nat;
         }) : Float {
@@ -50,7 +52,7 @@ module {
 
         public func get_decayed_resistance({
             aggregate: A;
-            choice: B;
+            choice: C;
             target_consensus: Float;
         }) : Decayed {
             compute_decayed_resistance(aggregate, choice, target_consensus);
@@ -58,7 +60,7 @@ module {
 
         public func get_opposite_worth({
             aggregate: A;
-            choice: B;
+            choice: C;
             amount: Float;
             time: Nat;
         }) : Float {
@@ -67,10 +69,24 @@ module {
 
         public func get_consent({
             aggregate: A;
-            choice: B;
+            choice: C;
             time: Nat;
         }) : Float {
             compute_consent({ aggregate; choice; time; });
+        };
+
+        public func get_consensus({
+            aggregate: A;
+        }) : Float {
+            compute_consensus(aggregate);  
+        };
+
+        public func get_opposite_choice(choice: C) : C {
+            get_opposite_choice(choice);
+        };
+
+        public func consensus_direction(choice: C) : Int {
+            consensus_direction(choice);
         };
 
     };

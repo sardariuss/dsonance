@@ -58,6 +58,11 @@ module {
                     total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
                 });
             };
+            compute_consensus = func(aggregate: A) : Float {
+                let #DECAYED(total_yes) = aggregate.current_yes;
+                let #DECAYED(total_no) = aggregate.current_no;
+                Incentives.compute_consensus({ total_yes; total_no });
+            };
             compute_resistance = func(aggregate: A, choice: C, target_consensus: Float, time: Nat) : Float {
                 Incentives.compute_resistance({
                     choice;
@@ -83,6 +88,18 @@ module {
                         total_no = decay_model.unwrap_decayed(aggregate.current_no, time);
                     });
                 });
+            };
+            get_opposite_choice = func(choice: C) : C {
+                switch(choice){
+                    case(#YES) { #NO };
+                    case(#NO)  { #YES };
+                };
+            };
+            consensus_direction = func(choice: C) : Int {
+                switch(choice){
+                    case(#YES) { 1 };
+                    case(#NO)  { -1 };
+                };
             };
         });
     };

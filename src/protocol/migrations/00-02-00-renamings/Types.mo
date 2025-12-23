@@ -536,7 +536,7 @@ module {
         order_id: UUID;
         pool_id: UUID;
         timestamp: Nat;
-        account: Account;
+        from: Account;
         choice: C;
         limit_consensus: Float;
         var amount: Float;
@@ -708,6 +708,10 @@ module {
         collateral: {
             subaccount: ?Subaccount;
         };
+    };
+
+    type PrngData = {
+        var seed: Nat64;
     };
 
     // FROM LENDING
@@ -916,6 +920,7 @@ module {
 
     public type State = {
         genesis_time: Nat;
+        prng: PrngData;
         supply_ledger: ICRC1 and ICRC2;
         collateral_ledger: ICRC1 and ICRC2;
         participation_ledger: ICRC1 and ICRC2;

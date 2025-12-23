@@ -53,7 +53,8 @@ module {
 
     public type PutLimitOrderArgs = {
         order_id: UUID;
-        account: Account;
+        from: Account;
+        supply_index: Float;
         timestamp: Nat;
         limit_consensus: Float;
         amount: Nat;
@@ -94,89 +95,32 @@ module {
             };
         };
 
-        // New version of put_position that take into account the limit orders
         public func put_position(pool: Pool<A, C>, choice: C, args: PutPositionArgs) : { new: Position<C>; previous: [Position<C>] } {
-            let { amount; timestamp; supply_index; } = args;
-            let time = timestamp;
-            let decay = decay_model.compute_decay(timestamp);
 
-            let leap = {
-                var amount_left = Float.fromInt(amount);
-                var total_dissent = 0.0;
-                var position_consent = 0.0;
-                var aggregate = pool.aggregate.current.data;
-            };
-
-            let new_positions = Buffer.Buffer<Position<C>>(0);
-
-            let descending_orders = get_descending_orders(pool, choice);
-
-            label iter_orders for((key, order_id) in BTree.entries(descending_orders)) {
-                let order = get_order(order_id);
-                
-                // 1. Fill the resistance to reach the limit consensus of the order
-                push_consensus(leap, choice, ?order.limit_consensus, time);
-                
-                if (leap.amount_left <= 0.0) {
-                    break iter_orders;
+            // @order: fix code smell
+            let new = switch(put_position_inner(pool, choice, args, null).position){
+                case(null) {
+                    Debug.trap("No position created in put_position");
                 };
-
-                // 2. Gnaw the order as much as possible
-                let opposite_position = gnaw_order(leap, order, time, decay, pool, supply_index);
-                new_positions.add(opposite_position);
-
-                if (leap.amount_left <= 0.0) {
-                    break iter_orders;
-                };
+                case(?p) { p; };
             };
-
-            if (leap.amount_left > 0.0) {
-                // There is still some position left to put without limit order
-                push_consensus(leap, choice, null, time);
-            };
-
-            // Create the new position
-            let new = {
-                args with
-                pool_id = pool.pool_id;
-                choice;
-                timestamp;
-                decay;
-                dissent = leap.total_dissent / Float.fromInt(amount);
-                var consent = leap.position_consent;
-                var foresight : Foresight = { reward = 0; apr = { current = 0.0; potential = 0.0; }; };
-                var hotness = 0.0;
-                var lock : ?LockInfo = null;
-            };
-            new_positions.add(new);
-
-            // Update the pool aggregate
-            RollingTimeline.insert(pool.aggregate, timestamp, leap.aggregate);
-
-            // Update the position consents because of the new aggregate
-            for (position in pool_positions(pool)) {
-                position.consent := position_aggregator.get_consent({ aggregate = leap.aggregate; choice = position.choice; time; });
-            };
-
-            // Add all new positions to the pool
-            add_positions(pool, new_positions.vals(), time);
 
             { new; previous = Iter.toArray(pool_positions(pool)); };
         };
 
-        public func put_limit_order(pool: Pool<A, C>, args: PutLimitOrderArgs, choice: C) {
+        public func put_limit_order(pool: Pool<A, C>, args: PutLimitOrderArgs, choice: C) : { matching: ?{ new: Position<C>; previous: [Position<C>] }; order: ?LimitOrder<C> } {
 
-            // TODO: should we check for existing order_id?
+            let { order_id; limit_consensus; timestamp; from; } = args;
+            let position_id = uuid.new();
+            let tx_id = 0; // TODO: remove tx_id from position type
 
-            let { order_id; limit_consensus; timestamp; } = args;
+            let { position; remaining; } = put_position_inner(pool, choice, { args with from; position_id; tx_id }, ?limit_consensus);
 
-            // @order: should change sign based on choice
-            // @order: should be checked beforehand ?
-            // @order: ideally should directly put a position if limit_consensus is above current consensus
-            //let consensus = compute_consensus(pool.aggregate.current.data);
-            //if (limit_consensus < consensus){
-                //Debug.trap("Limit consensus " # Float.toText(limit_consensus) # " is below current consensus " # Float.toText(consensus));
-            //};
+            // @order : fix
+            if (remaining == 0.0) {
+                // The position fully consumed the limit order
+                return { matching = position; };
+            };
 
             let descending_orders = get_descending_orders(pool, choice);
 
@@ -188,11 +132,13 @@ module {
                 order_id;
                 pool_id = pool.pool_id;
                 timestamp;
-                account = args.account;
+                from;
                 choice;
                 limit_consensus;
-                var amount = Float.fromInt(args.amount);
+                var amount = remaining;
             });
+
+            { matching = position };
         };
 
         public func unlock_position(pool: Pool<A, C>, position_id: UUID) {
@@ -225,6 +171,96 @@ module {
                     // Then compare by timestamp ascending
                     Int.compare(a.timestamp, b.timestamp);
                 };
+            };
+        };
+
+        func put_position_inner(
+            pool: Pool<A, C>,
+            choice: C,
+            args: PutPositionArgs,
+            limit_consensus: ?Float
+        ) : {
+            position: ?Position<C>;
+            remaining: Float;
+        } {
+            let { amount; timestamp; supply_index; } = args;
+            let time = timestamp;
+            let decay = decay_model.compute_decay(timestamp);
+
+            let new_positions = Buffer.Buffer<Position<C>>(0);
+            let push = {
+                var amount_left = Float.fromInt(amount);
+                var total_dissent = 0.0;
+                var position_consent = 0.0;
+                var aggregate = pool.aggregate.current.data;
+            };
+
+            let opposite_orders = get_descending_orders(pool, position_aggregator.get_opposite_choice(choice));
+
+            label iter_orders for((key, order_id) in BTree.entries(opposite_orders)) {
+
+                // Abort if we have reached the limit consensus
+                if(is_target_reached(push.aggregate, choice, limit_consensus)) {
+                    break iter_orders;
+                };
+
+                let order = get_order(order_id);
+                
+                // Push the consensus up to that limit order
+                push_consensus(push, choice, ?order.limit_consensus, time);
+                
+                if (push.amount_left <= 0.0) {
+                    break iter_orders;
+                };
+
+                // Consume the order
+                let opposite_position = consume_order(push, order, time, decay, pool, supply_index);
+                new_positions.add(opposite_position);
+
+                if (push.amount_left <= 0.0) {
+                    break iter_orders;
+                };
+            };
+
+            // If there is still some amount left and limit is not yet reached, push the rest
+            if (not is_target_reached(push.aggregate, choice, limit_consensus) and push.amount_left > 0.0) {
+                push_consensus(push, choice, limit_consensus, time);
+            };
+
+            if (push.amount_left == Float.fromInt(amount)) {
+                // No position was created
+                return { position = null; remaining = push.amount_left; };
+            };
+
+            // Create the new position
+            let position = {
+                args with
+                pool_id = pool.pool_id;
+                choice;
+                timestamp;
+                decay;
+                dissent = push.total_dissent / Float.fromInt(amount);
+                var consent = push.position_consent;
+                var foresight : Foresight = { reward = 0; apr = { current = 0.0; potential = 0.0; }; };
+                var hotness = 0.0;
+                var lock : ?LockInfo = null;
+            };
+            new_positions.add(position);
+
+            // Update the pool aggregate
+            RollingTimeline.insert(pool.aggregate, timestamp, push.aggregate);
+
+            // Update the position consents because of the new aggregate
+            for (position in pool_positions(pool)) {
+                position.consent := position_aggregator.get_consent({ aggregate = push.aggregate; choice = position.choice; time; });
+            };
+
+            // Add all new positions to the pool
+            add_positions(pool, new_positions.vals(), time);
+
+            {
+                position = ?position;
+                remaining = Float.fromInt(amount) - push.amount_left;
             };
         };
 
@@ -271,10 +307,10 @@ module {
             input.position_consent := position_outcome.position.consent;
         };
 
-        func gnaw_order(input: PushConsensusInput<A, C>, order: LimitOrder<C>, time: Nat, decay: Float, pool: Pool<A, C>, supply_index: Float) : Position<C> {
+        func consume_order(input: PushConsensusInput<A, C>, order: LimitOrder<C>, time: Nat, decay: Float, pool: Pool<A, C>, supply_index: Float) : Position<C> {
 
             if (input.amount_left <= 0.0) {
-                Debug.trap("No amount left to gnaw the order");
+                Debug.trap("No amount left to consume the order");
             };
 
             // With choice = NO, limit_consensus = 0.9, order.amount = 100
@@ -283,24 +319,24 @@ module {
             //  -> Worth = (0.9 / 0.1) * 30 = 270.0
             let opposite_worth = position_aggregator.get_opposite_worth({ aggregate = input.aggregate; choice = order.choice; amount = order.amount; time; });
             // With amount_left = 500, opposite_worth = 900.0
-            //  -> gnaw_worth = min(500, 900) = 500
+            //  -> consume_worth = min(500, 900) = 500
             // With amount_left = 500, opposite_worth = 270.0
-            //  -> gnaw_worth = min(500, 270) = 270
-            let gnaw_worth = Float.min(input.amount_left, opposite_worth);
-            input.amount_left -= gnaw_worth;
+            //  -> consume_worth = min(500, 270) = 270
+            let consume_worth = Float.min(input.amount_left, opposite_worth);
+            input.amount_left -= consume_worth;
 
             let { dissent; consent; } = position_aggregator.compute_outcome({ aggregate = input.aggregate; choice = order.choice; amount = 0; time; }).position;
-            input.total_dissent += dissent * gnaw_worth;
+            input.total_dissent += dissent * consume_worth;
             // Consent stays the same for limit orders
 
-            // With gnaw_worth = 500, opposite_worth = 900.0
+            // With consume_worth = 500, opposite_worth = 900.0
             //  -> order.amount = 100 - (500 / 900) * 100 = 44.44
-            // With gnaw_worth = 270, opposite_worth = 270.0
+            // With consume_worth = 270, opposite_worth = 270.0
             //  -> order.amount = 30 - (270 / 270) * 30 = 0.0
-            let gnawed = gnaw_worth / opposite_worth * order.amount;
-            order.amount -= gnawed;
+            let consumed = consume_worth / opposite_worth * order.amount;
+            order.amount -= consumed;
             
-            if (gnawed >= order.amount) {
+            if (consumed >= order.amount) {
                 // The position covered the full order
                 let descending_orders = get_descending_orders(pool, order.choice);
                 let key = { limit_consensus = order.limit_consensus; timestamp = order.timestamp };
@@ -313,16 +349,29 @@ module {
                 pool_id = pool.pool_id;
                 timestamp = time;
                 choice = order.choice;
-                amount = Int.abs(Float.toInt(gnawed));
+                amount = Int.abs(Float.toInt(consumed));
                 dissent;
                 tx_id = 0; // @order
                 supply_index;
-                from = order.account;
+                from = order.from;
                 decay;
                 var consent = consent;
                 var foresight : Foresight = { reward = 0; apr = { current = 0.0; potential = 0.0; }; };
                 var hotness = 0.0;
                 var lock : ?LockInfo = null;
+            };
+        };
+
+        func is_target_reached(aggregate: A, direction: C, target: ?Float) : Bool {
+            let sign = Float.fromInt(position_aggregator.consensus_direction(direction));
+
+            // If limited up to a certain consensus, check if we have reached it
+            switch(target){
+                case(null) { false; };
+                case(?t){ 
+                    let consensus = position_aggregator.get_consensus({ aggregate; });
+                    sign * t < sign * consensus; 
+                };
             };
         };
 

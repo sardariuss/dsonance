@@ -37,7 +37,7 @@ module {
         public func put_position({ pool_type: PoolType; choice_type: ChoiceType; args: PutPositionArgs; }) : { new: PositionType; previous: [PositionType] } {
             switch(pool_type, choice_type){
                 case(#YES_NO(pool), #YES_NO(choice)) { 
-                    let { new; previous; } = (yes_no_controller.put_position(pool, choice, args));
+                    let { new; previous; } = (yes_no_controller.put_position(pool, choice, args, null));
                     { new = #YES_NO(new); previous = Array.map(previous, func(b: YesNoPosition) : PositionType { #YES_NO(b); }) };
                 };
             };

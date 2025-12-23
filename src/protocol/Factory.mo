@@ -57,6 +57,7 @@ module {
 
         let { 
             genesis_time; 
+            prng; 
             pool_register; 
             positions; 
             limit_orders;
@@ -71,7 +72,7 @@ module {
 
         let clock = Clock.Clock(parameters.clock);
 
-        let uuid = UUID.UUIDv7(UUID.PRNG(clock.get_time()));
+        let uuid = UUID.UUIDv7(UUID.PRNG(prng));
 
         let supply_ledger = LedgerFungible.LedgerFungible(state.supply_ledger);
         let collateral_ledger = LedgerFungible.LedgerFungible(state.collateral_ledger);

@@ -11,15 +11,14 @@ import Text "mo:base/Text";
 module {
     /// Simple deterministic 64-bit PRNG (XorShift64*)
     /// Must store seed in stable var if you want continuity across upgrades.
-    public class PRNG(seed0 : Nat) {
-        private var seed = Nat64.fromNat(seed0);
+    public class PRNG(stableSeed: { var seed: Nat64 }) {
 
         public func next64() : Nat64 {
-            var x = seed;
+            var x = stableSeed.seed;
             x ^= x >> 12;
             x ^= x << 25;
             x ^= x >> 27;
-            seed := x;
+            stableSeed.seed := x;
             return x * 2685821657736338717;
         };
 
@@ -62,7 +61,7 @@ module {
             let rand_b = prng.next64() & 0x3FFFFFFFFFFFFFFF;
 
             // clock_seq: variant (10) + rand_a (12 bits) = 14 bits, top 2 bits = 10
-            let clock_seq : Nat16 = Nat16.fromNat(Nat64.toNat((rand_a & 0xFFF) | 0x8000)) & 0xBFFF;
+            let clock_seq : Nat16 = Nat16.fromNat(Nat64.toNat((rand_a & 0x3FFF) | 0x8000));
 
             // node: 48 bits → 6 bytes, big-endian
             let node_bytes = Array.tabulate<Nat8>(6, func(i) {

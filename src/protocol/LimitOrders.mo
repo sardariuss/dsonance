@@ -41,7 +41,7 @@ module {
             switch(limit_order){
                 case(#YES_NO(position)) {
                     // Filter by account
-                    if (position.account.owner != account.owner or position.account.subaccount != account.subaccount) {
+                    if (position.from.owner != account.owner or position.from.subaccount != account.subaccount) {
                         continue limit_loop;
                     };
 
@@ -54,16 +54,20 @@ module {
     };
 
     /// Get the total supply available for an account, considering existing limit orders
-    public func get_available_supply(
+    public func get_account_info(
         limit_orders: LimitOrderMap,
         supply_registry: SupplyRegistry.SupplyRegistry,
         time: Nat,
         account: Account,
-    ) : Float {
+    ) : { 
+        supply_index: Float; 
+        available: Float; 
+        used_in_orders: Float;
+    } {
         let orders_amount = MapUtils.fold_left(limit_orders, 0.0, func(acc: Float, limit_order: LimitOrderType) : Float {
             switch(limit_order) {
                 case(#YES_NO(order)) {
-                    if (order.account.owner == account.owner and order.account.subaccount == account.subaccount) {
+                    if (order.from.owner == account.owner and order.from.subaccount == account.subaccount) {
                         acc + order.amount;
                     } else {
                         acc;
@@ -74,7 +78,11 @@ module {
 
         let supply_info = supply_registry.get_supply_info(time, account);
 
-        supply_info.accrued_amount - orders_amount;
+        { 
+            supply_index = supply_info.supply_index.value; 
+            available = supply_info.accrued_amount - orders_amount; 
+            used_in_orders = orders_amount; 
+        };
     };
 
 };

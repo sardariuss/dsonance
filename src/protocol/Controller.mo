@@ -255,7 +255,7 @@ module {
             // Capture timestamp before the transfer for the indexer
             let timestamp_before_transfer = clock.get_time();
 
-            switch(from_origin){
+            let supply_index = switch(from_origin){
                 case(#FROM_WALLET) {
                     
                     // If from wallet, transfer to supply_registry
@@ -267,17 +267,21 @@ module {
 
                     switch(transfer){
                         case(#err(err)) { return #err("Failed to transfer to supply registry: " # debug_show(err)); };
-                        case(#ok(_)) {};
+                        case(#ok({info})) {
+                            info.supply_index;
+                        };
                     };
                 };
                 case(#FROM_SUPPLY(_)) {
                     // Verify that the account has enough available supply
-                    let available_supply = LimitOrders.get_available_supply(
+                    let { available; supply_index } = LimitOrders.get_account_info(
                         limit_orders, supply_registry, timestamp_before_transfer, account);
 
-                    if (Int.abs(Float.toInt(available_supply)) < amount){
-                        return #err("Insufficient available supply: " # debug_show(available_supply) # " (needed: " # debug_show(amount) # ")");
+                    if (Int.abs(Float.toInt(available)) < amount){
+                        return #err("Insufficient available supply: " # debug_show(available) # " (needed: " # debug_show(amount) # ")");
                     };
+
+                    supply_index;
                 }; 
             };
 
@@ -286,7 +290,7 @@ module {
 
             pool_type_controller.put_limit_order({
                 pool_type;
-                args = { args with timestamp; };
+                args = { args with timestamp; supply_index; };
                 choice_type = args.choice_type;
             });
 
