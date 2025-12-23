@@ -86,7 +86,7 @@ module {
             order_id = limit_order.order_id;
             pool_id = limit_order.pool_id;
             timestamp = limit_order.timestamp;
-            account = limit_order.account;
+            from = limit_order.from;
             choice = limit_order.choice;
             amount = limit_order.amount;
             limit_consensus = limit_order.limit_consensus;

@@ -16,6 +16,7 @@ module {
     type YesNoPosition       = Types.YesNoPosition;
     type UUID              = Types.UUID;
     type PositionType        = Types.PositionType;
+    type LimitOrderType    = Types.LimitOrderType;
     type Account           = Types.Account;
     type PutPositionSuccess  = Types.PutPositionSuccess;
     type Iter<T>           = Map.Iter<T>;
@@ -37,16 +38,42 @@ module {
         public func put_position({ pool_type: PoolType; choice_type: ChoiceType; args: PutPositionArgs; }) : { new: PositionType; previous: [PositionType] } {
             switch(pool_type, choice_type){
                 case(#YES_NO(pool), #YES_NO(choice)) { 
-                    let { new; previous; } = (yes_no_controller.put_position(pool, choice, args, null));
+                    let { new; previous; } = (yes_no_controller.put_position(pool, choice, args));
                     { new = #YES_NO(new); previous = Array.map(previous, func(b: YesNoPosition) : PositionType { #YES_NO(b); }) };
                 };
             };
         };
 
-        public func put_limit_order({ pool_type: PoolType; choice_type: ChoiceType; args: PutLimitOrderArgs; }) : () {
+        public func put_limit_order({ 
+            pool_type: PoolType;
+            choice_type: ChoiceType;
+            args: PutLimitOrderArgs;
+        }) : { 
+            matching: ?{ 
+                new: PositionType;
+                previous: [PositionType] 
+            };
+            order: ?LimitOrderType; 
+        }{
             switch(pool_type, choice_type){
                 case(#YES_NO(pool), #YES_NO(choice)) { 
-                    yes_no_controller.put_limit_order(pool, args, choice);
+                    let { matching; order; } = yes_no_controller.put_limit_order(pool, args, choice);
+                    {
+                        matching = switch(matching){
+                            case(?m) {
+                                let { new; previous; } = m;
+                                ?{
+                                    new = #YES_NO(new);
+                                    previous = Array.map(previous, func(b: YesNoPosition) : PositionType { #YES_NO(b); });
+                                };
+                            };
+                            case(null) { null; };
+                        };
+                        order = switch(order){
+                            case(?o) { ?#YES_NO(o); };
+                            case(null) { null; };
+                        };
+                    };
                 };
             };
         };

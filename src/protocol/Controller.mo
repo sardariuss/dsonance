@@ -35,6 +35,7 @@ module {
     type PoolType = Types.PoolType;
     type PositionType = Types.PositionType;
     type PutPositionResult = Types.PutPositionResult;
+    type PutLimitOrderSuccess = Types.PutLimitOrderSuccess;
     type ChoiceType = Types.ChoiceType;
     type Account = Types.Account;
     type UUID = Types.UUID;
@@ -231,7 +232,7 @@ module {
             });
         };
 
-        public func put_limit_order(args: PutLimitOrderArgs) : async* Result<(), Text> {
+        public func put_limit_order(args: PutLimitOrderArgs) : async* Result<PutLimitOrderSuccess, Text> {
 
             let { pool_id; account; amount; limit_consensus; from_origin; } = args;
 
@@ -288,24 +289,22 @@ module {
             // Recapture timestamp after the async operation for the position
             let timestamp = clock.get_time();
 
-            pool_type_controller.put_limit_order({
+            #ok(pool_type_controller.put_limit_order({
                 pool_type;
                 args = { args with timestamp; supply_index; };
                 choice_type = args.choice_type;
-            });
-
-            #ok;
+            }));
         };
 
         public func get_available_supply(account: Account) : Float {
 
             let timestamp = clock.get_time();
 
-            LimitOrders.get_available_supply(
+            LimitOrders.get_account_info(
                 limit_orders,
                 supply_registry,
                 timestamp,
-                account);
+                account).available;
         };
 
         public func run_borrow_operation(args: BorrowOperationArgs) : async* Result<BorrowOperation, Text> {

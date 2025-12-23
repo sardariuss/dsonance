@@ -220,7 +220,7 @@ module {
         order_id: UUID;
         pool_id: UUID;
         timestamp: Nat;
-        account: Account;
+        from: Account;
         choice: C;
         amount: Float;
         limit_consensus: Float;
@@ -328,13 +328,23 @@ module {
         previous: [SPositionType];
     };
 
+    public type SPutLimitOrderSuccess = {
+        matching: ?SPutPositionSuccess;
+        order: SLimitOrderType;
+    };
+
+    public type PutLimitOrderSuccess = {
+        matching: ?PutPositionSuccess;
+        order: LimitOrderType;
+    };
+
     public type PoolNotFoundError        = { #PoolNotFound: { pool_id: UUID; }; };
     public type InsuficientAmountError   = { #InsufficientAmount: { amount: Nat; minimum: Nat; }; };
     public type NewPoolError             = { #PoolAlreadyExists: { pool_id: UUID; }; } or TransferFromError;
     public type PositionAlreadyExistsError = { #PositionAlreadyExists: { position_id: UUID; }; };
     public type PutPositionError           = PoolNotFoundError or InsuficientAmountError or PositionAlreadyExistsError or TransferFromError;
     public type PutPositionResult          = Result<SPutPositionSuccess, Text>;
-    public type PutLimitOrderResult       = Result<(), Text>;
+    public type PutLimitOrderResult        = Result<SPutLimitOrderSuccess, Text>;
     public type NewPoolResult            = Result<PoolType, Text>;
     public type SNewPoolResult           = Result<SPoolType, Text>;
 
