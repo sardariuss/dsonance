@@ -539,7 +539,7 @@ module {
         from: Account;
         choice: C;
         limit_consensus: Float;
-        var amount: Float;
+        amount: Float;
     };
 
     public type LimitOrderBTreeKey = {

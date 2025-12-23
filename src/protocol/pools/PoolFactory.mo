@@ -62,7 +62,7 @@ module {
                     case(?(#YES_NO(order))) { order; };
                 };
             };
-            add_order = func(id: UUID, order: YesNoLimitOrder) {
+            set_order = func(id: UUID, order: YesNoLimitOrder) {
                 Map.set(limit_orders, Map.thash, id, #YES_NO(order));
             };
             delete_order = func(id: UUID) {

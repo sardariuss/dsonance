@@ -15,6 +15,7 @@ import Float              "mo:base/Float";
 import Int                "mo:base/Int";
 import Buffer             "mo:base/Buffer";
 import Debug              "mo:base/Debug";
+import Array              "mo:base/Array";
 
 module {
 
@@ -71,7 +72,7 @@ module {
         get_position: UUID -> Position<C>;
         add_position: (UUID, Position<C>) -> ();
         get_order: UUID -> LimitOrder<C>;
-        add_order: (UUID, LimitOrder<C>) -> ();
+        set_order: (UUID, LimitOrder<C>) -> ();
         delete_order: UUID -> ();
     }){
 
@@ -101,11 +102,15 @@ module {
             args: PutPositionArgs
         ) : { new: Position<C>; previous: [Position<C>] } {
 
-            let effect = compute_position_effect(pool, choice, args, null);
-            let position = commit_position_effect(pool, effect, args.timestamp);
+            let effect = switch(compute_position_effect(pool, choice, args, null)){
+                case(null) { Debug.trap("No position effect computed"); };
+                case(?e) { e; };
+            };
+            
+            commit_position_effect(pool, effect, args.timestamp);
 
             {
-                new = position;
+                new = effect.position;
                 previous = Iter.toArray(pool_positions(pool));
             };
         };
@@ -134,28 +139,31 @@ module {
                 ?limit_consensus
             );
 
-            if (effect.new_positions.size() == 0) {
-                // Insert limit order as is
-                return { matching = null; order = ?insert_limit_order(pool, args, choice); };
-            };
+            switch(effect){
+                case(null) {
+                    // Insert limit order as is
+                    return { matching = null; order = ?insert_limit_order(pool, args, choice); };
+                };
+                case(?e) { 
 
-            let position = commit_position_effect(pool, effect, timestamp);
-            let matching = ?{
-                new = position;
-                previous = Iter.toArray(pool_positions(pool));
-            };
+                    commit_position_effect(pool, e, timestamp);
+                    
+                    let matching = ?{
+                        new = e.position;
+                        previous = Iter.toArray(pool_positions(pool));
+                    };
 
-            let order = do {
-                if (effect.remaining > 0.0) {
-                    // Insert remaining as limit order
-                    // TODO: fix possible rounding issues
-                    ?insert_limit_order(pool, { args with amount = Int.abs(Float.toInt(effect.remaining)) }, choice);
-                } else {
-                    null;
+                    let order = do {
+                        if (e.remaining > 0.0) {
+                            ?insert_limit_order(pool, { args with amount = Int.abs(Float.toInt(e.remaining)) }, choice);
+                        } else {
+                            null;
+                        };
+                    };
+
+                    { matching; order };
                 };
             };
-
-            { matching; order; };
         };
 
         public func unlock_position(pool: Pool<A, C>, position_id: UUID) {
@@ -194,12 +202,30 @@ module {
                 from = args.from;
                 choice;
                 limit_consensus;
-                var amount = Float.fromInt(args.amount);
+                amount = Float.fromInt(args.amount);
             };
 
-            add_order(order_id, order);
+            set_order(order_id, order);
 
             order;
+        };
+
+        func remove_from_limit_order(pool: Pool<A, C>, order_id: UUID, amount: Float) {
+
+            let order = get_order(order_id);
+
+            set_order(order_id, {
+                order with
+                amount = order.amount - amount;
+            });
+
+            if (order.amount <= 0.0) {
+                // The position covered the full order
+                let descending_orders = get_descending_orders(pool, order.choice);
+                let key = { limit_consensus = order.limit_consensus; timestamp = order.timestamp };
+                ignore BTree.delete(descending_orders, compare_keys, key);
+                delete_order(order.order_id);
+            };
         };
 
         func compare_keys(a: LimitOrderBTreeKey, b: LimitOrderBTreeKey) : Order {
@@ -215,7 +241,8 @@ module {
         };
 
         type PositionEffect<A, C> = {
-            new_positions : [Position<C>];
+            position: Position<C>;
+            from_matching : [(Text, Position<C>)];
             remaining : Float;
             aggregate : A;
         };
@@ -225,13 +252,13 @@ module {
             choice: C,
             args: PutPositionArgs,
             limit_consensus: ?Float
-        ) : PositionEffect<A, C> {
+        ) : ?PositionEffect<A, C> {
 
             let { amount; timestamp; supply_index; } = args;
             let time = timestamp;
             let decay = decay_model.compute_decay(timestamp);
 
-            let new_positions = Buffer.Buffer<Position<C>>(0);
+            let from_matching = Buffer.Buffer<(Text, Position<C>)>(0);
 
             let push = {
                 var amount_left = Float.fromInt(amount);
@@ -256,7 +283,7 @@ module {
 
                 let opposite_position = consume_order(push, order, time, decay, pool, supply_index);
 
-                new_positions.add(opposite_position);
+                from_matching.add((order_id, opposite_position));
 
                 if (push.amount_left <= 0.0) break iter_orders;
             };
@@ -270,11 +297,7 @@ module {
 
             // No effect at all
             if (push.amount_left == Float.fromInt(amount)) {
-                return {
-                    new_positions = [];
-                    remaining = push.amount_left;
-                    aggregate = push.aggregate;
-                };
+                return null;
             };
 
             let position = {
@@ -290,10 +313,9 @@ module {
                 var lock : ?LockInfo = null;
             };
 
-            new_positions.add(position);
-
-            {
-                new_positions = Buffer.toArray(new_positions);
+            ?{
+                position;
+                from_matching = Buffer.toArray(from_matching);
                 remaining = Float.fromInt(amount) - push.amount_left;
                 aggregate = push.aggregate;
             };
@@ -303,9 +325,12 @@ module {
             pool: Pool<A, C>,
             effect: PositionEffect<A, C>,
             timestamp: Nat
-        ) : Position<C> {
+        ) {
 
-            assert(effect.new_positions.size() > 0);
+            // Update amount from matching orders
+            for ((order_id, position) in Array.vals(effect.from_matching)) {
+                remove_from_limit_order(pool, order_id, Float.fromInt(position.amount));
+            };
 
             // Update aggregate
             RollingTimeline.insert(pool.aggregate, timestamp, effect.aggregate);
@@ -319,11 +344,12 @@ module {
                 });
             };
 
-            // Insert all new positions
-            add_positions(pool, effect.new_positions.vals(), timestamp);
+            let positions = Array.map(effect.from_matching, func((_, position): (Text, Position<C>)) : Position<C> {
+                position;
+            });
 
-            // The last position is always the initiator
-            effect.new_positions[effect.new_positions.size() - 1]
+            // Insert all new positions
+            add_positions(pool, Array.vals(Array.append(positions, [effect.position])), timestamp);
         };
 
         func add_positions(pool: Pool<A, C>, positions: Iter.Iter<Position<C>>, time: Nat) {
@@ -396,15 +422,6 @@ module {
             // With consume_worth = 270, opposite_worth = 270.0
             //  -> order.amount = 30 - (270 / 270) * 30 = 0.0
             let consumed = consume_worth / opposite_worth * order.amount;
-            order.amount -= consumed;
-            
-            if (consumed >= order.amount) {
-                // The position covered the full order
-                let descending_orders = get_descending_orders(pool, order.choice);
-                let key = { limit_consensus = order.limit_consensus; timestamp = order.timestamp };
-                ignore BTree.delete(descending_orders, compare_keys, key);
-                delete_order(order.order_id);
-            };
 
             {
                 position_id = uuid.new();

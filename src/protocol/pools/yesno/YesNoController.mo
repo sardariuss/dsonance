@@ -38,7 +38,7 @@ module {
         get_position: UUID -> YesNoPosition;
         add_position: (UUID, YesNoPosition) -> ();
         get_order: UUID -> YesNoLimitOrder;
-        add_order: (UUID, YesNoLimitOrder) -> ();
+        set_order: (UUID, YesNoLimitOrder) -> ();
         delete_order: UUID -> ();
     }) : PoolController<YesNoAggregate, YesNoChoice> {
         
@@ -62,7 +62,7 @@ module {
             get_position;
             add_position;
             get_order;
-            add_order;
+            set_order;
             delete_order;
         });
     };

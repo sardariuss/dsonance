@@ -23,7 +23,7 @@ module {
     type PoolType = Types.PoolType;
     type PositionType = Types.PositionType;
     type SPositionType = Types.SPositionType;
-    type SLimitOrderType = Types.SLimitOrderType;
+    type LimitOrderType = Types.LimitOrderType;
     type SPoolType = Types.SPoolType;
     type Account = Types.Account;
     type UUID = Types.UUID;
@@ -80,15 +80,14 @@ module {
             Buffer.toArray(buffer);
         };
 
-        public func get_limit_orders({ account: Account; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [SLimitOrderType] {
-            let account_orders = LimitOrders.get_account_orders({
+        public func get_limit_orders({ account: Account; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [LimitOrderType] {
+            LimitOrders.get_account_orders({
                 limit_orders = state.limit_orders;
                 account;
                 previous;
                 limit;
                 direction;
             });
-            Array.map(account_orders, SharedConversions.shareLimitOrderType);
         };
 
         public func find_position(position_id: UUID) : ?SPositionType {
@@ -187,20 +186,19 @@ module {
             Buffer.toArray(buffer);
         };
 
-        public func get_pool_limit_orders(pool_id: UUID) : [(ChoiceType, [SLimitOrderType])] {
+        public func get_pool_limit_orders(pool_id: UUID) : [(ChoiceType, [LimitOrderType])] {
             let pool = switch(Map.get(state.pool_register.pools, Map.thash, pool_id)){
                 case(null) { return []; };
                 case(?#YES_NO(v)) { v; };
             };
             
-            let result = Buffer.Buffer<(ChoiceType, [SLimitOrderType])>(0);
+            let result = Buffer.Buffer<(ChoiceType, [LimitOrderType])>(0);
 
             for ((choice, limit_orders) in Map.entries(pool.descending_orders)){
 
-                let orders_buffer = Buffer.Buffer<SLimitOrderType>(0);
+                let orders_buffer = Buffer.Buffer<LimitOrderType>(0);
                 for((_, order_id) in BTree.entries(limit_orders)){
-                    let order = MapUtils.getOrTrap(state.limit_orders, Map.thash, order_id);
-                    orders_buffer.add(SharedConversions.shareLimitOrderType(order));
+                    orders_buffer.add(MapUtils.getOrTrap(state.limit_orders, Map.thash, order_id));
                 };
                 result.add((#YES_NO(choice), Buffer.toArray(orders_buffer)));
             };

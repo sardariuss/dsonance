@@ -35,7 +35,7 @@ module {
     type PoolType = Types.PoolType;
     type PositionType = Types.PositionType;
     type PutPositionResult = Types.PutPositionResult;
-    type PutLimitOrderSuccess = Types.PutLimitOrderSuccess;
+    type SPutLimitOrderSuccess = Types.SPutLimitOrderSuccess;
     type ChoiceType = Types.ChoiceType;
     type Account = Types.Account;
     type UUID = Types.UUID;
@@ -93,7 +93,7 @@ module {
     type PutLimitOrderArgs = {
         order_id: Types.UUID;
         pool_id: Types.UUID;
-        account: Account;
+        from: Account;
         amount: Nat;
         choice_type: Types.ChoiceType;
         limit_consensus: Float;
@@ -232,11 +232,11 @@ module {
             });
         };
 
-        public func put_limit_order(args: PutLimitOrderArgs) : async* Result<PutLimitOrderSuccess, Text> {
+        public func put_limit_order(args: PutLimitOrderArgs) : async* Result<SPutLimitOrderSuccess, Text> {
 
-            let { pool_id; account; amount; limit_consensus; from_origin; } = args;
+            let { pool_id; from; amount; limit_consensus; from_origin; } = args;
 
-            if (Principal.isAnonymous(account.owner)) {
+            if (Principal.isAnonymous(from.owner)) {
                 return #err("Anonymous caller cannot put a position");
             };
 
@@ -262,21 +262,21 @@ module {
                     // If from wallet, transfer to supply_registry
                     let transfer = await* supply_registry.run_operation(timestamp_before_transfer, {
                         kind = #SUPPLY;
-                        account;
+                        account = from;
                         amount;
                     });
 
                     switch(transfer){
                         case(#err(err)) { return #err("Failed to transfer to supply registry: " # debug_show(err)); };
                         case(#ok({info})) {
-                            info.supply_index;
+                            info.supply_index.value;
                         };
                     };
                 };
                 case(#FROM_SUPPLY(_)) {
                     // Verify that the account has enough available supply
                     let { available; supply_index } = LimitOrders.get_account_info(
-                        limit_orders, supply_registry, timestamp_before_transfer, account);
+                        limit_orders, supply_registry, timestamp_before_transfer, from);
 
                     if (Int.abs(Float.toInt(available)) < amount){
                         return #err("Insufficient available supply: " # debug_show(available) # " (needed: " # debug_show(amount) # ")");
@@ -289,11 +289,13 @@ module {
             // Recapture timestamp after the async operation for the position
             let timestamp = clock.get_time();
 
-            #ok(pool_type_controller.put_limit_order({
+            let success = pool_type_controller.put_limit_order({
                 pool_type;
                 args = { args with timestamp; supply_index; };
                 choice_type = args.choice_type;
-            }));
+            });
+
+            #ok(SharedConversions.sharePutLimitOrderSuccess(success));
         };
 
         public func get_available_supply(account: Account) : Float {

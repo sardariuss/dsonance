@@ -31,8 +31,8 @@ module {
     public type PutPositionArgs      = Types.PutPositionArgs;
     public type PutLimitOrderArgs    = Types.PutLimitOrderArgs;
     public type PutLimitOrderResult  = Types.PutLimitOrderResult;
-    public type ChoiceType          = Types.ChoiceType;
-    public type SLimitOrderType     = Types.SLimitOrderType;
+    public type ChoiceType           = Types.ChoiceType;
+    public type LimitOrderType       = Types.LimitOrderType;
     public type GetLimitOrderArgs    = Types.GetLimitOrderArgs;
 
     // --- From LendingTypes ---
@@ -88,11 +88,11 @@ module {
         
         get_pool_limit_orders :
             query UUID ->
-            async [(ChoiceType, [SLimitOrderType])];
+            async [(ChoiceType, [LimitOrderType])];
 
         get_limit_orders :
             query GetLimitOrderArgs ->
-            async [SLimitOrderType];
+            async [LimitOrderType];
 
         get_available_supply :
             query Account ->

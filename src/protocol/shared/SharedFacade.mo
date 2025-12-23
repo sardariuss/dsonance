@@ -47,9 +47,10 @@ module {
     type MiningTracker = Types.MiningTracker;
     type LendingIndex = Types.LendingIndex;
     type QueryDirection = Types.QueryDirection;
-    type SLimitOrderType = Types.SLimitOrderType;
+    type LimitOrderType = Types.LimitOrderType;
     type ChoiceType = Types.ChoiceType;
     type GetLimitOrderArgs = Types.GetLimitOrderArgs;
+    type PutLimitOrderResult = Types.PutLimitOrderResult;
 
     public class SharedFacade({
         controller: Controller.Controller;
@@ -68,7 +69,7 @@ module {
             await* controller.put_position(args);
         };
 
-        public func put_limit_order(args: PutLimitOrderArgs and { caller: Principal; }) : async* Result<(), Text> {
+        public func put_limit_order(args: PutLimitOrderArgs and { caller: Principal; }) : async* PutLimitOrderResult {
             await* controller.put_limit_order(args);
         };
 
@@ -124,7 +125,7 @@ module {
             queries.get_pool_positions(pool_id);
         };
 
-        public func get_pool_limit_orders(pool_id: UUID) : [(ChoiceType, [SLimitOrderType])] {
+        public func get_pool_limit_orders(pool_id: UUID) : [(ChoiceType, [LimitOrderType])] {
             queries.get_pool_limit_orders(pool_id);
         };
 
@@ -144,7 +145,7 @@ module {
             queries.get_positions(args);
         };
 
-        public func get_limit_orders(args: GetLimitOrderArgs) : [SLimitOrderType] {
+        public func get_limit_orders(args: GetLimitOrderArgs) : [LimitOrderType] {
             queries.get_limit_orders(args);
         };
 

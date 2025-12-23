@@ -5,6 +5,7 @@ import Timeline "../utils/Timeline";
 
 import Option "mo:base/Option";
 import Array "mo:base/Array";
+import Put "mo:map/Map/modules/put";
 
 module {
 
@@ -32,14 +33,12 @@ module {
     type ProtocolInfo = Types.ProtocolInfo;
     type PutPositionSuccess = Types.PutPositionSuccess;
     type SPutPositionSuccess = Types.SPutPositionSuccess;
+    type PutLimitOrderSuccess = Types.PutLimitOrderSuccess;
+    type SPutLimitOrderSuccess = Types.SPutLimitOrderSuccess;
     type PoolType = Types.PoolType;
     type SPoolType = Types.SPoolType;
     type YieldState = Types.YieldState;
     type SYieldState = Types.SYieldState;
-    type LimitOrder<C> = Types.LimitOrder<C>;
-    type SLimitOrder<C> = Types.SLimitOrder<C>;
-    type LimitOrderType = Types.LimitOrderType;
-    type SLimitOrderType = Types.SLimitOrderType;
 
     public func shareOpt<T, S>(opt: ?T, f: T -> S) : ?S {
         Option.map(opt, f);
@@ -75,21 +74,10 @@ module {
         };
     };
 
-    public func shareLimitOrderType(limit_order: LimitOrderType) : SLimitOrderType {
-        switch(limit_order){
-            case(#YES_NO(order)) { #YES_NO(shareLimitOrder(order)); };
-        };
-    };
-
-    func shareLimitOrder<C>(limit_order: LimitOrder<C>) : SLimitOrder<C> {
+    public func sharePutLimitOrderSuccess(success: PutLimitOrderSuccess) : SPutLimitOrderSuccess {
         {
-            order_id = limit_order.order_id;
-            pool_id = limit_order.pool_id;
-            timestamp = limit_order.timestamp;
-            from = limit_order.from;
-            choice = limit_order.choice;
-            amount = limit_order.amount;
-            limit_consensus = limit_order.limit_consensus;
+            matching = shareOpt(success.matching, sharePutPositionSuccess);
+            order = success.order;
         };
     };
 

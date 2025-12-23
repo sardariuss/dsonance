@@ -139,7 +139,7 @@ module {
         order_id: UUID;
         pool_id: UUID;
         choice_type: ChoiceType;
-        account: Account;
+        from: Account;
         amount: Nat;
         limit_consensus: Float;
         from_origin: AmountOrigin;
@@ -172,10 +172,6 @@ module {
 
     public type SPositionType = {
         #YES_NO: SPosition<YesNoChoice>;
-    };
-
-    public type SLimitOrderType = {
-        #YES_NO: SLimitOrder<YesNoChoice>;
     };
 
     public type SDebtInfo = {
@@ -214,16 +210,6 @@ module {
         foresight: Foresight;
         hotness: Float;
         lock: ?SLockInfo;
-    };
-
-    public type SLimitOrder<C> = {
-        order_id: UUID;
-        pool_id: UUID;
-        timestamp: Nat;
-        from: Account;
-        choice: C;
-        amount: Float;
-        limit_consensus: Float;
     };
 
     public type SLockInfo = {
@@ -328,14 +314,14 @@ module {
         previous: [SPositionType];
     };
 
-    public type SPutLimitOrderSuccess = {
-        matching: ?SPutPositionSuccess;
-        order: SLimitOrderType;
-    };
-
     public type PutLimitOrderSuccess = {
         matching: ?PutPositionSuccess;
-        order: LimitOrderType;
+        order: ?LimitOrderType;
+    };
+
+    public type SPutLimitOrderSuccess = {
+        matching: ?SPutPositionSuccess;
+        order: ?LimitOrderType;
     };
 
     public type PoolNotFoundError        = { #PoolNotFound: { pool_id: UUID; }; };
