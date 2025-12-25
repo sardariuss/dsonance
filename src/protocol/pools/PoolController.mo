@@ -442,7 +442,7 @@ module {
         };
 
         func is_target_reached(aggregate: A, direction: C, target: ?Float) : Bool {
-            let sign = Float.fromInt(position_aggregator.consensus_direction(direction));
+            let sign = Float.fromInt(position_aggregator.get_consensus_direction(direction));
 
             // If limited up to a certain consensus, check if we have reached it
             switch(target){

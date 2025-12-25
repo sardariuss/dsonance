@@ -16,8 +16,8 @@ module {
         compute_resistance: (A, C, Float, Nat) -> Float;
         compute_decayed_resistance: (A, C, Float) -> Decayed;
         compute_opposite_worth: (A, C, Float, Nat) -> Float;
-        get_opposite_choice: C -> C;
-        consensus_direction: (C) -> Int;
+        compute_opposite_choice: C -> C;
+        compute_consensus_direction: (C) -> Int;
     }){
         public func compute_outcome({
             aggregate: A;
@@ -82,11 +82,11 @@ module {
         };
 
         public func get_opposite_choice(choice: C) : C {
-            get_opposite_choice(choice);
+            compute_opposite_choice(choice);
         };
 
-        public func consensus_direction(choice: C) : Int {
-            consensus_direction(choice);
+        public func get_consensus_direction(choice: C) : Int {
+            compute_consensus_direction(choice);
         };
 
     };

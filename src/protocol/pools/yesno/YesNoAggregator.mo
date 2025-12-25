@@ -89,13 +89,13 @@ module {
                     });
                 });
             };
-            get_opposite_choice = func(choice: C) : C {
+            compute_opposite_choice = func(choice: C) : C {
                 switch(choice){
                     case(#YES) { #NO };
                     case(#NO)  { #YES };
                 };
             };
-            consensus_direction = func(choice: C) : Int {
+            compute_consensus_direction = func(choice: C) : Int {
                 switch(choice){
                     case(#YES) { 1 };
                     case(#NO)  { -1 };
