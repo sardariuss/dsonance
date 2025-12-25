@@ -119,35 +119,52 @@ module {
             pool: Pool<A, C>,
             args: PutLimitOrderArgs,
             choice: C
-        ) : { 
-            matching: ?{ 
+        ) : {
+            matching: ?{
                 new: Position<C>;
-                previous: [Position<C>] 
+                previous: [Position<C>]
             };
-            order: ?LimitOrder<C> 
+            order: ?LimitOrder<C>
         } {
 
             let { limit_consensus; timestamp; from; } = args;
 
+            Debug.print("=== PUT_LIMIT_ORDER ===");
+            Debug.print("Pool ID: " # pool.pool_id);
+            Debug.print("Amount: " # debug_show(args.amount));
+            Debug.print("Limit consensus: " # debug_show(limit_consensus));
+
             let position_id = uuid.new();
             let tx_id = 0;
 
+            Debug.print("Computing position effect...");
             let effect = compute_position_effect(
                 pool,
                 choice,
                 { args with from; position_id; tx_id },
                 ?limit_consensus
             );
+            switch(effect){
+                case(null) {
+                    Debug.print("No position effect computed");
+                };
+                case(?e) {
+                    Debug.print("Position effect computed with remaining: " # debug_show(e.remaining));
+                };
+            };
 
             switch(effect){
                 case(null) {
                     // Insert limit order as is
+                    Debug.print("No effect - inserting as limit order");
                     return { matching = null; order = ?insert_limit_order(pool, args, choice); };
                 };
-                case(?e) { 
+                case(?e) {
+
+                    Debug.print("Effect found - remaining: " # debug_show(e.remaining));
 
                     commit_position_effect(pool, e, timestamp);
-                    
+
                     let matching = ?{
                         new = e.position;
                         previous = Iter.toArray(pool_positions(pool));
@@ -155,12 +172,17 @@ module {
 
                     let order = do {
                         if (e.remaining > 0.0) {
-                            ?insert_limit_order(pool, { args with amount = Int.abs(Float.toInt(e.remaining)) }, choice);
+                            Debug.print("Creating partial limit order with remaining: " # debug_show(e.remaining));
+                            let remaining_int = Int.abs(Float.toInt(e.remaining));
+                            Debug.print("Converted remaining to int: " # debug_show(remaining_int));
+                            ?insert_limit_order(pool, { args with amount = remaining_int }, choice);
                         } else {
+                            Debug.print("No remaining amount - no limit order created");
                             null;
                         };
                     };
 
+                    Debug.print("=== PUT_LIMIT_ORDER COMPLETE ===");
                     { matching; order };
                 };
             };
@@ -258,6 +280,10 @@ module {
             let time = timestamp;
             let decay = decay_model.compute_decay(timestamp);
 
+            Debug.print("--- compute_position_effect ---");
+            Debug.print("Input amount: " # debug_show(amount));
+            Debug.print("Limit consensus: " # debug_show(limit_consensus));
+
             let from_matching = Buffer.Buffer<(Text, Position<C>)>(0);
 
             let push = {
@@ -268,24 +294,37 @@ module {
             };
 
             let opposite_orders = get_descending_orders(pool, position_aggregator.get_opposite_choice(choice));
+            Debug.print("Number of opposite orders: " # debug_show(BTree.size(opposite_orders)));
 
+            var order_count = 0;
             label iter_orders for ((_, order_id) in BTree.entries(opposite_orders)) {
 
+                order_count += 1;
+                Debug.print("Processing order #" # debug_show(order_count));
+
                 if (is_target_reached(push.aggregate, choice, limit_consensus)) {
+                    Debug.print("Target reached - stopping");
                     break iter_orders;
                 };
 
                 let order = get_order(order_id);
+                Debug.print("Order limit_consensus: " # debug_show(order.limit_consensus));
 
                 push_consensus(push, choice, ?order.limit_consensus, time);
 
-                if (push.amount_left <= 0.0) break iter_orders;
+                if (push.amount_left <= 0.0) {
+                    Debug.print("Amount exhausted after push_consensus - stopping");
+                    break iter_orders;
+                };
 
                 let opposite_position = consume_order(push, order, time, decay, pool, supply_index);
 
                 from_matching.add((order_id, opposite_position));
 
-                if (push.amount_left <= 0.0) break iter_orders;
+                if (push.amount_left <= 0.0) {
+                    Debug.print("Amount exhausted after consume_order - stopping");
+                    break iter_orders;
+                };
             };
 
             if (
@@ -316,7 +355,7 @@ module {
             ?{
                 position;
                 from_matching = Buffer.toArray(from_matching);
-                remaining = Float.fromInt(amount) - push.amount_left;
+                remaining = push.amount_left;
                 aggregate = push.aggregate;
             };
         };
@@ -375,24 +414,40 @@ module {
 
         func push_consensus(input: PushConsensusInput<A, C>, choice: C, target_consensus: ?Float, time: Nat) {
 
+            Debug.print("--- push_consensus ---");
+            Debug.print("Amount left: " # debug_show(input.amount_left));
+            Debug.print("Target consensus: " # debug_show(target_consensus));
+
             let push_amount = switch(target_consensus){
                 case(null){
+                    Debug.print("No target consensus - using full amount left");
                     input.amount_left;
                 };
                 case(?tc){
+                    Debug.print("Computing resistance for target consensus: " # debug_show(tc));
                     let resistance = position_aggregator.get_resistance({ aggregate = input.aggregate; choice; target_consensus = tc; time; });
-                    Float.min(input.amount_left, resistance);
+                    Debug.print("Resistance: " # debug_show(resistance));
+                    let min_amount = Float.min(input.amount_left, resistance);
+                    Debug.print("Push amount (min of amount_left and resistance): " # debug_show(min_amount));
+                    min_amount;
                 };
-            };  
+            };
+
+            Debug.print("Converting push_amount to Int: " # debug_show(push_amount));
 
             // Update the aggregate and total dissent
             // @order: do not cast to Int here, should be done in Float
-            let position_outcome = position_aggregator.compute_outcome({ aggregate = input.aggregate; choice; amount = Int.abs(Float.toInt(push_amount)); time; });
+            let push_amount_int = Int.abs(Float.toInt(push_amount));
+            Debug.print("Converted to Int: " # debug_show(push_amount_int));
+
+            let position_outcome = position_aggregator.compute_outcome({ aggregate = input.aggregate; choice; amount = push_amount_int; time; });
 
             input.aggregate := position_outcome.aggregate.update;
             input.amount_left -= push_amount;
             input.total_dissent += position_outcome.position.dissent * push_amount;
             input.position_consent := position_outcome.position.consent;
+
+            Debug.print("Updated amount_left: " # debug_show(input.amount_left));
         };
 
         func consume_order(input: PushConsensusInput<A, C>, order: LimitOrder<C>, time: Nat, decay: Float, pool: Pool<A, C>, supply_index: Float) : Position<C> {

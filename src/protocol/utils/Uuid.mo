@@ -19,7 +19,7 @@ module {
             x ^= x << 25;
             x ^= x >> 27;
             stableSeed.seed := x;
-            return x * 2685821657736338717;
+            return Nat64.mulWrap(x, 2685821657736338717);
         };
 
         public func nextBytes(n : Nat) : [Nat8] {

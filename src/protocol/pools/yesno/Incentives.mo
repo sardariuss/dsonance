@@ -8,6 +8,10 @@ module {
 
     let EPSILON = 1e-6;
 
+    // Maximum safe value for Float to Int conversion to prevent overflow
+    // Using 2^53 as the safe limit (Float mantissa precision limit)
+    let MAX_SAFE_INT_FLOAT : Float = 9007199254740992.0; // 2^53
+
     type YesNoChoice = Types.YesNoChoice;
     type Decayed = Types.Decayed;
     type ForesightParameters = Types.ForesightParameters;
@@ -54,7 +58,14 @@ module {
             case(#NO) {  (-(total_yes + total_no) * target_consensus + total_yes) /        target_consensus;  };
         };
 
-        sign * amount;
+        let resistance = sign * amount;
+
+        // Cap resistance to prevent overflow when converting Float to Int
+        if (Float.abs(resistance) > MAX_SAFE_INT_FLOAT) {
+            sign * MAX_SAFE_INT_FLOAT;
+        } else {
+            resistance;
+        };
     };
 
     public func compute_decayed_resistance({
@@ -90,7 +101,16 @@ module {
             case(#NO) {  (-(yes + no) * target_consensus + yes) /        target_consensus;  };
         };
 
-        #DECAYED(sign * amount);
+        let resistance = sign * amount;
+
+        // Cap resistance to prevent overflow when converting Float to Int
+        let capped_resistance = if (Float.abs(resistance) > MAX_SAFE_INT_FLOAT) {
+            sign * MAX_SAFE_INT_FLOAT;
+        } else {
+            resistance;
+        };
+
+        #DECAYED(capped_resistance);
     };
 
     public func compute_opposite_worth({

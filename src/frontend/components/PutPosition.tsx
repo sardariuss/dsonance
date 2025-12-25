@@ -7,7 +7,7 @@ import { useProtocolContext } from './context/ProtocolContext';
 import PutPositionPreview from './PutPositionPreview';
 import { protocolActor } from "./actors/ProtocolActor";
 import { useNavigate } from 'react-router-dom';
-import { PutPositionPreview as PreviewArgs, SPosition } from '@/declarations/protocol/protocol.did';
+import { AmountOrigin, SPosition } from '@/declarations/protocol/protocol.did';
 import { useFungibleLedgerContext } from './context/FungibleLedgerContext';
 import { getTokenLogo, getTokenSymbol } from '../utils/metadata';
 import { showErrorToast, showSuccessToast, extractErrorMessage } from '../utils/toasts';
@@ -18,7 +18,10 @@ import { get_current } from '../utils/timeline';
 
 const PREDEFINED_PERCENTAGES = [0.1, 0.25, 0.5, 1.0];
 
-type OrderType = 'market' | 'limit';
+export enum EOrderType {
+  Market = 'MARKET',
+  Limit = 'LIMIT',
+}
 
 type Props = {
   id: string;
@@ -39,7 +42,10 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
   const [putPositionLoading, setPutPositionLoading] = useState(false);
   const [selectedPredefined, setSelectedPredefined] = useState<number | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [orderType, setOrderType] = useState<OrderType>('market');
+  const [orderType, setOrderType] = useState<EOrderType>(EOrderType.Market);
+  const [isCustomActive, setIsCustomActive] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | undefined>(undefined);
+  const customRef = useRef<HTMLInputElement>(null);
 
   // Calculate initial consensus from pool
   const initialConsensus = useMemo(() => {
@@ -66,38 +72,16 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
     if (!isEditingLimitConsensus) {
       setLimitConsensusInput(initialConsensus.toFixed(1));
     }
-  }, [initialConsensus, isEditingLimitConsensus]);
+  }, [initialConsensus]);
 
-  const yesArgs : PreviewArgs = useMemo(() => ({
-    id: uuidv4(),
-    pool_id: id,
-    from_subaccount: [],
-    amount: 1_000_000n,
-    choice_type: { YES_NO: toCandid(EYesNoChoice.Yes) },
-    with_supply_apy_impact: false,
-    origin: { FROM_WALLET: null }
-  }), [id]);
-  const { data: yesPositionPreview } = protocolActor.unauthenticated.useQueryCall({
-    functionName: "preview_position",
-    args: [ yesArgs ]
-  });
-  const noArgs : PreviewArgs = useMemo(() => ({
-    id: uuidv4(),
-    pool_id: id,
-    from_subaccount: [],
-    amount: 1_000_000n,
-    choice_type: { YES_NO: toCandid(EYesNoChoice.No) },
-    with_supply_apy_impact: false,
-    origin: { FROM_WALLET: null }
-  }), [id]);
-  const { data: noPositionPreview } = protocolActor.unauthenticated.useQueryCall({
-    functionName: "preview_position",
-    args: [ noArgs ]
-  });
   const navigate = useNavigate();
 
   const { call: putPosition } = protocolActor.authenticated.useUpdateCall({
     functionName: "put_position",
+  });
+
+  const { call: putLimitOrder } = protocolActor.authenticated.useUpdateCall({
+    functionName: "put_limit_order",
   });
 
   const showConfirmation = () => {
@@ -112,7 +96,7 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
     setShowConfirmModal(true);
   };
 
-  const executePool = (origin: import('@/declarations/protocol/protocol.did').AmountOrigin) => {
+  const executePool = (origin: AmountOrigin) => {
 
     setPutPositionLoading(true);
 
@@ -120,32 +104,67 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
     const needsApproval = 'FROM_WALLET' in origin;
 
     const executePut = (finalAmount: bigint) => {
-      putPosition([{
-        pool_id: id,
-        id: uuidv4(),
-        from_subaccount: [],
-        amount: finalAmount,
-        choice_type: { YES_NO: toCandid(position.choice) },
-        origin
-      }]).then((result) => {
-        if (result === undefined) {
-          throw new Error("Lock position returned undefined result");
+      if (orderType === EOrderType.Limit) {
+        // Execute limit order
+        if (!user?.principal) {
+          throw new Error("User principal not found");
         }
-        if ('err' in result) {
-          console.error("Lock position failed:", result.err);
-          showErrorToast(extractErrorMessage(result.err), "Lock position");
-          throw new Error(`Lock position failed: ${result.err.toString()}`);
-        }
-        refreshUserBalance();
-        showSuccessToast("View locked successfully", "Lock position");
-        setPutPositionLoading(false);
-        // Position successfully put, navigate to the user's profile page
-        navigate(`/user/${user?.principal.toString()}`);
-      }).catch((error) => {
-        console.error("Error during Lock position:", error);
-        showErrorToast(extractErrorMessage(error), "Lock position");
-        setPutPositionLoading(false);
-      });
+        putLimitOrder([{
+          pool_id: id,
+          order_id: uuidv4(),
+          from: { owner: user.principal, subaccount: [] },
+          amount: finalAmount,
+          choice_type: { YES_NO: toCandid(position.choice) },
+          limit_consensus: limitConsensus / 100, // Convert from percentage (0-100) to decimal (0-1)
+          from_origin: origin
+        }]).then((result) => {
+          if (result === undefined) {
+            throw new Error("Place limit order returned undefined result");
+          }
+          if ('err' in result) {
+            console.error("Place limit order failed:", result.err);
+            showErrorToast(extractErrorMessage(result.err), "Place limit order");
+            throw new Error(`Place limit order failed: ${result.err.toString()}`);
+          }
+          refreshUserBalance();
+          showSuccessToast("Limit order placed successfully", "Place limit order");
+          setPutPositionLoading(false);
+          // Navigate to the user's profile page
+          navigate(`/user/${user?.principal.toString()}`);
+        }).catch((error) => {
+          console.error("Error during place limit order:", error);
+          showErrorToast(extractErrorMessage(error), "Place limit order");
+          setPutPositionLoading(false);
+        });
+      } else {
+        // Execute market order (normal position)
+        putPosition([{
+          pool_id: id,
+          id: uuidv4(),
+          from_subaccount: [],
+          amount: finalAmount,
+          choice_type: { YES_NO: toCandid(position.choice) },
+          origin
+        }]).then((result) => {
+          if (result === undefined) {
+            throw new Error("Lock position returned undefined result");
+          }
+          if ('err' in result) {
+            console.error("Lock position failed:", result.err);
+            showErrorToast(extractErrorMessage(result.err), "Lock position");
+            throw new Error(`Lock position failed: ${result.err.toString()}`);
+          }
+          refreshUserBalance();
+          showSuccessToast("View locked successfully", "Lock position");
+          setPutPositionLoading(false);
+          // Position successfully put, navigate to the user's profile page
+          navigate(`/user/${user?.principal.toString()}`);
+        }).catch((error) => {
+          console.error("Error during Lock position:", error);
+          showErrorToast(extractErrorMessage(error), "Lock position");
+          setPutPositionLoading(false);
+        });
+      }
     };
 
     if (needsApproval) {
@@ -177,11 +196,6 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
   },
   [position]);
 
-  const customRef = useRef<HTMLInputElement>(null);
-  const [isCustomActive, setIsCustomActive] = useState(false);
-
-  const [errorMsg, setErrorMsg] = useState<string | undefined>(undefined);
-
   useEffect(() => {
     if (parameters === undefined) {
       setErrorMsg(undefined);
@@ -204,15 +218,15 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
         <li className="min-w-max text-center">
           <TabButton
             label="Market"
-            setIsCurrent={() => setOrderType('market')}
-            isCurrent={orderType === 'market'}
+            setIsCurrent={() => setOrderType(EOrderType.Market)}
+            isCurrent={orderType === EOrderType.Market}
           />
         </li>
         <li className="min-w-max text-center">
           <TabButton
             label="Limit"
-            setIsCurrent={() => setOrderType('limit')}
-            isCurrent={orderType === 'limit'}
+            setIsCurrent={() => setOrderType(EOrderType.Limit)}
+            isCurrent={orderType === EOrderType.Limit}
           />
         </li>
       </ul>
@@ -309,12 +323,12 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
           }
         </div>
 
-        {orderType === 'limit' && <span className="w-full border-b border-gray-300 dark:border-gray-700">
+        {orderType === EOrderType.Limit && <span className="w-full border-b border-gray-300 dark:border-gray-700">
           {/* Divider */}
         </span>}
 
         {/* Limit Consensus Input - Only show for limit orders */}
-        {orderType === 'limit' && (
+        {orderType === EOrderType.Limit && (
           <div className="flex flex-col w-full mt-2">
             <div className="flex justify-between items-center mb-1">
               <label className="text-base">
@@ -400,12 +414,14 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
                 max="100"
                 step="0.1"
                 value={limitConsensus}
+                onMouseDown={() => {
+                  // Commit text input value before interacting with slider
+                  setIsEditingLimitConsensus(false);
+                }}
                 onChange={(e) => {
                   const roundedValue = Math.round(Number(e.target.value) * 10) / 10;
                   setLimitConsensus(roundedValue);
-                  if (!isEditingLimitConsensus) {
-                    setLimitConsensusInput(roundedValue.toFixed(1));
-                  }
+                  setLimitConsensusInput(roundedValue.toFixed(1));
                 }}
                 className={`limit-consensus-range w-full rounded-lg cursor-pointer ${
                   position.choice === EYesNoChoice.Yes ? 'limit-consensus-range-yes' : 'limit-consensus-range-no'
@@ -424,7 +440,7 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
           <PutPositionPreview
             positionPreview={positionPreview}
             positionPreviewWithoutImpact={positionPreviewWithoutImpact}
-            isLimitOrder={orderType === 'limit'}
+            isLimitOrder={orderType === EOrderType.Limit}
           />
         </div>
       )}
@@ -433,7 +449,7 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
         disabled={authenticated && (putPositionLoading || errorMsg !== undefined || position.amount === 0n)}
         onClick={() => { if (!authenticated) { connect() } else { showConfirmation() } }}
       >
-        <span>{orderType === 'limit' ? 'Place Order' : 'Lock Position'}</span>
+        <span>{orderType === EOrderType.Limit ? 'Place Order' : 'Lock Position'}</span>
       </button>
 
       {/* Confirmation Modal */}
@@ -445,6 +461,8 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
         positionPreview={positionPreview}
         pool={pool}
         putPositionLoading={putPositionLoading}
+        orderType={orderType}
+        limitConsensus={limitConsensus}
       />
     </div>
 

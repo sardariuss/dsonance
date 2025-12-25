@@ -12,6 +12,7 @@ import { createThumbnailUrl } from '../utils/thumbnail';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@nfid/identitykit/react';
 import { protocolActor } from './actors/ProtocolActor';
+import { EOrderType } from './PutPosition';
 
 type Props = {
   isVisible: boolean;
@@ -21,6 +22,8 @@ type Props = {
   positionPreview: SPosition | undefined;
   pool: SYesNoPool;
   putPositionLoading: boolean;
+  orderType: EOrderType;
+  limitConsensus?: number;
 };
 
 type OriginType = 'wallet' | 'supply';
@@ -33,6 +36,8 @@ const PutPositionModal = ({
   positionPreview,
   pool,
   putPositionLoading,
+  orderType,
+  limitConsensus,
 }: Props) => {
   const { supplyLedger: { formatAmount, formatAmountUsd, metadata, userBalance } } = useFungibleLedgerContext();
   const { user } = useAuth();
@@ -43,12 +48,12 @@ const PutPositionModal = ({
 
   // Fetch user's supply info (only if user is authenticated)
   const account = user?.principal ? { owner: user.principal, subaccount: [] as [] } : undefined;
-  const { data: supplyInfo } = protocolActor.authenticated.useQueryCall({
-    functionName: "get_supply_info",
+  const { data: availableSupply } = protocolActor.authenticated.useQueryCall({
+    functionName: "get_available_supply",
     args: account ? [account] : undefined as any,
   });
 
-  const supplyBalance = supplyInfo?.accrued_amount ? BigInt(Math.floor(supplyInfo.accrued_amount)) : 0n;
+  const supplyBalance = availableSupply ?? 0;
 
   // Reset to step 1 when modal opens/closes
   useEffect(() => {
@@ -90,11 +95,17 @@ const PutPositionModal = ({
 
   const canProceed = hasEnoughBalance && position.amount > 0n;
 
+  const modalTitle = step === 1
+    ? "Choose Funding Source"
+    : orderType === EOrderType.Limit
+      ? "Confirm Limit Order"
+      : "Confirm Lock Position";
+
   return (
     <Modal
       isVisible={isVisible}
       onClose={handleClose}
-      title={step === 1 ? "Choose Funding Source" : "Confirm Lock Position"}
+      title={modalTitle}
     >
       <div className="flex flex-col w-full text-black dark:text-white space-y-4">
 
@@ -242,6 +253,16 @@ const PutPositionModal = ({
                 </div>
               </div>
 
+              {/* Limit Consensus (only for limit orders) */}
+              {orderType === EOrderType.Limit && limitConsensus !== undefined && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700 dark:text-gray-300">Limit Consensus</span>
+                  <span className="font-semibold">
+                    {limitConsensus.toFixed(1)}%
+                  </span>
+                </div>
+              )}
+
               {/* Dissent */}
               {positionPreview && (
                 <div className="flex justify-between items-center">
@@ -266,7 +287,9 @@ const PutPositionModal = ({
             <div className="flex flex-row items-center space-x-2">
               <HiOutlineExclamationTriangle className="w-6 h-6 text-orange-500 flex-shrink-0" />
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                By confirming, your tokens will be locked for a duration that can be no less than the minimum duration shown above.
+                {orderType === EOrderType.Limit
+                  ? 'By confirming, your limit order will be placed and executed when the pool consensus reaches your specified limit.'
+                  : 'By confirming, your tokens will be locked for a duration that can be no less than the minimum duration shown above.'}
               </div>
             </div>
 
@@ -285,7 +308,7 @@ const PutPositionModal = ({
                 onClick={handleConfirm}
                 disabled={putPositionLoading}
               >
-                {putPositionLoading ? 'Processing...' : 'Confirm Lock'}
+                {putPositionLoading ? 'Processing...' : orderType === EOrderType.Limit ? 'Place Order' : 'Confirm Lock'}
               </button>
             </div>
           </>

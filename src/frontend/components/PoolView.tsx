@@ -1,6 +1,7 @@
 import { SYesNoPool } from "@/declarations/backend/backend.did";
 import PutPosition from "./PutPosition";
 import PoolPositions from "./PoolPositions";
+import PoolLimitOrders from "./PoolLimitOrders";
 import { useEffect, useMemo, useState } from "react";
 import { EYesNoChoice } from "../utils/conversions/yesnochoice";
 import CdvChart from "./charts/CdvChart";
@@ -171,6 +172,7 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
                 setPosition={setPosition}
                 poolDetails={poolDetails}
               /> }
+              <PoolLimitOrders poolId={pool.pool_id} />
               <PoolPositions poolId={pool.pool_id} />
             </div>
           )}
@@ -215,12 +217,12 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
                 </div>
               </div>
             }
-            <PoolSlider
+            { PREVIEW_POOL_IMPACT && <PoolSlider
               id={pool.pool_id}
               position={position}
               setPosition={setPosition}
               poolDetails={poolDetails}
-            />
+            />}
             <PutPosition
               id={pool.pool_id}
               position={position}
@@ -229,6 +231,7 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
               positionPreviewWithoutImpact={positionPreviewWithoutImpact?.new.YES_NO}
               pool={pool}
             />
+            <PoolLimitOrders poolId={pool.pool_id} />
             <PoolPositions poolId={pool.pool_id} />
           </div> : 
         <div className="flex flex-col space-y-2 items-center w-full">
