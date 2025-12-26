@@ -70,15 +70,7 @@ const PutPositionPreview: React.FC<PutPositionPreviewProps> = ({
         textColor: "text-green-600 dark:text-green-400"
       },
     ] : [
-      // For limit orders: show matching amount and Win APY
-      {
-        label: "Matching amount",
-        icon: <HiOutlineClock className="w-5 h-5" />,
-        value: displayedPreview.amount > 0n
-          ? `${supplyLedger.formatAmount(displayedPreview.amount)} ${getTokenSymbol(supplyLedger.metadata)}`
-          : "No match",
-        textColor: displayedPreview.amount > 0n ? "text-green-600 dark:text-green-400" : "text-gray-500"
-      },
+      // For limit orders: show Win APY if there's a match
       ...(displayedPreview.amount > 0n ? [{
         label: "Win APY",
         icon: <HiMiniArrowTrendingUp className="w-5 h-5" />,
@@ -113,6 +105,16 @@ const PutPositionPreview: React.FC<PutPositionPreviewProps> = ({
   return (
     <div className="w-full">
       <div className="flex flex-col space-y-3 w-full">
+        {/* Matching amount for limit orders */}
+        {isLimitOrder && displayedPreview.amount > 0n && (
+          <div className="p-3 rounded-lg bg-blue-200 dark:bg-blue-800/40">
+            <div className="text-right">
+              <span className="text-lg text-gray-900 dark:text-white">
+                {supplyLedger.formatAmount(displayedPreview.amount)} matching
+              </span>
+            </div>
+          </div>
+        )}
         {fieldsToShow.map(({ label, icon, value, textColor }) => (
           <div key={label} className="flex justify-between items-center w-full rounded-lg">
             <div className="flex items-center gap-2">

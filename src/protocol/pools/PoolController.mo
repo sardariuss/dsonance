@@ -339,13 +339,16 @@ module {
                 return null;
             };
 
+            let matched_amount = amount - Int.abs(Float.toInt(push.amount_left));
+
             let position = {
                 args with
+                amount = matched_amount;  // Use matched amount, not original amount
                 pool_id = pool.pool_id;
                 choice;
                 timestamp;
                 decay;
-                dissent = push.total_dissent / Float.fromInt(amount);
+                dissent = push.total_dissent / Float.fromInt(matched_amount);
                 var consent = push.position_consent;
                 var foresight : Foresight = { reward = 0; apr = { current = 0.0; potential = 0.0; }; };
                 var hotness = 0.0;
