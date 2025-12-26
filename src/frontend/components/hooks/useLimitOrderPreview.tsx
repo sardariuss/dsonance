@@ -1,7 +1,7 @@
 import { protocolActor } from "../actors/ProtocolActor";
 import { useEffect, useMemo, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
-import { toCandid } from "../../utils/conversions/yesnochoice";
+import { toCandid, EYesNoChoice } from "../../utils/conversions/yesnochoice";
 import { PositionInfo } from "../types";
 import { PreviewLimitOrderArgs, SPutPositionSuccess } from "@/declarations/protocol/protocol.did";
 import { Principal } from "@dfinity/principal";
@@ -49,8 +49,37 @@ export const useLimitOrderPreview = (
   }, [position, limitConsensus]);
 
   // Extract the matching field from the result
-  if (preview && "ok" in preview && preview.ok.matching.length > 0) {
-    return preview.ok.matching[0];
+  if (preview && "ok" in preview) {
+    // If there's a match, return it
+    if (preview.ok.matching.length > 0) {
+      return preview.ok.matching[0];
+    }
+    // If no match, return an empty position to show "No match" in the preview
+    // We need to return a valid SPutPositionSuccess structure
+    return {
+      new: {
+        YES_NO: {
+          position_id: '',
+          pool_id: pool_id,
+          from: { owner: Principal.anonymous(), subaccount: [] },
+          choice: debouncedPosition.choice === EYesNoChoice.Yes ? { YES: null } : { NO: null },
+          amount: 0n,
+          supply_index: 0,
+          lock: [],
+          dissent: 0,
+          consent: 0,
+          decay: 0,
+          hotness: 0,
+          foresight: {
+            apr: { current: 0, potential: 0 },
+            reward: 0n
+          },
+          timestamp: 0n,
+          tx_id: 0n
+        }
+      },
+      previous: []
+    };
   }
 
   return undefined;

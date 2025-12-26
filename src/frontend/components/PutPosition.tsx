@@ -61,6 +61,16 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
     }
   }, [limitConsensus, isEditingLimitConsensus]);
 
+  // Reset limit consensus when choice changes
+  useEffect(() => {
+    const newConsensus = position.choice === EYesNoChoice.Yes
+      ? Math.floor(initialConsensus)  // Round down for True
+      : Math.ceil(initialConsensus);   // Round up for False
+
+    setLimitConsensus(newConsensus);
+    setLimitConsensusInput(newConsensus.toString());
+  }, [position.choice, initialConsensus]);
+
   const navigate = useNavigate();
 
   const { call: putPosition } = protocolActor.authenticated.useUpdateCall({
@@ -316,15 +326,35 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
 
         {/* Limit Consensus Input - Only show for limit orders */}
         {orderType === EOrderType.Limit && (
-          <div className="flex flex-col w-full mt-2">
-            <div className="flex justify-between items-center mb-1">
-              <label className="text-base">
-                Limit Consensus
-              </label>
-              <div className="flex items-center gap-1">
+          <div className="flex items-center justify-between w-full mt-2">
+            <label className="text-base whitespace-nowrap">
+              Limit Consensus
+            </label>
+            <div className="flex items-center bg-gray-100 dark:bg-gray-900 rounded-lg flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const newValue = Math.max(0, limitConsensus - 1);
+                  setLimitConsensus(newValue);
+                  setLimitConsensusInput(newValue.toString());
+                }}
+                disabled={putPositionLoading || limitConsensus <= 0}
+                className="flex items-center justify-center w-10 h-10 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="text-xl font-bold">−</span>
+              </button>
+
+              <div className="relative w-[70px] h-10 flex items-center justify-center">
+                {/* Visual overlay layer */}
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center translate-x-[1ch]">
+                  <span className="text-lg leading-none text-gray-900 dark:text-white">{limitConsensusInput || '0'}</span>
+                  <span className="ml-0.5 text-lg leading-none text-gray-700 dark:text-gray-300">%</span>
+                </div>
+
+                {/* Invisible input */}
                 <input
                   type="text"
-                  inputMode="decimal"
+                  inputMode="numeric"
                   value={limitConsensusInput}
                   onFocus={() => setIsEditingLimitConsensus(true)}
                   onChange={(e) => {
@@ -367,46 +397,32 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
                     setLimitConsensus(roundedValue);
                     setLimitConsensusInput(roundedValue.toString());
                   }}
-                  className="w-16 text-right text-3xl bg-transparent text-gray-900 dark:text-white outline-none focus:border-blue-500 dark:focus:border-blue-400"
+                  className="
+                    absolute inset-0
+                    w-full h-full
+                    bg-transparent
+                    text-transparent
+                    caret-gray-900 dark:caret-white
+                    text-lg leading-none
+                    outline-none
+                    text-center
+                  "
                   disabled={putPositionLoading}
                 />
-                <span className="text-base text-gray-700 dark:text-gray-300">%</span>
               </div>
-            </div>
-            <div className="relative w-full">
-              <style>
-                {`
-                  .limit-consensus-range-yes {
-                    background: linear-gradient(to right, oklch(62.7% 0.194 149.214) 0%, oklch(62.7% 0.194 149.214) ${limitConsensus}%, #d1d5db ${limitConsensus}%, #d1d5db 100%) !important;
-                  }
-                  .limit-consensus-range-no {
-                    background: linear-gradient(to right, #d1d5db 0%, #d1d5db ${limitConsensus}%, oklch(63.7% 0.237 25.331) ${limitConsensus}%, oklch(63.7% 0.237 25.331) 100%) !important;
-                  }
-                  .dark .limit-consensus-range-yes {
-                    background: linear-gradient(to right, oklch(72.3% 0.219 149.579) 0%, oklch(72.3% 0.219 149.579) ${limitConsensus}%, #d1d5db ${limitConsensus}%, #d1d5db 100%) !important;
-                  }
-                `}
-              </style>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="1"
-                value={limitConsensus}
-                onMouseDown={() => {
-                  // Commit text input value before interacting with slider
-                  setIsEditingLimitConsensus(false);
+
+              <button
+                type="button"
+                onClick={() => {
+                  const newValue = Math.min(100, limitConsensus + 1);
+                  setLimitConsensus(newValue);
+                  setLimitConsensusInput(newValue.toString());
                 }}
-                onChange={(e) => {
-                  const roundedValue = Math.round(Number(e.target.value));
-                  setLimitConsensus(roundedValue);
-                  setLimitConsensusInput(roundedValue.toString());
-                }}
-                className={`limit-consensus-range w-full rounded-lg cursor-pointer ${
-                  position.choice === EYesNoChoice.Yes ? 'limit-consensus-range-yes' : 'limit-consensus-range-no'
-                }`}
-                disabled={putPositionLoading}
-              />
+                disabled={putPositionLoading || limitConsensus >= 100}
+                className="flex items-center justify-center w-10 h-10 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="text-xl font-bold">+</span>
+              </button>
             </div>
           </div>
         )}

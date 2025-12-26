@@ -47,7 +47,7 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
     }
 
     const consensus = (totalYes / total) * 100;
-    return Math.round(consensus); // Round to integer
+    return consensus; // Keep decimal value for accurate floor/ceil
   }, [pool.aggregate]);
 
   const [limitConsensus, setLimitConsensus] = useState<number>(initialConsensus);
