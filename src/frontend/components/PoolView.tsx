@@ -11,11 +11,12 @@ import { useProtocolContext } from "./context/ProtocolContext";
 import { useMediaQuery } from "react-responsive";
 import { MOBILE_MAX_WIDTH_QUERY, PREVIEW_POOL_IMPACT } from "../constants";
 import PoolFigures, { PoolFiguresSkeleton } from "./PoolFigures";
-import { interpolate_now, map_timeline } from "../utils/timeline";
+import { interpolate_now, map_timeline, get_current } from "../utils/timeline";
 import ConsensusChart from "./charts/ConsensusChart";
 import { protocolActor } from "./actors/ProtocolActor";
 import LockChart from "./charts/LockChart";
 import { usePositionPreview } from "./hooks/usePositionPreview";
+import { useLimitOrderPreview } from "./hooks/useLimitOrderPreview";
 import { DurationUnit } from "../utils/conversions/durationUnit";
 import IntervalPicker from "./charts/IntervalPicker";
 import ChartToggle, { ChartType } from "./charts/ChartToggle";
@@ -34,15 +35,33 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
   const [duration, setDuration] = useState<DurationUnit | undefined>(DurationUnit.MONTH);
   const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.Consensus);
 
+  // Calculate initial consensus from pool
+  const initialConsensus = useMemo(() => {
+    const currentAggregate = get_current(pool.aggregate).data;
+    const totalYes = Number(currentAggregate.total_yes);
+    const totalNo = Number(currentAggregate.total_no);
+    const total = totalYes + totalNo;
+
+    if (total === 0) {
+      return 50; // Default to 50% if no votes yet
+    }
+
+    const consensus = (totalYes / total) * 100;
+    return Math.round(consensus); // Round to integer
+  }, [pool.aggregate]);
+
+  const [limitConsensus, setLimitConsensus] = useState<number>(initialConsensus);
+
   const { data: poolPositions } = protocolActor.unauthenticated.useQueryCall({
     functionName: "get_pool_positions",
-    args: [pool.pool_id], 
+    args: [pool.pool_id],
   });
 
   const { computeDecay, info } = useProtocolContext();
-  
+
   const positionPreview = usePositionPreview(pool.pool_id, position, true);
   const positionPreviewWithoutImpact = usePositionPreview(pool.pool_id, position, false);
+  const limitOrderPreview = useLimitOrderPreview(pool.pool_id, position, limitConsensus);
 
   // TODO: remove redundant code
   const { poolDetails, liveDetails } = useMemo(() => {
@@ -83,11 +102,12 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
     
   const resetPool = () => {
     setPosition({ choice: EYesNoChoice.Yes, amount: 0n });
+    setLimitConsensus(initialConsensus);
   }
 
   useEffect(() => {
     resetPool();
-  }, [pool]);
+  }, [pool, initialConsensus]);
 
   const thumbnail = useMemo(() => createThumbnailUrl(pool.info.thumbnail), [pool]);
 
@@ -187,7 +207,11 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
               setPosition={setPosition}
               positionPreview={positionPreview?.new.YES_NO}
               positionPreviewWithoutImpact={positionPreviewWithoutImpact?.new.YES_NO}
+              limitOrderPreview={limitOrderPreview?.new.YES_NO}
               pool={pool}
+              limitConsensus={limitConsensus}
+              setLimitConsensus={setLimitConsensus}
+              initialConsensus={initialConsensus}
             />
           )}
         </div>
@@ -229,7 +253,11 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
               setPosition={setPosition}
               positionPreview={positionPreview?.new.YES_NO}
               positionPreviewWithoutImpact={positionPreviewWithoutImpact?.new.YES_NO}
+              limitOrderPreview={limitOrderPreview?.new.YES_NO}
               pool={pool}
+              limitConsensus={limitConsensus}
+              setLimitConsensus={setLimitConsensus}
+              initialConsensus={initialConsensus}
             />
             <PoolLimitOrders poolId={pool.pool_id} />
             <PoolPositions poolId={pool.pool_id} />

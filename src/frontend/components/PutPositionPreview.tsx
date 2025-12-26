@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { HiMiniArrowTrendingUp, HiMiniTrophy, HiOutlineArrowTrendingUp, HiOutlineClock } from "react-icons/hi2";
 import { useMiningRatesContext } from "./context/MiningRatesContext";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
-import { getTokenLogo } from "../utils/metadata";
+import { getTokenLogo, getTokenSymbol } from "../utils/metadata";
 
 interface PutPositionPreviewProps {
   positionPreview: SPosition | undefined;
@@ -29,7 +29,7 @@ const PutPositionPreview: React.FC<PutPositionPreviewProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const [useSupplyImpact, setUseSupplyImpact] = useState(true);
 
-  const { participationLedger } = useFungibleLedgerContext();
+  const { participationLedger, supplyLedger } = useFungibleLedgerContext();
   const { miningRates } = useMiningRatesContext();
 
   const displayedPreview = useSupplyImpact ? positionPreview : positionPreviewWithoutImpact;
@@ -55,7 +55,7 @@ const PutPositionPreview: React.FC<PutPositionPreviewProps> = ({
     : 0;
 
   const basicFields = [
-    // Only show Min duration and Win APY for market orders
+    // For market orders: show Min duration and Win APY
     ...(!isLimitOrder ? [
       {
         label: "Min duration",
@@ -69,7 +69,23 @@ const PutPositionPreview: React.FC<PutPositionPreviewProps> = ({
         value: (aprToApy(displayedPreview.foresight.apr.potential) * 100).toFixed(2) + "%",
         textColor: "text-green-600 dark:text-green-400"
       },
-    ] : []),
+    ] : [
+      // For limit orders: show matching amount and Win APY
+      {
+        label: "Matching amount",
+        icon: <HiOutlineClock className="w-5 h-5" />,
+        value: displayedPreview.amount > 0n
+          ? `${supplyLedger.formatAmount(displayedPreview.amount)} ${getTokenSymbol(supplyLedger.metadata)}`
+          : "No match",
+        textColor: displayedPreview.amount > 0n ? "text-green-600 dark:text-green-400" : "text-gray-500"
+      },
+      ...(displayedPreview.amount > 0n ? [{
+        label: "Win APY",
+        icon: <HiMiniArrowTrendingUp className="w-5 h-5" />,
+        value: (aprToApy(displayedPreview.foresight.apr.potential) * 100).toFixed(2) + "%",
+        textColor: "text-green-600 dark:text-green-400"
+      }] : [])
+    ]),
     {
       label: "Mining rewards",
       icon: twvLogo ? <img src={twvLogo} alt="TWV" className="w-5 h-5" /> : <HiMiniTrophy className="w-5 h-5" />,

@@ -70,6 +70,12 @@ shared({ caller = admin }) persistent actor class Protocol(args: V0_2_0.Args) : 
         await* getFacade().put_position({ args with caller; });
     };
 
+    // ⚠️ THIS IS INTENTIONALLY A QUERY FUNCTION
+    // DO NOT CHANGE IT TO A SHARED FUNCTION OTHERWISE THE PREVIEW WILL PUT AN ACTUAL LIMIT ORDER
+    public query({caller}) func preview_limit_order(args: Interface.PreviewLimitOrderArgs) : async Interface.PutLimitOrderResult {
+        getFacade().put_limit_order_for_free({ args with caller; });
+    };
+
     // Add a limit order on the given pool identified by its pool_id
     public shared({caller}) func put_limit_order(args: Interface.PutLimitOrderArgs) : async Interface.PutLimitOrderResult {
         await* getFacade().put_limit_order({ args with caller; });

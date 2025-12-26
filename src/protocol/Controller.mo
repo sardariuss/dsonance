@@ -62,6 +62,7 @@ module {
     type TransferResult = LendingTypes.TransferResult;
     type IPriceTracker = LedgerTypes.IPriceTracker;
     type MiningTracker = Types.MiningTracker;
+    type PreviewLimitOrderArgs = Types.PreviewLimitOrderArgs;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -230,6 +231,38 @@ module {
                 tx_id;
                 supply_index;
             });
+        };
+
+        public func put_limit_order_for_free(args: PreviewLimitOrderArgs) : Result<SPutLimitOrderSuccess, Text> {
+
+            let { pool_id; from; amount; limit_consensus; } = args;
+
+            let pool_type = switch(Map.get(pool_register.pools, Map.thash, pool_id)){
+                case(null) return #err("Pool not found: " # pool_id);
+                case(?v) v;
+            };
+
+            if (limit_consensus < 0.0 or limit_consensus > 1.0) {
+                return #err("Limit dissent must be between 0.0 and 1.0");
+            };
+
+            if (amount < parameters.minimum_position_amount){
+                return #err("Insufficient amount: " # debug_show(amount) # " (minimum: " # debug_show(parameters.minimum_position_amount) # ")");
+            };
+
+            let timestamp = clock.get_time();
+
+            // Do not verify available supply for free preview, just get the supply index
+            let { supply_index } = LimitOrders.get_account_info(
+                limit_orders, supply_registry, timestamp, from);
+
+            let success = pool_type_controller.put_limit_order({
+                pool_type;
+                args = { args with timestamp; supply_index; };
+                choice_type = args.choice_type;
+            });
+
+            #ok(SharedConversions.sharePutLimitOrderSuccess(success));
         };
 
         public func put_limit_order(args: PutLimitOrderArgs) : async* Result<SPutLimitOrderSuccess, Text> {

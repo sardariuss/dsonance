@@ -135,13 +135,16 @@ module {
         with_supply_apy_impact: Bool;
     };
 
-    public type PutLimitOrderArgs = {
+    public type PreviewLimitOrderArgs = {
         order_id: UUID;
         pool_id: UUID;
         choice_type: ChoiceType;
         from: Account;
         amount: Nat;
         limit_consensus: Float;
+    };
+
+    public type PutLimitOrderArgs = PreviewLimitOrderArgs and {
         from_origin: AmountOrigin;
     };
 

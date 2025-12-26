@@ -30,6 +30,7 @@ module {
     public type PutPositionPreview   = Types.PutPositionPreview;
     public type PutPositionArgs      = Types.PutPositionArgs;
     public type PutLimitOrderArgs    = Types.PutLimitOrderArgs;
+    public type PreviewLimitOrderArgs = Types.PreviewLimitOrderArgs;
     public type PutLimitOrderResult  = Types.PutLimitOrderResult;
     public type ChoiceType           = Types.ChoiceType;
     public type LimitOrderType       = Types.LimitOrderType;
@@ -82,6 +83,10 @@ module {
             async ?SPositionType;
 
         // --- Limit Orders ---
+        preview_limit_order :
+            query (args : PreviewLimitOrderArgs) ->
+            async PutLimitOrderResult;
+
         put_limit_order :
             shared (args : PutLimitOrderArgs) ->
             async PutLimitOrderResult;

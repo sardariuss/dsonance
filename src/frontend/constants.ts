@@ -3,7 +3,7 @@ export const UNDEFINED_SCALAR = "—";
 // Layout constants
 export const MOBILE_MAX_WIDTH_QUERY = "(max-width: 640px)";
 // Documentation links
-export const DOCS_URL = "https://sardarius-corp.gitbook.io/towerview/";
+export const DOCS_URL = "https://sardarius-corp.gitbook.io/towerview";
 export const DOCS_CDV_URL = DOCS_URL + "/glossary#consensus-decayed-value-cdv";
 export const DOCS_TVL_URL = DOCS_URL + "/glossary#total-value-locked-tvl";
 export const X_URL = "https://x.com/towerview_xyz";

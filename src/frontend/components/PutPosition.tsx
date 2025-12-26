@@ -29,10 +29,14 @@ type Props = {
   setPosition: (position: PositionInfo) => void;
   positionPreview: SPosition | undefined;
   positionPreviewWithoutImpact?: SPosition | undefined;
+  limitOrderPreview?: SPosition | undefined;
   pool: SYesNoPool;
+  limitConsensus: number;
+  setLimitConsensus: (consensus: number) => void;
+  initialConsensus: number;
 };
 
-const PutPosition = ({id, position, setPosition, positionPreview, positionPreviewWithoutImpact, pool}: Props) => {
+const PutPosition = ({id, position, setPosition, positionPreview, positionPreviewWithoutImpact, limitOrderPreview, pool, limitConsensus, setLimitConsensus, initialConsensus}: Props) => {
 
   const { supplyLedger: { formatAmount, formatAmountUsd, metadata,
     convertToFixedPoint, approveIfNeeded, userBalance, refreshUserBalance } } = useFungibleLedgerContext();
@@ -47,32 +51,15 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
   const [errorMsg, setErrorMsg] = useState<string | undefined>(undefined);
   const customRef = useRef<HTMLInputElement>(null);
 
-  // Calculate initial consensus from pool
-  const initialConsensus = useMemo(() => {
-    const currentAggregate = get_current(pool.aggregate).data;
-    const totalYes = Number(currentAggregate.total_yes);
-    const totalNo = Number(currentAggregate.total_no);
-    const total = totalYes + totalNo;
-
-    if (total === 0) {
-      return 50; // Default to 50% if no votes yet
-    }
-
-    const consensus = (totalYes / total) * 100;
-    return Math.round(consensus * 10) / 10; // Round to one decimal place
-  }, [pool.aggregate]);
-
-  const [limitConsensus, setLimitConsensus] = useState<number>(initialConsensus);
-  const [limitConsensusInput, setLimitConsensusInput] = useState<string>(initialConsensus.toFixed(1));
+  const [limitConsensusInput, setLimitConsensusInput] = useState<string>(Math.round(limitConsensus).toString());
   const [isEditingLimitConsensus, setIsEditingLimitConsensus] = useState<boolean>(false);
 
-  // Update limit consensus when pool changes
+  // Update limit consensus input when limitConsensus prop changes
   useEffect(() => {
-    setLimitConsensus(initialConsensus);
     if (!isEditingLimitConsensus) {
-      setLimitConsensusInput(initialConsensus.toFixed(1));
+      setLimitConsensusInput(Math.round(limitConsensus).toString());
     }
-  }, [initialConsensus]);
+  }, [limitConsensus, isEditingLimitConsensus]);
 
   const navigate = useNavigate();
 
@@ -341,31 +328,23 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
                   value={limitConsensusInput}
                   onFocus={() => setIsEditingLimitConsensus(true)}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/[^0-9.]/g, '');
-                    // Prevent multiple decimal points
-                    const parts = value.split('.');
-                    let sanitizedValue = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : value;
+                    const value = e.target.value.replace(/[^0-9]/g, '');
 
-                    // Limit to one decimal place
-                    if (parts.length === 2 && parts[1].length > 1) {
-                      sanitizedValue = `${parts[0]}.${parts[1].charAt(0)}`;
-                    }
-
-                    // Handle empty or just decimal point
-                    if (sanitizedValue === '' || sanitizedValue === '.') {
-                      setLimitConsensusInput(sanitizedValue);
+                    // Handle empty
+                    if (value === '') {
+                      setLimitConsensusInput(value);
                       setLimitConsensus(0);
                       return;
                     }
 
                     // Prevent values > 100
-                    const numValue = Number(sanitizedValue);
+                    const numValue = Number(value);
                     if (!isNaN(numValue) && numValue > 100) {
                       return; // Don't update if value exceeds 100
                     }
 
                     // Update input field with validated value
-                    setLimitConsensusInput(sanitizedValue);
+                    setLimitConsensusInput(value);
 
                     // Update the actual consensus value if valid
                     if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
@@ -383,10 +362,10 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
                       numValue = 100;
                     }
 
-                    // Round to one decimal place
-                    const roundedValue = Math.round(numValue * 10) / 10;
+                    // Round to integer
+                    const roundedValue = Math.round(numValue);
                     setLimitConsensus(roundedValue);
-                    setLimitConsensusInput(roundedValue.toFixed(1));
+                    setLimitConsensusInput(roundedValue.toString());
                   }}
                   className="w-16 text-right text-3xl bg-transparent text-gray-900 dark:text-white outline-none focus:border-blue-500 dark:focus:border-blue-400"
                   disabled={putPositionLoading}
@@ -412,16 +391,16 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
                 type="range"
                 min="0"
                 max="100"
-                step="0.1"
+                step="1"
                 value={limitConsensus}
                 onMouseDown={() => {
                   // Commit text input value before interacting with slider
                   setIsEditingLimitConsensus(false);
                 }}
                 onChange={(e) => {
-                  const roundedValue = Math.round(Number(e.target.value) * 10) / 10;
+                  const roundedValue = Math.round(Number(e.target.value));
                   setLimitConsensus(roundedValue);
-                  setLimitConsensusInput(roundedValue.toFixed(1));
+                  setLimitConsensusInput(roundedValue.toString());
                 }}
                 className={`limit-consensus-range w-full rounded-lg cursor-pointer ${
                   position.choice === EYesNoChoice.Yes ? 'limit-consensus-range-yes' : 'limit-consensus-range-no'
@@ -435,10 +414,10 @@ const PutPosition = ({id, position, setPosition, positionPreview, positionPrevie
       <span className="w-full border-b border-gray-300 dark:border-gray-700">
         {/* Divider */}
       </span>
-      {positionPreview && (
+      {(orderType === EOrderType.Market ? positionPreview : limitOrderPreview) && (
         <div className="animate-in slide-in-from-top-4 fade-in-0 duration-300 w-full">
           <PutPositionPreview
-            positionPreview={positionPreview}
+            positionPreview={orderType === EOrderType.Market ? positionPreview : limitOrderPreview}
             positionPreviewWithoutImpact={positionPreviewWithoutImpact}
             isLimitOrder={orderType === EOrderType.Limit}
           />
