@@ -192,7 +192,7 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
                 setPosition={setPosition}
                 poolDetails={poolDetails}
               /> }
-              <PoolLimitOrders poolId={pool.pool_id} />
+              <PoolLimitOrders poolId={pool.pool_id} consensus={initialConsensus} />
               <PoolPositions poolId={pool.pool_id} />
             </div>
           )}
@@ -259,7 +259,7 @@ const PoolView: React.FC<PoolViewProps> = ({ pool }) => {
               setLimitConsensus={setLimitConsensus}
               initialConsensus={initialConsensus}
             />
-            <PoolLimitOrders poolId={pool.pool_id} />
+            <PoolLimitOrders poolId={pool.pool_id} consensus={initialConsensus} />
             <PoolPositions poolId={pool.pool_id} />
           </div> : 
         <div className="flex flex-col space-y-2 items-center w-full">

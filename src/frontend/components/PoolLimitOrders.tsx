@@ -1,18 +1,21 @@
 import { useMemo, useEffect } from "react";
 import { protocolActor } from "./actors/ProtocolActor";
-import { timeDifference, timeToDate } from "../utils/conversions/date";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import { LimitOrder } from "@/declarations/protocol/protocol.did";
-import Avatar from "boring-avatars";
-import { useProtocolContext } from "./context/ProtocolContext";
 
 interface PoolLimitOrdersProps {
   poolId: string;
+  consensus: number;
 }
 
-const PoolLimitOrders = ({ poolId }: PoolLimitOrdersProps) => {
+interface OrderRow {
+  consensus: number;
+  amount: number;
+  total: number;
+}
+
+const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
   const { supplyLedger } = useFungibleLedgerContext();
-  const { info } = useProtocolContext();
 
   // Get limit orders for this pool
   const { data: limitOrdersByChoice, call: fetchLimitOrders } = protocolActor.unauthenticated.useQueryCall({
@@ -50,6 +53,45 @@ const PoolLimitOrders = ({ poolId }: PoolLimitOrdersProps) => {
     return { yesOrders, noOrders };
   }, [limitOrdersByChoice]);
 
+  const { yesRows, noRows } = useMemo(() => {
+    // Group orders by consensus and calculate cumulative totals
+    const groupOrders = (orders: LimitOrder[], reverseTotal: boolean = false): OrderRow[] => {
+      const grouped = new Map<number, number>();
+
+      orders.forEach(order => {
+        const consensus = Math.round(order.limit_consensus * 1000) / 1000; // Round to 3 decimals
+        grouped.set(consensus, (grouped.get(consensus) || 0) + order.amount);
+      });
+
+      // Sort by consensus descending (high to low)
+      const sorted = Array.from(grouped.entries())
+        .sort(([a], [b]) => b - a);
+
+      // For FALSE orders, compute cumulative totals in reverse order (low to high)
+      if (reverseTotal) {
+        const reversed = [...sorted].reverse();
+        let cumulative = 0;
+        const rowsWithTotals = reversed.map(([consensus, amount]) => {
+          cumulative += amount;
+          return { consensus, amount, total: cumulative };
+        });
+        return rowsWithTotals.reverse(); // Reverse back to descending order for display
+      }
+
+      // For TRUE orders, compute cumulative totals in descending order (high to low)
+      let cumulative = 0;
+      return sorted.map(([consensus, amount]) => {
+        cumulative += amount;
+        return { consensus, amount, total: cumulative };
+      });
+    };
+
+    return {
+      yesRows: groupOrders(yesOrders, false), // TRUE: cumulative from high to low
+      noRows: groupOrders(noOrders, true)     // FALSE: cumulative from low to high
+    };
+  }, [yesOrders, noOrders]);
+
   if (!limitOrdersByChoice) {
     return <PoolLimitOrdersSkeleton />;
   }
@@ -66,88 +108,110 @@ const PoolLimitOrders = ({ poolId }: PoolLimitOrdersProps) => {
     );
   }
 
-  const renderOrderCard = (order: LimitOrder, isYes: boolean) => (
-    <div
-      key={order.order_id}
-      className="rounded-lg p-4 shadow-sm bg-slate-200 dark:bg-gray-800 border dark:border-gray-700 border-gray-300"
-    >
-      <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 items-center">
-
-        {/* User Avatar and Address */}
-        <div className="flex items-center space-x-3">
-          <Avatar
-            size={40}
-            name={order.from.owner.toString()}
-            variant="marble"
-          />
-          <div className="flex flex-col">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {order.from.owner.toString().slice(0, 8)}...
-            </span>
-          </div>
-        </div>
-
-        {/* Amount */}
-        <div className="text-right">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Amount</div>
-          <div className="font-medium">
-            {supplyLedger.formatAmountUsd(BigInt(Math.floor(order.amount)))}
-          </div>
-        </div>
-
-        {/* Limit Consensus */}
-        <div className="text-right">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Limit</div>
-          <div className="font-medium">
-            {(order.limit_consensus * 100).toFixed(1)}%
-          </div>
-        </div>
-
-        {/* Timestamp */}
-        <div className="text-right">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Placed</div>
-          <div className="text-sm">
-            {info ? timeDifference(timeToDate(order.timestamp), timeToDate(info.current_time)) : '—'}
-          </div>
-        </div>
-
-        {/* Choice Badge */}
-        <div className="flex justify-end">
-          <span className={`px-3 py-1 rounded text-sm font-semibold text-white ${
-            isYes ? 'bg-brand-true dark:bg-brand-true-dark' : 'bg-brand-false'
-          }`}>
-            {isYes ? 'True' : 'False'}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+  // For FALSE: max is at first row (highest consensus) after reverse
+  // For TRUE: max is at last row (lowest consensus)
+  const maxFalseTotal = noRows.length > 0 ? noRows[0].total : 0;
+  const maxTrueTotal = yesRows.length > 0 ? yesRows[yesRows.length - 1].total : 0;
 
   return (
     <div className="flex flex-col space-y-4">
       <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-        Limit Orders ({totalOrders})
+        Order book
       </h3>
 
-      {/* Yes Orders */}
-      {yesOrders.length > 0 && (
-        <div className="flex flex-col space-y-2">
-          <h4 className="text-md font-medium text-gray-700 dark:text-gray-300">
-            True Orders ({yesOrders.length})
-          </h4>
-          {yesOrders.map(order => renderOrderCard(order, true))}
-        </div>
-      )}
+      <div className="overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <table className="w-full table-fixed">
+          <colgroup>
+            <col style={{ width: '40%' }} />
+            <col style={{ width: '20%' }} />
+            <col style={{ width: '20%' }} />
+            <col style={{ width: '20%' }} />
+          </colgroup>
+          <thead>
+            <tr className="border-b border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                &nbsp;
+              </th>
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                Consensus
+              </th>
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                Amount
+              </th>
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                Total
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* False Orders */}
+            {noRows.map((row, idx) => {
+              const percentage = maxFalseTotal > 0 ? (row.total / maxFalseTotal) * 100 : 0;
 
-      {/* No Orders */}
-      {noOrders.length > 0 && (
-        <div className="flex flex-col space-y-2">
-          <h4 className="text-md font-medium text-gray-700 dark:text-gray-300">
-            False Orders ({noOrders.length})
-          </h4>
-          {noOrders.map(order => renderOrderCard(order, false))}
-        </div>
-      )}
+              return (
+                <tr
+                  key={`no-${row.consensus}-${idx}`}
+                  className="group h-9 hover:bg-red-50 dark:hover:bg-red-950/20"
+                >
+                  <td className="p-0 relative h-9">
+                    <div
+                      className="absolute inset-0 bg-red-500/30 dark:bg-red-500/40 group-hover:bg-red-500/50 dark:group-hover:bg-red-500/60"
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </td>
+                  <td className="px-2 py-1.5 text-base text-center font-bold text-red-600 dark:text-red-400">
+                    {(row.consensus * 100).toFixed(0)}%
+                  </td>
+                  <td className="px-2 py-1.5 text-base text-center text-gray-900 dark:text-gray-100">
+                    {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.amount)))}
+                  </td>
+                  <td className="px-2 py-1.5 text-base text-center font-medium text-gray-900 dark:text-gray-100">
+                    {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.total)))}
+                  </td>
+                </tr>
+              );
+            })}
+
+            {/* Separator row with current pool consensus */}
+            <tr className="border-t border-b border-gray-300 dark:border-gray-600">
+              <td className="p-0"></td>
+              <td className="px-2 py-1.5 text-sm text-center text-gray-500 dark:text-gray-400">
+                Current: {consensus.toFixed(0)}%
+              </td>
+              <td className="px-2 py-1.5"></td>
+              <td className="px-2 py-1.5"></td>
+            </tr>
+
+            {/* True Orders */}
+            {yesRows.map((row, idx) => {
+              const percentage = maxTrueTotal > 0 ? (row.total / maxTrueTotal) * 100 : 0;
+
+              return (
+                <tr
+                  key={`yes-${row.consensus}-${idx}`}
+                  className="group h-9 hover:bg-green-50 dark:hover:bg-green-950/20"
+                >
+                  <td className="p-0 relative h-9">
+                    <div
+                      className="absolute inset-0 bg-green-500/30 dark:bg-green-500/40 group-hover:bg-green-500/50 dark:group-hover:bg-green-500/60"
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </td>
+                  <td className="px-2 py-1.5 text-base text-center font-bold text-green-600 dark:text-green-400">
+                    {(row.consensus * 100).toFixed(0)}%
+                  </td>
+                  <td className="px-2 py-1.5 text-base text-center text-gray-900 dark:text-gray-100">
+                    {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.amount)))}
+                  </td>
+                  <td className="px-2 py-1.5 text-base text-center font-medium text-gray-900 dark:text-gray-100">
+                    {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.total)))}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
