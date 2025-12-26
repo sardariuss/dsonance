@@ -1,7 +1,8 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { protocolActor } from "./actors/ProtocolActor";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
 import { LimitOrder } from "@/declarations/protocol/protocol.did";
+import { MAX_VISIBLE_LIMIT_ORDERS } from "../constants";
 
 interface PoolLimitOrdersProps {
   poolId: string;
@@ -16,6 +17,7 @@ interface OrderRow {
 
 const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
   const { supplyLedger } = useFungibleLedgerContext();
+  const separatorRowRef = useRef<HTMLTableRowElement>(null);
 
   // Get limit orders for this pool
   const { data: limitOrdersByChoice, call: fetchLimitOrders } = protocolActor.unauthenticated.useQueryCall({
@@ -28,6 +30,13 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
       fetchLimitOrders();
     }
   }, [poolId]);
+
+  // Scroll to center the separator row when data loads
+  useEffect(() => {
+    if (limitOrdersByChoice && separatorRowRef.current) {
+      separatorRowRef.current.scrollIntoView({ block: 'center', behavior: 'auto' });
+    }
+  }, [limitOrdersByChoice]);
 
   const { yesOrders, noOrders } = useMemo(() => {
     if (!limitOrdersByChoice) return { yesOrders: [], noOrders: [] };
@@ -113,21 +122,28 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
   const maxFalseTotal = noRows.length > 0 ? noRows[0].total : 0;
   const maxTrueTotal = yesRows.length > 0 ? yesRows[yesRows.length - 1].total : 0;
 
+  // Calculate max height for scrollable area: header + max visible rows
+  // Header with py-2 and text-xs is ~32px, each row is h-9 (36px)
+  const headerHeight = 32;
+  const rowHeight = 36;
+  const maxHeight = headerHeight + (MAX_VISIBLE_LIMIT_ORDERS * rowHeight);
+
   return (
     <div className="flex flex-col space-y-4">
       <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
         Order book
       </h3>
 
-      <div className="overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <table className="w-full table-fixed">
+      <div className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div className="overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]" style={{ maxHeight: `${maxHeight}px` }}>
+          <table className="w-full table-fixed">
           <colgroup>
             <col style={{ width: '40%' }} />
             <col style={{ width: '20%' }} />
             <col style={{ width: '20%' }} />
             <col style={{ width: '20%' }} />
           </colgroup>
-          <thead>
+          <thead className="sticky top-0 z-10">
             <tr className="border-b border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                 &nbsp;
@@ -159,13 +175,13 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
                       style={{ width: `${percentage}%` }}
                     />
                   </td>
-                  <td className="px-2 py-1.5 text-base text-center font-bold text-red-600 dark:text-red-400">
+                  <td className="px-2 py-1.5 text-sm text-center font-bold text-red-600 dark:text-red-400">
                     {(row.consensus * 100).toFixed(0)}%
                   </td>
-                  <td className="px-2 py-1.5 text-base text-center text-gray-900 dark:text-gray-100">
+                  <td className="px-2 py-1.5 text-sm text-center text-gray-900 dark:text-gray-100">
                     {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.amount)))}
                   </td>
-                  <td className="px-2 py-1.5 text-base text-center font-medium text-gray-900 dark:text-gray-100">
+                  <td className="px-2 py-1.5 text-sm text-center font-medium text-gray-900 dark:text-gray-100">
                     {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.total)))}
                   </td>
                 </tr>
@@ -173,7 +189,7 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
             })}
 
             {/* Separator row with current pool consensus */}
-            <tr className="border-t border-b border-gray-300 dark:border-gray-600">
+            <tr ref={separatorRowRef} className="border-t border-b border-gray-300 dark:border-gray-600">
               <td className="p-0"></td>
               <td className="px-2 py-1.5 text-sm text-center text-gray-500 dark:text-gray-400">
                 Current: {consensus.toFixed(0)}%
@@ -197,13 +213,13 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
                       style={{ width: `${percentage}%` }}
                     />
                   </td>
-                  <td className="px-2 py-1.5 text-base text-center font-bold text-green-600 dark:text-green-400">
+                  <td className="px-2 py-1.5 text-sm text-center font-bold text-green-600 dark:text-green-400">
                     {(row.consensus * 100).toFixed(0)}%
                   </td>
-                  <td className="px-2 py-1.5 text-base text-center text-gray-900 dark:text-gray-100">
+                  <td className="px-2 py-1.5 text-sm text-center text-gray-900 dark:text-gray-100">
                     {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.amount)))}
                   </td>
-                  <td className="px-2 py-1.5 text-base text-center font-medium text-gray-900 dark:text-gray-100">
+                  <td className="px-2 py-1.5 text-sm text-center font-medium text-gray-900 dark:text-gray-100">
                     {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.total)))}
                   </td>
                 </tr>
@@ -211,6 +227,7 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
