@@ -22,6 +22,7 @@ import { unwrapLock } from "@/frontend/utils/conversions/position";
 import { useBorrowOperations } from "../hooks/useBorrowOperations";
 import { useSupplyOperations } from "../hooks/useSupplyOperations";
 import { useLendingCalculations } from "../hooks/useLendingCalculations";
+import OrdersTab from "./OrdersTab";
 
 const Profile = () => {
   const { principal } = useParams();
@@ -47,7 +48,7 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
   const { user, updateNickname } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
-  const [activeTab, setActiveTab] = useState<'positions' | 'lending' | 'mining'>('positions');
+  const [activeTab, setActiveTab] = useState<'positions' | 'lending' | 'mining' | 'orders'>('positions');
 
   const { participationLedger, supplyLedger, collateralLedger } = useFungibleLedgerContext();
   const { lendingIndexTimeline, info } = useProtocolContext();
@@ -352,12 +353,13 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
         {[
           { key: 'positions', label: 'Positions' },
           { key: 'lending', label: 'Lending' },
-          { key: 'mining', label: 'Mining' }
+          { key: 'mining', label: 'Mining' },
+          { key: 'orders', label: 'Orders' }
         ].map((tab) => (
           <li key={tab.key} className="min-w-max text-center">
             <TabButton
               label={tab.label}
-              setIsCurrent={() => setActiveTab(tab.key as 'positions' | 'lending' | 'mining')}
+              setIsCurrent={() => setActiveTab(tab.key as 'positions' | 'lending' | 'mining' | 'orders')}
               isCurrent={activeTab === tab.key}
             />
           </li>
@@ -381,6 +383,7 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
           withdrawLoading={withdrawLoading}
         />
       )}
+      {activeTab === 'orders' && <OrdersTab user={connectedUser} />}
     </div>
   );
 }
