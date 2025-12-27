@@ -13,12 +13,14 @@ module {
     type PoolTypeEnum      = Types.PoolTypeEnum;
     type YesNoAggregate    = Types.YesNoAggregate;
     type YesNoChoice       = Types.YesNoChoice;
-    type YesNoPosition       = Types.YesNoPosition;
+    type YesNoPosition     = Types.YesNoPosition;
     type UUID              = Types.UUID;
-    type PositionType        = Types.PositionType;
+    type PositionType      = Types.PositionType;
     type LimitOrderType    = Types.LimitOrderType;
     type Account           = Types.Account;
-    type PutPositionSuccess  = Types.PutPositionSuccess;
+    type PutPositionSuccess = Types.PutPositionSuccess;
+    type LimitOrderWithResistanceType = Types.LimitOrderWithResistanceType;
+    type LimitOrderWithResistance<C> = Types.LimitOrderWithResistance<C>;
     type Iter<T>           = Map.Iter<T>;
 
     // TODO: put in Types.mo
@@ -77,6 +79,31 @@ module {
                 };
             };
         };
+
+        public func query_limit_orders(pool_type: PoolType, time: Nat): [(ChoiceType, [LimitOrderWithResistanceType])] {
+
+            switch (pool_type) {
+                case (#YES_NO(pool)) {
+                    let yes_no_result = yes_no_controller.query_limit_orders(pool, time);
+
+                    Array.map<(YesNoChoice, [LimitOrderWithResistance<YesNoChoice>]), (ChoiceType, [LimitOrderWithResistanceType])>(
+                        yes_no_result,
+                        func ((choice, orders)) {
+                            (
+                                #YES_NO(choice),
+                                Array.map<LimitOrderWithResistance<YesNoChoice>, LimitOrderWithResistanceType>(
+                                    orders,
+                                    func (order) : LimitOrderWithResistanceType {
+                                        #YES_NO(order);
+                                    }
+                                )
+                            )
+                        }
+                    );
+                };
+            };
+        };
+
 
         public func unlock_position({ pool_type: PoolType; position_id: UUID; }) {
             switch(pool_type){

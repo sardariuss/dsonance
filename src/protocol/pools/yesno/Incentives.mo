@@ -28,6 +28,8 @@ module {
         };
     };
 
+    // Compute the resistance needed to shift the consensus to a target value
+    // Positive resistance means adding to the chosen side, negative means adding to the opposite side
     public func compute_resistance({
         choice: YesNoChoice;
         total_yes: Float;

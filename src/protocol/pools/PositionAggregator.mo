@@ -1,5 +1,8 @@
 import Types              "../Types";
 
+import Float             "mo:base/Float";
+import Int               "mo:base/Int";
+
 module {
 
     type UpdateAggregate<A, C>      = Types.UpdateAggregate<A, C>;
@@ -39,6 +42,15 @@ module {
                 aggregate = { update };
                 position = { dissent; consent };
             };
+        };
+
+        public func add_to_aggregate({
+            aggregate: A;
+            choice: C;
+            amount: Nat;
+            time: Nat;
+        }) : A {
+            update_aggregate({ aggregate; choice; amount; time; });
         };
 
         public func get_resistance({

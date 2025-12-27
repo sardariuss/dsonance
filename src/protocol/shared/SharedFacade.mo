@@ -52,6 +52,7 @@ module {
     type ChoiceType = Types.ChoiceType;
     type GetLimitOrderArgs = Types.GetLimitOrderArgs;
     type PutLimitOrderResult = Types.PutLimitOrderResult;
+    type LimitOrderWithResistanceType = Types.LimitOrderWithResistanceType;
 
     public class SharedFacade({
         controller: Controller.Controller;
@@ -130,8 +131,8 @@ module {
             queries.get_pool_positions(pool_id);
         };
 
-        public func get_pool_limit_orders(pool_id: UUID) : [(ChoiceType, [LimitOrderType])] {
-            queries.get_pool_limit_orders(pool_id);
+        public func get_pool_limit_orders(pool_id: UUID, time: Nat) : [(ChoiceType, [LimitOrderWithResistanceType])] {
+            controller.query_limit_orders(pool_id, time);
         };
 
         public func get_pools({origin: Principal; previous: ?UUID; limit: Nat; direction: QueryDirection; }) : [SPoolType] {

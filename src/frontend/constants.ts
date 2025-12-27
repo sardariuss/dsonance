@@ -25,7 +25,7 @@ export const BRAND_TRUE_COLOR_DARK = "oklch(72.3% 0.219 149.579)";
 export const BRAND_FALSE_COLOR = "oklch(63.7% 0.237 25.331)";
 export const BRAND_BASE_COLOR = "oklch(62.3% 0.214 259.815)"; // blue-500
 // Pool preview constants
-export const PREVIEW_POOL_IMPACT = false; // Enable/disable position preview impact on pool figures
+export const PREVIEW_POOL_IMPACT = true; // Enable/disable position preview impact on pool figures
 // Order book constants
 export const MAX_VISIBLE_LIMIT_ORDERS = 8; // Maximum number of visible order rows before scrolling
 

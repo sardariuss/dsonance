@@ -1,8 +1,9 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { protocolActor } from "./actors/ProtocolActor";
 import { useFungibleLedgerContext } from "./context/FungibleLedgerContext";
-import { LimitOrder } from "@/declarations/protocol/protocol.did";
+import { ChoiceType, LimitOrderWithResistance, LimitOrderWithResistanceType } from "@/declarations/protocol/protocol.did";
 import { MAX_VISIBLE_LIMIT_ORDERS } from "../constants";
+import { useProtocolContext } from "./context/ProtocolContext";
 
 interface PoolLimitOrdersProps {
   poolId: string;
@@ -12,24 +13,31 @@ interface PoolLimitOrdersProps {
 interface OrderRow {
   consensus: number;
   amount: number;
+  resistance: number;
   total: number;
 }
 
 const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
   const { supplyLedger } = useFungibleLedgerContext();
+  const { info } = useProtocolContext();
   const separatorRowRef = useRef<HTMLTableRowElement>(null);
 
+  const [limitOrdersByChoice, setLimitOrdersByChoice] = useState<[ChoiceType, LimitOrderWithResistanceType[]][]>([]);
+
   // Get limit orders for this pool
-  const { data: limitOrdersByChoice, call: fetchLimitOrders } = protocolActor.unauthenticated.useQueryCall({
-    functionName: 'get_pool_limit_orders',
-    args: [poolId],
+  const { call: fetchLimitOrders } = protocolActor.unauthenticated.useQueryCall({
+    functionName: 'get_pool_limit_orders'
   });
 
   useEffect(() => {
-    if (poolId) {
-      fetchLimitOrders();
+    if (poolId && info) {
+      fetchLimitOrders([poolId, info.current_time]).then((data) => {
+        setLimitOrdersByChoice(data || []);
+      }).catch((error) => {
+        console.error("Error fetching limit orders:", error);
+      });
     }
-  }, [poolId]);
+  }, [poolId, info]);
 
   // Scroll to center the separator row when data loads
   useEffect(() => {
@@ -41,8 +49,8 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
   const { yesOrders, noOrders } = useMemo(() => {
     if (!limitOrdersByChoice) return { yesOrders: [], noOrders: [] };
 
-    let yesOrders: LimitOrder[] = [];
-    let noOrders: LimitOrder[] = [];
+    let yesOrders: LimitOrderWithResistance[] = [];
+    let noOrders: LimitOrderWithResistance[] = [];
 
     limitOrdersByChoice.forEach(([choiceType, orders]) => {
       if ('YES_NO' in choiceType) {
@@ -64,12 +72,16 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
 
   const { yesRows, noRows } = useMemo(() => {
     // Group orders by consensus and calculate cumulative totals
-    const groupOrders = (orders: LimitOrder[], reverseTotal: boolean = false): OrderRow[] => {
-      const grouped = new Map<number, number>();
+    const groupOrders = (orders: LimitOrderWithResistance[], reverseTotal: boolean = false): OrderRow[] => {
+      const grouped = new Map<number, { amount: number; resistance: number }>();
 
       orders.forEach(order => {
         const consensus = Math.round(order.limit_consensus * 1000) / 1000; // Round to 3 decimals
-        grouped.set(consensus, (grouped.get(consensus) || 0) + order.amount);
+        const existing = grouped.get(consensus) || { amount: 0, resistance: 0 };
+        grouped.set(consensus, {
+          amount: existing.amount + order.amount,
+          resistance: existing.resistance + order.resistance
+        });
       });
 
       // Sort by consensus descending (high to low)
@@ -80,18 +92,18 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
       if (reverseTotal) {
         const reversed = [...sorted].reverse();
         let cumulative = 0;
-        const rowsWithTotals = reversed.map(([consensus, amount]) => {
-          cumulative += amount;
-          return { consensus, amount, total: cumulative };
+        const rowsWithTotals = reversed.map(([consensus, { amount, resistance }]) => {
+          cumulative += amount + resistance;
+          return { consensus, amount, resistance, total: cumulative };
         });
         return rowsWithTotals.reverse(); // Reverse back to descending order for display
       }
 
       // For TRUE orders, compute cumulative totals in descending order (high to low)
       let cumulative = 0;
-      return sorted.map(([consensus, amount]) => {
-        cumulative += amount;
-        return { consensus, amount, total: cumulative };
+      return sorted.map(([consensus, { amount, resistance }]) => {
+        cumulative += amount + resistance;
+        return { consensus, amount, resistance, total: cumulative };
       });
     };
 
@@ -135,26 +147,39 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
       </h3>
 
       <div className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <style>{`
+          @media (max-width: 767px) {
+            .order-book-table colgroup col:nth-child(1) { width: 30% !important; }
+            .order-book-table colgroup col:nth-child(2) { width: 23.33% !important; }
+            .order-book-table colgroup col:nth-child(3) { width: 23.33% !important; }
+            .order-book-table colgroup col:nth-child(4) { width: 23.33% !important; }
+            .order-book-table colgroup col:nth-child(5) { width: 0 !important; }
+          }
+        `}</style>
         <div className="overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]" style={{ maxHeight: `${maxHeight}px` }}>
-          <table className="w-full table-fixed">
+          <table className="w-full table-fixed order-book-table">
           <colgroup>
             <col style={{ width: '40%' }} />
-            <col style={{ width: '20%' }} />
-            <col style={{ width: '20%' }} />
-            <col style={{ width: '20%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '15%' }} />
           </colgroup>
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              <th className="px-2 py-2 text-left text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                 &nbsp;
               </th>
-              <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              <th className="px-2 py-2 text-center text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                 Consensus
               </th>
-              <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              <th className="px-2 py-2 text-center text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                 Amount
               </th>
-              <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              <th className="px-2 py-2 text-center text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                Resistance
+              </th>
+              <th className="hidden md:table-cell px-2 py-2 text-center text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                 Total
               </th>
             </tr>
@@ -175,13 +200,16 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
                       style={{ width: `${percentage}%` }}
                     />
                   </td>
-                  <td className="px-2 py-1.5 text-sm text-center font-bold text-red-600 dark:text-red-400">
+                  <td className="px-2 py-1.5 text-xs md:text-sm text-center font-bold text-red-600 dark:text-red-400">
                     {(row.consensus * 100).toFixed(0)}%
                   </td>
-                  <td className="px-2 py-1.5 text-sm text-center text-gray-900 dark:text-gray-100">
+                  <td className="px-2 py-1.5 text-xs md:text-sm text-center text-gray-900 dark:text-gray-100">
                     {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.amount)))}
                   </td>
-                  <td className="px-2 py-1.5 text-sm text-center font-medium text-gray-900 dark:text-gray-100">
+                  <td className="px-2 py-1.5 text-xs md:text-sm text-center text-gray-900 dark:text-gray-100">
+                    {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.resistance)))}
+                  </td>
+                  <td className="hidden md:table-cell px-2 py-1.5 text-xs md:text-sm text-center font-medium text-gray-900 dark:text-gray-100">
                     {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.total)))}
                   </td>
                 </tr>
@@ -191,11 +219,12 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
             {/* Separator row with current pool consensus */}
             <tr ref={separatorRowRef} className="border-t border-b border-gray-300 dark:border-gray-600">
               <td className="p-0"></td>
-              <td className="px-2 py-1.5 text-sm text-center text-gray-500 dark:text-gray-400">
+              <td className="px-2 py-1.5 text-xs md:text-sm text-center text-gray-500 dark:text-gray-400">
                 Current: {consensus.toFixed(0)}%
               </td>
               <td className="px-2 py-1.5"></td>
               <td className="px-2 py-1.5"></td>
+              <td className="hidden md:table-cell px-2 py-1.5"></td>
             </tr>
 
             {/* True Orders */}
@@ -213,13 +242,16 @@ const PoolLimitOrders = ({ poolId, consensus }: PoolLimitOrdersProps) => {
                       style={{ width: `${percentage}%` }}
                     />
                   </td>
-                  <td className="px-2 py-1.5 text-sm text-center font-bold text-green-600 dark:text-green-400">
+                  <td className="px-2 py-1.5 text-xs md:text-sm text-center font-bold text-green-600 dark:text-green-400">
                     {(row.consensus * 100).toFixed(0)}%
                   </td>
-                  <td className="px-2 py-1.5 text-sm text-center text-gray-900 dark:text-gray-100">
+                  <td className="px-2 py-1.5 text-xs md:text-sm text-center text-gray-900 dark:text-gray-100">
                     {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.amount)))}
                   </td>
-                  <td className="px-2 py-1.5 text-sm text-center font-medium text-gray-900 dark:text-gray-100">
+                  <td className="px-2 py-1.5 text-xs md:text-sm text-center text-gray-900 dark:text-gray-100">
+                    {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.resistance)))}
+                  </td>
+                  <td className="hidden md:table-cell px-2 py-1.5 text-xs md:text-sm text-center font-medium text-gray-900 dark:text-gray-100">
                     {supplyLedger.formatAmountUsd(BigInt(Math.floor(row.total)))}
                   </td>
                 </tr>

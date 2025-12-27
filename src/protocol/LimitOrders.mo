@@ -2,7 +2,6 @@ import SupplyRegistry "lending/SupplyRegistry";
 
 import Types         "Types";
 import Map           "mo:map/Map";
-import Iter          "mo:base/Iter";
 import Float         "mo:base/Float";
 import Buffer        "mo:base/Buffer";
 

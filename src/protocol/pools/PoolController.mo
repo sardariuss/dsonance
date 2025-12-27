@@ -32,6 +32,7 @@ module {
     type LimitOrderBTreeKey = Types.LimitOrderBTreeKey;
     type IDecayModel = Interfaces.IDecayModel;
     type ILockInfoUpdater = Interfaces.ILockInfoUpdater;
+    type LimitOrderWithResistance<C> = Types.LimitOrderWithResistance<C>;
 
     type Iter<T> = Map.Iter<T>;
     type BTree<K, V> = BTree.BTree<K, V>;
@@ -198,6 +199,33 @@ module {
             IterUtils.map(Set.keys(pool.positions), get_position);
         };
 
+        public func query_limit_orders(pool: Pool<A, C>, time: Nat) : [(C, [LimitOrderWithResistance<C>])] {
+            
+            let result = Buffer.Buffer<(C, [LimitOrderWithResistance<C>])>(0);
+
+            for ((choice, limit_orders) in Map.entries(pool.descending_orders)){
+
+                var aggregate = pool.aggregate.current.data;
+                let orders_buffer = Buffer.Buffer<LimitOrderWithResistance<C>>(0);
+
+                // Assuming in descending order
+                for((_, order_id) in BTree.entries(limit_orders)){
+                    let order = get_order(order_id);
+                    let opposite_choice = position_aggregator.get_opposite_choice(choice);
+                    let resistance = position_aggregator.get_resistance({ aggregate; choice = opposite_choice; target_consensus = order.limit_consensus; time; });
+                    orders_buffer.add({ order with resistance });
+                    // Add the order amount + resistance to the aggregate
+                    let amount = order.amount + resistance;
+                    aggregate := position_aggregator.add_to_aggregate({ aggregate; choice; amount = Int.abs(Float.toInt(amount)); time; });
+                    // Add the opposite order amount to the aggregate
+                    let opposite_amount = position_aggregator.get_opposite_worth({ aggregate; choice; amount = order.amount; time; });
+                    aggregate := position_aggregator.compute_outcome({ aggregate; choice = opposite_choice; amount = Int.abs(Float.toInt(opposite_amount)); time; }).aggregate.update;
+                };
+                result.add(choice, Buffer.toArray(orders_buffer));
+            };
+            Buffer.toArray(result);
+        };
+
         func get_descending_orders(pool: Pool<A, C>, choice: C) : BTree<LimitOrderBTreeKey, UUID> {
             switch(Map.get(pool.descending_orders, choice_hash, choice)){
                 case(null) {
@@ -339,7 +367,7 @@ module {
                 return null;
             };
 
-            let matched_amount = amount - Int.abs(Float.toInt(push.amount_left));
+            let matched_amount = Int.abs(amount - Int.abs(Float.toInt(push.amount_left)));
 
             let position = {
                 args with
@@ -465,21 +493,26 @@ module {
             //  -> Worth = (0.9 / 0.1) * 30 = 270.0
             let opposite_worth = position_aggregator.get_opposite_worth({ aggregate = input.aggregate; choice = order.choice; amount = order.amount; time; });
             // With amount_left = 500, opposite_worth = 900.0
-            //  -> consume_worth = min(500, 900) = 500
+            //  -> opposite_amount = min(500, 900) = 500
             // With amount_left = 500, opposite_worth = 270.0
-            //  -> consume_worth = min(500, 270) = 270
-            let consume_worth = Float.min(input.amount_left, opposite_worth);
-            input.amount_left -= consume_worth;
+            //  -> opposite_amount = min(500, 270) = 270
+            let opposite_amount = Float.min(input.amount_left, opposite_worth);
+            input.amount_left -= opposite_amount;
 
             let { dissent; consent; } = position_aggregator.compute_outcome({ aggregate = input.aggregate; choice = order.choice; amount = 0; time; }).position;
-            input.total_dissent += dissent * consume_worth;
-            // Consent stays the same for limit orders
+            input.total_dissent += dissent * opposite_amount;
+            // Consent stays the same for limit orders, no need to update input.position_consent here
 
-            // With consume_worth = 500, opposite_worth = 900.0
+            // With opposite_amount = 500, opposite_worth = 900.0
             //  -> order.amount = 100 - (500 / 900) * 100 = 44.44
-            // With consume_worth = 270, opposite_worth = 270.0
+            // With opposite_amount = 270, opposite_worth = 270.0
             //  -> order.amount = 30 - (270 / 270) * 30 = 0.0
-            let consumed = consume_worth / opposite_worth * order.amount;
+            let consumed = opposite_amount / opposite_worth * order.amount;
+
+            // Update the aggregate with amounts on both sides
+            input.aggregate := position_aggregator.add_to_aggregate({ aggregate = input.aggregate; choice = order.choice; amount = Int.abs(Float.toInt(consumed)); time; });
+            let opposite_choice = position_aggregator.get_opposite_choice(order.choice);
+            input.aggregate := position_aggregator.add_to_aggregate({ aggregate = input.aggregate; choice = opposite_choice ; amount = Int.abs(Float.toInt(opposite_amount)); time; });
 
             {
                 position_id = uuid.new();

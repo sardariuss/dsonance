@@ -63,6 +63,7 @@ module {
     type IPriceTracker = LedgerTypes.IPriceTracker;
     type MiningTracker = Types.MiningTracker;
     type PreviewLimitOrderArgs = Types.PreviewLimitOrderArgs;
+    type LimitOrderWithResistanceType = Types.LimitOrderWithResistanceType;
 
     type Iter<T> = Map.Iter<T>;
     type Map<K, V> = Map.Map<K, V>;
@@ -329,6 +330,16 @@ module {
             });
 
             #ok(SharedConversions.sharePutLimitOrderSuccess(success));
+        };
+
+        public func query_limit_orders(pool_id: UUID, time: Nat) : [(ChoiceType, [LimitOrderWithResistanceType])] {
+
+            let pool_type = switch(Map.get(pool_register.pools, Map.thash, pool_id)){
+                case(null) return [];
+                case(?p) p;
+            };
+
+            pool_type_controller.query_limit_orders(pool_type, time);
         };
 
         public func get_available_supply(account: Account) : Float {

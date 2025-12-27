@@ -81,8 +81,8 @@ shared({ caller = admin }) persistent actor class Protocol(args: V0_2_0.Args) : 
         await* getFacade().put_limit_order({ args with caller; });
     };
 
-    public query func get_pool_limit_orders(pool_id: Interface.UUID) : async [(Interface.ChoiceType, [Interface.LimitOrderType])] {
-        getFacade().get_pool_limit_orders(pool_id);
+    public query func get_pool_limit_orders(pool_id: Interface.UUID, time: Nat) : async [(Interface.ChoiceType, [Interface.LimitOrderWithResistanceType])] {
+        getFacade().get_pool_limit_orders(pool_id, time);
     };
 
     public query func get_limit_orders(args: Interface.GetLimitOrderArgs) : async [Interface.LimitOrderType] {

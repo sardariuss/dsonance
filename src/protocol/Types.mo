@@ -160,6 +160,14 @@ module {
 
     // SHARED TYPES
 
+    public type LimitOrderWithResistance<C> = LimitOrder<C> and {
+        resistance: Float;
+    };
+
+    public type LimitOrderWithResistanceType = {
+        #YES_NO: LimitOrderWithResistance<YesNoChoice>;
+    };
+
     public type SYieldState = {
         tvl: Nat;
         apr: Float;
