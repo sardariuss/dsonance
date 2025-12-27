@@ -352,9 +352,9 @@ const InnerProfile = ({ user: connectedUser }: { user: NonNullable<ReturnType<ty
       <ul className="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-2 mb-4 items-center">
         {[
           { key: 'positions', label: 'Positions' },
+          { key: 'orders', label: 'Orders' },
           { key: 'lending', label: 'Lending' },
-          { key: 'mining', label: 'Mining' },
-          { key: 'orders', label: 'Orders' }
+          { key: 'mining', label: 'Mining' }
         ].map((tab) => (
           <li key={tab.key} className="min-w-max text-center">
             <TabButton
